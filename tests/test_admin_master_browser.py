@@ -50,10 +50,11 @@ def browser():
         launched.close()
 
 
-def mount(browser, app_module, *, width=1440, height=900, data=None, responses=None):
+def mount(browser, app_module, *, width=1440, height=900, data=None, responses=None,
+          path="/admin/dashboard", navigation=False):
     from flask import render_template, session
     data = deepcopy(data or snapshot())
-    with app_module.app.test_request_context("/admin/dashboard"):
+    with app_module.app.test_request_context(path):
         session.update(user_id="admin-browser-qa", user_role="ADMIN", membership="ADMIN", user_membership="ADMIN")
         markup = render_template("admin_dashboard.html", data={"admin_master":data}, q={}, items=[],
             current_user={"id":"admin-browser-qa","role":"ADMIN","membership":"ADMIN","name":"Admin QA"})
@@ -61,7 +62,8 @@ def mount(browser, app_module, *, width=1440, height=900, data=None, responses=N
     # from unrelated polling workers and PWA registration.
     markup = re.sub(r"<script\b([^>]*)>.*?</script>", lambda match:
         match.group(0) if ("application/json" in match.group(1) or
-            "admin-master-control.js" in match.group(1) or "v930-icons.js" in match.group(1)) else "",
+            "admin-master-control.js" in match.group(1) or "v930-icons.js" in match.group(1) or
+            (navigation and "app-navigation.js" in match.group(1))) else "",
         markup, flags=re.S|re.I)
     markup = markup.replace("<body ", "<body data-qa-origin=\"SIMULATED_QA\" ", 1)
     markup = markup.replace("<h1>Centro de mando</h1>", "<h1>Centro de mando</h1><p>SIMULATED_QA · evidencia sintética · sin producción</p>")
@@ -75,12 +77,12 @@ def mount(browser, app_module, *, width=1440, height=900, data=None, responses=N
         parsed = urlsplit(request.url)
         if parsed.netloc != "nemesis-qa.invalid":
             blocked.append(request.url); route.abort(); return
-        if parsed.path == "/admin/dashboard":
+        if parsed.path == path:
             route.fulfill(status=200,content_type="text/html; charset=utf-8",body=markup); return
         if parsed.path.startswith("/static/"):
-            path = (ROOT / parsed.path.lstrip("/")).resolve()
-            if path.is_relative_to(ROOT / "static") and path.is_file():
-                route.fulfill(status=200,content_type=mimetypes.guess_type(str(path))[0] or "application/octet-stream",body=path.read_bytes()); return
+            asset = (ROOT / parsed.path.lstrip("/")).resolve()
+            if asset.is_relative_to(ROOT / "static") and asset.is_file():
+                route.fulfill(status=200,content_type=mimetypes.guess_type(str(asset))[0] or "application/octet-stream",body=asset.read_bytes()); return
             route.fulfill(status=404,body=""); return
         if parsed.path == "/admin/client-preview/frame":
             plan = parse_qs(parsed.query).get("plan",["FREE"])[0]
@@ -97,7 +99,7 @@ def mount(browser, app_module, *, width=1440, height=900, data=None, responses=N
         route.fulfill(status=404,body="")
     page.route("**/*", serve)
     page.on("pageerror",lambda error:errors.append(str(error)))
-    page.goto("http://nemesis-qa.invalid/admin/dashboard",wait_until="networkidle")
+    page.goto("http://nemesis-qa.invalid" + path,wait_until="networkidle")
     page.wait_for_function("Boolean(document.querySelector('[data-setting-current]')?.textContent)")
     return context, page, calls, errors, blocked
 
@@ -120,6 +122,170 @@ def test_layout_no_automatic_admin_api_calls_and_captures(browser,app_module,wid
         output=ROOT/"data/local_dev/admin-master-v941-qa"
         output.mkdir(parents=True,exist_ok=True)
         page.screenshot(path=str(output/f"admin-{width}x{height}.png"),full_page=True,timeout=SCREENSHOT_TIMEOUT_MS)
+    finally:
+        context.close()
+
+
+@pytest.mark.parametrize("width", [801,900,901,980,981,1024,1180,1181,1366,1920])
+def test_admin_shell_navigation_at_window_boundaries(browser, app_module, width):
+    """Use the production shell/search together, including intermediate PC widths."""
+    context,page,calls,errors,blocked = mount(
+        browser, app_module, width=width, height=768,
+        path="/admin/control-center", navigation=True,
+    )
+    try:
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+        main = page.locator("main.v933-admin-shell")
+        sidebar = page.locator(".v933-admin-sidebar")
+        topbar = page.locator(".v933-admin-topbar")
+        mobile = page.locator(".v933-admin-mobile-nav")
+        main_box = main.bounding_box()
+        assert main_box is not None
+
+        if width > 980:
+            assert sidebar.is_visible() and topbar.is_visible()
+            assert not mobile.is_visible()
+            side_box, top_box = sidebar.bounding_box(), topbar.bounding_box()
+            assert side_box is not None and top_box is not None
+            edge = side_box["x"] + side_box["width"]
+            assert main_box["x"] == pytest.approx(edge, abs=1)
+            assert top_box["x"] == pytest.approx(edge, abs=1)
+            labels = sidebar.locator("nav > a > span:last-child")
+            assert labels.count() == sidebar.locator("nav > a").count()
+            assert all(label.is_visible() and label.inner_text().strip() for label in labels.all())
+            current = sidebar.locator('nav > a[aria-current="page"]')
+            assert current.count() == 1
+            assert current.inner_text().strip() == "Centro de mando"
+            assert current.get_attribute("href") == "/admin/dashboard"
+            assert sidebar.locator('a[href*="#master-audit-title"]').get_attribute("aria-current") is None
+
+            search = page.locator("#v933-admin-search")
+            search_box = search.bounding_box()
+            assert search_box is not None and search_box["x"] >= edge - 1
+            # Real hit testing must let the user focus the input beside the sidebar.
+            search.click(position={"x": 4, "y": search_box["height"] / 2})
+            assert search.evaluate("el => el === document.activeElement")
+            search.fill("usuarios")
+            search.press("Enter")
+        else:
+            assert not sidebar.is_visible() and not topbar.is_visible()
+            assert mobile.is_visible()
+            assert main_box["x"] == pytest.approx(0, abs=1)
+            assert main_box["x"] + main_box["width"] == pytest.approx(width, abs=1)
+            layout = mobile.evaluate("""nav => {
+                const bounds = nav.getBoundingClientRect();
+                return {
+                    top: bounds.top, bottom: bounds.bottom,
+                    height: nav.clientHeight, scrollHeight: nav.scrollHeight,
+                    links: [...nav.querySelectorAll('a')].map(link => {
+                        const rect = link.getBoundingClientRect();
+                        const hit = document.elementFromPoint(
+                            rect.left + rect.width / 2, rect.top + rect.height / 2);
+                        return {top: rect.top, bottom: rect.bottom, width: rect.width,
+                            reachable: hit === link || link.contains(hit)};
+                    }),
+                };
+            }""")
+            assert len(layout["links"]) == 5
+            assert layout["scrollHeight"] <= layout["height"] + 1
+            first_top = layout["links"][0]["top"]
+            for link in layout["links"]:
+                assert link["top"] == pytest.approx(first_top, abs=1)
+                assert layout["top"] - 1 <= link["top"]
+                assert link["bottom"] <= layout["bottom"] + 1
+                assert link["width"] > 0 and link["reachable"]
+            current = mobile.locator('a[aria-current="page"]')
+            assert current.count() == 1
+            assert current.inner_text().strip() == "Panel"
+            assert current.get_attribute("href") == "/admin/dashboard"
+            mobile.locator("[data-open-explore]").click()
+
+        dialog = page.locator("#app-navigation-dialog")
+        dialog.wait_for(state="visible")
+        assert page.locator("#master-command-dialog").is_hidden()
+        dialog.locator("[data-explore-query]").fill("usuarios")
+        destination = dialog.locator("[data-explore-item]:visible")
+        assert destination.count() == 1
+        assert destination.get_attribute("href") == "/admin/users"
+        # A same-origin inert destination verifies navigation without loading accounts.
+        page.route("**/admin/users", lambda route: route.fulfill(
+            status=200, content_type="text/html; charset=utf-8",
+            body="<p>SIMULATED_QA · destino Usuarios</p>",
+        ))
+        destination.click()
+        page.wait_for_url("**/admin/users")
+        assert "SIMULATED_QA · destino Usuarios" in page.locator("body").inner_text()
+        assert not calls and not errors and not blocked
+    finally:
+        context.close()
+
+
+def test_admin_sidebar_wheel_in_gap_and_keyboard_reach_last_destinations(browser, app_module):
+    context,page,calls,errors,blocked = mount(
+        browser, app_module, width=1366, height=650,
+        path="/admin/control-center", navigation=True,
+    )
+    try:
+        nav = page.locator(".v933-admin-sidebar nav")
+        links = nav.locator(":scope > a")
+        metrics = nav.evaluate("el => ({height:el.clientHeight, total:el.scrollHeight, top:el.scrollTop})")
+        assert metrics["total"] > metrics["height"]
+        assert page.evaluate("document.documentElement.scrollHeight > innerHeight")
+        first, second = links.nth(0).bounding_box(), links.nth(1).bounding_box()
+        nav_box = nav.bounding_box()
+        assert first is not None and second is not None and nav_box is not None
+        gap_start = first["y"] + first["height"]
+        assert second["y"] > gap_start
+        page_y = page.evaluate("window.scrollY")
+        # Wheel over empty space, not an anchor whose pointer-events mask the bug.
+        page.mouse.move(nav_box["x"] + nav_box["width"] / 2, (gap_start + second["y"]) / 2)
+        page.mouse.wheel(0, 300)
+        page.wait_for_function(
+            "before => document.querySelector('.v933-admin-sidebar nav').scrollTop > before",
+            arg=metrics["top"],
+        )
+        assert page.evaluate("window.scrollY") == pytest.approx(page_y, abs=1)
+
+        # Start at the brand, then use actual keyboard traversal through the menu.
+        page.locator(".v933-admin-brand a").focus()
+        destinations = links.evaluate_all("nodes => nodes.map(el => el.getAttribute('href'))")
+        assert destinations[-2:] == ["/admin/final-release", "/admin/dashboard#master-audit-title"]
+        for index, href in enumerate(destinations):
+            page.keyboard.press("Tab")
+            assert links.nth(index).evaluate("el => el === document.activeElement"), href
+        last = links.last.bounding_box()
+        assert last is not None
+        assert nav_box["y"] - 1 <= last["y"]
+        assert last["y"] + last["height"] <= nav_box["y"] + nav_box["height"] + 1
+        assert nav.evaluate("el => el.scrollTop") > metrics["top"]
+        assert page.evaluate("window.scrollY") == pytest.approx(page_y, abs=1)
+        assert not calls and not errors and not blocked
+    finally:
+        context.close()
+
+
+@pytest.mark.parametrize("width", [390, 900])
+def test_admin_top_navigation_does_not_reserve_the_bottom_safe_area(browser, app_module, width):
+    context,page,calls,errors,blocked = mount(browser, app_module, width=width)
+    try:
+        context.new_cdp_session(page).send("Emulation.setSafeAreaInsetsOverride", {
+            "insets": {"top": 0, "right": 0, "bottom": 34, "left": 0},
+        })
+        geometry = page.locator(".v933-admin-mobile-nav").evaluate("""nav => {
+            const bounds=nav.getBoundingClientRect();
+            return {top:bounds.top, bottom:bounds.bottom,
+                height:nav.clientHeight, scrollHeight:nav.scrollHeight,
+                links:[...nav.querySelectorAll('a')].map(link=>{
+                    const rect=link.getBoundingClientRect();
+                    return {top:rect.top, bottom:rect.bottom, height:rect.height};
+                })};
+        }""")
+        assert geometry["scrollHeight"] <= geometry["height"] + 1
+        for link in geometry["links"]:
+            assert link["height"] >= 40
+            assert geometry["top"] <= link["top"]
+            assert link["bottom"] <= geometry["bottom"]
+        assert not calls and not errors and not blocked
     finally:
         context.close()
 

@@ -16609,7 +16609,7 @@ body.ns-app main.v933-client-shell {
 
 .v933-admin-brand { min-height: 64px; display: flex; align-items: center; padding: 0 8px 10px; border-bottom: 1px solid rgba(255,255,255,.07); }
 
-.v933-admin-sidebar nav { min-height: 0; display: grid; align-content: start; gap: 2px; overflow-y: auto; scrollbar-width: thin; }
+.v933-admin-sidebar nav { min-height: 0; display: grid; align-content: start; gap: 2px; overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: thin; }
 
 .v933-admin-sidebar nav a {
   min-height: 40px;
@@ -16685,10 +16685,6 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
 }
 
 @media (max-width: 1180px) and (min-width: 801px) {
-  :root { --v933-sidebar: 82px; }
-  .v933-admin-sidebar { padding-inline: 8px; }
-  .v933-admin-sidebar nav a { grid-template-columns: 1fr; justify-items: center; }
-  .v933-admin-sidebar nav a span:last-child,.v933-admin-system-state span,.v933-admin-logout span,.v933-admin-brand .ns-brand-text { display: none; }
   .v933-topbar nav a { padding-inline: 8px; font-size: .72rem; }
 }
 
@@ -16706,9 +16702,6 @@ body.ns-admin .v933-legal-footer { width: auto; margin-left: calc(var(--v933-sid
   .v933-mobile-bottom-nav a { min-width: 0; min-height: 54px; display: grid; place-items: center; align-content: center; gap: 3px; border-radius: var(--v933-radius-sm); color: #8ea2b7; font-size: .6rem; font-weight: 760; text-decoration: none; }
   .v933-mobile-bottom-nav a .v933-nav-icon { width: 23px; height: 23px; }
   .v933-mobile-bottom-nav a.is-active { color: #fff; background: rgba(8,124,255,.17); box-shadow: inset 0 2px 0 var(--v933-cyan); }
-  .v933-admin-mobile-nav { position: fixed; inset: var(--v933-topbar) 0 auto; z-index: 179; height: 54px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(106px,max-content); gap: 4px; padding: 6px 9px; overflow-x: auto; border-bottom: 1px solid var(--v933-border); background: rgba(3,11,22,.985); scrollbar-width: none; }
-  .v933-admin-mobile-nav a { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 9px; border: 1px solid transparent; border-radius: var(--v933-radius-sm); color: #aabdd1; font-size: .66rem; font-weight: 800; text-decoration: none; white-space: nowrap; }
-  .v933-admin-mobile-nav a.is-active { border-color: rgba(25,213,255,.4); background: rgba(8,124,255,.17); color: #fff; }
   body.ns-app main.v933-public-shell,body.ns-app main.v933-client-shell,body.ns-app main.v933-admin-shell { width: 100% !important; max-width: none !important; margin: 0 !important; padding: calc(var(--v933-topbar) + 12px) 11px calc(var(--v933-mobile-nav) + env(safe-area-inset-bottom,0px) + 18px) !important; }
   body.ns-app.ns-admin main.v933-admin-shell { padding-top: calc(var(--v933-topbar) + 66px) !important; padding-bottom: 22px !important; }
   .v933-legal-footer,body.ns-admin .v933-legal-footer { width: calc(100% - 22px); margin-left: 11px !important; margin-right: 11px !important; margin-bottom: calc(var(--v933-mobile-nav) + 12px) !important; }
@@ -21896,7 +21889,8 @@ body.ns-app .v933-shell-chrome {
   pointer-events: none;
 }
 
-body.ns-app .v933-shell-chrome :is(a,button,input,select,textarea,summary) { pointer-events: auto; }
+/* Scrollable navigation must receive wheel/scrollbar events between its links. */
+body.ns-app .v933-shell-chrome :is(a,button,input,select,textarea,summary,.v933-admin-sidebar,.v933-admin-mobile-nav) { pointer-events: auto; }
 
 body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero) {
   position: relative;
@@ -22140,7 +22134,7 @@ body.ns-app .v933-topbar nav a:hover,
 body.ns-app .v933-admin-sidebar nav a:hover { transform: translateY(-1px); }
 
 body.ns-app .v933-admin-sidebar {
-  width: 210px !important;
+  width: var(--v933-sidebar) !important;
   border-right: 1px solid var(--nsx-line) !important;
   background: var(--v933-bg-raised) !important;
   box-shadow: none !important;
@@ -22353,7 +22347,8 @@ body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-sh
   html body.ns-app[data-ns-design="core"]:has(> .nemesis-local-safe-banner).ns-public main.shell.shark-shell.ns-main-shell.v928-main-shell.v930-public-shell.v933-public-shell {
     padding-top: 86px !important;
   }
-  body.ns-app.ns-admin main.v933-admin-shell { margin-left: 210px !important; padding: 66px 16px 28px !important; max-width: none !important; }
+  html body.ns-app[data-ns-design="core"].ns-admin main.shell.shark-shell.ns-main-shell.v928-main-shell.v933-admin-shell { width: auto !important; max-width: none !important; margin: 0 0 0 var(--v933-sidebar) !important; padding: 66px 16px 28px !important; }
+  html body.ns-app.ns-admin[data-ns-design="core"]:has(> .nemesis-local-safe-banner) main.shell.shark-shell.ns-main-shell.v928-main-shell.v933-admin-shell { padding-top: 90px !important; }
 }
 
 @media (max-width: 980px) {
@@ -22407,11 +22402,21 @@ body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-sh
     top: calc(62px + env(safe-area-inset-top,0px)) !important;
     bottom: auto !important;
     z-index: 179 !important;
-    height: 54px !important;
-    min-height: 54px !important;
+    height: 58px !important;
+    min-height: 58px !important;
+    padding-bottom: 5px !important;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(106px, 1fr);
+    gap: 4px;
     overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
   }
-  body.ns-app.ns-admin main.v933-admin-shell { padding-top: calc(128px + env(safe-area-inset-top,0px)) !important; }
+  body.ns-app .v933-admin-mobile-nav a { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 9px; border: 1px solid transparent; border-radius: var(--v933-radius-sm); color: #aabdd1; font-size: .66rem; font-weight: 800; text-decoration: none; white-space: nowrap; }
+  body.ns-app .v933-admin-mobile-nav a.is-active { border-color: rgba(25,213,255,.4); background: rgba(8,124,255,.17); color: #fff; }
+  html body.ns-app[data-ns-design="core"].ns-admin main.shell.shark-shell.ns-main-shell.v928-main-shell.v933-admin-shell { width: 100% !important; max-width: none !important; margin: 0 !important; padding: calc(128px + env(safe-area-inset-top,0px)) 12px 22px !important; }
+  body.ns-admin .v933-legal-footer { width: calc(100% - 24px); margin-left: 12px !important; margin-right: 12px !important; }
   body.ns-app:has(> .nemesis-local-safe-banner) > .nemesis-local-safe-banner {
     position: fixed;
     inset: 54px 0 auto;
@@ -22445,7 +22450,7 @@ body.ns-app :is(.v933-picks-board,.v933-track-record,.v933-profile-page,.v933-sh
 @media (max-width: 520px) {
   body.ns-app main.v933-public-shell,
   body.ns-app main.v933-client-shell,
-  body.ns-app main.v933-admin-shell { padding-inline: 9px !important; }
+  html body.ns-app[data-ns-design="core"].ns-admin main.shell.shark-shell.ns-main-shell.v928-main-shell.v933-admin-shell { padding-inline: 9px !important; }
   body.ns-app::before { opacity: .9; }
   body.ns-app :is(.v933-public-hero,.v933-client-hero) { min-height: 142px !important; padding: 11px 10px !important; }
   body.ns-app :is(.v933-public-hero,.v933-client-hero)::before { right: -156px; top: 43%; width: 420px; opacity: .34; }
@@ -23603,7 +23608,6 @@ body.ns-app.ns-admin .v930-admin-launch .v928-data-table :is(th,td):first-child 
 .v933-calendar-board .v933-match-card :is(.v937-confidence-badge,.v935-provenance,.v937-attention-priority) { display: none !important; }
 
 @media (min-width:1101px) {
-  html body.ns-app.ns-admin[data-ns-design="core"]:has(> .nemesis-local-safe-banner) main.v933-admin-shell { padding-top: 90px !important; }
   .ns16-live-priority .ns16-match-row:has(> .v933-live-card:only-child) .v933-match-card,
   .ns16-live-feature .v933-match-card { display: grid; grid-template-columns: minmax(140px,.3fr) minmax(320px,1fr) minmax(190px,.4fr); grid-template-rows: 1fr; min-height: 126px; align-items: center; gap: 16px; }
   .ns16-live-priority .ns16-match-row:has(> .v933-live-card:only-child) .v933-match-card-footer,

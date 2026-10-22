@@ -1,5 +1,10 @@
 # NeMeSiS - Master Control
 
+## Inicio del proyecto
+
+- Fecha de inicio real de NeMeSiS SHARK PRO: **8 de mayo de 2026 (`2026-05-08`)**.
+- Fuente: confirmación expresa del propietario en esta conversación de trabajo.
+
 ## Verdad operativa remota vigente · 2026-09-23
 
 - Repositorio canónico: `bot-NeMeSiS/NeMeSiS-shark-pro-clean`.

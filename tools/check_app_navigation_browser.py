@@ -32,13 +32,15 @@ def main():
     try:
         with sync_playwright() as pw:
             browser = pw.chromium.launch(headless=True, executable_path=os.getenv('NEMESIS_QA_CHROMIUM') or pw.chromium.executable_path)
-            for width in (390,1440):
+            for width in (390,900,1024,1366,1440):
                 for role, paths in (
                     ('public', ['/explorar','/calendario?lane=today','/directo']),
                     ('client', ['/mi-cuenta','/favoritos']),
-                    ('admin', ['/admin/dashboard','/admin/users','/admin/backups']),
+                    ('admin', ['/admin/control-center','/admin/dashboard','/admin/users','/admin/backups']),
                 ):
-                    context = browser.new_context(viewport={'width':width,'height':900}, service_workers='block', locale='es-ES',timezone_id='Europe/Madrid')
+                    if role != 'admin' and width not in (390,1440):
+                        continue
+                    context = browser.new_context(viewport={'width':width,'height':650 if width==1366 else 900}, service_workers='block', locale='es-ES',timezone_id='Europe/Madrid')
                     errors, posts = [], []
                     page = context.new_page()
                     page.on('pageerror', lambda error: errors.append(str(error)))
@@ -55,6 +57,13 @@ def main():
                         # Let pre-existing page instrumentation finish before the
                         # navigation interaction whose no-mutation property we test.
                         posts.clear()
+                        if role=='admin' and width>980:
+                            # The search must be reachable by mouse as well as Ctrl+K.
+                            page.locator('#v933-admin-search').click(position={'x':4,'y':12})
+                        if role=='admin' and path=='/admin/control-center':
+                            nav = page.locator('.v933-admin-sidebar nav' if width>980 else '.v933-admin-mobile-nav')
+                            current = nav.locator('[aria-current="page"]')
+                            assert current.count()==1 and current.get_attribute('href')=='/admin/dashboard'
                         page.keyboard.press('Control+k')
                         dialog = page.locator('#app-navigation-dialog')
                         dialog.wait_for(state='visible')
@@ -70,7 +79,7 @@ def main():
                         dialog.wait_for(state='hidden')
                         assert not posts, (role,path,'navigation issued POST',posts)
                         assert not errors, (role,path,errors)
-                        if role=='admin' and path=='/admin/dashboard':
+                        if role=='admin' and path in ('/admin/dashboard','/admin/control-center'):
                             page.locator('[data-open-command]').click()
                             page.locator('#master-command-dialog').wait_for(state='visible')
                             page.keyboard.press('Control+k')

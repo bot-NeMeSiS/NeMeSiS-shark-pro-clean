@@ -104,6 +104,7 @@
        or (clean_href == '/historico' and path in history_aliases)
        or (clean_href == '/picks' and (path in picks_aliases or (scope == 'client' and path in ['/historico','/track-record'])))
        or (clean_href == '/mi-cuenta' and (path in account_aliases or path in ['/telegram','/membresias','/memberships','/favoritos','/favorites','/alertas','/notificaciones','/actividad','/user-intelligence']))
+       or (scope == 'admin' and clean_href == '/admin/dashboard' and path == '/admin/control-center')
        or (scope == 'admin' and clean_href == '/admin/matches' and path == '/admin/matches-sync')
        or (clean_href not in ['/', '/app', '/admin/dashboard'] and path.startswith(clean_href ~ '/'))
     ) -%}1{%- endif -%}
