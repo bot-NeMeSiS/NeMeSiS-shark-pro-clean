@@ -127,15 +127,32 @@ def normalize_text(value: Any) -> str:
     return str(value or "").strip().lower()
 
 
+_TERMINAL_MATCH_STATUSES = frozenset({
+    "ft", "aet", "pen", "finished", "match finished", "game finished",
+    "full time", "final", "finalizado", "finalizada", "finalizó", "finalizo",
+    "terminado", "terminada", "terminó", "termino", "acabado", "acabada",
+    "acabó", "acabo", "finalizado tras prórroga", "finalizado tras prorroga",
+    "finalizada tras prórroga", "finalizada tras prorroga",
+    "terminado tras prórroga", "terminado tras prorroga",
+    "terminada tras prórroga", "terminada tras prorroga",
+    "finished after extra time", "finished after penalties",
+    "finished after the penalty", "finished after the penalty shootout",
+    "match finished after extra time",
+    "match finished after penalties", "match finished after the penalty shootout",
+    "match finished after penalty",
+})
+
+
 def normalize_status(value: Any) -> str:
-    text = normalize_text(value)
+    text = re.sub(r"\s+", " ", normalize_text(value))
     if text in {"won", "win", "ganado", "green", "acertado"}:
         return "won"
     if text in {"lost", "loss", "perdido", "red", "fallado"}:
         return "lost"
     if text in {"void", "push", "nulo", "cancelled", "cancelado"}:
         return "void"
-    if any(x in text for x in ["final", "finished", "ft", "aet", "pen", "terminado", "acabado"]):
+
+    if text in _TERMINAL_MATCH_STATUSES:
         return "finished"
     return "pending"
 

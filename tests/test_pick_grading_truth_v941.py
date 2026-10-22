@@ -187,3 +187,66 @@ def test_history_excludes_orphan_and_draft_evaluations_from_real_metrics(grading
     assert summary["stake_total"]==1
     assert summary["profit"]==1
     assert [row["pick_id"] for row in summary["recent_results"]]==["eligible"]
+
+
+@pytest.mark.parametrize("status", [
+    "pending", "halftime", "penalties", "unfinished", "not finished",
+    "NS", "1H", "HT", "2H", "ET", "BT", "P", "LIVE", "SUSP", "INT", "PST", "CANC",
+])
+def test_nonterminal_or_ambiguous_match_status_never_settles_pick(status):
+    grade = grading.grade_pick({
+        "match_status": status,
+        "score": "2-1",
+        "home_score": 2,
+        "away_score": 1,
+        "pick_type": "1x2",
+        "selection": "1",
+        "odds": 2.0,
+        "stake_units": 1,
+    })
+    assert grading.normalize_status(status) == "pending"
+    assert grade["result_status"] == "pending"
+    assert grade["auto_validated"] == 0
+    assert grade["profit"] is None
+
+
+@pytest.mark.parametrize("status", [
+    "FT", "AET", "PEN", "Match Finished", "Finished after extra time",
+    "Match Finished After Penalty", "Finalizado tras prórroga",
+])
+def test_explicit_terminal_match_status_can_settle_pick(status):
+    grade = grading.grade_pick({
+        "match_status": status,
+        "score": "2-1",
+        "home_score": 2,
+        "away_score": 1,
+        "pick_type": "1x2",
+        "selection": "1",
+        "odds": 2.0,
+        "stake_units": 1,
+    })
+    assert grading.normalize_status(status) == "finished"
+    assert grade["result_status"] == "won"
+    assert grade["auto_validated"] == 1
+    assert grade["profit"] == 1.0
+
+
+def test_apply_keeps_published_pick_pending_until_match_status_is_terminal(grading_db):
+    add_pick(grading_db, "live-match-pick")
+    with sqlite3.connect(grading_db) as conn:
+        conn.execute(
+            "UPDATE matches SET status='halftime', score='2-1', home_score=2, away_score=1 WHERE id='qa-match'"
+        )
+
+    report = grading.run_pick_grading(grading_db, apply=True)
+
+    assert report["pending"] == 1
+    assert report["auto_validated"] == 0
+    assert report["profit"] == 0.0
+    with sqlite3.connect(grading_db) as conn:
+        pick = conn.execute("SELECT status, result_status FROM picks WHERE id='live-match-pick'").fetchone()
+        result = conn.execute(
+            "SELECT result_status, auto_validated, profit FROM pick_grading_results WHERE pick_id='live-match-pick'"
+        ).fetchone()
+    assert pick == ("published", "pending")
+    assert result == ("pending", 0, None)
