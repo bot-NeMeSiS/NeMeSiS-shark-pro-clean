@@ -123,6 +123,45 @@ def test_latest_evaluation_tie_uses_last_stored_row(grading_db):
     assert summary["stake_total"]==1
 
 
+def test_client_history_scopes_paid_tiers_and_filters_before_recent_limit(grading_db):
+    add_pick(grading_db,"old-free-won",result="won")
+    for index in range(12):
+        add_pick(grading_db,f"new-pro-lost-{index}",result="lost")
+    add_pick(grading_db,"new-elite-won",result="won")
+    with sqlite3.connect(grading_db) as conn:
+        conn.execute("ALTER TABLE picks ADD COLUMN membership_required TEXT")
+        conn.execute("UPDATE picks SET membership_required='FREE',created_at='2020-01-01' WHERE id='old-free-won'")
+        conn.execute("UPDATE picks SET membership_required='PRO',created_at='2026-02-01' WHERE id LIKE 'new-pro-lost-%'")
+        conn.execute("UPDATE picks SET membership_required='ELITE',created_at='2026-03-01' WHERE id='new-elite-won'")
+        conn.executemany("""INSERT INTO pick_grading_results
+            (id,pick_id,result_status,odds,stake,profit,graded_at) VALUES(?,?,?,?,?,?,?)""",
+            [("grade-old-free-won","old-free-won","won",2,1,1,"2020-01-01")]
+            + [(f"grade-pro-{index}",f"new-pro-lost-{index}","lost",2,1,-1,f"2026-02-{index+1:02d}") for index in range(12)]
+            + [("grade-new-elite-won","new-elite-won","won",2,1,1,"2026-03-01")])
+
+    summary=grading.pick_grading_summary(
+        grading_db,visible_membership="PRO",result_filter="won",recent_limit=10,
+    )
+    assert summary["won"]==1
+    assert summary["lost"]==12
+    assert [row["pick_id"] for row in summary["recent_results"]]==["old-free-won"]
+    assert summary["recent_runs"]==[]
+
+
+def test_free_history_engine_fails_closed(grading_db):
+    add_pick(grading_db,"legacy-free-won",result="won")
+    with sqlite3.connect(grading_db) as conn:
+        conn.execute("ALTER TABLE picks ADD COLUMN membership_required TEXT")
+        conn.execute("UPDATE picks SET membership_required='FREE' WHERE id='legacy-free-won'")
+        conn.execute("""INSERT INTO pick_grading_results
+            (id,pick_id,result_status,odds,stake,profit,graded_at) VALUES(?,?,?,?,?,?,?)""",
+            ("grade-free","legacy-free-won","won",2,1,1,"2026-01-01"))
+    summary=grading.pick_grading_summary(grading_db,visible_membership="FREE")
+    assert summary["graded_total"]==0
+    assert summary["recent_results"]==[]
+    assert summary["recent_runs"]==[]
+
+
 def test_track_record_months_and_pending_use_same_latest_evaluations(app_module,monkeypatch,grading_db):
     monkeypatch.setattr(app_module,"DB_PATH",grading_db)
     add_pick(grading_db,"one")

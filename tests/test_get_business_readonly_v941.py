@@ -177,7 +177,7 @@ def test_legacy_shark_summary_is_private_plan_scoped_and_readonly(app_module,mon
     data=response.get_json()["shark"]
     body=response.get_data(as_text=True)
     for tier in ("FREE","PRO","ELITE"):
-        assert ("QA_CORE_SECRET_"+tier in body)==a.membership_allows(effective,tier)
+        assert ("QA_CORE_SECRET_"+tier in body)==a.prediction_membership_allows(effective,tier)
     assert set(data["user"]) <= {"name","membership"}
 
 
@@ -229,7 +229,7 @@ def test_track_record_does_not_disclose_pending_payloads_or_locked_selections(ap
             for marker in ("QA_PENDING_PRIVATE","QA_INTERNAL_PAYLOAD","QA_TRACK_SELECTION_DRAFT"):
                 assert marker not in body
             for tier in ("FREE","PRO","ELITE"):
-                assert ("QA_TRACK_SELECTION_"+tier in body)==a.membership_allows(effective,tier)
+                assert ("QA_TRACK_SELECTION_"+tier in body)==a.prediction_membership_allows(effective,tier)
         assert snapshot(db)==before
 
 def test_expired_membership_is_effective_free_without_persisting(app_module,monkeypatch,tmp_path):
@@ -618,7 +618,7 @@ def test_shark_context_is_private_plan_scoped_and_read_only(app_module,monkeypat
         body=response.get_data(as_text=True)
         assert 'QA_OTHER_PERSON_PROFILE' not in body
         assert 'QA_DRAFT_SELECTION' not in body and 'QA_DRAFT_REASON' not in body
-        allowed={'ANONYMOUS':(),'FREE':('FREE',),'EXPIRED':('FREE',),
+        allowed={'ANONYMOUS':(),'FREE':(),'EXPIRED':(),
                  'PRO':('FREE','PRO'),'ELITE':('FREE','PRO','ELITE'),'ADMIN':('FREE','PRO','ELITE')}[plan]
         for tier in ('FREE','PRO','ELITE'):
             assert ('QA_ANALYSIS_'+tier in body) == (tier in allowed)
@@ -709,7 +709,7 @@ def test_match_read_surfaces_never_bypass_pick_entitlements(app_module,monkeypat
     body=response.get_data(as_text=True)
     assert 'QA_DRAFT_PRIVATE' not in body and 'QA_DRAFT_REASON' not in body
     assert 'QA_UNRELATED_PROFILE' not in body
-    allowed={'FREE':('FREE',),'PRO':('FREE','PRO'),'ELITE':('FREE','PRO','ELITE'),
+    allowed={'FREE':(),'PRO':('FREE','PRO'),'ELITE':('FREE','PRO','ELITE'),
              'ADMIN':('FREE','PRO','ELITE')}[effective]
     for tier in ('FREE','PRO','ELITE'):
         if tier not in allowed:

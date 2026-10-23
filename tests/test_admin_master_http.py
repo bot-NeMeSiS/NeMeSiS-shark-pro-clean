@@ -248,6 +248,40 @@ def test_unknown_preview_and_write_blocked(admin):
     assert c.post("/admin/client-preview/frame",headers=h).status_code==405
 
 
+def test_history_preview_applies_simulated_membership_without_exposing_free_metrics(admin):
+    from engines.pick_grading_engine import ensure_pick_grading_schema
+    a, c, _ = admin
+    ensure_pick_grading_schema(a.DB_PATH)
+    with sqlite3.connect(a.DB_PATH) as conn:
+        for tier, profit in (("FREE", 1), ("PRO", -1), ("ELITE", 1)):
+            pick_id = f"qa-preview-{tier.lower()}"
+            conn.execute("""INSERT INTO picks
+                (id,home_team,away_team,selection,odds,stake_units,status,membership_required)
+                VALUES(?,?,?,?,?,?,?,?)""",
+                (pick_id,"QA Home","QA Away",f"QA_PREVIEW_SECRET_{tier}",2,1,"won" if profit > 0 else "lost",tier))
+            conn.execute("""INSERT INTO pick_grading_results
+                (id,pick_id,result_status,odds,stake,profit,graded_at)
+                VALUES(?,?,?,?,?,?,?)""",
+                (f"grade-{pick_id}",pick_id,"won" if profit > 0 else "lost",2,1,profit,"2026-10-01"))
+
+    real_context = a.v742_track_record_context
+    observed = {}
+    def capture_context(*, preview_membership=None, **kwargs):
+        result = real_context(preview_membership=preview_membership, **kwargs)
+        observed[preview_membership] = result
+        return result
+    a.v742_track_record_context = capture_context
+
+    free = c.get("/admin/client-preview/frame?page=history&plan=FREE")
+    pro = c.get("/admin/client-preview/frame?page=history&plan=PRO")
+    assert free.status_code == pro.status_code == 200
+    assert observed["FREE"]["premium_required"] is True
+    assert "QA_PREVIEW_SECRET_" not in free.get_data(as_text=True)
+    assert observed["PRO"]["evaluable_total"] == 2
+    assert observed["PRO"]["won"] == 1
+    assert observed["PRO"]["lost"] == 1
+
+
 @pytest.mark.parametrize("page", ["home", "matches", "live"])
 def test_preview_match_favorites_remain_disabled(admin, monkeypatch, page):
     from html.parser import HTMLParser

@@ -26,7 +26,7 @@
       <header><div><span>{{ ui("Plan") }}</span><h3>FREE</h3></div>{% if current_plan == 'FREE' %}{{ status_chip('Plan actual','blue') }}{% endif %}</header>
       <strong class="v933-plan-price">0 €<small>{{ ui("/mes") }}</small></strong><p>{{ ui("Base segura para empezar.") }}</p>
       <ul class="ns-plan-highlights"><li>{{ icon('check') }}<span>{{ ui("Calendario y estados deportivos") }}</span></li><li>{{ icon('check') }}<span>{{ ui("Directo con datos reales disponibles") }}</span></li></ul>
-      <details class="ns-plan-benefits"><summary>{{ ui("Ver prestaciones") }}</summary><ul><li>{{ icon('check') }}<span>{{ ui("Pronósticos públicos según disponibilidad") }}</span></li><li>{{ icon('check') }}<span>{{ ui("Acceso al contenido informativo") }}</span></li></ul></details>
+      <details class="ns-plan-benefits"><summary>{{ ui("Ver prestaciones") }}</summary><ul><li>{{ icon('check') }}<span>{{ ui("Seguimiento deportivo e información básica de SHARK") }}</span></li><li>{{ icon('check') }}<span>{{ ui("Pronósticos y análisis de apuestas disponibles desde PRO") }}</span></li><li>{{ icon('check') }}<span>{{ ui("Acceso al contenido informativo") }}</span></li></ul></details>
       {{ action_button('Plan actual' if current_plan == 'FREE' else 'Crear cuenta', '/app' if current_user else '/registro', current_plan != 'FREE', 'blue', current_plan == 'FREE') }}
     </article>
 

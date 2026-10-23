@@ -25,6 +25,9 @@ body{margin:0;padding:12px;background:#071321;color:#eaf3ff;font-family:system-u
 {% set roi = record.get('roi') %}
 {% set winrate = record.get('winrate') %}
 <div class="v933-page v933-track-record" data-preview-component="history">{{ page_header('Historial','Rendimiento agregado de pronósticos evaluables.','history') }}
+{% if record.get('premium_required') %}
+<section class="v933-panel" data-preview-history-locked="true">{{ section_header('Historial premium','El historial de pronósticos y sus métricas están incluidos en PRO y ELITE.') }}<p class="preview-note">La vista FREE no carga ni muestra resultados, porcentajes, rentabilidad o pendientes de los planes de pago.</p></section>
+{% else %}
 <section class="v933-kpi-grid">
 {{ kpi_card('Rentabilidad (ROI)', (roi|string ~ '%') if roi is not none else none, 'Solo pronósticos evaluables', 'success', 'history') }}
 {{ kpi_card('Acierto', (winrate|string ~ '%') if winrate is not none else none, 'Ganados sobre decisiones', 'cyan', 'target') }}
@@ -35,6 +38,7 @@ body{margin:0;padding:12px;background:#071321;color:#eaf3ff;font-family:system-u
 {% if record.get('by_month') %}<div class="preview-table-wrap"><table class="preview-table"><thead><tr><th>Periodo</th><th>Evaluables</th><th>Resultado (u.)</th></tr></thead><tbody>{% for item in record.get('by_month')[:12] %}<tr><td>{{ item.get('label') or item.get('month') }}</td><td>{{ item.get('total') if item.get('total') is not none else 'Sin dato' }}</td><td>{{ item.get('profit') if item.get('profit') is not none else 'Sin dato' }}</td></tr>{% endfor %}</tbody></table></div>
 {% else %}{{ empty_state('Sin muestra evaluable','El historial aparecerá cuando existan pronósticos cerrados y evaluables.','','','history') }}{% endif %}
 <p class="preview-note">Solo lectura: no ejecuta evaluación, no modifica pronósticos y no consulta proveedores externos.</p></section></div>
+{% endif %}
 {% elif page=='shark' %}
 <div class="v933-page v933-shark-page" data-preview-component="shark">
 {{ page_header('SHARK','Análisis, evidencia y riesgo.','shark') }}
@@ -52,7 +56,7 @@ body{margin:0;padding:12px;background:#071321;color:#eaf3ff;font-family:system-u
 {% else %}
 <div class="v933-page v933-memberships-page" data-preview-component="memberships">{{ page_header('Elige tu plan','Elige por lo que quieres resolver.','plan') }}
 <section class="v933-plan-grid">
-{{ plan_card('FREE','0 €','/mes','Base segura para empezar.',['Calendario y estados deportivos','Directo con datos reales disponibles','Pronósticos públicos según disponibilidad','Acceso al contenido informativo'],plan=='FREE','','blue') }}
+{{ plan_card('FREE','0 €','/mes','Base segura para empezar.',['Calendario y estados deportivos','Directo con datos reales disponibles','SHARK informativo básico','Acceso al contenido informativo'],plan=='FREE','','blue') }}
 {% for tier,tone,description,benefits in [('PRO','cyan','Experiencia completa',['Pronósticos completos según datos reales','Alertas Telegram','SHARK con contexto disponible','Historial cuando exista']),('ELITE','gold','Prioridad y acceso avanzado',['Todo lo incluido en PRO','Alertas prioritarias','Soporte según disponibilidad','Acceso anticipado a funciones'])] %}
 {{ plan_card(tier,prices.get(tier) or 'Precio no consultado','','' ~ description,benefits,plan==tier,'',tone) }}{% endfor %}
 </section><section class="v933-panel">{{ section_header('Comparación de acceso','Valores de la política de membresías existente; no representan consumo restante.') }}<div class="preview-table-wrap"><table class="preview-table"><thead><tr><th>Configuración</th><th>FREE</th><th>PRO</th><th>ELITE</th></tr></thead><tbody>{% for key,label in [('daily_picks','Pronósticos diarios'),('shark_questions','Consultas SHARK'),('combi_matches','Partidos en combinada'),('telegram_level','Nivel Telegram')] %}<tr><th scope="row">{{ label }}</th>{% for tier in ['FREE','PRO','ELITE'] %}<td>{{ (all_limits.get(tier) or {}).get(key) if (all_limits.get(tier) or {}).get(key) is not none else 'No disponible' }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div><button type="button" disabled>Compra desactivada en preview</button><p class="preview-note">Los precios de pago y la disponibilidad de checkout deben comprobarse en su configuración real. Esta vista no consulta Stripe ni inicia suscripciones.</p></section><section class="v933-panel">{{ section_header('Información y responsabilidad') }}<p>Solo mayores de 18 años. Plataforma informativa: no acepta apuestas ni garantiza beneficios.</p></section></div>

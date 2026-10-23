@@ -586,7 +586,13 @@ def _enrich_recent_result(row: Dict[str, Any]) -> Dict[str, Any]:
     item["temporal_contract"] = "MATCH-TEMPORAL-CONTEXT-V1"
     return item
 
-def pick_grading_summary(db_path: str) -> Dict[str, Any]:
+def pick_grading_summary(
+    db_path: str,
+    *,
+    visible_membership: str | None = None,
+    result_filter: str | None = None,
+    recent_limit: int = 10,
+) -> Dict[str, Any]:
     path = Path(db_path).expanduser().resolve()
     if not path.exists():
         return {
@@ -615,15 +621,35 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
     evaluable_where = "result_status IN ('won','lost','void') AND COALESCE(odds,0)>1 AND COALESCE(stake,0)>0"
     has_picks = bool(scalar(conn, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='picks'", default=0))
     pick_columns = {str(row.get("name") or "") for row in rows(conn, "PRAGMA table_info(picks)")} if has_picks else set()
+    has_matches = bool(scalar(conn, "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='matches'", default=0))
+    match_columns = {str(row.get("name") or "") for row in rows(conn, "PRAGMA table_info(matches)")} if has_matches else set()
     if has_picks and "status" in pick_columns:
         grading_cte = LATEST_ELIGIBLE_GRADING_CTE
+        if visible_membership is not None:
+            visible_plan = str(visible_membership or "").strip().upper()
+            plan_rank = {"FREE": 0, "PRO": 1, "ELITE": 2, "ADMIN": 3}.get(visible_plan)
+            allowed_tiers = [
+                tier for tier, rank in (("FREE", 0), ("PRO", 1), ("ELITE", 2))
+                if plan_rank is not None and plan_rank >= 1 and rank <= plan_rank
+            ] if "membership_required" in pick_columns else []
+            tier_sql = ",".join(f"'{tier}'" for tier in allowed_tiers) or "'__NO_CLIENT_TIER__'"
+            status_predicate = "lower(trim(COALESCE(p.status,''))) IN (" + _ELIGIBLE_PICK_STATUS_SQL + ")"
+            grading_cte = grading_cte.replace(
+                status_predicate,
+                status_predicate + f" AND upper(trim(COALESCE(p.membership_required,'FREE'))) IN ({tier_sql})",
+                1,
+            )
     elif has_picks:
         # Older/minimal schemas still prove pick existence even when they predate
-        # the status column. Keep orphan rows out without inventing a status.
+        # the status column. Customer summaries fail closed without membership
+        # metadata; administrative summaries retain the established behavior.
         grading_cte = LATEST_GRADING_CTE + """, eligible_grades AS (
             SELECT g.* FROM latest_grades g
             JOIN picks p ON p.id = g.pick_id
+            WHERE 1=1
         ) """
+        if visible_membership is not None:
+            grading_cte = grading_cte.replace("WHERE 1=1", "WHERE 1=0", 1)
     else:
         grading_cte = ""
     grade_source = "eligible_grades"
@@ -637,33 +663,77 @@ def pick_grading_summary(db_path: str) -> Dict[str, Any]:
     stake_total = (scalar(conn, grading_cte + f"SELECT ROUND(SUM(stake),2) FROM {grade_source} WHERE {evaluable_where}", default=0) or 0) if grading_cte else 0
     profit = (scalar(conn, grading_cte + f"SELECT ROUND(SUM(profit),2) FROM {grade_source} WHERE {evaluable_where}", default=0) or 0) if grading_cte else 0
     avg_score = (scalar(conn, grading_cte + f"SELECT ROUND(AVG(grading_score),1) FROM {grade_source} WHERE {evaluable_where}", default=0) or 0) if grading_cte else 0
+    requested_result = str(result_filter or "").strip().lower()
+    if requested_result not in {"won", "lost", "void"}:
+        requested_result = ""
+    recent_limit = max(1, min(100, int(recent_limit or 10)))
+    recent_where = [
+        "r.result_status IN ('won','lost','void')",
+        "COALESCE(r.odds,0)>1",
+        "COALESCE(r.stake,0)>0",
+    ]
+    if requested_result:
+        recent_where.append(f"r.result_status='{requested_result}'")
+    pick_expr = lambda column: f"p.{column}" if column in pick_columns else "NULL"
+    match_expr = lambda column: f"m.{column}" if column in match_columns else "NULL"
+    pick_match_date_expr = pick_expr("match_date")
+    match_date_expr = (
+        f"COALESCE(m.match_date, {pick_match_date_expr})"
+        if "match_date" in match_columns and "match_date" in pick_columns
+        else match_expr("match_date") if "match_date" in match_columns
+        else pick_match_date_expr
+    )
+    match_kickoff_expr = "m.kickoff_time" if "kickoff_time" in match_columns else "NULL"
+    match_kickoff_iso_expr = "m.kickoff_iso" if "kickoff_iso" in match_columns else "NULL"
+    match_status_expr = "m.status" if "status" in match_columns else "NULL"
+    match_score_expr = "m.score" if "score" in match_columns else "NULL"
+    match_home_score_expr = "m.home_score" if "home_score" in match_columns else "NULL"
+    match_away_score_expr = "m.away_score" if "away_score" in match_columns else "NULL"
+    match_home_expr = (
+        f"COALESCE(m.home_team, {pick_expr('home_team')})"
+        if "home_team" in match_columns and "home_team" in pick_columns
+        else match_expr("home_team") if "home_team" in match_columns else pick_expr("home_team")
+    )
+    match_away_expr = (
+        f"COALESCE(m.away_team, {pick_expr('away_team')})"
+        if "away_team" in match_columns and "away_team" in pick_columns
+        else match_expr("away_team") if "away_team" in match_columns else pick_expr("away_team")
+    )
+    match_competition_expr = (
+        f"COALESCE(m.competition_name, {pick_expr('competition_name')})"
+        if "competition_name" in match_columns and "competition_name" in pick_columns
+        else match_expr("competition_name") if "competition_name" in match_columns
+        else pick_expr("competition_name")
+    )
+    pick_created_expr = pick_expr("created_at")
+    pick_source_expr = pick_expr("source")
+    pick_selection_expr = pick_expr("selection")
+    if "pick_type" in pick_columns and "market" in pick_columns:
+        pick_type_expr = "COALESCE(p.pick_type, p.market)"
+    elif "pick_type" in pick_columns:
+        pick_type_expr = "p.pick_type"
+    else:
+        pick_type_expr = pick_expr("market")
+    matches_join = "LEFT JOIN matches m ON m.id = COALESCE(r.match_id, p.match_id)" if has_matches and "match_id" in pick_columns else ""
     recent_rows = rows(
         conn,
         grading_cte + """SELECT r.*,
-                  COALESCE(m.match_date, p.match_date) AS event_match_date,
-                  m.kickoff_time AS event_kickoff_time,
-                  m.kickoff_iso AS event_kickoff_iso,
-                  p.created_at AS pick_created_at,
-                  p.created_at AS created_at,
-                  p.source AS source,
-                  p.selection AS selection,
-                  COALESCE(p.pick_type, p.market) AS pick_type,
-                  COALESCE(m.home_team, p.home_team) AS home_team,
-                  COALESCE(m.away_team, p.away_team) AS away_team,
-                  COALESCE(m.competition_name, p.competition_name) AS competition_name
-             FROM eligible_grades r
-             LEFT JOIN picks p ON p.id = r.pick_id
-             LEFT JOIN matches m ON m.id = COALESCE(r.match_id, p.match_id)
-            WHERE r.result_status IN ('won','lost','void')
-              AND COALESCE(r.odds,0)>1
-              AND COALESCE(r.stake,0)>0
-            ORDER BY r.graded_at DESC
-            LIMIT 10""",
+                  """ + match_date_expr + " AS event_match_date,\n                  " + match_kickoff_expr + " AS event_kickoff_time,\n                  " + match_kickoff_iso_expr + " AS event_kickoff_iso,\n                  " + match_status_expr + " AS event_match_status,\n                  " + match_score_expr + " AS event_match_score,\n                  " + match_home_score_expr + " AS event_home_score,\n                  " + match_away_score_expr + " AS event_away_score,\n                  " + match_home_expr + " AS home_team,\n                  " + match_away_expr + " AS away_team,\n                  " + match_competition_expr + " AS competition_name,\n                  """
+             + pick_created_expr + " AS pick_created_at,\n"
+             + pick_created_expr + " AS created_at,\n"
+             + pick_source_expr + " AS source,\n"
+             + pick_selection_expr + " AS selection,\n"
+             + pick_type_expr + " AS pick_type\n"
+             + "FROM eligible_grades r\n"
+             + "LEFT JOIN picks p ON p.id = r.pick_id\n"
+             + matches_join
+             + "\nWHERE " + " AND ".join(recent_where)
+             + "\nORDER BY r.graded_at DESC\nLIMIT " + str(recent_limit),
     )
-    if not recent_rows:
-        recent_rows = rows(conn, grading_cte + f"SELECT * FROM eligible_grades WHERE {evaluable_where} ORDER BY graded_at DESC LIMIT 10") if grading_cte else []
+    if not recent_rows and visible_membership is None and not requested_result:
+        recent_rows = rows(conn, grading_cte + f"SELECT * FROM eligible_grades WHERE {evaluable_where} ORDER BY graded_at DESC LIMIT {recent_limit}") if grading_cte else []
     recent = [_enrich_recent_result(r) for r in recent_rows]
-    runs = rows(conn, "SELECT * FROM pick_grading_runs ORDER BY started_at DESC LIMIT 6")
+    runs = [] if visible_membership is not None else rows(conn, "SELECT * FROM pick_grading_runs ORDER BY started_at DESC LIMIT 6")
     checks = [total > 0, auto_validated > 0 or pending > 0, len(runs) > 0, avg_score >= 40]
     readiness = round(100 * sum(1 for x in checks if x) / len(checks))
     conn.close()

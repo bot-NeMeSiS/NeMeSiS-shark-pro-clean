@@ -2,10 +2,10 @@ PLAN_ORDER = {"FREE": 0, "PRO": 1, "ELITE": 2, "ADMIN": 3}
 
 FEATURE_MIN_PLAN = {
     "live_basic": "FREE",
-    "picks_free": "FREE",
+    "picks_free": "PRO",
     "picks_pro": "PRO",
     "picks_elite": "ELITE",
-    "recommendations_basic": "FREE",
+    "recommendations_basic": "PRO",
     "recommendations_pro": "PRO",
     "auto_picks": "ELITE",
     "combis_basic": "PRO",
@@ -21,8 +21,8 @@ FEATURE_MIN_PLAN = {
 
 MEMBERSHIP_LIMITS = {
     "FREE": {
-        "daily_picks": 2,
-        "recommendations": 3,
+        "daily_picks": 0,
+        "recommendations": 0,
         "combi_matches": 0,
         "shark_questions": 3,
         "telegram_level": "basic",
@@ -66,8 +66,10 @@ PLAN_BADGES = {
 }
 
 FEATURE_LABELS = {
+    "picks_free": "Pronósticos publicados",
     "picks_pro": "Pronósticos PRO",
     "picks_elite": "Pronósticos ELITE",
+    "recommendations_basic": "Análisis de apuestas",
     "recommendations_pro": "Recomendaciones SHARK",
     "auto_picks": "Pronósticos automáticos",
     "combis_basic": "Combinadas básicas",

@@ -127,6 +127,17 @@ def test_plan_and_leg_limits(plan,count,allowed):
         with pytest.raises(eng.CombiError):eng.preview(legs,'0.10',user={'membership':plan},now=NOW)
 
 
+def test_legacy_free_pick_is_not_visible_in_free_combi_catalogue(db):
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE picks SET membership_required='FREE' WHERE id='p1'")
+
+    free_center=store.read_center(db,'f',now=NOW)
+    pro_center=store.read_center(db,'b',now=NOW)
+
+    assert free_center['candidates']==free_center['blocked']==[]
+    assert 'p1' in {item['id'] for item in pro_center['candidates']}
+
+
 def test_auto_no_filler_and_no_correlated_duplicates():
     assert len(eng.suggest([leg(i) for i in range(1,16)],15,user={'membership':'ELITE'}))==15
     with pytest.raises(eng.CombiError,match='relleno'):eng.suggest([leg(1),leg(1)],2,user={'membership':'ELITE'})

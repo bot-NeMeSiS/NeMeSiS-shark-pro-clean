@@ -470,10 +470,9 @@ def register_admin_master(a):
         summary=_safe_call(a.get_public_home_sports_summary,{})
         matches=summary.get("valid_live_events",[]) if page=="live" else summary.get("valid_matches_today",[]) if page=="home" else summary.get("valid_upcoming_matches",[])
         picks=[]
-        rank={"FREE":0,"PRO":1,"ELITE":2}
         for item in summary.get("valid_active_picks",[])[:12]:
             required=str(item.get("membership_required") or item.get("required_plan") or item.get("membership") or "PRO").upper()
-            if rank[plan] >= rank.get(required,3):
+            if a.prediction_membership_allows(plan, required):
                 picks.append(item)
         preview_settings = settings_values(a)
         matches = [dict(item) for item in matches if type(item) is dict]
@@ -483,7 +482,10 @@ def register_admin_master(a):
                 item["highlight_url"] = ""
                 item["highlights_url"] = ""
         from engines.membership_engine import membership_context, get_membership_limits
-        track_record = _safe_call(a.v742_track_record_context, {}) if page == "history" else {}
+        track_record = (
+            _safe_call(lambda: a.v742_track_record_context(preview_membership=plan), {})
+            if page == "history" else {}
+        )
         html=render_template("admin_client_preview.html",page=page,preview_title=PAGES[page],plan=plan,
                              matches=matches[:12],picks=picks,pages=PAGES,current_user=g.admin_preview_user,
                              settings=preview_settings,preview_membership=membership_context({"membership":plan}),
