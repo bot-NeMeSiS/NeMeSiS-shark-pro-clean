@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+{% set read_verified = status.get('read_state') == 'READY' %}
 <section class="v847-provider-page v850-provider-page" data-v847-template="admin_api_sports_audit" data-v850-template="admin_api_sports_audit">
   <div class="v847-provider-hero">
     <p class="eyebrow">Proveedor de datos real</p>
@@ -20,12 +21,12 @@
     </article>
     <article class="v847-provider-card">
       <span>Fixtures cacheados</span>
-      <strong>{{ status.get('fixtures_cached', 0) }}</strong>
+      <strong>{{ status.get('fixtures_cached') if read_verified else 'Sin comprobar' }}</strong>
       <small>Calendario/cache proveedor</small>
     </article>
     <article class="v847-provider-card">
       <span>Live cacheado</span>
-      <strong>{{ status.get('live_cached', 0) }}</strong>
+      <strong>{{ status.get('live_cached') if read_verified else 'Sin comprobar' }}</strong>
       <small>Snapshots API-Football live</small>
     </article>
     <article class="v847-provider-card">
@@ -41,9 +42,10 @@
       <dl>
         <dt>API-SPORTS configurada</dt><dd>{{ 'Sí' if status.get('api_sports_configured') else 'No' }}</dd>
         <dt>API-Football configurada</dt><dd>{{ 'Sí' if status.get('api_football_configured') else 'No' }}</dd>
-        <dt>Último sync conocido</dt><dd>{{ status.get('last_sync') or 'Sin sync visible' }}</dd>
-        <dt>Último error</dt><dd>{{ status.get('last_error') or 'Sin error registrado' }}</dd>
-        <dt>Tablas detectadas</dt><dd>{{ (status.get('tables_detected') or [])|join(', ') or 'Sin tablas API detectadas' }}</dd>
+        <dt>Lectura de caché local</dt><dd>{{ 'Comprobada' if read_verified else 'Sin comprobar; vuelve a intentarlo' }}</dd>
+        <dt>Último sync conocido</dt><dd>{{ (status.get('last_sync') or 'Sin sync visible') if read_verified else 'Sin comprobar' }}</dd>
+        <dt>Último error del proveedor</dt><dd>{{ (status.get('last_error') or 'Sin error registrado') if read_verified else 'Sin comprobar' }}</dd>
+        <dt>Tablas detectadas</dt><dd>{{ ((status.get('tables_detected') or [])|join(', ') or 'Sin tablas API detectadas') if read_verified else 'Sin comprobar' }}</dd>
       </dl>
     </article>
 
