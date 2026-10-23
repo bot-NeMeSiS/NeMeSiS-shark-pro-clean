@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="ns-advertiser-page">
+  <header class="ns-advertiser-hero">
+    <span class="ns-ad-eyebrow">PUBLICIDAD PARA MARCAS</span>
+    <h1>Llega a la comunidad deportiva de NeMeSiS</h1>
+    <p>Contrata una campaña directa, con precio y duración visibles. Los anuncios se muestran a usuarios FREE; PRO y ELITE mantienen una experiencia sin publicidad comercial.</p>
+    <div class="ns-ad-trust-row"><span>✓ Campañas revisadas</span><span>✓ Métricas agregadas</span><span>✓ Pago protegido por Stripe</span></div>
+  </header>
+
+  {% if ad_message %}
+  <div class="ns-ad-notice" role="status">{{ ad_message }}</div>
+  {% endif %}
+
+  <section class="ns-ad-packages">
+    <article><span>ARRANQUE</span><h2>7 días</h2><strong>49 €</strong><p>Campaña de una semana.</p><small>Precio base, impuestos calculados en el pago si están configurados.</small></article>
+    <article class="is-featured"><span>RECOMENDADO</span><h2>30 días</h2><strong>149 €</strong><p>Visibilidad durante un mes.</p><small>Precio base, impuestos calculados en el pago si están configurados.</small></article>
+    <article><span>PRESENCIA</span><h2>90 días</h2><strong>349 €</strong><p>Campaña de tres meses.</p><small>Precio base, impuestos calculados en el pago si están configurados.</small></article>
+  </section>
+
+  <section class="ns-ad-form-panel">
+    <div><span class="ns-ad-eyebrow">SOLICITUD DE CAMPAÑA</span><h2>Prepara tu anuncio</h2><p>Envía un anuncio de texto con destino HTTPS. Revisaremos el contenido después del pago antes de activarlo.</p></div>
+    <form method="post" action="{{ url_for('admin_productivity.advertiser_portal') }}" class="ns-ad-form">
+      {% if csrf_token is defined %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{% endif %}
+      <label>Persona de contacto<input name="advertiser_name" required minlength="2" maxlength="100" value="{{ form_data.get('advertiser_name','') if form_data else '' }}" autocomplete="name"></label>
+      <label>Empresa o nombre de facturación<input name="company_name" required minlength="2" maxlength="140" value="{{ form_data.get('company_name','') if form_data else '' }}" autocomplete="organization"></label>
+      <label>Correo de contacto<input type="email" name="contact_email" required maxlength="254" value="{{ form_data.get('contact_email','') if form_data else '' }}" autocomplete="email"></label>
+      <label>Titular del anuncio<input name="title" required minlength="5" maxlength="90" value="{{ form_data.get('title','') if form_data else '' }}" placeholder="Ej.: Equipamiento para tu próximo partido"></label>
+      <label>Texto del anuncio<textarea name="body" required minlength="15" maxlength="220" rows="3" placeholder="Explica con claridad qué ofrece tu marca.">{{ form_data.get('body','') if form_data else '' }}</textarea></label>
+      <label>Destino del botón (HTTPS)<input type="url" name="destination_url" required maxlength="2048" value="{{ form_data.get('destination_url','') if form_data else '' }}" placeholder="https://tuempresa.es"></label>
+      <label>Duración<select name="package_days" required><option value="7">7 días · 49 €</option><option value="30" selected>30 días · 149 €</option><option value="90">90 días · 349 €</option></select></label>
+      <label class="ns-ad-consent"><input type="checkbox" name="accept_terms" value="yes" required><span>Confirmo que tengo derecho a anunciar esta marca y acepto las <a href="#condiciones-publicidad">condiciones publicitarias</a> y la <a href="/privacidad" target="_blank" rel="noopener">política de privacidad</a>.</span></label>
+      <button type="submit" class="ns-ad-primary">Solicitar campaña y continuar al pago</button>
+      <p class="ns-ad-form-note">El envío no activa el anuncio. Solo se publican campañas cuyo pago esté confirmado y que hayan superado la revisión de contenido.</p>
+    </form>
+  </section>
+
+  <section id="condiciones-publicidad" class="ns-ad-terms">
+    <h2>Condiciones publicitarias resumidas</h2>
+    <ul>
+      <li>No se aceptan anuncios de apuestas, casinos, tipsters, promesas de ganancias garantizadas ni productos ilegales.</li>
+      <li>La creatividad debe ser veraz, tener derechos suficientes y llevar a un destino HTTPS legítimo.</li>
+      <li>NeMeSiS puede rechazar o pausar anuncios por seguridad, legalidad, fraude o mala experiencia. La activación requiere revisión.</li>
+      <li>Las métricas son agregadas; no se venden datos personales de usuarios ni se garantiza un número de impresiones, clics o ventas.</li>
+      <li>Los precios publicados son base. El tratamiento fiscal definitivo depende de la configuración de Stripe Tax y de los datos fiscales aportados antes del pago.</li>
+    </ul>
+    <p>Esta información resumida no sustituye unas condiciones comerciales y fiscales completas. Antes de habilitar cobros reales, el titular debe publicar los datos legales de facturación y confirmar la configuración fiscal.</p>
+  </section>
+</section>
+{% endblock %}

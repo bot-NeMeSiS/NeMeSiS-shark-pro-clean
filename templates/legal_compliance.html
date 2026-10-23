@@ -38,6 +38,9 @@
       {% for section in legal.sections %}
       <div><strong>{{ section.title }}</strong><p>{{ section.body }}</p></div>
       {% endfor %}
+      {% if request.path == '/privacidad' %}
+      <div><strong>Publicidad y métricas agregadas</strong><p>En las superficies de usuarios FREE podemos mostrar anuncios patrocinados contratados directamente con NeMeSiS. Para medir el rendimiento se cuentan impresiones y clics de forma agregada, con deduplicación limitada por sesión y día. No se incorporan perfiles publicitarios ni se venden datos personales a anunciantes. Si un anunciante solicita una campaña, tratamos sus datos de contacto y facturación para gestionar la solicitud, el pago y la campaña. El pago puede tramitarse mediante Stripe; consulta también la información que Stripe muestra durante el checkout.</p></div>
+      {% endif %}
     </div>
   </article>
   <aside class="v787-legal-panel warn">
