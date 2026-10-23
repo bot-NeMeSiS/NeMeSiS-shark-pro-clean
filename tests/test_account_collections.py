@@ -45,6 +45,42 @@ def test_backup_evidence_never_invents_success_or_leaks_diagnostics(result, labe
     assert backup_observation([])['tone'] == 'unknown'
 
 
+def test_backup_observation_summarizes_allowlisted_compact_capacity_only():
+    view = backup_observation({'time': '2026-10-23T04:35:54+02:00', 'result': {
+        'ok': False, 'backup_created': False, 'failure_stage': 'CAPACITY',
+        'error': 'backup_storage_insufficient', 'private_path': '/data/private.db',
+        'storage': {'compact_candidate': {
+            'ok': False, 'reason_code': 'INSUFFICIENT_SPACE',
+            'compact_snapshot_bytes': 1140453376,
+            'required_bytes': 1254498713,
+            'free_bytes': 687202304,
+            'reusable_page_bytes': 4096,
+            'private_path': '/data/private.db',
+        }},
+    }})
+    diagnostics = view['diagnostics']
+    assert view['detail'] == 'El intento no disponía del espacio necesario.'
+    assert diagnostics['compact_candidate_state'] == 'INSUFFICIENT_SPACE'
+    assert diagnostics['compact_shortfall_mib'] == 541.0
+    assert diagnostics['storage'] == {
+        'compact_snapshot_bytes': 1140453376,
+        'compact_required_bytes': 1254498713,
+        'compact_free_bytes': 687202304,
+        'compact_reusable_page_bytes': 4096,
+    }
+    assert '/data/private.db' not in str(view)
+    assert 'backup_storage_insufficient' not in str(view)
+
+
+def test_backup_observation_omits_zero_shortfall_and_unrecognized_state():
+    view = backup_observation({'result': {'storage': {'compact_candidate': {
+        'reason_code': ['unexpected'], 'required_bytes': 100, 'free_bytes': 100,
+    }}}})
+    assert view['diagnostics']['compact_candidate_state'] == ''
+    assert view['diagnostics']['compact_candidate_label'] == ''
+    assert view['diagnostics']['compact_shortfall_mib'] is None
+
+
 def forbidden(*args, **kwargs):
     raise AssertionError('GET presentation invoked an operational function')
 
@@ -93,7 +129,8 @@ def test_admin_backups_renders_recorded_failure_without_running_work(app_module,
     stage_label = {'es':'Comprobación de integridad','en':'Integrity check',
                    'fr':"Contrôle d&#39;intégrité"}[language]
     assert '87 ms' in html and stage_label in html
-    assert '1.0 MB' in html and '70.0 MB' in html
+    unit = 'Mio' if language == 'fr' else 'MiB'
+    assert f'1.0 {unit}' in html and f'70.0 {unit}' in html
     assert '/data/private.db' not in html and 'UNTRUSTED_STAGE' not in html
     assert 'data-backup-diagnostics="read-only"' in html
     assert 'Sin operaciones registradas' not in html
@@ -101,3 +138,43 @@ def test_admin_backups_renders_recorded_failure_without_running_work(app_module,
     monkeypatch.setattr(app_module,'is_admin_session',lambda:False)
     with app_module.app.test_request_context('/admin/backups'):
         assert app_module.admin_backups_page().location == '/admin-login?next=/admin/backups'
+
+
+@pytest.mark.parametrize(('language', 'capacity_label', 'shortfall_label', 'unit'), [
+    ('es', 'La copia compacta estimada supera el espacio libre.', '541.0 MiB', 'MiB'),
+    ('en', 'The compact backup estimate exceeds the available space.', '541.0 MiB', 'MiB'),
+    ('fr', "L&#39;estimation de sauvegarde compacte dépasse l&#39;espace disponible.", '541.0 Mio', 'Mio'),
+])
+def test_admin_backup_capacity_panel_shows_recorded_compact_shortfall_read_only(app_module, monkeypatch, language, capacity_label, shortfall_label, unit):
+    monkeypatch.setattr(app_module, 'is_admin_session', lambda: True)
+    monkeypatch.setattr(app_module, 'list_backups', lambda: [{
+        'name': 'database_synthetic.db', 'created_at': '2026-10-23T04:00:00+02:00',
+        'size_mb': 5.5, 'valid': True,
+    }])
+    monkeypatch.setattr(app_module, 'backup_dir', lambda: '/synthetic/backups')
+    monkeypatch.setattr(app_module, 'automation_get_bounded', lambda *a: {
+        'time': '2026-10-23T04:35:54+02:00', 'result': {
+            'ok': False, 'backup_created': False, 'failure_stage': 'CAPACITY',
+            'storage': {'compact_candidate': {
+                'ok': False, 'reason_code': 'INSUFFICIENT_SPACE',
+                'compact_snapshot_bytes': 1140453376,
+                'required_bytes': 1254498713,
+                'free_bytes': 687202304,
+                'reusable_page_bytes': 4096,
+                'private_path': '/data/private.db',
+            }},
+        },
+    })
+    for name in ('dashboard_data', 'create_database_backup', 'restore_database_backup'):
+        monkeypatch.setattr(app_module, name, forbidden)
+    with app_module.app.test_request_context('/admin/backups', headers={'Accept-Language': language}):
+        html = app_module.admin_backups_page()
+    assert capacity_label in html
+    assert shortfall_label in html
+    assert f'1087.6 {unit}' in html
+    assert f'1196.4 {unit}' in html
+    assert f'655.4 {unit}' in html
+    assert f'5.5 {unit}' in html
+    assert 'RAW_SECRET' not in html and '/data/private.db' not in html
+    assert 'data-backup-diagnostics="read-only"' in html
+    assert catalogue_issues() == []

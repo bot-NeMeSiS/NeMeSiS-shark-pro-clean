@@ -29,6 +29,12 @@ _BACKUP_METRICS = (
     'snapshot_bytes', 'compact_snapshot_bytes', 'required_bytes',
     'free_before', 'free_after', 'free_bytes', 'reusable_page_bytes',
 )
+_BACKUP_COMPACT_STATES = {
+    'READY': 'Copia compacta estimada viable',
+    'NO_REUSABLE_PAGES': 'SQLite no tiene páginas reutilizables suficientes para reducir la copia.',
+    'INSUFFICIENT_SPACE': 'La copia compacta estimada supera el espacio libre.',
+    'CAPACITY_CHECK_FAILED': 'No se pudo estimar la capacidad de copia compacta.',
+}
 
 
 def _backup_diagnostic_summary(result):
@@ -54,7 +60,30 @@ def _backup_diagnostic_summary(result):
         value = storage.get(key)
         if isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 10**15:
             metrics[key] = value
-    return {'stages': stages, 'storage': metrics}
+    compact = storage.get('compact_candidate')
+    compact = compact if isinstance(compact, dict) else {}
+    compact_fields = {
+        'compact_snapshot_bytes': 'compact_snapshot_bytes',
+        'compact_required_bytes': 'required_bytes',
+        'compact_free_bytes': 'free_bytes',
+        'compact_reusable_page_bytes': 'reusable_page_bytes',
+    }
+    for output_key, source_key in compact_fields.items():
+        value = compact.get(source_key)
+        if isinstance(value, int) and not isinstance(value, bool) and 0 <= value <= 10**15:
+            metrics[output_key] = value
+    candidate_state = compact.get('reason_code')
+    candidate_state = candidate_state if isinstance(candidate_state, str) and candidate_state in _BACKUP_COMPACT_STATES else ''
+    required = metrics.get('compact_required_bytes')
+    free = metrics.get('compact_free_bytes')
+    shortfall = max(0, required - free) if required is not None and free is not None else None
+    return {
+        'stages': stages,
+        'storage': metrics,
+        'compact_candidate_state': candidate_state,
+        'compact_candidate_label': _BACKUP_COMPACT_STATES.get(candidate_state, ''),
+        'compact_shortfall_mib': round(shortfall / 1048576, 1) if shortfall else None,
+    }
 
 
 def favorite_collection(favorites, query='', kind=''):
@@ -86,6 +115,7 @@ def backup_observation(record):
         stage = result.get('failure_stage')
         detail = {
             'STORAGE_CAPACITY': 'El intento no disponía del espacio necesario.',
+            'CAPACITY': 'El intento no disponía del espacio necesario.',
             'SNAPSHOT': 'La creación de la copia no terminó.',
             'INTEGRITY': 'La comprobación de integridad no terminó correctamente.',
             'HASH': 'El cálculo de la huella de la copia no terminó.',
