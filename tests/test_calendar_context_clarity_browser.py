@@ -11,6 +11,30 @@ from test_app_navigation_browser import browser
 ROOT=Path(__file__).resolve().parents[1]
 
 
+def wait_for_calendar_paint(page, javascript):
+    if javascript:
+        page.evaluate("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))")
+    else:
+        # Page.evaluate is unavailable when the no-JavaScript variant is under test.
+        page.wait_for_timeout(50)
+
+
+def render_calendar_card(page, card, javascript):
+    """Wait for content-visibility:auto cards to render after entering the viewport."""
+    viewport_height=page.viewport_size['height']
+    for _ in range(12):
+        box=card.bounding_box()
+        assert box is not None
+        if box['y']>=0 and box['y']+box['height']<=viewport_height:
+            break
+        delta=box['y']+box['height']/2-viewport_height/2
+        page.mouse.wheel(0,max(-viewport_height*.8,min(viewport_height*.8,delta)))
+        page.wait_for_timeout(50)
+    else:
+        raise AssertionError(f'Calendar card did not enter viewport: {card.bounding_box()}')
+    wait_for_calendar_paint(page,javascript)
+
+
 def sample(app_module):
     day=app_module.today_iso(1)
     rows=[]
@@ -84,6 +108,7 @@ def test_calendar_order_context_and_get_continuity(browser,app_module,width,lang
         cards=page.locator('.v933-calendar-day .v933-match-card:not(.is-incomplete)')
         assert cards.count()==8
         compact_card=cards.first
+        render_calendar_card(page,compact_card,javascript)
         assert page.locator('link[href*="sports-match-density.css"]').count()==1
         assert compact_card.locator('.v933-match-card-header').evaluate('(el)=>getComputedStyle(el).display')=='none'
         assert compact_card.locator('[data-match-kickoff-clock]').is_visible()
@@ -92,12 +117,19 @@ def test_calendar_order_context_and_get_continuity(browser,app_module,width,lang
             geometry=compact_card.evaluate("el=>({height:el.getBoundingClientRect().height,rows:getComputedStyle(el).gridTemplateRows,teams:el.querySelector('.v933-match-teams').getBoundingClientRect().height})")
             assert geometry['height']<=max_height, geometry
             assert len(compact_card.locator('.v933-match-teams').evaluate('(el)=>getComputedStyle(el).gridTemplateColumns.split(" ")'))==3
-            assert all('Club ' in card.inner_text() and 'Visitante QA' in card.inner_text() for card in cards.all())
-            assert all(card.locator('a[href^="/match/"]').count()==1 for card in cards.all())
-            allocations=cards.evaluate_all("items=>items.map(el=>{const rows=getComputedStyle(el).gridTemplateRows.split(' ').map(parseFloat);return {rows,teams:el.querySelector('.v933-match-teams').getBoundingClientRect().height,footer:el.querySelector('.v933-match-card-footer').getBoundingClientRect().height}})")
+            allocations=[]
+            for card in cards.all():
+                render_calendar_card(page,card,javascript)
+                rendered_text=card.inner_text()
+                assert 'Club ' in rendered_text and 'Visitante QA' in rendered_text, rendered_text
+                assert card.locator('a[href^="/match/"]').count()==1
+                allocation=card.evaluate("el=>{const rows=getComputedStyle(el).gridTemplateRows.split(' ').map(parseFloat);return {rows,teams:el.querySelector('.v933-match-teams').getBoundingClientRect().height,footer:el.querySelector('.v933-match-card-footer').getBoundingClientRect().height}}")
+                allocations.append(allocation)
             assert all(len(item['rows'])==2 and item['rows'][0]+1>=item['teams'] and item['rows'][1]+1>=item['footer'] for item in allocations), allocations
+            render_calendar_card(page,compact_card,javascript)
             before=geometry['height']
             compact_card.evaluate("el=>{el.querySelector('[data-match-kickoff-clock]')?.remove();el.querySelector('[data-match-kickoff-zone]')?.remove()}")
+            wait_for_calendar_paint(page,javascript)
             without_optional_clock=compact_card.evaluate("el=>({height:el.getBoundingClientRect().height,teams:el.querySelector('.v933-match-teams').getBoundingClientRect().height})")
             if width>=390:
                 assert before-without_optional_clock['height']>=10

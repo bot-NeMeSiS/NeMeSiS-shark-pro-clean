@@ -81,6 +81,7 @@ from engines.football_population_engine import (
 )
 from engines.live_engine import build_live_depth, build_live_flow, build_match_detail, fallback_timeline, normalize_live_state, shark_live_alerts, shark_momentum
 from engines.match_context_engine import build_match_context
+from engines.calendar_export_engine import build_match_calendar_event
 from services.sports_service import read_match_record
 from engines.live_experience_engine import build_live_experience, enrich_live_match, live_experience_snapshot
 from engines.v934_realtime_sports_engine import (
@@ -514,7 +515,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V985_ADMIN_BACKUP_CAPACITY_DIAGNOSTICS'
+APP_VERSION = 'V986_CALENDAR_MATCH_EXPORT'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -3237,11 +3238,12 @@ def db():
     return sqlite_connect(DB_PATH)
 
 
-MEDIA_READ_ENDPOINTS = {
+READ_ONLY_GET_ENDPOINTS = {
     "highlight_detail_page",
     "highlights_page",
     "api_client_highlights",
     "api_client_highlights_content_center",
+    "calendar_match_export",
 }
 
 
@@ -3256,9 +3258,9 @@ def request_read_db():
     if not db_path:
         return None
     timeout_ms = max(100, min(as_int(os.getenv("SQLITE_READ_BUSY_TIMEOUT_MS", "750"), 750), 2500))
-    media_read_only = request.endpoint in MEDIA_READ_ENDPOINTS
+    read_only_get = request.endpoint in READ_ONLY_GET_ENDPOINTS
     try:
-        if db_path != ":memory:" and (media_read_only or Path(db_path).exists()):
+        if db_path != ":memory:" and (read_only_get or Path(db_path).exists()):
             uri = Path(db_path).resolve().as_uri() + "?mode=ro"
             connection = sqlite3.connect(
                 uri,
@@ -3283,8 +3285,8 @@ def request_read_db():
                 connection.close()
             except sqlite3.Error:
                 pass
-        if media_read_only:
-            raise  # Never fall back to creating a database from a media read.
+        if read_only_get:
+            raise  # Read-only GETs never fall back to creating or opening a writable database.
         return None
 
 
@@ -4601,6 +4603,10 @@ def enforce_local_safe_request_boundary():
         return local_safe_blocked_response("Accion comercial o externa desactivada en NEMESIS LOCAL SAFE.")
     return None
 
+def is_calendar_match_read_path(path):
+    return path == "/calendar/match" or path.startswith("/calendar/match/")
+
+
 LIGHT_STARTUP_ENDPOINTS = {
     "api_sports_search",  # Suggestions never initialize or seed production data.
     "health",
@@ -4614,7 +4620,7 @@ LIGHT_STARTUP_ENDPOINTS = {
     "founder_manifest_json",
     "favicon_ico",
     "apple_touch_icon",
-    *MEDIA_READ_ENDPOINTS,  # Media GETs never own schema creation or seed work.
+    *READ_ONLY_GET_ENDPOINTS,  # These GETs never own schema creation, writes, or seed work.
     "static",
     "home",
 }
@@ -4632,6 +4638,9 @@ def v935_begin_route_budget_measurement():
 @app.before_request
 def ensure_runtime_ready_for_request():
     if request.method == "HEAD" and request.path == "/":
+        return None
+    if request.method in {"GET", "HEAD", "OPTIONS"} and is_calendar_match_read_path(request.path):
+        # Even malformed calendar-download paths are non-mutating public reads.
         return None
     if request.path == "/team-crest.svg" or request.path.startswith("/asset/"):
         return None
@@ -17715,7 +17724,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V985_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V986_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -23100,6 +23109,76 @@ def cached_match_intelligence_for_consumer(match, picks=None):
         madrid_context=madrid_context,
         live_context=live_context,
     ).get("intelligence") or {}
+
+
+@app.route("/calendar/match/<match_id>.ics")
+def calendar_match_export(match_id):
+    """Download one read-only calendar event from an already persisted match."""
+    # Use only the request's read-only connection. This public download must not
+    # create a missing DB, run migrations, or depend on recently added columns.
+    try:
+        connection = request_read_db()
+        if connection is None:
+            abort(503)
+        available_columns = {
+            str(row["name"])
+            for row in connection.execute("PRAGMA table_info(matches)").fetchall()
+        }
+        if "id" not in available_columns:
+            abort(503)
+        export_columns = (
+            "id", "external_id", "match_date", "kickoff_time", "match_time", "kickoff_iso",
+            "home_team", "away_team", "competition_name", "league_name", "venue", "status",
+            "score", "home_score", "away_score", "raw_json", "last_synced_at", "updated_at",
+        )
+        selected_columns = [column for column in export_columns if column in available_columns]
+        sql = f"SELECT {','.join(selected_columns)} FROM matches WHERE id=? LIMIT 1"
+        row = connection.execute(sql, (match_id,)).fetchone()
+        match = dict(row) if row is not None else None
+    except sqlite3.Error:
+        abort(503)
+    if not match:
+        # The global 404 reporter persists unmatched paths to disk. Keep this
+        # expected miss local so this public GET remains genuinely read-only.
+        return render_template(
+            "resource_unavailable.html",
+            title="Partido no disponible",
+            resource_title="Este partido ya no está disponible",
+            resource_message="No hay un registro actual disponible para este identificador.",
+        ), 404
+    stable_match_id = str(match.get("id") or match.get("external_id") or "")
+    lifecycle_truth = v935_match_status_truth(dict(match))
+    calendar_lifecycle = str(lifecycle_truth.get("lifecycle") or "INCOMPLETE").upper()
+    if lifecycle_truth.get("status_conflict"):
+        calendar_lifecycle = "CONFLICT"
+    lifecycle_copy = {
+        "CANCELLED": "Cancelado",
+        "ABANDONED": "Abandonado",
+        "RESULT_PENDING": "Resultado pendiente",
+    }
+    label_source = lifecycle_copy.get(calendar_lifecycle, "")
+    match["calendar_lifecycle"] = calendar_lifecycle
+    public_base = password_reset_public_base_url()
+    detail_path = url_for("match_detail_page", match_id=stable_match_id)
+    event_url = f"{public_base.rstrip('/')}{detail_path}" if public_base else ""
+    payload = build_match_calendar_event(
+        match,
+        event_url=event_url,
+        static_copy_notice=ui_text("Copia estática importada; no se actualiza automáticamente."),
+        lifecycle_label=ui_text(label_source) if label_source else "",
+    )
+    if not payload:
+        return Response(
+            ui_text("No se puede añadir al calendario porque no hay una fecha fiable confirmada. Revisa la ficha del partido."),
+            status=422,
+            content_type="text/plain; charset=utf-8",
+        )
+    safe_id = re.sub(r"[^A-Za-z0-9_-]", "", stable_match_id)[:64] or "partido"
+    response = Response(payload, content_type="text/calendar; charset=utf-8")
+    response.headers["Content-Disposition"] = f'attachment; filename="nemesis-partido-{safe_id}.ics"'
+    response.headers["Cache-Control"] = "private, no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @app.route("/match/<match_id>")
@@ -32256,6 +32335,13 @@ if os.getenv("RUN_STARTUP_SCHEDULER_NOW", "").strip().lower() in {"1", "true", "
 @app.errorhandler(404)
 def client_safe_404(error):
     path = request.path or "/"
+    if request.method in {"GET", "HEAD", "OPTIONS"} and is_calendar_match_read_path(path):
+        return render_template(
+            "resource_unavailable.html",
+            title="Partido no disponible",
+            resource_title="Este partido ya no está disponible",
+            resource_message="No hay un registro actual disponible para este identificador.",
+        ), 404
     alias_target = v896_route_alias_target(path)
     event = v896_record_not_found(
         path,
