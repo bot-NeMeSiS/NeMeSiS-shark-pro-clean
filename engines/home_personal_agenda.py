@@ -2,7 +2,8 @@
 from copy import deepcopy
 
 
-def build_personal_agenda(summary, favorites, *, normalize, status_for, kickoff_for, now):
+def build_personal_agenda(summary, favorites, *, normalize, status_for, kickoff_for, now,
+                          unique_for=None):
     if favorites is None:
         return {"state": "UNAVAILABLE", "saved_count": None, "matches": []}
     saved = {kind: set() for kind in ("team", "league", "match")}
@@ -49,5 +50,8 @@ def build_personal_agenda(summary, favorites, *, normalize, status_for, kickoff_
             item["personal_reason"] = reasons[0]
             selected.append((rank, order, match_id, item))
     selected.sort(key=lambda row: row[:3])
-    return {"state": "READY" if selected else "NO_MATCHES", "saved_count": count,
-            "matches": [row[3] for row in selected[:3]]}
+    matches = [row[3] for row in selected]
+    if unique_for:
+        matches = unique_for(matches)
+    return {"state": "READY" if matches else "NO_MATCHES", "saved_count": count,
+            "matches": matches[:3]}
