@@ -20,6 +20,13 @@
     return Number.isFinite(parsed) ? parsed : 0;
   }
 
+  function providerMatches(payload) {
+    // Presentation representatives never replace an existing card's provider ID.
+    // An explicitly empty observation list is authoritative, not a fallback.
+    return Array.isArray(payload.provider_matches) ? payload.provider_matches :
+      Array.isArray(payload.matches) ? payload.matches : [];
+  }
+
   function clampPoll(value) {
     return Math.max(30, Math.min(number(value) || 180, 300));
   }
@@ -130,6 +137,7 @@
   function createDirectoController(root) {
     var records = new Map();
     var wrappers = new Map();
+    var fixtureIds = new Map();
     var completeCount = false;
     var hasResponse = false;
     var expiryTimer = null;
@@ -170,6 +178,39 @@
     }
     function live(entry) {
       return Boolean(entry && entry.state.is_live && !entry.withheld && remaining(entry) > 0);
+    }
+    function fixtureKey(id) {
+      return fixtureIds.get(id) || id;
+    }
+    function readFixtureIds(payload, observations) {
+      fixtureIds = new Map();
+      var supplied = Object.prototype.hasOwnProperty.call(payload, 'fixture_ids');
+      if (!supplied) return true; // Compatible with the previous per-ID payload.
+      var mapping = payload.fixture_ids;
+      if (!mapping || typeof mapping !== 'object' || Array.isArray(mapping)) return false;
+      var observed = new Set(observations.filter(function (row) {
+        return row && typeof row.id === 'string' && row.id;
+      }).map(function (row) { return row.id; }));
+      var safe = true;
+      var relevant = new Set(Array.from(observed).concat(Array.from(wrappers.keys())));
+      relevant.forEach(function (id) {
+        if (!Object.prototype.hasOwnProperty.call(mapping, id)) {
+          if (observed.has(id)) safe = false;
+          return;
+        }
+        var representative = mapping[id];
+        // Accept only flat groups anchored to a supplied observation. A broken
+        // map cannot invent a fixture or join records through chained aliases.
+        if (typeof representative !== 'string' || !representative ||
+            !observed.has(representative) ||
+            !Object.prototype.hasOwnProperty.call(mapping, representative) ||
+            mapping[representative] !== representative) {
+          safe = false;
+          return;
+        }
+        fixtureIds.set(id, representative);
+      });
+      return safe;
     }
     function belongsToLane(entry, id) {
       var lane = root.getAttribute('data-directo-lane');
@@ -871,13 +912,13 @@
     function tick() {
       window.clearTimeout(expiryTimer);
       var delay = Infinity;
-      var liveCount = 0;
-      var halftimeCount = 0;
+      var liveFixtures = new Set();
+      var halftimeFixtures = new Set();
       var degraded = records.size < wrappers.size;
       records.forEach(function (entry, id) {
         if (live(entry)) {
-          liveCount += 1;
-          if (entry.state.status_canonical === 'HALFTIME') halftimeCount += 1;
+          liveFixtures.add(fixtureKey(id));
+          if (entry.state.status_canonical === 'HALFTIME') halftimeFixtures.add(fixtureKey(id));
           delay = Math.min(delay, remaining(entry));
         } else if (entry.state.is_live) degraded = true;
         if (wrappers.has(id)) draw(wrappers.get(id), entry);
@@ -894,12 +935,13 @@
         });
       }
       if (completeCount || degraded || hasResponse) {
-        count('live', completeCount ? liveCount : '—');
-        count('break', completeCount ? halftimeCount : '—');
-        if (completeCount) root.setAttribute('data-sports-live-confirmed', String(liveCount));
+        count('live', completeCount ? liveFixtures.size : '—');
+        count('break', completeCount ? halftimeFixtures.size : '—');
+        if (completeCount) root.setAttribute('data-sports-live-confirmed', String(liveFixtures.size));
         else root.removeAttribute('data-sports-live-confirmed');
       }
-      root.setAttribute('data-directo-visible-live-count', String(Array.from(wrappers.keys()).filter(function (id) { return live(records.get(id)); }).length));
+      root.setAttribute('data-directo-visible-live-count', String(new Set(Array.from(wrappers.keys())
+        .filter(function (id) { return live(records.get(id)); }).map(fixtureKey)).size));
       root.setAttribute('data-directo-live-count-scope', 'snapshot');
       root.setAttribute('data-directo-live-count-state', completeCount ? 'OBSERVED' : 'NOT_ESTABLISHED');
       if (degraded) notice('Algunas lecturas ya no confirman un directo vigente. No se inventan minutos ni resultados.', true);
@@ -941,20 +983,25 @@
         lastTrustedServerNow = serverNow;
         lastTrustedServerMono = performance.now();
         lastTrustedClientWall = Date.now();
+        var observations = providerMatches(payload);
         var seen = new Set();
-        var safe = true;
+        var safe = readFixtureIds(payload, observations);
+        if (Object.prototype.hasOwnProperty.call(payload, 'provider_matches') &&
+            !Array.isArray(payload.provider_matches)) safe = false;
         var newItems = false;
-        var declaredLive = 0;
-        payload.matches.forEach(function (row) {
+        var declaredLive = new Set();
+        var wrapperFixtures = new Set(Array.from(wrappers.keys()).map(fixtureKey));
+        observations.forEach(function (row) {
           if (!row || typeof row.id !== 'string' || !row.id || seen.has(row.id)) { safe = false; return; }
           seen.add(row.id);
-          if (valid(row.realtime_state) && row.realtime_state.is_live) declaredLive += 1;
+          if (valid(row.realtime_state) && row.realtime_state.is_live) declaredLive.add(fixtureKey(row.id));
           var accepted = accept(row.id, row.realtime_state, serverNow);
           if (accepted && wrappers.has(row.id)) {
             updateLiveStatistics(wrappers.get(row.id), records.get(row.id).state, row.live_statistics, serverNow);
           }
           if (!accepted) safe = false;
-          if (accepted && !wrappers.has(row.id) && belongsToLane(records.get(row.id), row.id)) newItems = true;
+          if (accepted && !wrapperFixtures.has(fixtureKey(row.id)) &&
+              belongsToLane(records.get(row.id), row.id)) newItems = true;
         });
         // Omitted records do not become finished or 0-0. Keep the focused DOM
         // and its actions, but withdraw any claim that they are still LIVE.
@@ -973,7 +1020,8 @@
             root.setAttribute('data-sports-' + pair[1].replace(/_/g, '-'), String(value));
           });
         }
-        completeCount = safe && payload.counts && Number.isInteger(payload.counts.live) && declaredLive === payload.counts.live;
+        completeCount = safe && payload.counts && Number.isInteger(payload.counts.live) &&
+          payload.counts.live >= 0 && declaredLive.size === payload.counts.live;
         root.setAttribute('data-directo-delayed', String(safe && payload.realtime_live_status === 'stale' &&
           payload.counts && payload.counts.live === 0 && Number.isInteger(payload.counts.stale_live) && payload.counts.stale_live > 0));
         newItems = Boolean(safe && newItems);
@@ -1018,8 +1066,8 @@
     bar.classList.toggle('is-live', hasLive);
     bar.classList.toggle('is-stale', payload.realtime_live_status === 'stale');
     bar.classList.remove('is-error');
-    (payload.matches || []).forEach(updateMatch);
-    (payload.live || []).forEach(updateMatch);
+    providerMatches(payload).forEach(updateMatch);
+    if (!Array.isArray(payload.provider_matches)) (payload.live || []).forEach(updateMatch);
     (payload.picks || []).forEach(updatePick);
   }
 

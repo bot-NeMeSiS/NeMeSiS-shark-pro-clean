@@ -371,6 +371,7 @@ from engines.stripe_payments_engine import (
 )
 from engines.pick_grading_engine import LATEST_ELIGIBLE_GRADING_CTE, pick_grading_summary, run_pick_grading
 from engines.subscription_control_engine import subscription_summary, apply_subscription_rules
+from engines.fixture_identity_read_model import provider_fixture_groups, unique_provider_fixtures
 from engines.team_identity_engine import (
     flag_or_emoji as team_flag_or_emoji,
     identity_payload as build_team_identity_payload,
@@ -9968,13 +9969,13 @@ def favorite_feed(limit=80, user_id=None):
     favs = favorite_sets(user_id=user_id)
     if not favs["all"]:
         return []
-    data = dedupe_matches_list(get_matches(today_iso(), "today"))
+    data = _dedupe_sports_matches(get_matches(today_iso(), "today"))
     feed = []
     for match in data:
         annotated = annotate_match(match, favs)
         if annotated.get("is_favorite"):
             feed.append(annotated)
-    return dedupe_matches_list(feed)[: int(limit)]
+    return _v957_unique_calendar_fixtures(feed)[: int(limit)]
 
 
 def related_picks_for_match(match, limit=8):
@@ -12020,18 +12021,18 @@ def match_hub(date=None, lane="today"):
     results_only = lane in {"results", "finished"}
     # Results pages use only the persisted results snapshot below. Avoid two
     # unrelated agenda reads and per-match annotations that this lane discards.
-    today_matches = [] if results_only else dedupe_matches_list(
+    today_matches = [] if results_only else _dedupe_sports_matches(
         [annotate_match(m, favs) for m in get_matches(date, "today")]
     )
-    window_matches = [] if results_only else dedupe_matches_list(
+    window_matches = [] if results_only else _dedupe_sports_matches(
         [annotate_match(m, favs) for m in get_upcoming_matches(date, days=10, limit=500)]
     )
-    result_matches = dedupe_matches_list(get_results_matches(date, days_back=21, limit=250))
+    result_matches = _dedupe_sports_matches(get_results_matches(date, days_back=21, limit=250))
     combined = []
     seen = set()
-    source_matches = result_matches if lane in {"results", "finished"} else dedupe_matches_list(today_matches + window_matches + (result_matches[:120] if lane == "week" else []))
+    source_matches = result_matches if lane in {"results", "finished"} else _dedupe_sports_matches(today_matches + window_matches + (result_matches[:120] if lane == "week" else []))
     for match in source_matches:
-        logical_key = match_logical_key(match)
+        logical_key = _sports_match_key(match)
         if logical_key in seen:
             continue
         if not match_lane_filter(match, lane):
@@ -12041,11 +12042,21 @@ def match_hub(date=None, lane="today"):
     if lane in {"results", "finished"}:
         combined = v766_enrich_matches_with_highlights(combined)
         result_matches = v766_enrich_matches_with_highlights(result_matches)
-    sections = hub_sections(combined, favorites=favorites, picks=picks)
+    pick_ids = {str(item.get("match_id") or "") for item in picks}
+    # Apply section predicates before selecting a representative, preserving
+    # the saved/pick/live row even when another provider has a different state.
+    sections = {
+        key: _v956_unique_home_fixtures(items, pick_ids=pick_ids, favorites=favs)
+        for key, items in hub_sections(combined, favorites=favorites, picks=picks).items()
+    }
     live_state = split_live(combined)
+    with_odds = _v956_unique_home_fixtures(
+        [m for m in combined if m.get("bookmaker") or m.get("odds_h2h_json")],
+        pick_ids=pick_ids, favorites=favs)
+    combined = _v956_unique_home_fixtures(combined, pick_ids=pick_ids, favorites=favs)
+    result_matches = _v956_unique_home_fixtures(result_matches, pick_ids=pick_ids, favorites=favs)
     sync = sync_plan(sections["today"], now_iso())
     top_leagues = [c for c in competitions() if c.get("tier", 0) >= 80][:24]
-    with_odds = [m for m in combined if m.get("bookmaker") or m.get("odds_h2h_json")]
     by_country = {}
     for match in combined:
         key = match.get("country") or "Global"
@@ -17362,7 +17373,8 @@ def split_live(matches):
             live.append(item)
         else:
             scheduled.append(item)
-    return {"live": live, "scheduled": scheduled, "finished": finished}
+    return {lane: _v957_unique_calendar_fixtures(items) for lane, items in
+            (("live", live), ("scheduled", scheduled), ("finished", finished))}
 
 
 def match_logical_key(match):
@@ -17565,7 +17577,7 @@ def annotate_sports_hub_matches(matches, picks=None):
         if mid and mid not in pick_map:
             pick_map[mid] = pick
     out = []
-    for match in dedupe_matches_list(matches):
+    for match in _dedupe_sports_matches(matches):
         match = apply_match_localization(match)
         match.update(apply_team_identities_to_match(match))
         pick = pick_map.get(str(match.get("id") or ""))
@@ -17580,7 +17592,7 @@ def annotate_sports_hub_matches(matches, picks=None):
         match["safe_score"] = live_depth.get("score") or match.get("score") or "vs"
         match["safe_status"] = live_depth.get("label") or match.get("status") or "Próximo"
         out.append(match)
-    return out
+    return _v957_unique_calendar_fixtures(out)
 
 
 def ensure_client_match_lifecycle_fresh(force=False):
@@ -18761,13 +18773,17 @@ def _sports_match_has_verified_score(item):
 def build_sports_metrics_contract(summary):
     """Canonical public counts shared by every sports product surface."""
     summary = summary if isinstance(summary, dict) else {}
-    today_matches = _dedupe_sports_matches(summary.get("valid_matches_today") or [])
-    upcoming_matches = _dedupe_sports_matches(summary.get("valid_upcoming_matches") or [])
-    available_matches = _dedupe_sports_matches(today_matches + upcoming_matches)
+    today_matches = _v956_unique_home_fixtures(
+        _dedupe_sports_matches(summary.get("valid_matches_today") or []))
+    upcoming_matches = _v956_unique_home_fixtures(
+        _dedupe_sports_matches(summary.get("valid_upcoming_matches") or []))
+    available_matches = _v956_unique_home_fixtures(
+        _dedupe_sports_matches(today_matches + upcoming_matches))
     live_matches = [
         item for item in _dedupe_sports_matches(summary.get("valid_live_events") or [])
         if canonical_match_status(item).get("is_live")
     ]
+    live_matches = _v956_unique_home_fixtures(live_matches)
     picks = [item for item in summary.get("valid_active_picks") or [] if isinstance(item, dict)]
     pick_match_ids = sorted({
         str(item.get("match_id") or "").strip()
@@ -18778,6 +18794,19 @@ def build_sports_metrics_contract(summary):
         if isinstance(item, dict) and str(item.get("match_date") or "")[:10] == today_iso()
         and _sports_match_has_verified_score(item)
     ]
+    finished_today = _v956_unique_home_fixtures(_dedupe_sports_matches(finished_today))
+    # Count fixtures with picks while retaining picks whose match is outside
+    # this snapshot. The actual pick count and raw synchronized count stay intact.
+    pick_match_id_set = set(pick_match_ids)
+    pick_rows = [item for item in _dedupe_sports_matches(
+        list(summary.get("all_valid_matches") or [])
+        + list(summary.get("valid_matches_today") or [])
+        + list(summary.get("valid_upcoming_matches") or [])
+        + list(summary.get("finished_matches") or [])
+    ) if _sports_match_key(item) in pick_match_id_set]
+    represented_pick_ids = {_sports_match_key(item) for item in pick_rows}
+    matches_with_picks = (len(_v956_unique_home_fixtures(pick_rows))
+                          + len(set(pick_match_ids) - represented_pick_ids))
     generated_at = str(summary.get("metrics_generated_at_madrid") or now_iso())
     last_sync = str(summary.get("last_sync") or "")
     sports_home = summary.get("sports_home") if isinstance(summary.get("sports_home"), dict) else {}
@@ -18826,7 +18855,7 @@ def build_sports_metrics_contract(summary):
         "matches_available": len(available_matches),
         "live_confirmed": len(live_matches),
         "picks_ready": len(picks),
-        "matches_with_picks": len(pick_match_ids),
+        "matches_with_picks": matches_with_picks,
         "matches_synchronized": int(summary.get("raw_matches_count") or 0),
         "finished_verified": len(finished_today),
         "incomplete_excluded": len(summary.get("incomplete_matches") or []),
@@ -19488,15 +19517,21 @@ def build_sports_home_sections(summary, limit=6, reuse_ranked=False):
         recent_results = sorted(
             finished_source,
             key=lambda item: sports_relevance_sort_tuple(item, "results"),
-        )[:limit]
+        )
     else:
         recent_results = sort_matches_by_sports_relevance(
             finished_source,
             "results",
             pick_ids=pick_ids,
             favorites=favorites,
-            limit=limit,
         )
+    # Select each eligible lane before applying card limits. Keep the complete
+    # ranked source for diagnostics and for other lanes' provider-specific links.
+    live_now = _v957_unique_calendar_fixtures(live_now)
+    important_today = _v957_unique_calendar_fixtures(important_today)
+    favorite_matches = _v957_unique_calendar_fixtures(favorite_matches)
+    upcoming = _v957_unique_calendar_fixtures(upcoming)
+    recent_results = _v957_unique_calendar_fixtures(recent_results)
     visible_home = _dedupe_sports_matches(
         live_now[:limit]
         + important_today[:limit]
@@ -20384,6 +20419,12 @@ def v931_live_context(summary, lane="live", query=""):
         "live" if lane in {"live", "break", "halftime", "descanso"} else "home",
         pick_ids=pick_ids,
     )
+    # Select after lifecycle/query filtering, so a scheduled provider copy
+    # cannot hide the confirmed live observation of the same fixture.
+    selected = _v957_unique_calendar_fixtures(selected)
+    halftime = _v956_unique_home_fixtures([
+        item for item in today_matches if canonical_match_status(item).get("key") == "HT"
+    ])
     return {
         "lane": lane,
         "matches": selected,
@@ -20391,7 +20432,7 @@ def v931_live_context(summary, lane="live", query=""):
         "counts": {
             "today": sports_metrics["matches_today"],
             "live": sports_metrics["live_confirmed"],
-            "halftime": sum(1 for item in today_matches if canonical_match_status(item).get("key") == "HT"),
+            "halftime": len(halftime),
             "finished": sports_metrics["finished_verified"],
             "picks": sports_metrics["matches_with_picks"],
         },
@@ -21590,7 +21631,8 @@ def personal_home_agenda(summary):
     return build_personal_agenda(summary, favorites, normalize=normalized_label,
                                 status_for=canonical_match_status,
                                 kickoff_for=match_kickoff_madrid_dt,
-                                now=datetime.now(MADRID_TZ))
+                                now=datetime.now(MADRID_TZ),
+                                unique_for=_v956_unique_home_fixtures)
 
 
 def home_matchday_context(summary, favorites=None, *, now=None):
@@ -21621,13 +21663,18 @@ def home_matchday_context(summary, favorites=None, *, now=None):
                 continue
             source.append(item)
             status_by_object[id(item)] = status
-    source = _v956_unique_home_fixtures(source)
+    favorites = _normalized_sports_favorites(favorites)
+    pick_ids = {
+        str(item.get("match_id") or "")
+        for item in summary.get("valid_active_picks") or [] if isinstance(item, dict)
+    }
     result = build_matchday(source, now=agenda_now,
         status_for=lambda item: status_by_object.get(id(item)) or canonical_match_status(item),
         kickoff_for=match_kickoff_madrid_dt,
         priority_for=sports_competition_priority,
-        identity_for=canonical_competition_surface_contract)
-    favorites = _normalized_sports_favorites(favorites)
+        identity_for=canonical_competition_surface_contract,
+        unique_for=lambda rows: _v956_unique_home_fixtures(
+            rows, pick_ids=pick_ids, favorites=favorites))
     for lane in ('live', 'today', 'upcoming', 'results'):
         for group in result[lane]['groups']:
             for match in group['matches']:
@@ -22579,14 +22626,14 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         if has_request_context() and current_session_user()
         else {"team": set(), "league": set(), "match": set(), "all": []}
     )
-    prepared_all = _v957_unique_calendar_fixtures([
+    prepared_all = [
         _v940_calendar_prepare_match(item, pick_ids, favorites)
         for item in _dedupe_sports_matches(
             summary.get("all_valid_matches")
             or summary.get("valid_upcoming_matches")
             or []
         )
-    ])
+    ]
     prepared_by_id = {
         _sports_match_key(item): item
         for item in prepared_all
@@ -22598,18 +22645,24 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         prepared_all,
         prepared_by_id,
     )
-    display_today = _dedupe_sports_matches([
+    display_today = _v957_unique_calendar_fixtures(_dedupe_sports_matches([
         prepared_by_id[match_id]
         for raw in summary.get("valid_matches_today") or []
         if (match_id := _sports_match_key(raw)) in prepared_by_id
-    ])
+    ]))
     display_live = _v940_calendar_source_matches(
         summary,
         {**filters, "lane": "live"},
         prepared_all,
         prepared_by_id,
     )
-    filtered = _calendar_apply_filters(source_matches, filters)
+    # Retain every provider ID until lane and user filters have selected their
+    # evidence. A pick-linked scheduled copy must not hide a live/favorite copy,
+    # and searching an alternate name must still find the fixture.
+    display_live = _v957_unique_calendar_fixtures(display_live)
+    source_fixtures = _v957_unique_calendar_fixtures(source_matches)
+    prepared_fixtures = _v957_unique_calendar_fixtures(prepared_all)
+    filtered = _v957_unique_calendar_fixtures(_calendar_apply_filters(source_matches, filters))
     sorted_matches = _calendar_sort(filtered, filters.get("sort"))
     if filters.get("lane") == "results" or str(filters.get("date") or "") < today_iso():
         sorted_matches = v766_enrich_matches_with_highlights(sorted_matches)
@@ -22619,13 +22672,13 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         match_dates_prepared=True,
     )
     day_navigation = _v940_calendar_group_navigation(day_groups)
-    facets = _calendar_facets(source_matches)
+    facets = _calendar_facets(source_fixtures)
 
     today = today_iso()
     tomorrow = today_iso(1)
     week_end = (datetime.fromisoformat(today).date() + timedelta(days=7)).isoformat()
     date_counts = {}
-    for item in prepared_all:
+    for item in prepared_fixtures:
         match_date = str(item.get("match_date") or "")
         if match_date:
             date_counts[match_date] = int(date_counts.get(match_date) or 0) + 1
@@ -22638,25 +22691,30 @@ def v940_calendar_context(summary, lane="today", date_value=None):
         if (identity := canonical_competition_surface_contract(item)).get("group_key")
     })
     counts = {
-        "all": len(source_matches),
+        "all": len(source_fixtures),
         "visible": len(sorted_matches),
         "days": len(day_groups),
         "leagues": league_count,
         "today": len(display_today),
         "tomorrow": int(date_counts.get(tomorrow) or 0),
         "week": sum(
-            1 for item in prepared_all
+            1 for item in prepared_fixtures
             if today <= str(item.get("match_date") or "") <= week_end
         ),
         "live": len(display_live),
-        "picks": sum(1 for item in prepared_all if item.get("has_pick")),
-        "favorites": sum(1 for item in prepared_all if item.get("is_favorite")),
-        "finished": sum(
-            1 for item in prepared_all
+        "picks": len(_v957_unique_calendar_fixtures([
+            item for item in prepared_all if item.get("has_pick")
+        ])),
+        "favorites": len(_v957_unique_calendar_fixtures([
+            item for item in prepared_all if item.get("is_favorite")
+        ])),
+        "finished": len(_v957_unique_calendar_fixtures([
+            item for item in prepared_all
             if str(item.get("match_date") or "") == filters["date"]
             and (item.get("status_info") or canonical_match_status(item)).get("is_finished")
-        ),
-        "incidents": len(summary.get("incident_matches") or []),
+        ])),
+        "incidents": len(_v956_unique_home_fixtures(
+            _dedupe_sports_matches(summary.get("incident_matches") or []))),
     }
     active_filters = _v940_calendar_active_filters(filters)
     selected_label = CALENDAR_LANE_LABELS.get(filters["lane"], "Calendario")
@@ -29061,6 +29119,37 @@ def get_safe_odds_context(picks=None) -> dict:
     }
 
 
+def _fixture_views_for_realtime_snapshot(source, snapshot):
+    """Select public lists after freshness checks; keep provider evidence intact.
+
+    Raw normalized arrays remain available for per-ID updates and lifecycle
+    reconciliation, including an alternate-provider URL saved previously.
+    """
+    raw_rows = _dedupe_sports_matches(
+        list(source.get("valid_matches_today") or [])
+        + list(source.get("valid_upcoming_matches") or [])
+        + list(source.get("finished_matches") or [])
+    )
+    by_id = {_sports_match_key(item): item for item in raw_rows}
+    pick_ids = {
+        str(item.get("match_id") or "")
+        for item in source.get("valid_active_picks") or [] if isinstance(item, dict)
+    }
+    views = {}
+    for lane in ("matches", "live", "finished"):
+        projected = {str(item.get("id") or ""): item for item in snapshot.get(lane) or []}
+        candidates = [by_id.get(key, item) for key, item in projected.items()]
+        if lane == "matches":
+            fixture_ids = {}
+            for group in provider_fixture_groups(candidates, kickoff_for=match_kickoff_madrid_dt):
+                representative = min(_sports_match_key(item) for item in group)
+                fixture_ids.update({_sports_match_key(item): representative for item in group})
+            views["fixture_ids"] = fixture_ids
+        chosen = _v956_unique_home_fixtures(candidates, pick_ids=pick_ids)
+        views[lane] = [projected[_sports_match_key(item)] for item in chosen]
+    return views
+
+
 def get_v934_realtime_context(summary=None, force=False) -> dict:
     """Return one cached, sanitized snapshot without contacting a provider."""
     cache_key = "v934:sports:" + hashlib.sha256(str(DB_PATH).encode("utf-8")).hexdigest()[:12]
@@ -29068,6 +29157,7 @@ def get_v934_realtime_context(summary=None, force=False) -> dict:
     def _builder():
         source = summary if isinstance(summary, dict) else get_public_home_sports_summary()
         snapshot = build_v934_realtime_snapshot(source)
+        snapshot["fixture_views"] = _fixture_views_for_realtime_snapshot(source, snapshot)
         sports_metrics = get_sports_metrics_contract(source)
         counts = dict(snapshot.get("counts") or {})
         counts.update({
@@ -29149,7 +29239,7 @@ def get_realtime_safe_matches_context(summary=None) -> dict:
     snapshot = get_v934_realtime_context(summary)
     return {
         **snapshot,
-        "items": list(snapshot.get("matches") or []),
+        "items": list((snapshot.get("fixture_views") or {}).get("matches", snapshot.get("matches") or [])),
         "status": snapshot.get("realtime_match_status"),
     }
 
@@ -29158,7 +29248,7 @@ def get_realtime_safe_live_context(summary=None) -> dict:
     snapshot = get_v934_realtime_context(summary)
     return {
         **snapshot,
-        "items": list(snapshot.get("live") or []),
+        "items": list((snapshot.get("fixture_views") or {}).get("live", snapshot.get("live") or [])),
         "status": snapshot.get("realtime_live_status"),
     }
 
@@ -29248,6 +29338,7 @@ def api_v934_realtime_sports():
     if scope not in {"all", "matches", "live", "picks", "odds"}:
         scope = "all"
     snapshot = get_v934_realtime_context()
+    fixture_views = snapshot.get("fixture_views") or {}
     payload = {
         "ok": True,
         "version": APP_VERSION,
@@ -29266,8 +29357,17 @@ def api_v934_realtime_sports():
         "odds_freshness_status": snapshot.get("odds_freshness_status"),
         "no_external_calls": True,
     }
+    if scope in {"all", "matches", "live"}:
+        # Cards retain their provider ID (including saved or search-selected
+        # aliases). Send every safe observation for updates, plus one fixture
+        # view and an explicit grouping map for unique counts in the consumer.
+        provider_matches = [dict(item) for item in snapshot.get("matches") or [] if isinstance(item, dict)]
+        payload["provider_matches"] = provider_matches
+        payload["fixture_ids"] = fixture_views.get("fixture_ids") or {
+            str(item["id"]): str(item["id"]) for item in provider_matches if item.get("id")
+        }
     if scope in {"all", "matches"}:
-        matches = [dict(item) for item in (snapshot.get("matches") or []) if isinstance(item, dict)]
+        matches = provider_matches
         live_matches = [
             item for item in matches
             if (item.get("realtime_state") or {}).get("is_live") is True
@@ -29285,9 +29385,11 @@ def api_v934_realtime_sports():
                 projected = _v970_live_statistics_projection(tracker, fixture_id)
                 if projected:
                     item["live_statistics"] = projected
-        payload["matches"] = matches
+        provider_by_id = {str(item["id"]): item for item in provider_matches if item.get("id")}
+        payload["matches"] = [provider_by_id.get(str(item.get("id")), item)
+                              for item in fixture_views.get("matches", snapshot.get("matches") or [])]
     if scope in {"all", "live"}:
-        payload["live"] = snapshot.get("live") or []
+        payload["live"] = fixture_views.get("live", snapshot.get("live") or [])
     if scope in {"all", "picks", "odds"}:
         payload["picks"] = snapshot.get("picks") or []
     etag_payload = {key: value for key, value in payload.items() if key != "cache_state"}
@@ -33831,31 +33933,16 @@ def _v565_fixture_identity(match):
 
 
 def _v565_unique_fixtures(matches):
-    """Select one existing source row per confidently identical fixture.
-
-    Rows are not merged or edited: the chosen recommendation and any quote stay
-    anchored to the same provider record, preventing cross-match price mixing.
-    Ambiguous rows without complete fixture identity remain separate.
-    """
-    groups = {}
-    unkeyed = []
-    for match in matches or []:
-        identity = _v565_fixture_identity(match)
-        if identity is None:
-            unkeyed.append(match)
-        else:
-            groups.setdefault(identity, []).append(match)
-    unique = list(unkeyed)
-    for members in groups.values():
-        unique.append(max(
-            members,
-            key=lambda row: (
-                match_quality_score(row),
-                bool(row.get("external_id")),
-                str(row.get("id") or ""),
-            ),
-        ))
-    return unique
+    """Select an intact recommendation row for each unambiguous fixture."""
+    return unique_provider_fixtures(
+        matches,
+        kickoff_for=match_kickoff_madrid_dt,
+        rank_for=lambda row: (
+            match_quality_score(row),
+            bool(row.get("external_id")),
+            str(row.get("id") or ""),
+        ),
+    )
 
 
 def _v956_home_fixture_identity(match):
@@ -33871,62 +33958,32 @@ def _v956_home_fixture_identity(match):
     return (*identity, country)
 
 
-def _v956_unique_home_fixtures(matches):
-    """Hide confidently identical provider copies from Home without changing records.
+def _v956_unique_home_fixtures(matches, *, pick_ids=None, favorites=None):
+    """Choose one provider row without changing identities or saved actions.
 
-    A primary API-Football observation wins only when teams, competition, country,
-    and kickoff minute all match. Alternate-provider rows remain available when
-    there is no matching primary observation. Incomplete identities stay separate.
+    The shared matcher requires both teams, country, competition and exact
+    kickoff to agree. Pick/favorite links win before the primary provider;
+    incomplete, conflicting and ambiguous identities remain separate.
     """
-    chosen = {}
-    unkeyed = []
-    for position, match in enumerate(matches or []):
-        identity = _v956_home_fixture_identity(match)
-        if identity is None:
-            unkeyed.append((position, None, match))
-            continue
-        current = chosen.get(identity)
-        provider_is_primary = provider_family((match or {}).get("source")) == "api-football"
-        rank = (provider_is_primary, match_quality_score(match),
-                bool((match or {}).get("external_id")), str((match or {}).get("id") or ""))
-        if current is None or rank > current[1]:
-            chosen[identity] = (position, rank, match)
-    selected = unkeyed + [(position, rank, match) for position, rank, match in chosen.values()]
-    selected.sort(key=lambda item: item[0])
-    return [match for _position, _rank, match in selected]
+    pick_ids = frozenset(str(value) for value in (pick_ids or ()))
+    favorites = _normalized_sports_favorites(favorites)
+    return unique_provider_fixtures(
+        matches,
+        kickoff_for=match_kickoff_madrid_dt,
+        rank_for=lambda row: (
+            bool(row.get("has_pick") or _sports_match_key(row) in pick_ids),
+            _sports_match_favorite(row, favorites=favorites),
+            provider_family(row.get("source")) == "api-football",
+            match_quality_score(row),
+            bool(row.get("external_id")),
+            str(row.get("id") or ""),
+        ),
+    )
 
 
 def _v957_unique_calendar_fixtures(matches):
-    """Hide only confidently identical provider rows in customer calendar views.
-
-    Persisted rows are never changed. A row already linked to a pick or
-    favorite wins so its existing action remains available; otherwise the
-    primary API-Football row wins, followed by the richer existing observation.
-    Incomplete fixture identities are retained separately.
-    """
-    chosen = {}
-    unkeyed = []
-    for position, match in enumerate(matches or []):
-        identity = _v956_home_fixture_identity(match)
-        if identity is None:
-            unkeyed.append((position, match))
-            continue
-        rank = (
-            bool((match or {}).get("has_pick")),
-            bool((match or {}).get("is_favorite")),
-            provider_family((match or {}).get("source")) == "api-football",
-            match_quality_score(match),
-            bool((match or {}).get("external_id")),
-            str((match or {}).get("id") or ""),
-        )
-        current = chosen.get(identity)
-        if current is None or rank > current[1]:
-            chosen[identity] = (position, rank, match)
-    selected = unkeyed + [
-        (position, match) for position, _rank, match in chosen.values()
-    ]
-    selected.sort(key=lambda item: item[0])
-    return [match for _position, match in selected]
+    """Apply shared fixture identity after calendar pick/favorite annotation."""
+    return _v956_unique_home_fixtures(matches)
 
 
 def v565_recommendation_pool(limit=40):

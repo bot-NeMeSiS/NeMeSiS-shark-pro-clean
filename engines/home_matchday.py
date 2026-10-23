@@ -68,7 +68,8 @@ def _identity(match, identity_for):
     }
 
 
-def build_matchday(matches, *, now, status_for, kickoff_for, priority_for, limit=None, identity_for=None):
+def build_matchday(matches, *, now, status_for, kickoff_for, priority_for, limit=None,
+                   identity_for=None, unique_for=None):
     """Reserve space across peers, then render each league as one contiguous block.
 
     Today uses up to 48 cached matches. Other lanes stay at 12. An explicit
@@ -116,6 +117,16 @@ def build_matchday(matches, *, now, status_for, kickoff_for, priority_for, limit
 
     result = {'date': now.date().isoformat()}
     for lane, groups in lanes.items():
+        if unique_for:
+            # Select across league/provider groups only after lifecycle eligibility.
+            # An expired scheduled copy must not suppress a confirmed live row.
+            kept = {id(match) for match in unique_for([
+                row[2] for group in groups.values() for row in group['rows']
+            ])}
+            for key in list(groups):
+                groups[key]['rows'] = [row for row in groups[key]['rows'] if id(row[2]) in kept]
+                if not groups[key]['rows']:
+                    del groups[key]
         total = sum(len(group['rows']) for group in groups.values())
         selected = {}
         shown = 0
