@@ -58,7 +58,9 @@ def test_postdeploy_probe_compares_served_css_bytes_to_checkout(monkeypatch, cor
     requests = []
     version = cert.ACTIVE_VERSION
     href = '/static/product-system.css?v=' + version + '-home-leagues-1'
-    css = (cert.ROOT/'static/product-system.css').read_text(encoding='utf-8')
+    # The certification compares served bytes to the exact asset digest. Keep
+    # CRLF worktrees from normalizing the fixture while reading text.
+    css = (cert.ROOT/'static/product-system.css').read_bytes().decode('utf-8')
     runtime = {'version':version, 'git_commit_hint':'a'*40, 'version_files_match':True,
         'deployment_alignment_status':'aligned_local_files', 'compact':True}
     sports = {'matches':[], 'live':[], 'counts':{'live':0}, 'no_external_calls':True,

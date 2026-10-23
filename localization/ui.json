@@ -262,6 +262,10 @@
         "en": "Last saved synchronization:",
         "fr": "Dernière synchronisation enregistrée :"
     },
+    "Añadir al calendario": {
+      "en": "Add to calendar",
+      "fr": "Ajouter au calendrier"
+    },
     "Hora de las señales no establecida.": {
       "en": "Input capture time not established.",
       "fr": "Heure de capture des données sources non établie."
@@ -5523,6 +5527,61 @@
     "Ligas por país": {
       "en": "Leagues by country",
       "fr": "Ligues par pays"
+    }
+  },
+  "calendar_export": {
+    "Copia estática importada; no se actualiza automáticamente.": {
+      "en": "Static calendar copy; it will not update automatically.",
+      "fr": "Copie statique du calendrier ; elle ne sera pas mise à jour automatiquement."
+    },
+    "Descarga una copia estática; los cambios de fecha no se actualizarán automáticamente.": {
+      "en": "Download a static copy; date changes will not update automatically.",
+      "fr": "Téléchargez une copie statique ; les changements de date ne seront pas mis à jour automatiquement."
+    },
+    "No se puede añadir al calendario porque no hay una fecha fiable confirmada. Revisa la ficha del partido.": {
+      "en": "This match cannot be added to the calendar because no reliable date is confirmed. Check the match details.",
+      "fr": "Ce match ne peut pas être ajouté au calendrier car aucune date fiable n’est confirmée. Consultez la fiche du match."
+    },
+    "Partido aplazado: la nueva fecha no está confirmada.": {
+      "en": "Match postponed: the new date is not confirmed.",
+      "fr": "Match reporté : la nouvelle date n’est pas confirmée."
+    },
+    "Partido suspendido: la continuación y su fecha no están confirmadas.": {
+      "en": "Match suspended: continuation and its date are not confirmed.",
+      "fr": "Match suspendu : la reprise et sa date ne sont pas confirmées."
+    },
+    "Partido cancelado según el estado guardado.": {
+      "en": "Match cancelled according to the saved status.",
+      "fr": "Match annulé selon le statut enregistré."
+    },
+    "Abandonado": {"en": "Abandoned", "fr": "Abandonné"},
+    "Partido abandonado según el estado guardado.": {
+      "en": "Match abandoned according to the saved status.",
+      "fr": "Match abandonné selon le statut enregistré."
+    },
+    "Estado pendiente de actualizar": {"en": "Status update pending", "fr": "Mise à jour du statut en attente"},
+    "El estado guardado puede estar desactualizado; verifica la ficha.": {
+      "en": "The saved status may be stale; check the match details.",
+      "fr": "Le statut enregistré peut être obsolète ; vérifiez la fiche du match."
+    },
+    "Estado sin confirmar": {"en": "Unconfirmed status", "fr": "Statut non confirmé"},
+    "No hay estado actual confirmado para este partido.": {
+      "en": "There is no confirmed current status for this match.",
+      "fr": "Aucun statut actuel confirmé pour ce match."
+    },
+    "Estado contradictorio; revisar partido": {"en": "Conflicting status; review match", "fr": "Statut contradictoire ; vérifiez le match"},
+    "Las señales guardadas se contradicen; verifica la ficha antes de usar la fecha.": {
+      "en": "Saved status signals conflict; check the match details before using the date.",
+      "fr": "Les signaux de statut enregistrés se contredisent ; vérifiez la fiche avant d’utiliser la date."
+    },
+    "El resultado todavía no está confirmado.": {
+      "en": "The result is not confirmed yet.",
+      "fr": "Le résultat n’est pas encore confirmé."
+    },
+    "Partido archivado": {"en": "Archived match", "fr": "Match archivé"},
+    "Este partido está archivado; la fecha guardada no se confirma como próxima.": {
+      "en": "This match is archived; the saved date is not confirmed as upcoming.",
+      "fr": "Ce match est archivé ; la date enregistrée n’est pas confirmée comme à venir."
     }
   }
 }

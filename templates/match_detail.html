@@ -32,6 +32,17 @@
     {% if (match_context.get('media') or {}).get('visible_count') %}<a class="v933-action is-primary" href="#match-section-video">{{ ui("Ver resumen") }}</a>{% endif %}
     <a class="v933-action" href="#match-section-shark">{{ ui('Análisis SHARK') }}</a>
     <details class="v944-match-more-actions"><summary>{{ ui('Más opciones') }}</summary>
+      {% set calendar_match = match_context.get('match') or {} %}
+      {% set calendar_lifecycle = match_context.get('lifecycle', {}).get('key') or calendar_match.get('calendar_lifecycle') or calendar_match.get('status_info', {}).get('key') %}
+      {% set calendar_unconfirmed_lifecycles = ['POSTPONED', 'SUSPENDED', 'STALE', 'INCOMPLETE', 'CONFLICT', 'ARCHIVED'] %}
+      {% if not detail.get('historical_archive') %}
+        {% if calendar_match.get('id') and (calendar_match.get('match_date') or calendar_match.get('kickoff_iso')) and calendar_lifecycle not in calendar_unconfirmed_lifecycles %}
+          <a class="v933-action" href="{{ url_for('calendar_match_export', match_id=calendar_match.get('id')) }}">{{ ui('Añadir al calendario') }}</a>
+          <small class="v944-calendar-export-note">{{ ui('Descarga una copia estática; los cambios de fecha no se actualizarán automáticamente.') }}</small>
+        {% elif calendar_match.get('id') %}
+          <small class="v944-calendar-export-note">{{ ui('No se puede añadir al calendario porque no hay una fecha fiable confirmada. Revisa la ficha del partido.') }}</small>
+        {% endif %}
+      {% endif %}
       <a class="v933-action" href="/shark?match_id={{ match_context.get('match', {}).get('id')|urlencode }}">{{ ui('Consultar a SHARK') }}</a>
       <a class="v933-action" href="/combinadas?match_id={{ match_context.get('match', {}).get('id')|urlencode }}">{{ ui('Revisar combinadas') }}</a>
     </details>

@@ -488,11 +488,39 @@ def test_match_detail_page_uses_one_detail_load_and_no_legacy_side_effects(
     assert "v933-detail-tabs" not in html
     assert "Real Club Deportivo Local" in html
     assert "Unión Deportiva Visitante" in html
+    assert 'href="/calendar/match/v944-match-1.ics"' in html
+    assert "Añadir al calendario" in html
     assert 'data-market-forecast="current"' in html
     assert "Lectura implícita del mercado 1X2" in html
     assert "50.0%" in html and "25.0%" in html
     assert "Fuente: API-Football" in html
     assert "No es una probabilidad calibrada por SHARK" in html
+
+    fixture["match"]["status"] = "PST"
+    fixture["match"]["status_info"] = {
+        "key": "POSTPONED", "label": "Aplazado", "is_finished": False,
+        "is_live": False, "is_upcoming": False,
+    }
+    postponed_response = client.get("/match/v944-match-1")
+    postponed_html = postponed_response.get_data(as_text=True)
+    assert postponed_response.status_code == 200
+    assert 'href="/calendar/match/v944-match-1.ics"' not in postponed_html
+    assert "No se puede añadir al calendario porque no hay una fecha fiable confirmada." in postponed_html
+    assert calls == {"detail": 2, "live": 2}
+
+    fixture["match"]["status"] = "FT"
+    fixture["match"]["status_info"] = {
+        "key": "FINISHED", "label": "Finalizado", "is_finished": True,
+        "is_live": False, "is_upcoming": False,
+    }
+    fixture["historical_archive"] = True
+    archived_response = client.get("/match/v944-match-1")
+    archived_html = archived_response.get_data(as_text=True)
+    assert archived_response.status_code == 200
+    assert 'href="/calendar/match/v944-match-1.ics"' not in archived_html
+    assert "Descarga una copia estática" not in archived_html
+    assert "No se puede añadir al calendario porque no hay una fecha fiable confirmada." not in archived_html
+    assert calls == {"detail": 3, "live": 3}
 
 
 def test_match_detail_surfaces_authorized_videos_for_prior_team_results(
