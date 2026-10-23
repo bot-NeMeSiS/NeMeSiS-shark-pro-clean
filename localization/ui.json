@@ -4908,6 +4908,7 @@
       "en": "Capacity measurements",
       "fr": "Mesures de capacité"
     },
+    "MiB": {"en": "MiB", "fr": "Mio"},
     "Intento completo": {"en": "Whole attempt", "fr": "Tentative complète"},
     "Bloqueo de exclusión": {"en": "Exclusive lock", "fr": "Verrou exclusif"},
     "Recuperación temporal": {"en": "Temporary recovery", "fr": "Récupération temporaire"},
@@ -4938,7 +4939,15 @@
     "Espacio libre al inicio": {"en": "Free space at start", "fr": "Espace libre au départ"},
     "Espacio libre tras el intento": {"en": "Free space after attempt", "fr": "Espace libre après la tentative"},
     "Espacio libre medido": {"en": "Measured free space", "fr": "Espace libre mesuré"},
-    "Espacio reutilizable dentro de SQLite": {"en": "Reusable space inside SQLite", "fr": "Espace réutilisable dans SQLite"}
+    "Espacio reutilizable dentro de SQLite": {"en": "Reusable space inside SQLite", "fr": "Espace réutilisable dans SQLite"},
+    "Espacio requerido para copia compacta": {"en": "Space required for compact backup", "fr": "Espace requis pour la sauvegarde compacte"},
+    "Espacio libre para copia compacta": {"en": "Free space for compact backup", "fr": "Espace libre pour la sauvegarde compacte"},
+    "Páginas reutilizables para copia compacta": {"en": "Reusable pages for compact backup", "fr": "Pages réutilisables pour la sauvegarde compacte"},
+    "Copia compacta estimada viable": {"en": "Compact backup estimate fits", "fr": "L'estimation de sauvegarde compacte tient dans l'espace disponible"},
+    "SQLite no tiene páginas reutilizables suficientes para reducir la copia.": {"en": "SQLite has no reusable pages available to reduce the backup size.", "fr": "SQLite ne dispose pas de pages réutilisables pour réduire la taille de la sauvegarde."},
+    "La copia compacta estimada supera el espacio libre.": {"en": "The compact backup estimate exceeds the available space.", "fr": "L'estimation de sauvegarde compacte dépasse l'espace disponible."},
+    "No se pudo estimar la capacidad de copia compacta.": {"en": "Compact backup capacity could not be estimated.", "fr": "La capacité de sauvegarde compacte n'a pas pu être estimée."},
+    "Faltan {amount} MiB para cubrir el margen de la copia compacta.": {"en": "The compact backup is short by {amount} MiB, including the safety margin.", "fr": "Il manque {amount} Mio pour couvrir la marge de sécurité de la sauvegarde compacte."}
   },
   "home_matchday": {
     "Partidos, directos y resultados": {

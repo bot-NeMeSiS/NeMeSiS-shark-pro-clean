@@ -24,6 +24,12 @@
 <section class="band compact-band" aria-labelledby="backup-stage-title" data-backup-diagnostics="read-only">
   <div class="section-head"><h2 id="backup-stage-title">{{ ui('Detalle técnico del último intento') }}</h2></div>
   <p class="small">{{ ui('Datos seguros registrados por el proceso. Esta vista solo consulta el resultado guardado; no ejecuta ni vuelve a validar operaciones.') }}</p>
+  {% if diagnostics.compact_candidate_label %}
+  <p class="small backup-capacity-summary" data-compact-candidate="{{ diagnostics.compact_candidate_state|lower }}">
+    {{ ui(diagnostics.compact_candidate_label) }}
+    {% if diagnostics.compact_shortfall_mib is not none %} · {{ ui('Faltan {amount} MiB para cubrir el margen de la copia compacta.', amount=diagnostics.compact_shortfall_mib) }}{% endif %}
+  </p>
+  {% endif %}
   {% if diagnostics.stages %}
   <div class="backup-stage-list" role="list" aria-label="{{ ui('Duración de etapas') }}">
     {% for stage in diagnostics.stages %}
@@ -35,13 +41,16 @@
   {% endif %}
   {% if diagnostics.storage %}
   <div class="backup-metric-grid" aria-label="{{ ui('Medidas de capacidad') }}">
-    {% if 'snapshot_bytes' in diagnostics.storage %}<div><span>{{ ui('Tamaño estimado de la base') }}</span><strong>{{ (diagnostics.storage.snapshot_bytes / 1048576)|round(1) }} MB</strong></div>{% endif %}
-    {% if 'compact_snapshot_bytes' in diagnostics.storage %}<div><span>{{ ui('Tamaño estimado compacto') }}</span><strong>{{ (diagnostics.storage.compact_snapshot_bytes / 1048576)|round(1) }} MB</strong></div>{% endif %}
-    {% if 'required_bytes' in diagnostics.storage %}<div><span>{{ ui('Espacio requerido con margen') }}</span><strong>{{ (diagnostics.storage.required_bytes / 1048576)|round(1) }} MB</strong></div>{% endif %}
-    {% if 'free_before' in diagnostics.storage %}<div><span>{{ ui('Espacio libre al inicio') }}</span><strong>{{ (diagnostics.storage.free_before / 1048576)|round(1) }} MB</strong></div>{% endif %}
-    {% if 'free_after' in diagnostics.storage %}<div><span>{{ ui('Espacio libre tras el intento') }}</span><strong>{{ (diagnostics.storage.free_after / 1048576)|round(1) }} MB</strong></div>{% endif %}
-    {% if 'free_bytes' in diagnostics.storage %}<div><span>{{ ui('Espacio libre medido') }}</span><strong>{{ (diagnostics.storage.free_bytes / 1048576)|round(1) }} MB</strong></div>{% endif %}
-    {% if 'reusable_page_bytes' in diagnostics.storage %}<div><span>{{ ui('Espacio reutilizable dentro de SQLite') }}</span><strong>{{ (diagnostics.storage.reusable_page_bytes / 1048576)|round(1) }} MB</strong></div>{% endif %}
+    {% if 'snapshot_bytes' in diagnostics.storage %}<div><span>{{ ui('Tamaño estimado de la base') }}</span><strong>{{ (diagnostics.storage.snapshot_bytes / 1048576)|round(1) }} {{ ui('MiB') }}</strong></div>{% endif %}
+    {% if 'compact_snapshot_bytes' in diagnostics.storage %}<div><span>{{ ui('Tamaño estimado compacto') }}</span><strong>{{ (diagnostics.storage.compact_snapshot_bytes / 1048576)|round(1) }} {{ ui('MiB') }}</strong></div>{% endif %}
+    {% if 'compact_required_bytes' in diagnostics.storage %}<div><span>{{ ui('Espacio requerido para copia compacta') }}</span><strong>{{ (diagnostics.storage.compact_required_bytes / 1048576)|round(1) }} {{ ui('MiB') }}</strong></div>{% endif %}
+    {% if 'compact_free_bytes' in diagnostics.storage %}<div><span>{{ ui('Espacio libre para copia compacta') }}</span><strong>{{ (diagnostics.storage.compact_free_bytes / 1048576)|round(1) }} {{ ui('MiB') }}</strong></div>{% endif %}
+    {% if 'compact_reusable_page_bytes' in diagnostics.storage %}<div><span>{{ ui('Páginas reutilizables para copia compacta') }}</span><strong>{{ (diagnostics.storage.compact_reusable_page_bytes / 1048576)|round(1) }} {{ ui('MiB') }}</strong></div>{% endif %}
+    {% if 'required_bytes' in diagnostics.storage %}<div><span>{{ ui('Espacio requerido con margen') }}</span><strong>{{ (diagnostics.storage.required_bytes / 1048576)|round(1) }} {{ ui('MiB') }}</strong></div>{% endif %}
+    {% if 'free_before' in diagnostics.storage %}<div><span>{{ ui('Espacio libre al inicio') }}</span><strong>{{ (diagnostics.storage.free_before / 1048576)|round(1) }} {{ ui('MiB') }}</strong></div>{% endif %}
+    {% if 'free_after' in diagnostics.storage %}<div><span>{{ ui('Espacio libre tras el intento') }}</span><strong>{{ (diagnostics.storage.free_after / 1048576)|round(1) }} {{ ui('MiB') }}</strong></div>{% endif %}
+    {% if 'free_bytes' in diagnostics.storage %}<div><span>{{ ui('Espacio libre medido') }}</span><strong>{{ (diagnostics.storage.free_bytes / 1048576)|round(1) }} {{ ui('MiB') }}</strong></div>{% endif %}
+    {% if 'reusable_page_bytes' in diagnostics.storage %}<div><span>{{ ui('Espacio reutilizable dentro de SQLite') }}</span><strong>{{ (diagnostics.storage.reusable_page_bytes / 1048576)|round(1) }} {{ ui('MiB') }}</strong></div>{% endif %}
   </div>
   {% endif %}
 </section>
@@ -52,7 +61,7 @@
   <div class="stack">
     {% for backup in data.backups %}
     <article class="card backup-row">
-      <div><strong>{{ backup.name }}</strong><p class="small">{{ backup.created_at|madrid_datetime_label }} · {{ backup.size_mb }} MB</p><span class="pill">{{ ui('Verificación de creación registrada' if backup.valid else 'Sin verificación de creación registrada') }}</span></div>
+      <div><strong>{{ backup.name }}</strong><p class="small">{{ backup.created_at|madrid_datetime_label }} · {{ backup.size_mb }} {{ ui('MiB') }}</p><span class="pill">{{ ui('Verificación de creación registrada' if backup.valid else 'Sin verificación de creación registrada') }}</span></div>
       <div class="backup-actions"><a class="btn" href="/admin/backups/download/{{ backup.name }}">{{ ui('Descargar') }}</a></div>
       <details>
         <summary>{{ ui('Restaurar o eliminar esta copia') }}</summary>
