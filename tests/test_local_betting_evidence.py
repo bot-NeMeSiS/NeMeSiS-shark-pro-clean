@@ -189,7 +189,9 @@ def test_market_page_uses_a_lightweight_read_only_context(app_module, monkeypatc
         }),
     }
     candidate = app_module.v565_recommendation_for_match(row)
-    monkeypatch.setattr(app_module, 'current_session_user', lambda: None)
+    monkeypatch.setattr(app_module, 'current_session_user', lambda: {
+        'id': 'qa-market-pro', 'role': 'PRO', 'membership': 'PRO',
+    })
     monkeypatch.setattr(app_module, 'membership_allows', lambda *_args, **_kwargs: True)
     monkeypatch.setattr(app_module, 'v565_recommendation_pool', lambda **_kwargs: [candidate])
     monkeypatch.setattr(app_module, 'v565_data_picks_health', lambda review_candidates: {
@@ -263,7 +265,10 @@ def test_wait_cannot_be_published_and_get_does_not_write(app_module, monkeypatch
 @pytest.mark.parametrize('language,label', [('es','Esperar'),('en','Wait'),('fr','Attendre')])
 def test_real_client_review_and_shark_lines_have_no_fabricated_confidence(app_module, monkeypatch, language, label):
     client = app_module.app.test_client()
-    _test_session(client, app_module, role='FREE', membership='FREE')
+    _test_session(client, app_module, role='PRO', membership='PRO')
+    monkeypatch.setattr(app_module, 'current_session_user', lambda: {
+        'id': 'qa-review-pro', 'role': 'PRO', 'membership': 'PRO',
+    })
     candidate = app_module.v565_recommendation_for_match(match())
     monkeypatch.setattr(app_module, 'v566_template_recommendations', lambda **_kwargs: [candidate])
     with client.session_transaction() as session:
