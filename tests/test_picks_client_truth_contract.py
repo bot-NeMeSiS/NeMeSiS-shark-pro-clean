@@ -60,11 +60,12 @@ def test_public_picks_api_returns_only_current_membership_safe_allowlisted_recor
 
     assert response.status_code == 200
     payload = response.get_json()
-    assert [item["id"] for item in payload["picks"]] == ["pick-free"]
+    assert payload["picks"] == []
     assert payload["stats"]["scope"] == "current_membership_visible"
-    assert payload["stats"]["total"] == 1
-    assert payload["readiness"]["count"] == 1
-    assert payload["readiness"]["state"] == "available"
+    assert payload["stats"]["total"] == 0
+    assert payload["readiness"]["count"] == 0
+    assert payload["readiness"]["locked_count"] == 2
+    assert payload["readiness"]["state"] == "membership_locked"
     assert payload["readiness"]["no_provider_call"] is True
     assert payload["readiness"]["upcoming_count"] == 1
     assert payload["watchlist"][0]["home_team"] == "Granada QA"
@@ -74,7 +75,6 @@ def test_public_picks_api_returns_only_current_membership_safe_allowlisted_recor
     assert "INTERNAL-RAW-PAYLOAD-MUST-NOT-LEAK" not in encoded
     assert "INTERNAL-ONLY" not in encoded
     assert "SELECCION-PREMIUM" not in encoded
-    assert "confidence" not in payload["picks"][0]
 
 
 def test_public_picks_api_does_not_serve_expired_or_incomplete_published_rows(client, app_module, monkeypatch):
@@ -133,8 +133,8 @@ def test_public_stats_endpoint_uses_only_current_membership_visible_picks(client
     assert response.status_code == 200
     stats = response.get_json()["stats"]
     assert stats["scope"] == "current_membership_visible"
-    assert stats["total"] == 1
-    assert stats["avg_odds"] == 1.95
+    assert stats["total"] == 0
+    assert stats["avg_odds"] == 0
     assert stats["avg_confidence"] is None
     assert stats["winrate"] is None
 

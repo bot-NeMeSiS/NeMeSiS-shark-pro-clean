@@ -77,8 +77,11 @@ def capabilities(user):
 
 
 def visible_pick(pick, plan):
+    plan = text(plan).upper()
     needed = text(pick.get('membership_required') or 'FREE').upper()
-    return needed in RANK and RANK.get(plan, 0) >= RANK[needed]
+    if plan not in RANK or needed not in RANK or RANK[plan] < RANK['PRO']:
+        return False
+    return RANK[plan] >= max(RANK['PRO'], RANK[needed])
 
 
 def outcome(pick, match):

@@ -129,6 +129,13 @@ def test_get_picks_is_equivalent_and_reuses_work_only_inside_request(
     madrid_day = ["2026-09-06"]
 
     def fake_rows(query, params=()):
+        if query.startswith("SELECT * FROM users WHERE id=?"):
+            return [{
+                "id": params[0],
+                "role": "PRO",
+                "membership": "PRO",
+                "auth_version": 0,
+            }]
         query_calls.append((query, tuple(params)))
         return copy.deepcopy(raw)
 
@@ -185,23 +192,35 @@ def test_pick_plan_filters_cover_current_contract_and_admin_isolation(
     monkeypatch,
 ):
     calls = []
-    monkeypatch.setattr(
-        app_module,
-        "rows",
-        lambda query, params=(): calls.append((query, tuple(params))) or [],
-    )
+    plan_by_user = {}
+
+    def fake_rows(query, params=()):
+        if query.startswith("SELECT * FROM users WHERE id=?"):
+            plan = plan_by_user.get(str(params[0]), "FREE")
+            return [{
+                "id": params[0],
+                "role": plan,
+                "membership": plan,
+                "auth_version": 0,
+            }]
+        calls.append((query, tuple(params)))
+        return []
+
+    monkeypatch.setattr(app_module, "rows", fake_rows)
     monkeypatch.setattr(app_module, "today_iso", lambda offset=0: "2026-09-06")
 
     cases = {
-        "FREE": ("FREE", 10),
+        "FREE": (10,),
         "PRO": ("FREE", "PRO", 10),
         "ELITE": ("FREE", "PRO", "ELITE", 10),
     }
     for index, (plan, expected_params) in enumerate(cases.items()):
+        user_id = f"qa-tier-{index}"
+        plan_by_user[user_id] = plan
         with app_module.app.test_request_context("/app"):
             session.update(
                 {
-                    "user_id": f"qa-tier-{index}",
+                    "user_id": user_id,
                     "user_role": plan,
                     "user_membership": plan,
                     "membership": plan,
@@ -209,7 +228,12 @@ def test_pick_plan_filters_cover_current_contract_and_admin_isolation(
             )
             app_module.get_picks(limit=10, membership=plan)
         assert calls[-1][1] == expected_params
+        if plan == "FREE":
+            assert "1=0" in calls[-1][0]
+        else:
+            assert "membership_required" in calls[-1][0]
 
+    plan_by_user["qa-admin"] = "ADMIN"
     with app_module.app.test_request_context("/admin"):
         session.update(
             {

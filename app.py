@@ -514,7 +514,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V982_ADMIN_GRADING_REVIEW_PAGINATION'
+APP_VERSION = 'V983_PAID_PREDICTIONS_COMBIS_ENTITLEMENT'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -8573,6 +8573,36 @@ def membership_allows(user_membership, required):
     return membership_rank(user_membership or "FREE") >= membership_rank(required or "FREE")
 
 
+def prediction_visible_tiers(user_membership):
+    """Stored prediction tiers visible to a customer plan; all advice starts at PRO."""
+    user_rank = membership_rank(user_membership or "FREE")
+    if user_rank < membership_rank("PRO"):
+        return []
+    return [tier for tier in ("FREE", "PRO", "ELITE") if membership_rank(tier) <= user_rank]
+
+
+def prediction_membership_allows(user_membership, required="FREE"):
+    """Betting advice is paid content even when a legacy row says FREE.
+
+    ADMIN authority remains separate: a commercial plan never grants an admin
+    session, while an authenticated ADMIN may review every published tier.
+    Unknown stored tiers fail closed instead of being treated as FREE.
+    """
+    tier = str(required or "FREE").strip().upper() or "FREE"
+    if tier not in VALID_ROLES:
+        return False
+    minimum = max(membership_rank(tier), membership_rank("PRO"))
+    return membership_rank(user_membership or "FREE") >= minimum
+
+
+def _prediction_membership_sql(alias, user_membership):
+    """Build a predicate from fixed aliases and the closed set of plan names."""
+    tiers = prediction_visible_tiers(user_membership)
+    if not tiers:
+        return "1=0"
+    return f"upper(trim(COALESCE({alias}.membership_required,'FREE'))) IN ({','.join(repr(tier) for tier in tiers)})"
+
+
 def normalize_pick_row(pick):
     pick = dict(pick or {})
     raw_market = pick.get("market") or pick.get("pick_type")
@@ -8583,7 +8613,7 @@ def normalize_pick_row(pick):
     pick["stake_euros_example"] = as_float(pick.get("stake_euros_example"), round(pick["stake_units"] * 10, 2))
     pick["status"] = normalize_pick_status(pick.get("status"))
     pick["risk_level"] = normalize_risk(pick.get("risk_level"))
-    pick["membership_required"] = normalize_role(pick.get("membership_required") or "FREE")
+    pick["membership_required"] = normalize_role(pick.get("membership_required") or "PRO")
     pick["market"] = raw_market or "Principal"
     pick["bookmaker"] = pick.get("bookmaker") or ""
     pick["warning_reason"] = pick.get("warning_reason") or "Gestiona stake y evita perseguir pérdidas."
@@ -8601,6 +8631,12 @@ def normalize_pick_row(pick):
 
 
 def get_picks(limit=50, status=None, membership=None, include_admin=False):
+    # Every customer request is scoped from the server-side session. A caller
+    # cannot request another plan (or raw admin rows) by passing arguments.
+    if has_request_context() and not is_admin_session():
+        current_user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+        membership = get_user_membership(current_user)
+        include_admin = False
     clauses = []
     params = []
     normalized_statuses = ()
@@ -8611,10 +8647,14 @@ def get_picks(limit=50, status=None, membership=None, include_admin=False):
         clauses.append(f"lower(status) IN ({placeholders})")
         params.extend(normalized_statuses)
     if membership and not include_admin:
-        allowed = [plan for plan, rank in {"FREE": 0, "PRO": 1, "ELITE": 2, "ADMIN": 3}.items() if rank <= membership_rank(membership)]
-        placeholders = ",".join("?" for _ in allowed)
-        clauses.append(f"upper(COALESCE(membership_required,'FREE')) IN ({placeholders})")
-        params.extend(allowed)
+        allowed = prediction_visible_tiers(membership)
+        if not allowed:
+            # Keep the request bounded without constructing an empty IN clause.
+            clauses.append("1=0")
+        else:
+            placeholders = ",".join("?" for _ in allowed)
+            clauses.append(f"upper(COALESCE(membership_required,'FREE')) IN ({placeholders})")
+            params.extend(allowed)
     request_cache = None
     cache_key = None
     if has_request_context() and request.method in {"GET", "HEAD"}:
@@ -8648,7 +8688,22 @@ def published_picks_for_user(user=None, limit=50):
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
     membership = user.get("membership") or user.get("role") or "FREE"
     include_admin = normalize_role(user.get("role")) == "ADMIN"
+    if not include_admin and membership_rank(membership) < membership_rank("PRO"):
+        return []
     return get_picks(limit=limit, status=["published", "won", "lost", "void"], membership=membership, include_admin=include_admin)
+
+
+def _client_published_picks(user=None, limit=50):
+    """Recheck paid-pick entitlements at the response boundary."""
+    user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
+    role = normalize_role(user.get("role"))
+    membership = "ADMIN" if role == "ADMIN" else get_user_membership(user)
+    return [
+        dict(pick)
+        for pick in published_picks_for_user(user, limit=limit)
+        if isinstance(pick, dict)
+        and prediction_membership_allows(membership, pick.get("membership_required") or "FREE")
+    ]
 
 
 def create_or_update_pick(payload, pick_id=None, publish=False):
@@ -8691,7 +8746,7 @@ def create_or_update_pick(payload, pick_id=None, publish=False):
             payload.get("legal_note") or "Pick creado/revisado manualmente por administrador.",
             payload.get("reasoning") or payload.get("motivo") or "",
             payload.get("warning_reason") or payload.get("precaucion") or "El stake debe adaptarse a la banca del usuario.",
-            normalize_role(payload.get("membership_required") or payload.get("membership") or "FREE"),
+            normalize_role(payload.get("membership_required") or payload.get("membership") or "PRO"),
             json.dumps(payload, ensure_ascii=False)[:5000],
             payload.get("created_at") or now_iso(),
             now_iso(),
@@ -9950,7 +10005,7 @@ def favorite_feed_full(limit=80, user_id=None):
     live_related = [m for m in matches if (m.get("live_depth") or {}).get("state") in {"LIVE", "HT"}]
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     picks_related = []
-    for pick in published_picks_for_user(user, limit=100):
+    for pick in _client_published_picks(user, limit=100):
         if (
             str(pick.get("match_id") or "").lower() in match_ids
             or str(pick.get("home_team") or "").lower() in teams
@@ -12082,8 +12137,18 @@ def live_data_flow(date=None):
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     hub = match_hub(date)
     favs = get_favorites()
-    picks = sort_picks_by_quality([enrich_pick_client_context(p) for p in published_picks_for_user(user, limit=30)])
     profile = client_profile_view(user)
+    # Keep a final response-layer entitlement check as well as the SQL scope in
+    # published_picks_for_user(). This protects this assembled API payload if a
+    # legacy data source or a replaced helper returns rows outside the session's
+    # paid tier.
+    client_picks = [
+        p for p in _client_published_picks(user, limit=30)
+        if isinstance(p, dict)
+        and normalize_pick_status(p.get("status")) in {"published", "won", "lost", "void"}
+        and prediction_membership_allows(profile.get("membership_plan"), p.get("membership_required") or "FREE")
+    ]
+    picks = sort_picks_by_quality([enrich_pick_client_context(p) for p in client_picks])
     favorite_bundle = favorite_feed_full()
     flow = build_live_flow(hub, favorites=favs, picks=picks, profile=profile)
     flow.update(
@@ -13873,7 +13938,7 @@ def shark_briefing(sports_summary=None):
     profile = client_profile_view(user)
     def permitted(pick):
         return (normalize_pick_status(pick.get("status")) in {"published", "won", "lost", "void"}
-                and membership_allows(profile["membership_plan"], pick.get("membership_required")))
+                and prediction_membership_allows(profile["membership_plan"], pick.get("membership_required")))
     all_picks = [p for p in (sports_summary.get("all_picks") or []) if permitted(p)]
     quality_groups = split_picks_by_quality(all_picks)
     picks = [p for p in (sports_summary.get("valid_active_picks") or []) if permitted(p)][:8]
@@ -17650,7 +17715,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V982_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V983_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -26322,12 +26387,13 @@ def picks_page():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
     all_current_picks = list(summary.get("valid_active_picks") or [])
+    safe_current_picks = get_safe_picks_context(all_current_picks).get("picks") or []
     data["picks"] = [
-        item for item in all_current_picks
+        item for item in safe_current_picks
         if _client_pick_membership_allows(membership, item)
     ]
     data["locked_pick_count"] = sum(
-        1 for item in all_current_picks
+        1 for item in safe_current_picks
         if not _client_pick_membership_allows(membership, item)
     )
     visible_history = published_picks_for_user(user, limit=200)
@@ -26689,7 +26755,7 @@ def _shark_intelligence_pick_subset(summary, match_id, user=None):
             continue
         if match_key and str(item.get("match_id") or "") != match_key:
             continue
-        if not membership_allows(membership, item.get("membership_required") or "FREE"):
+        if not prediction_membership_allows(membership, item.get("membership_required") or "FREE"):
             continue
         picks.append(dict(item))
         if len(picks) >= 8:
@@ -26723,7 +26789,7 @@ def build_shark_intelligence_page_context():
         }
         detail["related_picks"] = [
             item for item in (detail.get("related_picks") or related_picks)
-            if isinstance(item, dict) and membership_allows(membership, item.get("membership_required") or "FREE")
+            if isinstance(item, dict) and prediction_membership_allows(membership, item.get("membership_required") or "FREE")
         ]
         live_context = v931_safe_context(
             "/shark-intelligence",
@@ -31611,7 +31677,7 @@ def _client_pick_membership_allows(user_membership, pick):
     required = str(pick.get("membership_required") or "FREE").strip().upper() or "FREE"
     if required not in VALID_ROLES:
         return False
-    return membership_allows(user_membership or "FREE", required)
+    return prediction_membership_allows(user_membership or "FREE", required)
 
 
 def _current_client_picks(user=None, summary=None):
@@ -31673,8 +31739,9 @@ def api_picks():
     current_candidates = [
         item for item in (summary.get("valid_active_picks") or []) if isinstance(item, dict)
     ]
+    safe_candidate_picks = get_safe_picks_context(current_candidates).get("picks") or []
     locked_count = sum(
-        1 for item in current_candidates
+        1 for item in safe_candidate_picks
         if not _client_pick_membership_allows(membership, item)
     )
     readiness, watchlist = client_pick_readiness(
@@ -33039,8 +33106,42 @@ def api_admin_public_launch():
     return jsonify({"ok": True, "version": APP_VERSION, "public_launch": v734_public_launch_context()})
 
 
-def v742_track_record_context(pending_page=1, pending_page_size=12):
-    summary = dict(pick_grading_summary(DB_PATH) or {})
+def v742_track_record_context(pending_page=1, pending_page_size=12, *, preview_membership=None):
+    client_membership = None
+    result_filter = None
+    preview_user = getattr(g, "admin_preview_user", None) if has_request_context() else None
+    preview_scope = bool(preview_user and preview_membership and is_admin_session())
+    client_scope = preview_scope or (has_request_context() and not is_admin_session())
+    if preview_scope:
+        client_membership = normalize_role(preview_membership)
+        user = {"membership": client_membership, "role": client_membership}
+    elif has_request_context() and not is_admin_session():
+        user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+        client_membership = get_user_membership(user)
+    else:
+        user = None
+    if client_scope:
+        if not prediction_membership_allows(client_membership, "PRO"):
+            return {
+                "schema": "pick_grading_v577",
+                "status": "premium_required",
+                "premium_required": True,
+                "required_membership": "PRO",
+                "membership": client_membership,
+                "recent_results": [], "recent_runs": [], "pending_results": [],
+                "by_month": [], "by_market": [], "by_league": [], "by_plan": [],
+                "roi": None, "yield": None, "winrate": None,
+                "profit": None, "stake_total": None, "decided_total": None,
+                "evaluable_total": None, "pending": None,
+                "commercial_note": "El historial de pronósticos está disponible en PRO y ELITE.",
+                "read_only": True,
+            }
+        result_filter = request.args.get("result")
+    summary = dict(pick_grading_summary(
+        DB_PATH,
+        visible_membership=client_membership,
+        result_filter=result_filter,
+    ) or {})
     won = as_int(summary.get("won"), 0)
     lost = as_int(summary.get("lost"), 0)
     pending = as_int(summary.get("pending_review"), 0)
@@ -33058,16 +33159,27 @@ def v742_track_record_context(pending_page=1, pending_page_size=12):
     pending_offset = (pending_page - 1) * pending_page_size
     eligible_pick_statuses = "('published','pending','won','lost','void','publicado','pendiente','ganado','perdido','nulo')"
     if db_table_exists("pick_grading_results") and db_table_exists("picks"):
-        by_month = rows(LATEST_ELIGIBLE_GRADING_CTE + """SELECT substr(graded_at,1,7) AS label, COUNT(*) AS total, ROUND(SUM(profit),2) AS profit
+        grading_columns = {item.get("name", "") for item in rows("PRAGMA table_info(pick_grading_results)")}
+        pick_columns = {item.get("name", "") for item in rows("PRAGMA table_info(picks)")}
+        client_pick_filter = ""
+        if client_membership:
+            client_pick_filter = (
+                _prediction_membership_sql("p", client_membership)
+                if "membership_required" in pick_columns else "1=0"
+            )
+        grade_scope_filter = (
+            f" AND EXISTS (SELECT 1 FROM picks p WHERE p.id=eligible_grades.pick_id AND {client_pick_filter})"
+            if client_membership else ""
+        )
+        by_month = rows(LATEST_ELIGIBLE_GRADING_CTE + f"""SELECT substr(graded_at,1,7) AS label, COUNT(*) AS total, ROUND(SUM(profit),2) AS profit
                            FROM eligible_grades
                            WHERE COALESCE(graded_at,'')!=''
                              AND result_status IN ('won','lost','void')
                              AND COALESCE(odds,0)>1
                              AND COALESCE(stake,0)>0
+                             {grade_scope_filter}
                            GROUP BY substr(graded_at,1,7)
                            ORDER BY label DESC LIMIT 12""")
-        grading_columns = {item.get("name", "") for item in rows("PRAGMA table_info(pick_grading_results)")}
-        pick_columns = {item.get("name", "") for item in rows("PRAGMA table_info(picks)")}
         match_columns = (
             {item.get("name", "") for item in rows("PRAGMA table_info(matches)")}
             if db_table_exists("matches") else set()
@@ -33193,6 +33305,7 @@ def v742_track_record_context(pending_page=1, pending_page_size=12):
                                   JOIN picks p ON p.id = g.pick_id
                                   {match_join}
                                   WHERE g.result_status='pending'
+                                  {f'AND {client_pick_filter}' if client_membership else ''}
                                   ORDER BY COALESCE({graded_at},'') DESC,
                                            {pick_created_at} DESC,
                                            g.pick_id DESC
@@ -33224,21 +33337,24 @@ def v742_track_record_context(pending_page=1, pending_page_size=12):
     if db_table_exists("picks"):
         try:
             by_market = rows(f"""SELECT COALESCE(pick_type, market, 'Mercado sin clasificar') AS label, COUNT(*) AS total
-                                FROM picks WHERE lower(trim(COALESCE(status,''))) IN {eligible_pick_statuses}
+                                FROM picks p WHERE lower(trim(COALESCE(status,''))) IN {eligible_pick_statuses}
+                                {f'AND {client_pick_filter}' if client_membership else ''}
                                 GROUP BY COALESCE(pick_type, market, 'Mercado sin clasificar')
                                 ORDER BY total DESC LIMIT 8""")
         except Exception:
             by_market = []
         try:
             by_league = rows(f"""SELECT COALESCE(competition_name, league_name, 'Competición sin clasificar') AS label, COUNT(*) AS total
-                                FROM picks WHERE lower(trim(COALESCE(status,''))) IN {eligible_pick_statuses}
+                                FROM picks p WHERE lower(trim(COALESCE(status,''))) IN {eligible_pick_statuses}
+                                {f'AND {client_pick_filter}' if client_membership else ''}
                                 GROUP BY COALESCE(competition_name, league_name, 'Competición sin clasificar')
                                 ORDER BY total DESC LIMIT 8""")
         except Exception:
             by_league = []
         try:
             by_plan = rows(f"""SELECT COALESCE(membership_required, 'FREE') AS label, COUNT(*) AS total
-                              FROM picks WHERE lower(trim(COALESCE(status,''))) IN {eligible_pick_statuses}
+                              FROM picks p WHERE lower(trim(COALESCE(status,''))) IN {eligible_pick_statuses}
+                              {f'AND {client_pick_filter}' if client_membership else ''}
                               GROUP BY COALESCE(membership_required, 'FREE')
                               ORDER BY total DESC""")
         except Exception:
@@ -33266,15 +33382,21 @@ def v742_track_record_context(pending_page=1, pending_page_size=12):
     summary["pending_has_previous"] = pending_page > 1
     summary["pending_has_next"] = pending_page < pending_page_count
     summary["commercial_note"] = "Pendiente de resultados reales" if decided == 0 else "Rendimiento calculado solo con picks evaluables."
-    if has_request_context() and not is_admin_session():
-        user = current_session_user() or {"membership": "FREE", "role": "FREE"}
+    if client_scope:
+        user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
         recent = summary.get("recent_results") or []
         identifiers = [str(item.get("pick_id")) for item in recent if item.get("pick_id")]
         known = {}
         if identifiers and db_table_exists("picks"):
-            placeholders = ",".join("?" for _ in identifiers)
-            known = {str(item["id"]): item for item in rows(
-                f"SELECT id,status,membership_required FROM picks WHERE id IN ({placeholders})", identifiers)}
+            pick_columns = {item.get("name", "") for item in rows("PRAGMA table_info(picks)")}
+            if "membership_required" in pick_columns:
+                placeholders = ",".join("?" for _ in identifiers)
+                known = {str(item["id"]): item for item in rows(
+                    f"SELECT id,status,membership_required FROM picks WHERE id IN ({placeholders})", identifiers)}
+            elif not client_scope:
+                placeholders = ",".join("?" for _ in identifiers)
+                known = {str(item["id"]): item for item in rows(
+                    f"SELECT id,status FROM picks WHERE id IN ({placeholders})", identifiers)}
         fields = {
             "pick_id", "match_id", "result_status", "odds", "stake", "profit",
             "home_team", "away_team", "competition_name", "selection", "pick_type",
@@ -33285,12 +33407,11 @@ def v742_track_record_context(pending_page=1, pending_page_size=12):
             for item in recent
             if str(item.get("pick_id")) in known
             and normalize_pick_status(known[str(item["pick_id"])].get("status")) in {"published", "won", "lost", "void"}
-            and membership_allows(get_user_membership(user), known[str(item["pick_id"])].get("membership_required"))
+            and prediction_membership_allows(get_user_membership(user), known[str(item["pick_id"])].get("membership_required"))
         ]
         summary["pending_results"] = []
         summary["recent_runs"] = []
         summary["note"] = summary["commercial_note"]
-        result_filter = request.args.get("result")
         if result_filter in {"won", "lost", "void"}:
             summary["recent_results"] = [item for item in summary["recent_results"] if item.get("result_status") == result_filter]
     return summary
@@ -33667,7 +33788,7 @@ def v565_recommendation_for_match(match):
         "market": "1X2" if observations else "Sin cuota observada",
         "odds_value": None, "score": None, "confidence": None, "risk": None,
         "kickoff_iso": match.get("kickoff_iso") or "",
-        "membership_required": "FREE",
+        "membership_required": "PRO",
         "decision": decision, "can_publish": False,
         "value_label": "Esperar" if decision == "WAIT" else "No apostar",
         "reason": "Datos insuficientes para recomendar una apuesta.",
@@ -33892,8 +34013,8 @@ def v565_opportunities_page():
     user = current_session_user()
     membership = normalize_role((user or {}).get("membership") or (user or {}).get("role") or "FREE")
     recs = v565_recommendation_pool(limit=30)
-    allowed = [r for r in recs if membership_allows(membership, r.get("membership_required"))]
-    locked = [r for r in recs if not membership_allows(membership, r.get("membership_required"))]
+    allowed = [r for r in recs if prediction_membership_allows(membership, r.get("membership_required"))]
+    locked = [r for r in recs if not prediction_membership_allows(membership, r.get("membership_required"))]
     data = {"v565": {
         "health": v565_data_picks_health(review_candidates=allowed),
         "allowed": allowed,
@@ -33924,7 +34045,7 @@ def _recommendations_for_current_membership(items):
     membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
     visible = [
         dict(item) for item in (items or [])
-        if isinstance(item, dict) and membership_allows(membership, item.get("membership_required") or "FREE")
+        if isinstance(item, dict) and prediction_membership_allows(membership, item.get("membership_required") or "FREE")
     ]
     return membership, visible
 
@@ -34241,7 +34362,8 @@ def v566_recommendations_page():
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     membership = get_user_membership(user)
     limits = get_membership_limits(membership)
-    recs = v566_template_recommendations(limit=limits.get("recommendations", 3))
+    can_read_recommendations = can_access_feature(user, "recommendations_basic")
+    recs = v566_template_recommendations(limit=limits.get("recommendations", 3)) if can_read_recommendations else []
     data = dashboard_data()
     data["membership"] = v566_membership_ui(user)
     data["recommendations"] = recs
@@ -34250,10 +34372,13 @@ def v566_recommendations_page():
         "hot": len([r for r in recs if (r.get("value_label") or "").upper() in {"HOT", "VALUE"}]),
         "avg_score": round(sum(as_int(r.get("shark_score") or r.get("score"), 0) for r in recs) / max(1, len(recs)), 1),
     }
-    data["locked_recommendations"] = [] if membership in {"ELITE", "ADMIN"} else [
-        {"required": "PRO", "label": "Recomendaciones completas", "message": "Disponible en PRO.", "badge": {"class": "badge-pro"}},
-        {"required": "ELITE", "label": "Value avanzado", "message": "Disponible en ELITE.", "badge": {"class": "badge-elite"}},
-    ]
+    data["locked_recommendations"] = (
+        [{"required": "PRO", "label": "Análisis de apuestas", "message": "Disponible en PRO y ELITE.", "badge": {"class": "badge-pro"}},
+         {"required": "ELITE", "label": "Herramientas avanzadas", "message": "Disponible en ELITE.", "badge": {"class": "badge-elite"}}]
+        if membership == "FREE" else
+        ([{"required": "ELITE", "label": "Herramientas avanzadas", "message": "Disponible en ELITE.", "badge": {"class": "badge-elite"}}]
+         if membership == "PRO" else [])
+    )
     return render_template("recommendations.html", data=data)
 
 

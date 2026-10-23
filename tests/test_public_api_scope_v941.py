@@ -80,7 +80,7 @@ def test_public_recommendation_apis_respect_membership(client,app_module,monkeyp
         anonymous=client.get(path)
         assert anonymous.status_code==200
         assert anonymous.get_json()["membership"]=="FREE"
-        assert [x["id"] for x in anonymous.get_json()["recommendations"]]==["free"]
+        assert anonymous.get_json()["recommendations"]==[]
 
     with client.session_transaction() as state:
         state.update(user_id="qa-pro-api-scope",user_role="PRO",membership="PRO",user_membership="PRO",user_name="QA")
@@ -98,7 +98,7 @@ def test_shark_intelligence_pick_subset_respects_plan(app_module):
     free=app_module._shark_intelligence_pick_subset(summary,"m1",user={"membership":"FREE","role":"FREE"})
     pro=app_module._shark_intelligence_pick_subset(summary,"m1",user={"membership":"PRO","role":"PRO"})
     elite=app_module._shark_intelligence_pick_subset(summary,"m1",user={"membership":"ELITE","role":"ELITE"})
-    assert [x["id"] for x in free]==["free"]
+    assert free==[]
     assert [x["id"] for x in pro]==["free","pro"]
     assert [x["id"] for x in elite]==["free","pro","elite"]
 
@@ -131,7 +131,7 @@ def test_shark_intelligence_filters_detail_picks_before_match_context(app_module
     with app_module.app.test_request_context("/api/shark/intelligence"):
         app_module.session.update(user_id="qa-free-intelligence",user_role="FREE",membership="FREE",user_membership="FREE")
         app_module.build_shark_intelligence_page_context()
-    assert [x["id"] for x in captured["picks"]]==["free"]
+    assert captured["picks"]==[]
 
 
 def test_internal_diagnostic_apis_require_admin(client):
@@ -293,7 +293,7 @@ def test_live_flow_uses_session_profile_and_membership_filtered_picks(app_module
         app_module.session.update(user_id="qa-live-free",user_role="FREE",membership="FREE",user_membership="FREE",user_name="QA")
         result=app_module.live_data_flow("2026-09-27")
     assert result["profile"]["membership_plan"]=="FREE"
-    assert [item["id"] for item in result["recent_picks"]]==["free"]
+    assert result["recent_picks"]==[]
     assert captured["profile"]["membership_plan"]=="FREE"
 
 
@@ -309,5 +309,5 @@ def test_favorite_feed_uses_membership_filtered_picks(app_module,monkeypatch):
     with app_module.app.test_request_context("/api/favorites/feed"):
         app_module.session.update(user_id="qa-fav-free",user_role="FREE",membership="FREE",user_membership="FREE",user_name="QA")
         result=app_module.favorite_feed_full()
-    assert [item["id"] for item in result["picks"]]==["free"]
+    assert result["picks"]==[]
 

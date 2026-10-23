@@ -89,3 +89,11 @@ def test_existing_plan_gates_are_not_bypassed_by_client_presentation(plan,pro,el
     assert can_access_feature(user,'picks_pro') is pro
     assert can_access_feature(user,'picks_elite') is elite
     assert can_access_feature(user,'auto_picks') is elite
+
+
+def test_advice_and_published_predictions_start_at_pro():
+    from engines.membership_engine import can_access_feature
+    assert can_access_feature({'role':'FREE','membership':'FREE'},'picks_free') is False
+    assert can_access_feature({'role':'FREE','membership':'FREE'},'recommendations_basic') is False
+    assert can_access_feature({'role':'PRO','membership':'PRO'},'picks_free') is True
+    assert can_access_feature({'role':'PRO','membership':'PRO'},'recommendations_basic') is True
