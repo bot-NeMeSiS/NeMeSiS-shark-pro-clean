@@ -193,6 +193,14 @@ def _ids(values):
 def _build(conn, user, values, now):
     if not user['id']:
         raise CombiError('AUTH_REQUIRED', 'Inicia sesión para crear un borrador privado.', 401)
+    cap = capabilities(user)
+    if not cap['can_build']:
+        # Check the persisted plan before resolving submitted identifiers. Apart
+        # from avoiding needless reads, this gives the client the correct locked
+        # feature state instead of making an entitled selection look unavailable.
+        raise CombiError('PLAN_REQUIRED', 'Combinadas básicas disponibles desde PRO.', 403)
+    if values.get('mode') == 'suggest' and not cap['can_suggest']:
+        raise CombiError('PLAN_REQUIRED', 'La propuesta automática pertenece a ELITE.', 403)
     ids = _ids(values.get('pick_ids') or values.get('picks') or [])
     if values.get('mode') == 'suggest':
         raw_count = str(values.get('count', values.get('limit','3')))
