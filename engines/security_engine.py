@@ -178,6 +178,7 @@ def claim_rate_limit_slot(
     subject: str,
     limit: int,
     minutes: int,
+    include_login_failures: bool = False,
 ) -> Dict[str, Any]:
     """Atomically reserve one sensitive-action attempt; fail closed on DB errors.
 
@@ -194,6 +195,8 @@ def claim_rate_limit_slot(
         return {"allowed": False, "reason": "invalid_rate_limit"}
     if not safe_scope or not safe_subject or not str(db_path or "").strip():
         return {"allowed": False, "reason": "rate_limit_identity_missing"}
+    if include_login_failures and safe_scope != "auth_login":
+        return {"allowed": False, "reason": "invalid_rate_limit"}
     subject_hash = hashlib.sha256((safe_scope + "\0" + safe_subject).encode("utf-8")).hexdigest()
     now = datetime.now(timezone.utc)
     now_text = now.isoformat(timespec="seconds")
@@ -212,6 +215,19 @@ def claim_rate_limit_slot(
                 "SELECT created_at FROM security_action_attempts WHERE scope=? AND subject_hash=? AND created_at>=? ORDER BY created_at",
                 (safe_scope, subject_hash, since),
             ).fetchall()
+            if include_login_failures:
+                # A pending verification reserves capacity. Once finalized, a
+                # failure moves to security_events in the same transaction;
+                # successful logins release their capacity without charging
+                # other customers on the same network.
+                failures = conn.execute(
+                    """SELECT created_at FROM security_events
+                       WHERE event_type='login_attempt' AND ip_address=?
+                         AND success=0 AND created_at>=?
+                       ORDER BY created_at LIMIT ?""",
+                    (safe_subject, since, max_attempts),
+                ).fetchall()
+                rows = sorted(rows + failures, key=lambda row: str(row[0] or ""))
             if len(rows) >= max_attempts:
                 first = _parse_iso(str(rows[0][0] or ""))
                 retry_after = max(1, int((first + timedelta(minutes=window_minutes) - now).total_seconds())) if first else window_minutes * 60
@@ -223,7 +239,7 @@ def claim_rate_limit_slot(
                     "window_minutes": window_minutes,
                     "retry_after_seconds": retry_after,
                 }
-            conn.execute(
+            reservation = conn.execute(
                 "INSERT INTO security_action_attempts(scope,subject_hash,created_at) VALUES(?,?,?)",
                 (safe_scope, subject_hash, now_text),
             )
@@ -233,11 +249,100 @@ def claim_rate_limit_slot(
                 "remaining": max_attempts - len(rows) - 1,
                 "limit": max_attempts,
                 "window_minutes": window_minutes,
+                "claim_id": int(reservation.lastrowid),
             }
         finally:
             conn.close()
     except Exception:
         return {"allowed": False, "reason": "rate_limit_store_unavailable"}
+
+
+def claim_login_attempt(db_path: str, *, ip_address: str) -> Dict[str, Any]:
+    """Reserve the existing shared-IP failed-login budget before authentication."""
+    return claim_rate_limit_slot(
+        db_path,
+        scope="auth_login",
+        subject=ip_address,
+        limit=8,
+        minutes=15,
+        include_login_failures=True,
+    )
+
+
+def finalize_login_attempt(
+    db_path: str,
+    *,
+    claim_id: int,
+    ip_address: str,
+    success: bool,
+    username: str = "",
+    user_id: str = "",
+    path: str = "",
+    method: str = "POST",
+    reason: str = "",
+) -> bool:
+    """Atomically replace one pending login with its audit result.
+
+    Never hold the reservation transaction during password verification. A
+    failed finalization must prevent issuing a new signed session: its pending
+    reservation stays charged until the original fifteen-minute window ends.
+    This operation owns the login audit event; callers must not log it again.
+    """
+    if type(claim_id) is not int or claim_id <= 0 or type(success) is not bool:
+        return False
+    address = str(ip_address or "").strip()
+    if not address or not str(db_path or "").strip():
+        return False
+    subject_hash = hashlib.sha256(("auth_login\0" + address).encode("utf-8")).hexdigest()
+    conn = None
+    try:
+        conn = sqlite3.connect(db_path, timeout=2.0)
+        conn.execute("PRAGMA busy_timeout=2000")
+        conn.execute("BEGIN IMMEDIATE")
+        pending = conn.execute(
+            """SELECT created_at FROM security_action_attempts
+               WHERE id=? AND scope='auth_login' AND subject_hash=?""",
+            (claim_id, subject_hash),
+        ).fetchone()
+        now = datetime.now(timezone.utc)
+        started = _parse_iso(str(pending[0] or "")) if pending else None
+        if started is None or started.tzinfo is None or not (now - timedelta(minutes=15) <= started <= now):
+            conn.rollback()
+            return False
+        conn.execute(
+            """INSERT INTO security_events(
+                id,event_type,severity,ip_address,user_id,username,path,method,success,reason,payload_json,created_at
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (
+                security_event_id(), "login_attempt", "INFO" if success else "WARN",
+                address, str(user_id or "")[:120], str(username or "")[:120],
+                str(path or "")[:240], str(method or "POST")[:12],
+                1 if success else 0, str(reason or "")[:160], "{}",
+                now.isoformat(timespec="seconds"),
+            ),
+        )
+        deleted = conn.execute(
+            "DELETE FROM security_action_attempts WHERE id=? AND scope='auth_login' AND subject_hash=?",
+            (claim_id, subject_hash),
+        )
+        if deleted.rowcount != 1:
+            conn.rollback()
+            return False
+        conn.commit()
+        return True
+    except Exception:
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+        return False
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 
 def rate_limit_status(db_path: str, *, event_type: str, ip_address: str, path_like: str, limit: int, minutes: int) -> Dict[str, Any]:

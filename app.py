@@ -34,13 +34,17 @@ import uuid
 
 from database_manager import connect as sqlite_connect, retry_locked
 from engines.security_engine import (
+    claim_login_attempt,
     claim_rate_limit_slot,
+    finalize_login_attempt,
     generate_csrf_token,
     rate_limit_status,
     record_security_event,
     secure_secret_key,
     validate_csrf,
 )
+from engines.auth_session_engine import AbsoluteAuthSessionInterface
+from engines.client_activity_engine import build_client_activity_snapshot
 from engines.cache_engine import cache_health
 from engines.competition_read_model import competition_contains, competition_identity, provider_family, season_key, select_season
 from engines.crest_engine import (
@@ -515,7 +519,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V987_POSTMATCH_EVENTDAY_RESPONSE_LIMIT'
+APP_VERSION = 'V988_SESSION_ACCOUNT_RELIABILITY'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -856,6 +860,7 @@ def configure_session_cookie_security():
 
 
 configure_session_cookie_security()
+app.session_interface = AbsoluteAuthSessionInterface()
 
 
 def env_present(name):
@@ -1068,6 +1073,18 @@ def security_rate_limit_for_request():
     ]
     for prefixes, event_type, limit, minutes, scope in rules:
         if any(path == prefix or path.startswith(prefix + "/") for prefix in prefixes):
+            if scope == "login":
+                # Only the actual POST handlers verify a password and finalize
+                # a reservation. A 404/405 must not consume another login slot.
+                if request.method != "POST" or path not in prefixes:
+                    return None
+                status = claim_login_attempt(DB_PATH, ip_address=ip)
+                if not status.get("allowed"):
+                    if status.get("reason") != "rate_limited":
+                        return rate_limit_store_unavailable_response()
+                    return rate_limit_failure_response(scope, status)
+                g.nemesis_login_admission = {"claim_id": status["claim_id"], "ip_address": ip}
+                return None
             if scope in {"recuperacion", "cambio_password"}:
                 status = claim_rate_limit_slot(
                     DB_PATH,
@@ -1089,6 +1106,29 @@ def security_rate_limit_for_request():
             if status.get("blocked"):
                 return rate_limit_failure_response(scope, status)
     return None
+
+
+def _finish_login_admission(success, identifier, reason, user_id=""):
+    """Complete the reservation before issuing a session or recording failure."""
+    if request.method != "POST":
+        return True
+    slot = getattr(g, "nemesis_login_admission", None)
+    if not isinstance(slot, dict):
+        return False
+    confirmed = finalize_login_attempt(
+        DB_PATH,
+        claim_id=slot.get("claim_id"),
+        ip_address=slot.get("ip_address"),
+        success=success,
+        username=identifier,
+        user_id=user_id,
+        path=request.path,
+        method=request.method,
+        reason=reason,
+    )
+    if confirmed:
+        del g.nemesis_login_admission
+    return confirmed
 
 
 def security_event_for_auth(event_type: str, success: bool, username: str = "", reason: str = "") -> None:
@@ -9440,6 +9480,42 @@ def client_activity_feed(limit=20, user_id=None, include_internal=False):
     return "Actividad registrada en tu cuenta."
 
 
+def _resolve_account_activity_target(target_type, target_id):
+    """Resolve exact persisted identities, never a name or URL from the payload."""
+    lookups = {
+        "match": "SELECT id,home_team,away_team FROM matches WHERE id=? LIMIT 2",
+        "team": "SELECT key,name FROM teams WHERE key=? LIMIT 2",
+        "competition": "SELECT key,name FROM competitions WHERE key=? LIMIT 2",
+    }
+    sql = lookups.get(target_type)
+    if sql is None or not isinstance(target_id, str) or not target_id:
+        return {"state": "unknown"}
+    found = rows(sql, (target_id,))
+    if len(found) != 1:
+        return {"state": "ambiguous" if found else "unknown"}
+    item = found[0]
+    if target_type == "match":
+        home, away = item.get("home_team"), item.get("away_team")
+        if not isinstance(home, str) or not home.strip() or not isinstance(away, str) or not away.strip():
+            return {"state": "unavailable"}
+        name = f"{home.strip()} — {away.strip()}"
+        canonical_id = item.get("id")
+    else:
+        name, canonical_id = item.get("name"), item.get("key")
+    return {
+        "verified": True, "target_type": target_type, "target_id": target_id,
+        "canonical_id": canonical_id, "name": name,
+    }
+
+
+def client_account_activity_snapshot(*, user_id, limit=7, cursor=None):
+    """An explicit availability contract for Cuenta, Perfil and its history."""
+    return build_client_activity_snapshot(
+        rows, user_id=str(user_id or ""), limit=limit, cursor=cursor,
+        resolve_target=_resolve_account_activity_target,
+    )
+
+
 def build_client_alerts(limit=12, user_id=None, hub=None, favorites=None, picks=None, upcoming=None, telegram=None, summary=None):
     """Alertas visuales para cliente sin inventar datos reales.
 
@@ -13349,9 +13425,10 @@ def get_user_by_id(user_id):
     return one("SELECT * FROM users WHERE id=?", (user_id,))
 
 
-def set_login_session(user):
+def set_login_session(user, *, remember=False):
     public = user_public(user)
     session.clear()
+    session.permanent = remember is True
     session["user_id"] = public["id"]
     session["user_name"] = public["name"]
     session["username"] = public["username"]
@@ -17724,7 +17801,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V987_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V988_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -23603,7 +23680,10 @@ def v929_clients_legacy_alias():
 @app.route("/entrar", methods=["GET", "POST"])
 def client_login_page():
     selected_plan = _store_pending_checkout_plan(request.args.get("plan") or request.form.get("plan"))
-    if current_session_user():
+    signed_in = current_session_user()
+    if signed_in:
+        if not _finish_login_admission(True, "", "sesion_cliente_existente", signed_in.get("id")):
+            return rate_limit_store_unavailable_response()
         return _post_auth_redirect("/app")
     error = ""
     auth_backend_error = False
@@ -23617,10 +23697,13 @@ def client_login_page():
             user = None
             auth_backend_error = True
         if user:
-            security_event_for_auth("login_attempt", True, identifier, "cliente_login_correcto")
-            set_login_session(user)
+            if not _finish_login_admission(True, identifier, "cliente_login_correcto", user.get("id")):
+                return rate_limit_store_unavailable_response()
+            set_login_session(user, remember=request.form.get("remember_device") == "1")
             return _post_auth_redirect("/app")
-        security_event_for_auth("login_attempt", False, identifier, "credenciales_cliente_invalidas")
+        reason = "cliente_auth_no_disponible" if auth_backend_error else "credenciales_cliente_invalidas"
+        if not _finish_login_admission(False, identifier, reason):
+            return rate_limit_store_unavailable_response()
         error = "Email, usuario o contraseña incorrectos."
     if auth_backend_error:
         error = "Acceso temporalmente no disponible. Intentalo de nuevo en unos minutos."
@@ -23628,11 +23711,12 @@ def client_login_page():
         request.args.get("next") or request.form.get("next") or session.get("post_auth_next"),
         "/app",
     )
-    return render_template(
+    response = render_template(
         "client_login.html",
         data=auth_shell_data(selected_plan=selected_plan, next_url=next_url),
         error=error,
     )
+    return (response, 503) if auth_backend_error else response
 
 
 @app.route("/forgot-password", methods=["GET", "POST"])
@@ -23665,6 +23749,8 @@ def reset_password_page(token):
 @app.route("/admin-login", methods=["GET", "POST"])
 def admin_login_page():
     if is_admin_session():
+        if not _finish_login_admission(True, "", "sesion_admin_existente", session.get("user_id")):
+            return rate_limit_store_unavailable_response()
         return redirect(_safe_admin_next(request.args.get("next")))
     error = ""
     auth_backend_error = False
@@ -23679,14 +23765,18 @@ def admin_login_page():
             user = None
             auth_backend_error = True
         if user:
-            security_event_for_auth("login_attempt", True, request.form.get("login"), "admin_login_correcto")
-            set_login_session(user)
+            if not _finish_login_admission(True, request.form.get("login"), "admin_login_correcto", user.get("id")):
+                return rate_limit_store_unavailable_response()
+            set_login_session(user, remember=request.form.get("remember_device") == "1")
             return redirect(_safe_admin_next(request.form.get("next") or request.args.get("next")))
-        security_event_for_auth("login_attempt", False, request.form.get("login"), "credenciales_admin_invalidas")
+        reason = "admin_auth_no_disponible" if auth_backend_error else "credenciales_admin_invalidas"
+        if not _finish_login_admission(False, request.form.get("login"), reason):
+            return rate_limit_store_unavailable_response()
         error = "Acceso admin no válido."
     if auth_backend_error:
         error = "Acceso admin temporalmente no disponible. Inténtalo de nuevo en unos minutos."
-    return render_template("admin_login.html", data=auth_shell_data(), error=error, configured=configured)
+    response = render_template("admin_login.html", data=auth_shell_data(), error=error, configured=configured)
+    return (response, 503) if auth_backend_error else response
 
 
 @app.route("/local-safe")
@@ -26525,12 +26615,8 @@ def profile_page():
         lambda: get_favorites(user_id=user_id) if user_id else [],
         [],
     )
-    data["client_activity"] = v931_safe_context(
-        request.path,
-        "profile_activity",
-        lambda: client_activity_feed(limit=8, user_id=user_id) if user_id else [],
-        [],
-    )
+    data["activity_snapshot"] = client_account_activity_snapshot(user_id=user_id, limit=7)
+    data["client_activity"] = data["activity_snapshot"]["items"]
     data["telegram_state"] = v931_safe_context(
         request.path,
         "telegram_state",
@@ -26571,9 +26657,13 @@ def activity_page():
         return redirect("/cliente-login")
     # El historial es una superficie privada y local: no necesita construir
     # agenda deportiva, picks, combinadas, alertas ni briefing para renderizar.
+    snapshot = client_account_activity_snapshot(
+        user_id=user.get("id"), limit=20, cursor=request.args.get("cursor"),
+    )
     data = {
         "session_user": user,
-        "client_activity": client_activity_feed(limit=20, user_id=user.get("id")),
+        "client_activity": snapshot["items"],
+        "activity_snapshot": snapshot,
     }
     return render_template("activity.html", data=data)
 
@@ -32994,12 +33084,8 @@ def account_center_page():
         lambda: get_favorites(user_id=user_id) if user_id else [],
         [],
     )
-    activity = v931_safe_context(
-        request.path,
-        "account_activity",
-        lambda: client_activity_feed(limit=8, user_id=user_id) if user_id else [],
-        [],
-    )
+    activity_snapshot = client_account_activity_snapshot(user_id=user_id, limit=7)
+    activity = activity_snapshot["items"]
     client_alerts = v931_safe_context(
         request.path,
         "account_alerts",
@@ -33010,6 +33096,7 @@ def account_center_page():
         "session_user": user,
         "favorites": favorites,
         "client_activity": activity,
+        "activity_snapshot": activity_snapshot,
         "client_alerts": client_alerts,
         "membership": v566_membership_ui(user),
     }
@@ -33018,7 +33105,7 @@ def account_center_page():
         "plan": normalize_role(user.get("membership") or user.get("role")),
         "favorites": len(favorites),
         "alerts": len(client_alerts),
-        "activity": len(activity),
+        "activity": activity_snapshot["total"],
     }
     data["payments_client"] = v931_safe_context(
         request.path,

@@ -1,0 +1,37 @@
+{# Shared presentation for the verified local activity snapshot.
+   Parent supplies its seven-row preview or full page. Pagination stays outside.
+   No payloads, tracking, providers or unsafe HTML are consumed here. #}
+{% macro account_activity_list(snapshot, retry_href='/actividad') -%}
+{% set state = snapshot.get('state') if snapshot is mapping else 'unavailable' %}
+{% set retry = retry_href if retry_href in ['/actividad', '/mi-cuenta', '/perfil'] else '/actividad' %}
+<div data-client-activity-state="{{ state }}">
+  {% if state == 'available' %}
+  <p class="v933-safe-copy" role="status">Mostrando <strong>{{ snapshot.get('returned_count') }}</strong> de <strong>{{ snapshot.get('total') }}</strong> {{ 'acción guardada' if snapshot.get('total') == 1 else 'acciones guardadas' }}.</p>
+  <div class="v933-truth-list is-no-icon" role="list" aria-label="Actividad guardada">
+    {% for item in snapshot.get('items', []) %}
+    {% set target_type = item.get('target_type') %}
+    {% set canonical_id = item.get('canonical_target_id') %}
+    {% set destination = item.get('href') %}
+    {% set prefixes = {'match':'/match/', 'team':'/team/', 'competition':'/competition/'} %}
+    {% set safe_id = canonical_id is string and canonical_id and canonical_id not in ['.', '..'] and '/' not in canonical_id and '\\' not in canonical_id and '?' not in canonical_id and '#' not in canonical_id and '%' not in canonical_id %}
+    {% set entity_href = prefixes.get(target_type, '') ~ (canonical_id|urlencode) if safe_id and target_type in prefixes else '' %}
+    {% set allowed_href = destination if destination in ['/picks', '/combis', '/alertas', '/favoritos'] or (item.get('target_state') == 'available' and entity_href and destination == entity_href) else '' %}
+    <div role="listitem" data-activity-id="{{ item.get('id') }}">
+      <span>
+        <strong>{{ item.get('label') or 'Actividad registrada en tu cuenta.' }}</strong>
+        <small>{% if item.get('date_state') == 'known' and item.get('created_at_utc') %}<time datetime="{{ item.get('created_at_utc') }}">{{ item.get('created_at_utc')|madrid_datetime_label }}</time>{% else %}Fecha no establecida{% endif %}</small>
+      </span>
+      {% if allowed_href %}<a class="v933-action" href="{{ allowed_href }}" aria-label="Ver detalle{% if item.get('target_name') %} de {{ item.get('target_name') }}{% else %} de la actividad{% endif %}">Ver detalle</a>{% endif %}
+    </div>
+    {% else %}
+    <div role="listitem"><span>No hay más acciones en esta página.</span></div>
+    {% endfor %}
+  </div>
+  {% if snapshot.get('enrichment_state') == 'partial' %}<p class="v933-safe-copy">Algunos detalles no están disponibles. <a class="v933-action" href="{{ retry }}">Volver a intentar</a></p>{% endif %}
+  {% elif state == 'empty' %}
+  <div class="v933-truth-list is-no-icon" role="status"><div><span><strong>No hay acciones guardadas para mostrar.</strong><small>Este historial reúne acciones guardadas explícitamente. Abrir pantallas no crea un registro de navegación.</small></span><a class="v933-action" href="/calendario">Explorar partidos</a></div></div>
+  {% else %}
+  <div class="v933-truth-list is-no-icon" role="status"><div><span><strong>No se ha podido consultar tu actividad.</strong><small>No se puede confirmar el total en este momento.</small></span><a class="v933-action" href="{{ retry }}">Volver a intentar</a></div></div>
+  {% endif %}
+</div>
+{%- endmacro %}

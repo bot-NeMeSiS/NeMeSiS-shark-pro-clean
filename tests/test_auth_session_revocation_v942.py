@@ -259,8 +259,19 @@ def test_legacy_cookie_is_expired_at_rollout_without_revoking_new_sessions(app_m
     copied = app_module.app.test_client()
     _sign_in_cookie(browser, user, app_module)
     with browser.session_transaction() as state:
-        state.pop("auth_session_id", None)
-        state.pop("auth_session_expires_at", None)
+        legacy_state = dict(state)
+    legacy_state.pop("auth_session_id", None)
+    legacy_state.pop("auth_session_expires_at", None)
+    legacy_state.pop("_permanent", None)
+    # Replay a genuinely pre-rollout signed cookie. The new interface must not
+    # be used to issue it: it correctly expires malformed auth state at save.
+    from flask.sessions import SecureCookieSessionInterface
+
+    legacy_serializer = SecureCookieSessionInterface().get_signing_serializer(app_module.app)
+    browser.set_cookie(
+        app_module.app.config.get("SESSION_COOKIE_NAME", "session"),
+        legacy_serializer.dumps(legacy_state),
+    )
     _copy_signed_session(browser, copied, app_module)
     current = app_module.app.test_client()
     _sign_in_cookie(current, user, app_module)

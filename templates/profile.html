@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import page_header, section_header, quick_action, empty_state, status_chip, profile_card, action_button, icon %}
 {% block content %}
+{% from 'components/account_activity.html' import account_activity_list with context %}
 {% set user = data.get('session_user') or current_user or {} %}
 {% set plan = (user.get('membership') or 'FREE')|upper %}
 {% set telegram = data.get('telegram_state') or {} %}
@@ -29,8 +30,7 @@
 
       <details class="v933-panel ns16-account-disclosure" open data-account-disclosure>
         <summary>{{ icon('history') }}<strong>{{ ui('Actividad reciente') }}</strong></summary>
-        {% if activity %}<div class="v933-activity-list">{% for item in activity[:3] %}<article><time>{{ ui_match_datetime(item.get('created_at')) if item.get('created_at') else ui('Fecha pendiente') }}</time><div><strong>{{ ui(item.get('title') or item.get('action') or 'Actividad') }}</strong><small>{{ ui(item.get('label') or item.get('kind') or 'Registrada') }}</small></div>{{ status_chip(item.get('status') or 'Registrado','neutral') }}</article>{% endfor %}</div>
-        {% else %}{{ empty_state('Sin actividad reciente', 'Tus acciones aparecerán aquí.', '', '', 'history') }}{% endif %}
+        {{ account_activity_list(data.get('activity_snapshot') or {}, '/perfil') }}
         {{ action_button('Ver toda', '/actividad') }}
       </details>
     </div>
