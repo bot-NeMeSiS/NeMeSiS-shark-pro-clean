@@ -10,7 +10,7 @@
 <section class="band compact-band">
   <div class="section-head"><h2>{{ ui("Últimos movimientos") }}</h2><span class="pill">{{ ui("Privado") }}</span></div>
   {% set activity_snapshot = data.get('activity_snapshot') or {} %}
-  {{ account_activity_list(activity_snapshot, '/actividad') }}
+  {{ account_activity_list(activity_snapshot, '/actividad', 'La navegación normal no se registra en este historial.') }}
   {% if activity_snapshot.get('next_cursor') %}
   <nav aria-label="{{ ui('Páginas del historial') }}"><a class="v933-action" href="{{ url_for('activity_page', cursor=activity_snapshot.get('next_cursor')) }}">{{ ui('Ver anteriores') }}</a></nav>
   {% endif %}

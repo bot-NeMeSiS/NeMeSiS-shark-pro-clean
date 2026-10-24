@@ -1,7 +1,7 @@
 {# Shared presentation for the verified local activity snapshot.
    Parent supplies its seven-row preview or full page. Pagination stays outside.
    No payloads, tracking, providers or unsafe HTML are consumed here. #}
-{% macro account_activity_list(snapshot, retry_href='/actividad') -%}
+{% macro account_activity_list(snapshot, retry_href='/actividad', empty_message='Este historial reúne acciones guardadas explícitamente. Abrir pantallas no crea un registro de navegación.') -%}
 {% set state = snapshot.get('state') if snapshot is mapping else 'unavailable' %}
 {% set retry = retry_href if retry_href in ['/actividad', '/mi-cuenta', '/perfil'] else '/actividad' %}
 <div data-client-activity-state="{{ state }}">
@@ -29,7 +29,7 @@
   </div>
   {% if snapshot.get('enrichment_state') == 'partial' %}<p class="v933-safe-copy">Algunos detalles no están disponibles. <a class="v933-action" href="{{ retry }}">Volver a intentar</a></p>{% endif %}
   {% elif state == 'empty' %}
-  <div class="v933-truth-list is-no-icon" role="status"><div><span><strong>No hay acciones guardadas para mostrar.</strong><small>Este historial reúne acciones guardadas explícitamente. Abrir pantallas no crea un registro de navegación.</small></span><a class="v933-action" href="/calendario">Explorar partidos</a></div></div>
+  <div class="v933-truth-list is-no-icon" role="status"><div><span><strong>No hay acciones guardadas para mostrar.</strong><small>{{ empty_message }}</small></span><a class="v933-action" href="/calendario">Explorar partidos</a></div></div>
   {% else %}
   <div class="v933-truth-list is-no-icon" role="status"><div><span><strong>No se ha podido consultar tu actividad.</strong><small>No se puede confirmar el total en este momento.</small></span><a class="v933-action" href="{{ retry }}">Volver a intentar</a></div></div>
   {% endif %}
