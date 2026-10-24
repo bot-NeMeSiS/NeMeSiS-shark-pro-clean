@@ -14,7 +14,7 @@ import urllib.parse
 
 import pytest
 from engines.postmatch_sources import OfficialSources
-from engines.postmatch_store import Store
+from engines.postmatch_store import Store, StaleLease
 from engines.postmatch_recovery import tick, read_for_match
 from engines.postmatch_delivery import safe_diagnostics, safe_run_result, present_run_result
 from engines import sportsdb_highlights_engine as media
@@ -106,6 +106,248 @@ def test_absent_event_is_not_absent_video(store):
     adapter,calls=source(store,{'lookupevent.php':{'events':None}})
     assert adapter.highlights(MATCH)['reasons']==['NO_EVENT']
     assert len(calls)==1
+
+
+@pytest.mark.parametrize('response_size', [600 * 1024, 2 * 1024 * 1024])
+def test_eventsday_accepts_a_bounded_response_above_default_limit(store, monkeypatch, response_size):
+    adapter, _ = source(store)
+    adapter.transport = adapter._http
+    prefix = b'{"events":[]}'
+    body = prefix + b' ' * (response_size - len(prefix))
+    requested_limits = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self, limit):
+            requested_limits.append(limit)
+            return body[:limit]
+
+    class Opener:
+        def open(self, _request, timeout):
+            assert timeout > 0
+            return Response()
+
+    monkeypatch.setattr(
+        'engines.postmatch_sources.urllib.request.build_opener',
+        lambda *_args: Opener(),
+    )
+
+    result = adapter.request('thesportsdb', 'eventsday.php', {'d': '2026-10-01', 's': 'Soccer'})
+
+    assert result == {'events': []}
+    assert requested_limits == [2 * 1024 * 1024 + 1]
+    assert 'source_failures' not in safe_diagnostics(adapter.diagnostics)
+
+
+@pytest.mark.parametrize('row_count', [700, 1500, 1501])
+def test_eventsday_dense_catalog_preserves_matching_budget_cache_and_row_limit(store, monkeypatch, row_count):
+    unmapped = {**MATCH, 'source': 'Local', 'external_id': ''}
+    with store.connection(True) as conn:
+        conn.execute('UPDATE matches SET source=?,external_id=? WHERE id=?',
+                     (unmapped['source'], unmapped['external_id'], unmapped['id']))
+    adapter, _ = source(store)
+    adapter.transport = adapter._http
+    assert adapter.identities(unmapped) == ('', '')
+
+    events = [{
+        **EVENT,
+        'idEvent': str(10000 + index),
+        'strEvent': f'Home {index} vs Away {index}',
+        'strHomeTeam': f'Home {index}',
+        'strAwayTeam': f'Away {index}',
+        'strHomeTeamBadge': f'https://www.thesportsdb.com/images/media/team/badge/home{index}.png',
+        'strAwayTeamBadge': f'https://www.thesportsdb.com/images/media/team/badge/away{index}.png',
+        'strDescriptionEN': (
+            f'Official fixture {index}: the home and away teams meet in their scheduled competition. '
+        ) * 5,
+    } for index in range(row_count)]
+    # Matching names alone, or names and date alone, must not select a decoy.
+    events[0] = {**EVENT, 'idEvent': '90001', 'dateEvent': '2026-09-30',
+                 'strTimestamp': '2026-09-30T13:00:00Z'}
+    events[1] = {**EVENT, 'idEvent': '90002', 'idLeague': '999', 'strLeague': 'Other league'}
+    events[-3] = deepcopy(EVENT)
+    body = json.dumps({'events': events}, ensure_ascii=False).encode('utf-8')
+    assert 512 * 1024 < len(body) <= 2 * 1024 * 1024
+    requests = []
+    requested_limits = []
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self, limit):
+            requested_limits.append(limit)
+            return body[:limit]
+
+    class Opener:
+        def open(self, request, timeout):
+            assert timeout > 0
+            parsed = urllib.parse.urlsplit(request.full_url)
+            requests.append((parsed.path.rsplit('/', 1)[-1], urllib.parse.parse_qs(parsed.query)))
+            return Response()
+
+    monkeypatch.setattr(
+        'engines.postmatch_sources.urllib.request.build_opener',
+        lambda *_args: Opener(),
+    )
+
+    if row_count > 1500:
+        with pytest.raises(ValueError, match='MALFORMED'):
+            adapter.sportsdb_event(unmapped)
+    else:
+        assert adapter.sportsdb_event(unmapped) == EVENT
+        assert adapter.sportsdb_event(unmapped) == EVENT
+        assert adapter.diagnostics['cache_hits'] == 1
+        assert adapter.diagnostics['sportsdb_event_id'] == EVENT['idEvent']
+    assert adapter.diagnostics['event_rows'] == row_count
+    assert requests == [('eventsday.php', {'d': ['2026-10-01'], 's': ['Soccer']})]
+    assert requested_limits == [2 * 1024 * 1024 + 1]
+    assert adapter.calls == 1
+    assert store.snapshot()['budget'][0]['used'] == 1
+    with store.connection() as conn:
+        assert conn.execute('SELECT COUNT(*) FROM postmatch_request_cache').fetchone()[0] == 0
+
+
+def test_small_operational_request_cache_is_persisted_and_sanitized(store):
+    adapter, _ = source(store)
+    payload = {
+        'events': [{**EVENT, 'api_key': 'PRIVATE',
+                    'metadata': {'token': 'PRIVATE', 'home_score': 2}}],
+        'unexpected_field': 'PRIVATE',
+    }
+
+    store.cache_request('small-catalog', adapter.job, payload, NOW)
+    cached = store.cached_request('small-catalog', adapter.job['identity'], NOW)
+
+    assert cached == {'payload': {'events': [{**EVENT, 'metadata': {'home_score': 2}}]},
+                      'observed_at': NOW}
+    assert 'PRIVATE' not in json.dumps(cached)
+    assert store.cached_request('small-catalog', adapter.job['identity'], NOW + 21600) is None
+    assert adapter.calls == 0
+
+
+@pytest.mark.parametrize('invalid', [float('nan'), float('inf'), float('-inf')],
+                         ids=['nan', 'positive-infinity', 'negative-infinity'])
+def test_operational_request_cache_still_rejects_non_finite_json(store, invalid):
+    adapter, _ = source(store)
+
+    with pytest.raises(ValueError):
+        store.cache_request('invalid-catalog', adapter.job,
+                            {'events': [{**EVENT, 'invalid_statistic': invalid}]}, NOW)
+
+    with store.connection() as conn:
+        assert conn.execute('SELECT COUNT(*) FROM postmatch_request_cache').fetchone()[0] == 0
+
+
+def test_small_operational_cache_propagates_sql_failure_and_preserves_existing_rows(store):
+    adapter, _ = source(store)
+    payload = {'events': [EVENT]}
+    store.cache_request('existing-catalog', adapter.job, payload, NOW)
+    with store.connection(True) as conn:
+        conn.execute('''CREATE TRIGGER reject_cache_insert BEFORE INSERT ON postmatch_request_cache
+                        BEGIN SELECT RAISE(ABORT, 'synthetic cache write failure'); END''')
+
+    with pytest.raises(sqlite3.IntegrityError, match='synthetic cache write failure'):
+        store.cache_request('new-catalog', adapter.job, payload, NOW)
+
+    assert store.cached_request('existing-catalog', adapter.job['identity'], NOW)['payload'] == payload
+    assert store.cached_request('new-catalog', adapter.job['identity'], NOW) is None
+    with store.connection() as conn:
+        assert conn.execute('SELECT COUNT(*) FROM postmatch_request_cache').fetchone()[0] == 1
+
+
+def test_small_operational_cache_expired_lease_prevents_storage(store):
+    adapter, _ = source(store)
+    with store.connection(True) as conn:
+        conn.execute('UPDATE postmatch_jobs SET lease_until=? WHERE id=?',
+                     (NOW - 1, adapter.job['id']))
+
+    with pytest.raises(StaleLease, match='LEASE_LOST'):
+        store.cache_request('expired-catalog', adapter.job, {'events': [EVENT]}, NOW)
+
+    assert store.cached_request('expired-catalog', adapter.job['identity'], NOW) is None
+    with store.connection() as conn:
+        assert conn.execute('SELECT COUNT(*) FROM postmatch_request_cache').fetchone()[0] == 0
+
+
+def test_other_provider_endpoint_keeps_the_default_response_limit(store, monkeypatch):
+    adapter, _ = source(store)
+    adapter.transport = adapter._http
+    prefix = b'{"events":[]}'
+    body = prefix + b' ' * (600 * 1024 - len(prefix))
+
+    class Response:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self, limit):
+            return body[:limit]
+
+    class Opener:
+        def open(self, _request, timeout):
+            assert timeout > 0
+            return Response()
+
+    monkeypatch.setattr(
+        'engines.postmatch_sources.urllib.request.build_opener',
+        lambda *_args: Opener(),
+    )
+
+    with pytest.raises(ValueError, match='MALFORMED'):
+        adapter.request('thesportsdb', 'lookupevent.php', {'id': '101'})
+
+    assert safe_diagnostics(adapter.diagnostics)['source_failures'] == [{
+        'provider': 'thesportsdb',
+        'endpoint': 'lookupevent.php',
+        'stage': 'RESPONSE_SIZE_LIMIT',
+        'reason': 'MALFORMED',
+    }]
+
+def test_oversized_provider_response_is_reported_as_closed_size_limit(store, monkeypatch):
+    adapter, _ = source(store)
+    adapter.transport = adapter._http
+
+    class OversizedResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def read(self, limit):
+            return b'x' * limit
+
+    class Opener:
+        def open(self, _request, timeout):
+            assert timeout > 0
+            return OversizedResponse()
+
+    monkeypatch.setattr(
+        'engines.postmatch_sources.urllib.request.build_opener',
+        lambda *_args: Opener(),
+    )
+
+    with pytest.raises(ValueError, match='MALFORMED'):
+        adapter.request('thesportsdb', 'eventsday.php', {'d': '2026-10-01', 's': 'Soccer'})
+
+    assert safe_diagnostics(adapter.diagnostics)['source_failures'] == [{
+        'provider': 'thesportsdb',
+        'endpoint': 'eventsday.php',
+        'stage': 'RESPONSE_SIZE_LIMIT',
+        'reason': 'MALFORMED',
+    }]
+    assert 'xxxxxxxx' not in str(adapter.diagnostics)
 
 
 @pytest.mark.parametrize('payload',[{}, {'tvhighlights':'bad'},{'tvhighlights':[None]},{'unknown':[]}])
