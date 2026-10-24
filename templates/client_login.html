@@ -17,6 +17,8 @@
     <input type="hidden" name="plan" value="{{ selected }}">
     <div class="field"><label for="client-login-user">{{ ui("Email o nombre de usuario") }}</label><input id="client-login-user" name="login" autocomplete="username" required></div>
     <div class="field"><label for="client-login-password">{{ ui("Contraseña") }}</label><input id="client-login-password" type="password" name="password" autocomplete="current-password" required></div>
+    <label class="small auth-session-choice" for="client-remember-device"><input id="client-remember-device" type="checkbox" name="remember_device" value="1" aria-describedby="client-session-help" checked><span>{{ ui('Mantener sesión en este dispositivo') }}</span></label>
+    <p class="small" id="client-session-help">{{ ui('Se conserva durante el plazo de seguridad. Puedes salir en cualquier momento; desmárcalo en un equipo compartido.') }}</p>
     <button class="v933-action is-primary" type="submit">{{ ui('Entrar y seguir con {plan}', plan=selected) if selected in ['PRO','ELITE'] else ui('Entrar') }}</button>
     <a class="small" href="/forgot-password">{{ ui("He olvidado mi contraseña") }}</a>
   </form>

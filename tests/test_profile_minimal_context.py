@@ -22,7 +22,9 @@ def test_profile_loads_only_personal_lists_rendered_by_template():
     route = _route_source()
     assert 'data = {"session_user": user}' in route
     assert "get_favorites(user_id=user_id)" in route
-    assert "client_activity_feed(limit=8, user_id=user_id)" in route
+    assert "client_account_activity_snapshot(user_id=user_id, limit=7)" in route
+    assert 'data["client_activity"] = data["activity_snapshot"]["items"]' in route
+    assert "client_activity_feed(" not in route
     assert "telegram_user_state(user)" in route
 
 
@@ -45,6 +47,8 @@ def test_profile_template_contract_matches_minimal_route_payload():
         "data.get('session_user')",
         "data.get('telegram_state')",
         "data.get('client_activity')",
+        "data.get('activity_snapshot')",
+        "account_activity_list(",
         "data.get('favorites')",
     ):
         assert marker in template

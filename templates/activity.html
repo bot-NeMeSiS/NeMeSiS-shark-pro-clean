@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+{% from 'components/account_activity.html' import account_activity_list with context %}
 <section class="product-hero compact-band">
   <div class="kicker">{{ ui("Tu historial") }}</div>
   <h1>{{ ui("Actividad reciente") }}</h1>
@@ -8,15 +9,11 @@
 </section>
 <section class="band compact-band">
   <div class="section-head"><h2>{{ ui("Últimos movimientos") }}</h2><span class="pill">{{ ui("Privado") }}</span></div>
-  <div class="stack activity-stack">
-    {% for act in data.client_activity %}
-    <div class="card activity-card">
-      <div class="comp-top"><strong>{{ ui_owned(act.label) }}</strong></div>
-      <p class="muted"><time datetime="{{ act.created_at }}">{{ ui_match_datetime(act.created_at, true) }}</time></p>
-    </div>
-    {% else %}
-    <div class="empty premium-empty"><strong>{{ ui("Sin actividad aún") }}</strong><p>{{ ui("No hay acciones guardadas todavía. La navegación normal no se registra en este historial.") }}</p></div>
-    {% endfor %}
-  </div>
+  {% set activity_snapshot = data.get('activity_snapshot') or {} %}
+  {{ account_activity_list(activity_snapshot, '/actividad', 'La navegación normal no se registra en este historial.') }}
+  {% if activity_snapshot.get('next_cursor') %}
+  <nav aria-label="{{ ui('Páginas del historial') }}"><a class="v933-action" href="{{ url_for('activity_page', cursor=activity_snapshot.get('next_cursor')) }}">{{ ui('Ver anteriores') }}</a></nav>
+  {% endif %}
+  {% if request.args.get('cursor') %}<a class="v933-action" href="/actividad">{{ ui('Volver a los más recientes') }}</a>{% endif %}
 </section>
 {% endblock %}

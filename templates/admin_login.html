@@ -12,6 +12,8 @@
     {% if not configured %}<p class="notice">Configura ADMIN_EMAIL y ADMIN_PASSWORD en Render, o entra con un usuario ADMIN existente.</p>{% endif %}
     <div class="field"><label for="admin-login-user">Email o usuario admin</label><input id="admin-login-user" name="login" autocomplete="username" required></div>
     <div class="field"><label for="admin-login-password">Contraseña</label><input id="admin-login-password" type="password" name="password" autocomplete="current-password" required></div>
+    <label class="small auth-session-choice" for="admin-remember-device"><input id="admin-remember-device" type="checkbox" name="remember_device" value="1" aria-describedby="admin-session-help"><span>Mantener sesión en este dispositivo</span></label>
+    <p class="small" id="admin-session-help">Solo en un dispositivo de confianza y durante el plazo de seguridad. Cerrar sesión revoca este acceso.</p>
     <button type="submit">Entrar como admin</button>
     <a class="small" href="/admin-forgot-password">Recuperar acceso admin</a>
     <a class="small" href="/">Volver al inicio</a>

@@ -73,7 +73,7 @@
 </header>
 <header class="v933-mobile-header v933-admin-mobile-header" data-nav-zone="admin-mobile">
   {{ nemesis_brand('/admin/dashboard', 'topbar', True) }}
-  <div class="v933-mobile-header-actions">{{ explore_link(true) }}<a class="v933-icon-button" href="/admin/sentinel-issues" aria-label="{{ ui("Incidencias") }}" title="{{ ui("Incidencias") }}">{{ nav_icon('shield') }}</a></div>
+  <div class="v933-mobile-header-actions">{{ explore_link(true) }}<a class="v933-icon-button" href="/admin/sentinel-issues" aria-label="{{ ui("Incidencias") }}" title="{{ ui("Incidencias") }}">{{ nav_icon('shield') }}</a><a class="v933-icon-button" href="/admin/logout" aria-label="{{ ui('Cerrar sesión de administración') }}" title="{{ ui('Cerrar sesión') }}">{{ nav_icon('lock') }}</a></div>
 </header>
 <nav class="v933-admin-mobile-nav" aria-label="Navegación admin móvil">
   {% for label, href, icon_name in nav_contracts.ADMIN_MOBILE_LINKS %}

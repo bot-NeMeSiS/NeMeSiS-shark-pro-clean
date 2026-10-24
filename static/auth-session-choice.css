@@ -1,0 +1,39 @@
+/* Auth-only choice: native checkbox and a comfortable, wrapping label. */
+body.ns-app[data-ns-design="core"] .auth-card .auth-session-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px 0;
+  cursor: pointer;
+  line-height: 1.45;
+}
+
+body.ns-app[data-ns-design="core"] .auth-card .auth-session-choice input[type="checkbox"] {
+  appearance: auto;
+  flex: 0 0 20px;
+  width: 20px;
+  min-width: 20px;
+  height: 20px;
+  min-height: 20px !important;
+  margin: 1px 0 0;
+  padding: 0;
+  accent-color: var(--v933-blue);
+}
+
+body.ns-app[data-ns-design="core"] .auth-card .auth-session-choice span {
+  flex: 1;
+  min-width: 0;
+}
+
+body.ns-app[data-ns-design="core"] .auth-card .auth-session-choice input:focus-visible {
+  outline: 2px solid var(--v933-cyan);
+  outline-offset: 3px;
+}
+
+/* This stylesheet is loaded only by login endpoints. Keep the form clear;
+   the installation guide remains accessible from its existing footer link. */
+body.ns-app[data-ns-design="core"] .ns-pwa-install {
+  display: none !important;
+}
