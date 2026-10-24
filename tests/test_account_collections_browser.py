@@ -1,8 +1,9 @@
 """GET collection journeys on real Chromium, with synthetic account data."""
 import mimetypes
+import json
 from pathlib import Path
 import re
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from test_app_navigation_browser import browser
@@ -31,6 +32,8 @@ def test_collection_get_journey(browser, app_module, monkeypatch, tmp_path, widt
     context=browser.new_context(viewport={'width':width,'height':950},java_script_enabled=javascript,locale=language,service_workers='block')
     page=context.new_page()
     calls,errors=[],[]
+    collection_gets=[]
+    stage='initial'
     page.on('pageerror',lambda error:errors.append(str(error)))
     def serve(route):
         url=urlsplit(route.request.url)
@@ -38,6 +41,8 @@ def test_collection_get_journey(browser, app_module, monkeypatch, tmp_path, widt
         if url.netloc!='collections.invalid':
             route.abort();return
         if url.path==path:
+            query=parse_qs(url.query)
+            collection_gets.append({'q':query.get('q',[''])[0][:90], 'kind':query.get('kind',[''])[0][:20]})
             with app_module.app.test_request_context(url.path+'?'+url.query,headers={'Accept-Language':language}):
                 html=app_module.favorites_page() if role=='client' else app_module.admin_backups_page()
             # Full HTTP QA separately covers all application JavaScript. This
@@ -57,20 +62,24 @@ def test_collection_get_journey(browser, app_module, monkeypatch, tmp_path, widt
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
         if role=='client':
             assert page.locator('.favorite-item').count()==3
+            stage='first_search'
             page.locator('#favorite-query').fill('atletico')
             page.locator('#favorite-kind').select_option('team')
             with page.expect_navigation():
                 page.locator('.collection-toolbar button').press('Enter')
             assert page.locator('.favorite-item').count()==1
             assert 'Atlético Madrid' in page.locator('.favorite-item').inner_text()
+            stage='empty_search'
             page.locator('#favorite-query').fill('zzmissing')
             with page.expect_navigation():
                 page.locator('.collection-toolbar button').press('Enter')
             assert page.locator('.favorite-item').count()==0
+            stage='clear_filters'
             with page.expect_navigation():
                 page.locator('.collection-toolbar a').press('Enter')
             assert page.locator('.favorite-item').count()==3
         else:
+            stage='backup_detail'
             assert page.locator('[data-tone="warning"]').is_visible()
             assert not page.locator('button[type="submit"]').first.is_visible()
             if javascript:
@@ -80,8 +89,32 @@ def test_collection_get_journey(browser, app_module, monkeypatch, tmp_path, widt
             assert page.locator('input[name="action"][value="restore"]').count()==1
             assert page.locator('form input[name="csrf_token"]').first.get_attribute('value')
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
+        stage='screenshot'
         page.screenshot(path=str(tmp_path/f'{role}-{width}-{language}-{javascript}.png'),full_page=True)
         assert not errors
         assert all(method=='GET' for method,_ in calls)
+    except Exception:
+        # Observe failures without retries, alternative activation or a longer deadline.
+        diagnostic={'stage':stage, 'url':page.url, 'collection_gets':collection_gets[-10:],
+                    'calls':calls[-12:], 'page_errors':errors, 'role':role,
+                    'javascript':javascript, 'language':language, 'width':width}
+        try:
+            diagnostic['dom']=page.evaluate("""() => {
+                const input=document.querySelector('#favorite-query');
+                const buttons=[...document.querySelectorAll('.collection-toolbar button')];
+                const button=buttons[0], form=button?.form, active=document.activeElement;
+                return {
+                    value:input?.value, valid:input?.validity?.valid,
+                    validationMessage:input?.validationMessage?.slice(0,200),
+                    buttons:buttons.length, disabled:button?.disabled, type:button?.type,
+                    connected:button?.isConnected, sameForm:!!input && !!form && form===input.form,
+                    formMethod:form?.method, formAction:form?.action,
+                    activeTag:active?.tagName, activeId:active?.id
+                };
+            }""")
+        except Exception as diagnostic_error:
+            diagnostic['dom_error']=type(diagnostic_error).__name__
+        print('COLLECTION_NAV_DIAGNOSTIC',json.dumps(diagnostic,ensure_ascii=False))
+        raise
     finally:
         context.close()

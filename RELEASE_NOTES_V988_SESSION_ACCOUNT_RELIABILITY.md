@@ -52,3 +52,12 @@ explícitamente. Se añaden regresiones HTTP de ambos callers. El gate final exi
 la batería integral Linux, las suites LOCAL SAFE/Sentinel y la navegación del
 commit exacto, además de verificar Render y ciclos naturales tras publicar. Las pruebas sintéticas no certifican sesiones de usuarios reales,
 dispositivos Safari/iOS físicos, copias, recuperación, pagos o toda la plataforma.
+
+La primera batería integral del HEAD7b conservó 5.646PASS y7FAIL: seis tests
+heredados aún exigían el lector anterior y un séptimo agotó la navegación de
+favoritos sin JavaScript. Se migran los contratos de Cuenta/Perfil/Actividad al
+snapshot7/20 y al total exacto, conservando prohibiciones de dashboard y lector
+legacy; se añaden total23/frente7visibles, vacío0 e indisponibleNone. El timeout
+permanece documentado y recibe diagnóstico de formulario/petición sin retry,
+cambio de activación ni aumento del plazo; su causa no está demostrada. La nueva
+CI completa debe superar todos los pasos antes de cualquier publicación.
