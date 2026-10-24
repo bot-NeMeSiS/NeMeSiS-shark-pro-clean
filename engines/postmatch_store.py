@@ -277,7 +277,13 @@ class Store:
     def cache_request(self, key, job, payload, now):
         from engines.match_record_archive import _clean_json
         fields = {'events','eventstats','tvhighlights','eventshighlights','highlights','lineup','timeline','response'}
-        safe = _clean_json({name:value for name,value in payload.items() if name in fields})
+        projected = {name:value for name,value in payload.items() if name in fields}
+        # Daily catalogues can exceed this optional cache's limits while still
+        # being valid responses. Skip them before the stricter archive cleaner.
+        raw = json.dumps(projected, ensure_ascii=False, separators=(',', ':'), allow_nan=False)
+        if len(raw.encode('utf-8')) > 128 * 1024:
+            return
+        safe = _clean_json(projected)
         raw = json.dumps(safe, ensure_ascii=False, separators=(',', ':'),allow_nan=False)
         # A bounded operational cache, not a second unbounded raw data archive.
         if len(raw.encode()) > 128 * 1024:

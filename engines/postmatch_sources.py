@@ -41,13 +41,22 @@ BY_KEY = {value[0]: value for value in STAT_NAMES.values()}
 REQUIRED = {'shots_total', 'shots_on_target', 'possession', 'corners', 'fouls', 'yellow_cards', 'red_cards'}
 SOURCE_DIAGNOSTIC_STAGES = {
     'TRANSPORT', 'JSON_DECODE', 'RESPONSE_ROOT_SHAPE', 'PROVIDER_ERROR',
-    'RESPONSE_FIELD_MISSING', 'RESPONSE_FIELD_SHAPE', 'STATISTICS_RESPONSE_SHAPE',
+    'RESPONSE_FIELD_MISSING', 'RESPONSE_FIELD_SHAPE', 'RESPONSE_SIZE_LIMIT', 'STATISTICS_RESPONSE_SHAPE',
     'STATISTICS_ROW_SHAPE',
 }
 
 
+MAX_PROVIDER_RESPONSE_BYTES = 512 * 1024
+MAX_SPORTSDB_EVENT_DAY_RESPONSE_BYTES = 2 * 1024 * 1024
+
 class SourceError(ValueError):
     """Closed error category. Never carry provider messages, credentials or bodies."""
+
+    def __init__(self, reason, *, diagnostic_stage=None):
+        super().__init__(reason)
+        self.diagnostic_stage = (
+            diagnostic_stage if diagnostic_stage in SOURCE_DIAGNOSTIC_STAGES else ''
+        )
 
 
 def norm(value):
@@ -194,11 +203,16 @@ class OfficialSources:
 
     @staticmethod
     def _http(request, timeout):
+        endpoint = urllib.parse.urlsplit(request.full_url).path.rsplit('/', 1)[-1]
+        max_bytes = (
+            MAX_SPORTSDB_EVENT_DAY_RESPONSE_BYTES if endpoint == "eventsday.php"
+            else MAX_PROVIDER_RESPONSE_BYTES
+        )
         opener = urllib.request.build_opener(NoRedirect())
         with opener.open(request, timeout=timeout) as response:
-            data = response.read(524289)
-            if len(data) > 524288:
-                raise SourceError('MALFORMED')
+            data = response.read(max_bytes + 1)
+            if len(data) > max_bytes:
+                raise SourceError('MALFORMED', diagnostic_stage='RESPONSE_SIZE_LIMIT')
             return json.loads(data.decode('utf-8'))
 
     def request(self, provider, endpoint, params):
@@ -282,6 +296,7 @@ class OfficialSources:
         except (BudgetStopped, StaleLease, sqlite3.Error):
             raise
         except Exception as exc:
+            failure_stage = getattr(exc, 'diagnostic_stage', '') or failure_stage
             code = getattr(exc, 'code', None)
             reason = 'RATE_LIMIT' if code == 429 else 'ACCESS_DENIED' if code in {401, 403} else (
                      str(exc) if isinstance(exc, SourceError) else 'MALFORMED' if isinstance(exc, (ValueError, UnicodeError)) else 'NETWORK')
