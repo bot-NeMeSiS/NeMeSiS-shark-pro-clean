@@ -1,6 +1,7 @@
 """Dense-day admission must retain useful candidates without certifying LIVE."""
 from datetime import datetime, timedelta, timezone
 import json
+import re
 import sqlite3
 
 import pytest
@@ -128,8 +129,9 @@ def test_legacy_schema_without_status_retains_date_and_kickoff_order(
     assert [row["id"] for row in selected] == ["early", "late"]
 
 
+@pytest.mark.parametrize('only_stale', [False, True])
 def test_dense_day_real_http_retains_fresh_live_and_rejects_stale_candidate(
-    app_module, tmp_path, monkeypatch
+    app_module, tmp_path, monkeypatch, only_stale
 ):
     """Use the real SQLite reader, cache builder, normalizer and registered GET."""
     database = tmp_path / "dense-real-http.sqlite3"
@@ -165,6 +167,8 @@ def test_dense_day_real_http_retains_fresh_live_and_rejects_stale_candidate(
     old = (now - timedelta(hours=3)).isoformat()
     stale = dict(live, id="af-992002", external_id="992002", updated_at=old,
                  last_synced_at=old, raw_json="")
+    if only_stale:
+        live.update(updated_at=old, last_synced_at=old)
     finished = [dict(common, id=f"finished-{i:04}", status="FT", minute=90,
                      kickoff_iso=f"{today}T00:01:00+00:00", kickoff_time="00:01",
                      match_time="00:01") for i in range(1004)]
@@ -191,21 +195,34 @@ def test_dense_day_real_http_retains_fresh_live_and_rejects_stale_candidate(
     )
     assert response.status_code == 200
     payload = response.get_json()
-    assert payload["counts"]["live"] == 1
+    assert payload["counts"]["live"] == (0 if only_stale else 1)
     # The transport retains the whole admitted cohort; only descriptor.view is
     # filtered to LIVE. Finished observations must not disappear to pass QA.
     frames = {row["id"]: row for row in payload["matches"]}
-    assert len(payload["matches"]) == len(frames) == 799
-    assert live["id"] in frames
+    expected_frames = 798 if only_stale else 799
+    assert len(payload["matches"]) == len(frames) == expected_frames
     assert stale["id"] not in frames
     assert len(set(frames) & {row["id"] for row in finished}) == 798
-    assert frames[live["id"]]["realtime_state"]["score_home"] == 1
-    assert frames[live["id"]]["realtime_state"]["is_live"] is True
+    if only_stale:
+        assert live["id"] not in frames
+        assert payload['counts']['stale_live'] == 2
+        assert payload['realtime_live_status'] == 'stale'
+        assert all(row['realtime_state']['is_live'] is False for row in frames.values())
+        page = app_module.app.test_client().get('/live')
+        assert page.status_code == 200
+        html = page.get_data(as_text=True)
+        assert 'data-directo-delayed="true"' in html
+        notice = re.search(r'<p\b[^>]*\bdata-directo-notice\b[^>]*>', html)
+        assert notice and not re.search(r'\bhidden\b', notice.group())
+    else:
+        assert live["id"] in frames
+        assert frames[live["id"]]["realtime_state"]["score_home"] == 1
+        assert frames[live["id"]]["realtime_state"]["is_live"] is True
     descriptor = payload["fixture_identity"]
     assert descriptor["state"] == "ESTABLISHED_FOR_EMITTED_COHORT"
-    assert descriptor["coverage"]["emitted_observations"] == 799
-    assert descriptor["view"]["groups_before_limit"] == 1
-    assert [row["id"] for row in descriptor["view"]["members"]] == [live["id"]]
+    assert descriptor["coverage"]["emitted_observations"] == expected_frames
+    assert descriptor["view"]["groups_before_limit"] == (0 if only_stale else 1)
+    assert [row["id"] for row in descriptor["view"]["members"]] == ([] if only_stale else [live["id"]])
     with sqlite3.connect(database) as connection:
         assert connection.execute("SELECT * FROM matches ORDER BY id").fetchall() == before
         assert connection.execute("SELECT COUNT(*) FROM picks").fetchone()[0] == 0

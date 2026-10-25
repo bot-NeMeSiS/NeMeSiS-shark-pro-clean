@@ -8,6 +8,7 @@ import pytest
 
 from engines import highlight_coverage as inventory
 from engines import sportsdb_highlights_engine as media
+from engines.closed_operation_timing import PHASES
 
 NOW = datetime(2026, 10, 8, 18, tzinfo=timezone.utc).timestamp()
 
@@ -160,7 +161,15 @@ def test_provider_error_remains_failure_and_logs_only_fixed_metrics(store, monke
     assert 'test-key-never-log' not in output and 'secret-body' not in output
     messages=[json.loads(line) for line in output.splitlines()]
     assert messages
-    assert all(set(row)=={'event','stage','duration_ms'} and row['stage'] in media._MEDIA_STAGES for row in messages)
+    legacy = [row for row in messages if row['event'] == 'media_stage']
+    phases = [row for row in messages if row['event'] == 'operational_phase']
+    assert legacy and phases and len(legacy) + len(phases) == len(messages)
+    assert all(set(row)=={'event','stage','duration_ms','trace'}
+               and row['stage'] in media._MEDIA_STAGES for row in legacy)
+    assert all(set(row)=={'event','domain','trace','parent','phase','point','duration_ms','offset_ms','in_transaction','error','dropped_records'}
+               and row['domain']=='media' and row['phase'] in PHASES['media']
+               and row['point'] in {'begin','end'} for row in phases)
+    assert len({row['trace'] for row in messages}) == 1
 
 
 def test_logging_failure_cannot_discard_a_completed_media_result(store, monkeypatch):
@@ -171,3 +180,50 @@ def test_logging_failure_cannot_discard_a_completed_media_result(store, monkeypa
     assert result['status']=='OK'
     with sqlite3.connect(store) as conn:
         assert conn.execute('SELECT status FROM sportsdb_highlight_runs').fetchone()==('OK',)
+
+
+def test_late_ledger_finalize_is_attributed_without_changing_persisted_result(store,monkeypatch,capsys):
+    clock=[0.]
+    monkeypatch.setattr(media.time,'monotonic',lambda:clock[0])
+    original=media._connect
+    def connect(path):
+        conn=original(path)
+        def watch(sql):
+            if sql.startswith('UPDATE sportsdb_highlight_runs SET finished_at='):
+                clock[0]+=17
+        conn.set_trace_callback(watch)
+        return conn
+    monkeypatch.setattr(media,'_connect',connect)
+    result=media.sync_sportsdb_highlights(store,days_back=0)
+    assert result['status']=='OK'
+    rows=[json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    final=[r for r in rows if r.get('phase')=='ledger_finalize_write' and r.get('point')=='end']
+    assert len(final)==1 and final[0]['duration_ms']==17000
+    assert final[0]['in_transaction'] is True and final[0]['error'] is None
+    assert len({r['trace'] for r in rows})==1
+    with original(store) as conn:
+        assert conn.execute('SELECT status FROM sportsdb_highlight_runs').fetchone()[0]=='OK'
+
+
+def test_run_ledger_connections_close_after_their_transaction(store,monkeypatch):
+    ledger=[];opened=[]
+    class Tracked(sqlite3.Connection):
+        closed=False
+        def close(self):
+            self.closed=True
+            return super().close()
+    def connect(path):
+        conn=sqlite3.connect(path,factory=Tracked);conn.row_factory=sqlite3.Row
+        def watch(sql):
+            if sql.startswith(('INSERT INTO sportsdb_highlight_runs(', 'UPDATE sportsdb_highlight_runs SET finished_at=')):
+                ledger.append(conn)
+        conn.set_trace_callback(watch);opened.append(conn)
+        return conn
+    monkeypatch.setattr(media,'_connect',connect)
+    try:
+        result=media.sync_sportsdb_highlights(store,days_back=0)
+        assert result['status']=='OK' and len(ledger)==2
+        assert all(conn.closed for conn in ledger)
+    finally:
+        for conn in opened:
+            if not conn.closed:conn.close()
