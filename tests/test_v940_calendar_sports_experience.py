@@ -534,12 +534,50 @@ def test_sports_relevance_home_links_to_match_center(client, app_module, monkeyp
 
 
 def test_sports_relevance_empty_live_state_is_honest(client, app_module, monkeypatch):
+    # An empty collection without a verified source contract cannot establish zero.
     summary = _sports_relevance_summary([])
-    monkeypatch.setattr(app_module, "get_public_home_sports_summary", lambda: summary)
+    monkeypatch.setattr(app_module, "get_public_home_sports_summary", lambda *, _prepare_only=False: summary)
     response = client.get("/live")
     html = response.get_data(as_text=True)
     assert response.status_code == 200
-    assert "No hay partidos para este estado" in html or "Sin directo destacado" in html
+    assert "Datos no disponibles temporalmente" in html
+    assert "No se ha podido leer la información de partidos." in html
+    assert ">No hay partidos para este estado<" not in html
+    notice = html.split('data-directo-notice', 1)[1].split('>', 1)[0]
+    assert "hidden" not in notice
+    payload = client.get("/api/realtime/sports?scope=matches&consumer=directo-v2").get_json()
+    assert payload["source_snapshot_state"] == "READ_UNAVAILABLE"
+    assert payload["counts"]["live"] is None
+    assert payload["fixture_identity"]["state"] == "NOT_ESTABLISHED"
+
+
+def test_sports_relevance_verified_empty_live_source_can_establish_zero(client, app_module, monkeypatch, tmp_path):
+    from contextlib import closing
+    import sqlite3
+    from engines.data_vault_engine import connect_readonly
+    path = tmp_path / "verified-empty.sqlite"
+    with closing(sqlite3.connect(path)) as conn, conn:
+        conn.execute("CREATE TABLE input_records (payload TEXT NOT NULL)")
+
+    def verified_empty_reader(*, _prepare_only=False):
+        with closing(connect_readonly(path)) as conn:
+            observations = conn.execute("SELECT payload FROM input_records").fetchall()
+        assert observations == []
+        summary = _sports_relevance_summary([])
+        summary["storage_status"] = "ok"
+        return app_module._v991_finish_summary(summary, _prepare_only=_prepare_only)[0]
+
+    monkeypatch.setattr(app_module, "get_public_home_sports_summary", verified_empty_reader)
+    response = client.get("/live")
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert "No hay partidos para este estado" in html
+    assert ">Datos no disponibles temporalmente<" not in html
+    payload = client.get("/api/realtime/sports?scope=matches&consumer=directo-v2").get_json()
+    assert payload["source_snapshot_state"] == "LOCAL_SNAPSHOT"
+    assert payload["source_read_state"] == "ok"
+    assert payload["counts"]["live"] == 0
+    assert payload["fixture_identity"]["state"] == "ESTABLISHED_FOR_EMITTED_COHORT"
 
 
 @pytest.mark.parametrize(
@@ -1081,6 +1119,9 @@ def test_p0_relevance_registry_work_stays_linear_with_large_catalog(app_module, 
 
 
 def test_p0_home_sections_reuse_preclassified_catalog(app_module, monkeypatch):
+    # reuse_ranked is a compatibility hint; a cached profile is not authority
+    # for the current user's flags, picks, match status or date.
+    import copy
     matches = [
         _sports_relevance_match(
             app_module,
@@ -1093,16 +1134,36 @@ def test_p0_home_sections_reuse_preclassified_catalog(app_module, monkeypatch):
         for index in range(20)
     ]
     ranked = app_module.sort_matches_by_sports_relevance(matches)
+    before = copy.deepcopy(ranked)
     summary = _sports_relevance_summary(ranked)
-
-    def fail_reclassification(*_args, **_kwargs):
-        raise AssertionError("Preclassified catalog must not be classified again")
-
-    monkeypatch.setattr(app_module, "apply_sports_relevance", fail_reclassification)
+    expected = app_module.build_sports_home_sections(summary, reuse_ranked=False)
+    calls = []
+    apply_current = app_module.apply_sports_relevance
+    def observe_current(match, **kwargs):
+        calls.append(match["id"])
+        return apply_current(match, **kwargs)
+    monkeypatch.setattr(app_module, "apply_sports_relevance", observe_current)
     sections = app_module.build_sports_home_sections(summary, reuse_ranked=True)
 
-    assert sections["ranked"]
+    assert len(sections["ranked"]) == 20
+    assert {row["id"] for row in sections["ranked"]} == {row["id"] for row in ranked}
+    assert sorted(calls) == sorted(row["id"] for row in ranked)
     assert sections["quality"]["external_calls"] == 0
+    assert sections["counts"] == expected["counts"]
+    for lane in ("ranked", "live_now", "important_today", "favorites", "upcoming", "recent_results"):
+        assert [row["id"] for row in sections[lane]] == [row["id"] for row in expected[lane]]
+        for actual, baseline in zip(sections[lane], expected[lane]):
+            # This elapsed-time projection may advance between real calls.
+            actual_profile = dict(actual["sports_relevance"])
+            baseline_profile = dict(baseline["sports_relevance"])
+            actual_delta = actual_profile.pop("kickoff_delta_minutes")
+            baseline_delta = baseline_profile.pop("kickoff_delta_minutes")
+            assert actual_profile == baseline_profile
+            assert actual_delta is None and baseline_delta is None or abs(actual_delta - baseline_delta) <= 1
+    for original, result in zip(ranked, sections["ranked"]):
+        assert result["sports_relevance"] is not original["sports_relevance"]
+        assert result["sports_relevance"]["reasons"] is not original["sports_relevance"]["reasons"]
+    assert ranked == before
 
 
 def test_p0_public_sports_cache_ignores_unrelated_database_writes(app_module, monkeypatch, tmp_path):
@@ -1206,3 +1267,48 @@ def test_p0_shark_briefing_reuses_cached_live_snapshot_without_rebuild(app_modul
     assert briefing["context"]["live_state"]["live"][0]["id"] == "shark-live-cache"
     assert briefing["context"]["live_state"]["no_render_api_call"] is True
     assert briefing["context"]["live_state"]["state"]["sync_status"] == "cache_only"
+
+
+def test_p0_home_sections_never_trust_cached_user_or_pick_flags(app_module):
+    import copy
+    row = _sports_relevance_match(app_module, "stale-overlay", "Bundesliga", country="Germany")
+    ranked = app_module.sort_matches_by_sports_relevance([row])
+    cached = ranked[0]
+    cached["is_favorite"] = True
+    cached["has_pick"] = True
+    cached["sports_relevance"].update(score=99999, is_favorite=True, has_pick=True,
+        is_live=True, is_upcoming=False, reasons=["UNTRUSTED_CACHED_PROFILE"])
+    before = copy.deepcopy(cached)
+    summary = _sports_relevance_summary([cached])
+    sections = app_module.build_sports_home_sections(summary, reuse_ranked=True)
+    actual = sections["ranked"][0]
+    assert actual["id"] == cached["id"]
+    assert actual["is_favorite"] is False
+    assert actual["has_pick"] is False
+    assert actual["sports_relevance"]["is_live"] is False
+    assert actual["sports_relevance"]["is_upcoming"] is True
+    assert actual["sports_relevance"]["score"] != 99999
+    assert "UNTRUSTED_CACHED_PROFILE" not in actual["sports_relevance"]["reasons"]
+    assert sections["favorites"] == []
+    assert sections["live_now"] == []
+    assert cached == before
+
+
+def test_p0_home_sections_current_picks_replace_cached_flags(app_module):
+    import copy
+    source = _sports_relevance_match(app_module, "changing-pick", "Bundesliga", country="Germany")
+    cached = app_module.sort_matches_by_sports_relevance([source], pick_ids={source["id"]})[0]
+    assert cached["has_pick"] is True
+    before = copy.deepcopy(cached)
+    summary = _sports_relevance_summary([cached])
+    without = app_module.build_sports_home_sections(summary, reuse_ranked=True)["ranked"][0]
+    assert without["has_pick"] is False
+    assert "PICK_SECONDARY" not in without["sports_relevance"]["reasons"]
+    summary["valid_active_picks"] = [{"id":"current-owned-pick", "match_id":cached["id"], "odds":1.87}]
+    with_pick = app_module.build_sports_home_sections(summary, reuse_ranked=True)["ranked"][0]
+    assert with_pick["has_pick"] is True
+    assert "PICK_SECONDARY" in with_pick["sports_relevance"]["reasons"]
+    summary["valid_active_picks"] = []
+    removed = app_module.build_sports_home_sections(summary, reuse_ranked=True)["ranked"][0]
+    assert removed["has_pick"] is False
+    assert cached == before

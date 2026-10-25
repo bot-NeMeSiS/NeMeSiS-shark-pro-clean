@@ -27,6 +27,12 @@ from pathlib import Path
 
 from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for, before_render_template
 from werkzeug.security import check_password_hash, generate_password_hash
+from contextvars import ContextVar as _V991ContextVar
+from dataclasses import dataclass as _v991_dataclass
+from types import SimpleNamespace as _V991Selection
+from engines.fixture_snapshot_read_model import preserve_match_observations
+from engines.fixture_snapshot_read_model import prepare_fixture_snapshot as _v991_prepare
+from engines.data_vault_engine import read_competition_references as _v991_references
 from engines.ui_localization_engine import LANGUAGES, LANGUAGE_NAMES, match_summary as localize_match_summary, translate as translate_ui, valid_language, plural as plural_ui, context_copy as localize_context_copy, form_summary as localize_form_summary, shark_copy as localize_shark_copy, price_label as localize_price_label, country_display_name as localize_country_display_name
 from engines.support_inbox_engine import submit as submit_support_request, admin_snapshot as support_inbox_snapshot, SupportRejected
 from engines.ui_localization_engine import identity_value as localize_identity_value, owned_text as localize_owned_text, entity_copy as localize_entity_copy
@@ -519,7 +525,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V990_COMBI_FIXTURE_GUARD'
+APP_VERSION = 'V991_SHARED_FIXTURE_SNAPSHOT'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -11997,7 +12003,7 @@ def get_results_matches(start_date=None, days_back=14, limit=150):
                WHERE match_date>=? AND match_date<=?
                ORDER BY match_date DESC, kickoff_time DESC, competition_name
                LIMIT ?"""
-    data = dedupe_matches_list([item for item in rows(query, (start, start_date, int(limit))) if not is_fake_match(item)])
+    data = list(preserve_match_observations([item for item in rows(query, (start, start_date, int(limit))) if not is_fake_match(item)]))
     _prefetch_home_timelines(data)
     enriched = []
     for item in data:
@@ -17391,7 +17397,7 @@ def get_matches(date=None, lane="today"):
     elif lane == "andalucia":
         clauses.append("lower(competition_key)='andalucia-regional'")
     query = "SELECT * FROM matches WHERE " + " AND ".join(clauses) + " ORDER BY priority DESC, kickoff_time, competition_name LIMIT 300"
-    data = dedupe_matches_list([item for item in rows(query, params) if not is_fake_match(item)])
+    data = list(preserve_match_observations([item for item in rows(query, params) if not is_fake_match(item)]))
     _prefetch_home_timelines(data)
     prepared = []
     for item in data:
@@ -17418,7 +17424,7 @@ def get_upcoming_matches(start_date=None, days=7, limit=300):
                WHERE match_date>=? AND match_date<=?
                ORDER BY match_date, kickoff_time, priority DESC, competition_name
                LIMIT ?"""
-    raw_data = dedupe_matches_list([item for item in rows(query, (start_date, end_date, int(limit))) if not is_fake_match(item)])
+    raw_data = list(preserve_match_observations([item for item in rows(query, (start_date, end_date, int(limit))) if not is_fake_match(item)]))
     _prefetch_home_timelines(raw_data)
     data = []
     for item in raw_data:
@@ -17801,7 +17807,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V990_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V991_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -18844,7 +18850,150 @@ def _sports_match_has_verified_score(item):
     return home_score is not None and away_score is not None
 
 
-def build_sports_metrics_contract(summary):
+
+
+# One operation-owned fixture snapshot after current/history finalization.
+_v991_cache_acceptance = _V991ContextVar("v991_cache_acceptance", default=False)
+
+_V991_LANES = (
+    "all_valid_matches", "valid_matches_today", "valid_upcoming_matches", "valid_matches_available",
+    "valid_live_events", "finished_matches", "result_pending_matches", "archived_matches", "incident_matches",
+)
+
+_V991_CALENDAR_PATHS = frozenset({"/calendar", "/calendario", "/calendario-global", "/partidos",
+                               "/partidos/calendario", "/api/calendar"})
+
+
+def _v991_unique_objects(rows):
+    output, seen = [], set()
+    for row in rows or ():
+        if not isinstance(row, dict) or id(row) in seen:
+            continue
+        seen.add(id(row)); output.append(row)
+    return output
+
+
+def _v991_membership(summary):
+    return tuple((name, tuple(id(row) for row in summary.get(name) or ())) for name in _V991_LANES)
+
+
+def _v991_generation(snapshot, selected_date):
+    content = [selected_date, [(name, [entry[1].hex() if entry[1] is not None else "UNSUPPORTED"
+                       for row in values for entry in (snapshot._identity_at_prepare[id(row)],)])
+                       for name, values in snapshot.cohorts.items()]]
+    return hashlib.sha256(json.dumps(content, sort_keys=True).encode()).hexdigest()[:24]
+
+
+@_v991_dataclass(frozen=True)
+class _V991Operation:
+    summary: object
+    selected_date: str
+    generation: str
+    membership: tuple
+    snapshot: object
+
+    def matches(self, summary, selected_date=None):
+        return (self.summary is summary and self.membership == _v991_membership(summary)
+                and self.generation == _v991_generation(self.snapshot, self.selected_date)
+                and tuple(id(row) for values in self.snapshot.cohorts.values() for row in values)
+                    == tuple(id(row) for row in summary.get("all_valid_matches") or ())
+                and (selected_date is None or str(selected_date) == self.selected_date))
+
+
+def _v991_operation_for(summary, fixture_operation=None, selected_date=None):
+    candidate = fixture_operation
+    if candidate is None and has_request_context():
+        candidate = getattr(g, "v991_summary_operations", {}).get(id(summary))
+    return (candidate if isinstance(candidate, _V991Operation)
+            and candidate.matches(summary, selected_date) else None)
+
+
+def _v991_selected(summary, rows, *, fixture_operation=None, predicate=None, rank_for=None, limit=None):
+    originals = _v991_unique_objects(rows)
+    if predicate is not None:
+        originals = [row for row in originals if predicate(row)]
+    operation = _v991_operation_for(summary, fixture_operation)
+    if operation is not None:
+        return operation.snapshot.select_rows(originals, rank_for=rank_for, limit=limit)
+    # No prepared context: retain each supplied original independently. Do not
+    # prepare from a consumer, reuse labels, or infer a provider-native grouping.
+    chosen = originals if limit is None else originals[:limit]
+    return _V991Selection(rows=tuple(chosen), groups=tuple((row,) for row in chosen), count=len(originals),
+                          raw_rows=tuple(originals), confirmed_count=0, unresolved_observations=len(originals),
+                          identity_basis=tuple("UNPREPARED" for _ in chosen), native_fixture_groups=0)
+
+
+def _v991_validated_base_summary():
+    # Preserve both original private derivations and their cache-acceptance
+    # failure boundary. This wrapper changes no builder code or data.
+    token = _v991_cache_acceptance.set(True)
+    try:
+        return _build_public_home_sports_summary()
+    finally:
+        _v991_cache_acceptance.reset(token)
+
+
+def _v991_prepare_summary_operation(summary, *, selected_date=None, current=None, history=()):
+    selected = _safe_date_value(selected_date, today_iso())
+    current = _v991_unique_objects(summary.get("all_valid_matches") or ()) if current is None else list(current)
+    history = list(history)
+    snapshot = _v991_prepare({"current": current, "history": history},
+                             lambda keys: _v991_references(DB_PATH, keys), kickoff_for=match_kickoff_madrid_dt)
+    generation = _v991_generation(snapshot, selected)
+    operation = _V991Operation(summary, selected, generation, _v991_membership(summary), snapshot)
+    if has_request_context():
+        operations = getattr(g, "v991_summary_operations", {})
+        operations[id(summary)] = operation
+        g.v991_summary_operations = operations
+    return operation
+
+
+def _v991_finish_summary(summary, *, selected_date=None, _prepare_only=False):
+    selected = _safe_date_value(selected_date, today_iso())
+    # Admit only each original's own fresh LIVE evidence in the already-approved
+    # live cohort, before the only context preparation and current/history split.
+    summary.update(_v937_live_summary_without_stale(summary, None))
+    current = _v991_unique_objects(summary.get("all_valid_matches") or ())
+    history = []
+    history_read_state = "NOT_REQUESTED"
+    if selected < today_iso():
+        try:
+            history = [row for row in get_results_matches(selected, days_back=0, limit=400)
+                       if isinstance(row, dict) and str(row.get("match_date") or "") == selected]
+            history_read_state = "VERIFIED"
+        except sqlite3.OperationalError as exc:
+            if "locked" not in str(exc).lower():
+                raise
+            history_read_state = "DATABASE_LOCKED"
+    # Append every history occurrence; do not use an ID/name merge or a shared
+    # 800-row slice. A current/history copy of one ID remains separate evidence.
+    summary["all_valid_matches"] = current + history
+    # These legacy fields are observation counts, not grouped KPI contracts.
+    summary["valid_matches_today_count"] = len(_v991_unique_objects(summary.get("valid_matches_today") or ()))
+    summary["valid_matches_total"] = len(summary["all_valid_matches"])
+    for lane, test in (
+        ("finished_matches", lambda row: canonical_match_status(row).get("is_finished")),
+        ("result_pending_matches", lambda row: canonical_match_status(row).get("is_result_pending")),
+        ("incident_matches", lambda row: canonical_match_status(row).get("is_result_pending")),
+    ):
+        summary[lane] = _v991_unique_objects(list(summary.get(lane) or ()) + [row for row in history if test(row)])
+    if selected < today_iso():
+        summary["historical_results_date"] = selected
+        summary["historical_results_count"] = len(history) if history_read_state == "VERIFIED" else None
+        summary["historical_results_source"] = "local_db_read_only" if history_read_state == "VERIFIED" else "local_db_unavailable"
+        summary["historical_results_read_state"] = history_read_state
+    operation = _v991_prepare_summary_operation(summary, selected_date=selected, current=current, history=history)
+    if _prepare_only is True:
+        # This is the isolated request-owned cache clone, not the stored payload.
+        summary.pop("sports_home", None)
+        summary.pop("sports_metrics", None)
+    else:
+        summary["sports_home"] = build_sports_home_sections(summary, reuse_ranked=True, fixture_operation=operation)
+        summary["sports_metrics"] = build_sports_metrics_contract(summary, fixture_operation=operation)
+    return summary, operation
+
+
+def _v991_legacy_sports_metrics_contract(summary):
     """Canonical public counts shared by every sports product surface."""
     summary = summary if isinstance(summary, dict) else {}
     today_matches = _dedupe_sports_matches(summary.get("valid_matches_today") or [])
@@ -18923,14 +19072,49 @@ def build_sports_metrics_contract(summary):
     }
 
 
-
-def get_sports_metrics_contract(summary):
-    """Return the exact canonical snapshot already attached to a sports summary."""
+def build_sports_metrics_contract(summary, fixture_operation=None):
+    if _v991_cache_acceptance.get():
+        return _v991_legacy_sports_metrics_contract(summary)
     summary = summary if isinstance(summary, dict) else {}
-    existing = summary.get("sports_metrics")
-    if isinstance(existing, dict) and existing.get("contract") == SPORTS_METRICS_CONTRACT:
-        return existing
-    return build_sports_metrics_contract(summary)
+    operation = _v991_operation_for(summary, fixture_operation) or False
+    select = lambda rows, **kw: _v991_selected(summary, rows, fixture_operation=operation, **kw)
+    today = select(summary.get("valid_matches_today") or ())
+    available = select(list(summary.get("valid_matches_today") or ()) + list(summary.get("valid_upcoming_matches") or ()))
+    live = select(summary.get("valid_live_events") or (), predicate=lambda row: canonical_match_status(row).get("is_live"))
+    picks = [row for row in summary.get("valid_active_picks") or () if isinstance(row, dict)]
+    pick_ids = {str(row.get("match_id") or "").strip() for row in picks if str(row.get("match_id") or "").strip()}
+    with_picks = select(summary.get("all_valid_matches") or (), predicate=lambda row: _sports_match_key(row) in pick_ids)
+    finished = select(summary.get("finished_matches") or (), predicate=lambda row:
+                      str(row.get("match_date") or "")[:10] == today_iso() and _sports_match_has_verified_score(row))
+    basis = "PREPARED" if operation else "UNPREPARED"
+    identity = {"date": today_iso(), "selected_date": operation.selected_date if operation else None,
+                "generation": operation.generation if operation else None, "identity_state": basis,
+                "today_groups": [[_sports_match_key(row) for row in group] for group in today.groups],
+                "available_groups": [[_sports_match_key(row) for row in group] for group in available.groups],
+                "live_groups": [[_sports_match_key(row) for row in group] for group in live.groups],
+                "picks": [str(row.get("id") or "") for row in picks],
+                "synchronized": int(summary.get("raw_matches_count") or 0)}
+    coverage = {"state": basis, "generation": operation.generation if operation else None,
+                "reference_calls": operation.snapshot.context.lookup_calls if operation else 0,
+                "current_observations": len(operation.snapshot.cohorts["current"]) if operation else None,
+                "history_observations": len(operation.snapshot.cohorts["history"]) if operation else None}
+    return {"contract": SPORTS_METRICS_CONTRACT,
+        "snapshot_id": hashlib.sha256(json.dumps(identity,sort_keys=True).encode()).hexdigest()[:16],
+        "scope": "prepared_local_cohorts" if operation else "unprepared_observations",
+        "source": "get_public_home_sports_summary", "generated_at_madrid": str(summary.get("metrics_generated_at_madrid") or now_iso()),
+        "last_sync": str(summary.get("last_sync") or ""), "matches_today": today.count,
+        "matches_available": available.count, "live_confirmed": live.count, "picks_ready": len(picks),
+        "matches_with_picks": with_picks.count, "matches_synchronized": int(summary.get("raw_matches_count") or 0),
+        "finished_verified": finished.count, "incomplete_excluded": len(summary.get("incomplete_matches") or ()),
+        "stale_live_excluded": int(summary.get("stale_live_excluded") or 0),
+        "sports_quality": dict((summary.get("sports_home") or {}).get("quality") or {}),
+        "definitions": SPORTS_METRIC_DEFINITIONS, "identity_coverage": coverage, "no_render_api_call": True}
+
+
+
+def get_sports_metrics_contract(summary, fixture_operation=None):
+    # Never trust a cached marker or metrics copied from a different owner/date.
+    return build_sports_metrics_contract(summary, fixture_operation=fixture_operation)
 
 
 SPORTS_RELEVANCE_CONTRACT = "sports-relevance-v2"
@@ -19525,7 +19709,7 @@ def build_unknown_competition_quality(matches, visible_matches=None):
     }
 
 
-def build_sports_home_sections(summary, limit=6, reuse_ranked=False):
+def _v991_legacy_sports_home_sections(summary, limit=6, reuse_ranked=False):
     summary = summary if isinstance(summary, dict) else {}
     pick_ids = {
         str(item.get("match_id") or "").strip()
@@ -19628,6 +19812,66 @@ def build_sports_home_sections(summary, limit=6, reuse_ranked=False):
             "MADRID_TIME",
         ],
     }
+
+
+def build_sports_home_sections(summary, limit=6, reuse_ranked=False, fixture_operation=None):
+    if _v991_cache_acceptance.get():
+        return _v991_legacy_sports_home_sections(summary, limit=limit, reuse_ranked=reuse_ranked)
+    summary = summary if isinstance(summary, dict) else {}
+    operation = _v991_operation_for(summary, fixture_operation) or False
+    favorites = favorite_sets() if has_request_context() and current_session_user() else {"team":set(),"league":set(),"match":set(),"all":[]}
+    pick_ids = {str(row.get("match_id") or "").strip() for row in summary.get("valid_active_picks") or ()}
+    originals = _v991_unique_objects([row for lane in _V991_LANES for row in summary.get(lane) or ()])
+    def current_projection(row):
+        # These are request/user overlays, never authority from a cached row.
+        current = dict(row)
+        current["is_favorite"] = False
+        current["has_pick"] = False
+        return apply_sports_relevance(current, pick_ids=pick_ids, favorites=favorites)
+    projected = {id(row): current_projection(row) for row in originals}
+    select = lambda rows, **kw: _v991_selected(summary, rows, fixture_operation=operation,
+        rank_for=lambda row: (bool(projected[id(row)].get("is_favorite")), bool(projected[id(row)].get("has_pick")),
+                             provider_family(row.get("source"))=="api-football",match_quality_score(row)), **kw)
+    selected = select(originals)
+    ranked = sorted([projected[id(row)] for row in selected.rows],key=lambda row:sports_relevance_sort_tuple(row,"home"))
+    def lane(predicate):
+        eligible = [row for row in originals if predicate(projected[id(row)])]
+        result = select(eligible)
+        ordered = sorted([projected[id(row)] for row in result.rows],key=lambda row:sports_relevance_sort_tuple(row,"home"))
+        return ordered[:limit], result.count
+    live,live_count = lane(lambda row: (row.get("sports_relevance") or {}).get("is_live"))
+    important,important_count = lane(lambda row: str(row.get("match_date") or "")==today_iso()
+        and not (row.get("sports_relevance") or {}).get("is_finished")
+        and not (row.get("sports_relevance") or {}).get("is_live") and row.get("sports_relevance_bucket") in {"PRIORITY","STANDARD"})
+    fav,fav_count = lane(lambda row:row.get("is_favorite"))
+    upcoming,upcoming_count = lane(lambda row:(row.get("sports_relevance") or {}).get("is_upcoming")
+        and str(row.get("match_date") or "")>=today_iso()
+        and not (row.get("sports_relevance") or {}).get("is_live")
+        and not (str(row.get("match_date") or "")==today_iso()
+            and not (row.get("sports_relevance") or {}).get("is_finished")
+            and row.get("sports_relevance_bucket") in {"PRIORITY","STANDARD"}))
+    recent = select(summary.get("finished_matches") or ())
+    results = sorted([projected[id(row)] for row in recent.rows],key=lambda row:sports_relevance_sort_tuple(row,"results"))[:limit]
+    original_for_projection = {id(value): row for row in originals for value in (projected[id(row)],)}
+    visible_selection = select([original_for_projection[id(value)] for value in live+important+fav+upcoming+results])
+    visible = [projected[id(row)] for row in visible_selection.rows]
+    unknown = build_unknown_competition_quality(ranked,visible)
+    return {"contract":SPORTS_RELEVANCE_CONTRACT,"generated_at_madrid":now_iso(),"live_now":live,
+        "important_today":important,"favorites":fav,"upcoming":upcoming,"recent_results":results,
+        "ranked":ranked[:max(limit*4,16)],"unknown_quality":unknown,
+        "identity_state":"PREPARED" if operation else "UNPREPARED",
+        "quality":{"live_real":live_count,"live_conflicts":sum(bool((row.get("sports_relevance") or {}).get("status_conflict")) for row in ranked),
+            "tier_sa_available":sum((row.get("sports_relevance") or {}).get("tier") in {"S","A"} for row in ranked),
+            "tier_sa_surfaced":sum((row.get("sports_relevance") or {}).get("tier") in {"S","A"} for row in visible),
+            "unknown":unknown.get("total",0),"stale":int(summary.get("stale_live_excluded") or 0),
+            "last_sync":summary.get("last_sync") or "","external_calls":0},
+        "counts":{"priority":sum(row.get("sports_relevance_bucket")=="PRIORITY" for row in ranked),
+            "standard":sum(row.get("sports_relevance_bucket")=="STANDARD" for row in ranked),
+            "low_priority":sum(row.get("sports_relevance_bucket")=="LOW_PRIORITY" for row in ranked),
+            "unknown":unknown.get("total",0),"duplicates_removed":len(originals)-selected.count,
+            "stale_live_excluded":int(summary.get("stale_live_excluded") or 0),
+            "important_today":important_count,"favorites":fav_count,"upcoming":upcoming_count},
+        "rules":["SPORTS_RELEVANCE_FIRST","PICKS_SECONDARY_SIGNAL","NO_FAKE_MATCHES","MADRID_TIME"]}
 
 def _build_public_home_sports_summary():
     """Build the canonical sports truth from local DB/cache only."""
@@ -19772,22 +20016,32 @@ def _latest_sports_update_at(*row_groups):
     return max(candidates).isoformat() if candidates else ""
 
 
-def get_public_home_sports_summary():
-    """Cached DB/WAL sports truth; synchronization invalidates it without provider calls."""
-    if has_request_context() and getattr(g, "v935_public_sports_summary", None) is not None:
-        return g.v935_public_sports_summary
+def get_public_home_sports_summary(selected_date=None, *, _prepare_only=False):
+    if selected_date is None and has_request_context() and request.path in _V991_CALENDAR_PATHS:
+        selected = _v940_calendar_filters(request.args.get("lane") or "today", request.args.get("date"))["date"]
+    else:
+        selected = _safe_date_value(selected_date, today_iso())
+    if has_request_context():
+        existing = getattr(g, "v935_public_sports_summary", None)
+        operation = _v991_operation_for(existing, selected_date=selected) if existing is not None else None
+        if operation is not None:
+            # Keep the prepared evidence boundary: mutated originals are checked
+            # by C3, never re-prepared to bless their changed identity. Adjacent
+            # derived payloads must use that current check on every reuse too.
+            if _prepare_only is True:
+                # Preserve the same summary owner and anchors; do not re-prepare.
+                existing.pop("sports_home", None)
+                existing.pop("sports_metrics", None)
+            else:
+                existing["sports_home"] = build_sports_home_sections(existing, reuse_ranked=True, fixture_operation=operation)
+                existing["sports_metrics"] = build_sports_metrics_contract(existing, fixture_operation=operation)
+            return existing
     result, cache_status = cached_v934_realtime_snapshot(
-        _public_sports_cache_key(),
-        _build_public_home_sports_summary,
-        ttl_seconds=300,
-    )
-    # The DB snapshot may remain useful for five minutes, but LIVE evidence has a
-    # much shorter freshness window. Reconcile it in memory so cards and counters
-    # cannot retain an event that became stale while the snapshot was cached.
-    realtime = build_v934_realtime_snapshot(result)
-    result = _v937_live_summary_without_stale(result, realtime)
-    result["sports_home"] = build_sports_home_sections(result, reuse_ranked=True)
-    result["sports_metrics"] = build_sports_metrics_contract(result)
+        _public_sports_cache_key(), _v991_validated_base_summary, ttl_seconds=300)
+    if _prepare_only is True:
+        result, operation = _v991_finish_summary(result, selected_date=selected, _prepare_only=True)
+    else:
+        result, operation = _v991_finish_summary(result, selected_date=selected)
     result["summary_cache_status"] = cache_status
     if has_request_context():
         g.v935_public_sports_summary = result
@@ -20112,7 +20366,7 @@ def _v931_minimal_client_data(summary, lane="today", date_value=""):
     }
 
 
-def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None):
+def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None, _directo_minimal=False):
     summary = (
         _v932_locked_sports_summary()
         if has_request_context() and request.environ.get("nemesis.v932.database_locked")
@@ -20122,6 +20376,25 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
             else get_public_home_sports_summary()
         )
     )
+    if compact and _directo_minimal is True:
+        def _directo_client_data():
+            today_matches = list(summary.get("valid_matches_today") or [])
+            upcoming = list(summary.get("valid_upcoming_matches") or [])
+            return {
+                "app_name": APP_NAME,
+                "version": APP_VERSION,
+                "date": date_value or today_iso(),
+                "lane": lane,
+                "matches": today_matches,
+                "upcoming_matches": upcoming,
+                "available_matches": list(summary.get("valid_matches_available") or _dedupe_sports_matches(today_matches + upcoming)),
+                "session_user": current_session_user(),
+                "v931_route_guard": {
+                    "status": "safe_fallback",
+                    "provider_status": summary.get("provider_status"),
+                    "no_render_api_call": True,
+                },
+            }
     if summary.get("storage_status") == "database_locked":
         if has_request_context():
             request.environ["nemesis.v931.degraded"] = True
@@ -20129,9 +20402,14 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
         v931_record_client_route_issue(route, error, "sqlite_read_timeout_guard")
         if current_session_user():
             v932_record_authenticated_issue(route, error, "admin" if is_admin_session() else "client", "sqlite_read_timeout_guard")
+        if compact and _directo_minimal is True:
+            return _directo_client_data(), summary
         return _v931_minimal_client_data(summary, lane, date_value or today_iso()), summary
     if compact:
-        data = _v931_minimal_client_data(summary, lane, date_value or today_iso())
+        if _directo_minimal is True:
+            data = _directo_client_data()
+        else:
+            data = _v931_minimal_client_data(summary, lane, date_value or today_iso())
         data["available_matches"] = list(summary.get("valid_matches_available") or _dedupe_sports_matches(data["matches"] + data["upcoming_matches"]))
         data["v931_route_guard"] = {
             "status": "compact_read_only_context",
@@ -20207,8 +20485,12 @@ def v932_safe_dashboard_data(
     scope="client",
     compact=False,
     sports_summary=None,
+    _directo_minimal=False,
 ):
-    data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary)
+    if compact and _directo_minimal is True:
+        data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary, _directo_minimal=True)
+    else:
+        data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary)
     data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
     data["sports_metrics"] = get_sports_metrics_contract(summary)
     data["v932_authenticated_scope"] = "admin" if scope == "admin" else "client"
@@ -20368,122 +20650,226 @@ def v931_calendar_context(summary, lane="today", date_value=None):
 
 
 def _v937_live_summary_without_stale(summary, realtime):
+    # The realtime argument was derived from this same summary, not a provider
+    # fetch. Its ID-keyed normalization may have already lost an observation.
+    # Re-evaluate each original's own evidence instead of overlaying that frame
+    # onto a second original with a coincident local ID.
+    from engines.v934_realtime_sports_engine import normalize_match
     summary = summary if isinstance(summary, dict) else {}
-    realtime = realtime if isinstance(realtime, dict) else {}
+    evaluated_at = datetime.now(MADRID_TZ)
+    approved_live_objects = {id(row) for row in summary.get('valid_live_events') or ()}
+    reconciled, stale_objects, unconfirmed_objects = {}, set(), set()
 
-    def item_id(item):
-        if not isinstance(item, dict):
-            return ""
-        return str(item.get("id") or item.get("match_id") or item.get("external_id") or "")
-
-    fresh_by_id = {
-        item_id(item): item
-        for item in realtime.get("live") or []
-        if item_id(item)
-    }
-    fresh_ids = set(fresh_by_id)
-    stale_ids = {item_id(item) for item in realtime.get("stale_live") or [] if item_id(item)}
-    unconfirmed_live_ids = set()
-
-    def keep_match(item):
-        if not isinstance(item, dict):
-            return False
-        current_id = item_id(item)
-        if current_id in stale_ids:
-            return False
-        if canonical_match_status(item).get("is_live") and current_id not in fresh_ids:
-            if current_id:
-                unconfirmed_live_ids.add(current_id)
-            return False
-        return True
-
-    def merge_fresh_state(item):
-        current_id = item_id(item)
-        if current_id not in fresh_by_id:
-            return item
-        merged = dict(item)
-        merged.update(fresh_by_id[current_id])
-        merged["v935_freshness"] = {
-            "status": "FRESH",
-            "age_seconds": merged.get("age_seconds"),
-            "is_stale": False,
-            "label": "Actualizado",
-        }
-        return merged
+    def own(row):
+        previous = reconciled.get(id(row))
+        if previous is not None and previous[0] is row:
+            return previous[1]
+        if not isinstance(row, dict):
+            return None
+        frame = normalize_match(row, evaluated_at)
+        if frame and frame.get('is_stale'):
+            stale_objects.add(id(row));result = None
+        elif canonical_match_status(row,now=evaluated_at).get('is_live'):
+            if id(row) not in approved_live_objects or not frame or not frame.get('is_live'):
+                unconfirmed_objects.add(id(row));result = None
+            else:
+                result = dict(row)
+                # Preserve every original field, including full action/native
+                # IDs and labels. The bounded transport projection may truncate
+                # those fields and is used here only for the own-evidence gate.
+                result['v935_freshness'] = {'status':'FRESH','age_seconds':frame.get('age_seconds'),
+                                           'is_stale':False,'label':'Actualizado'}
+        else:
+            result = row
+        reconciled[id(row)] = (row, result)
+        return result
 
     filtered = dict(summary)
-    for key in (
-        "all_valid_matches",
-        "valid_matches_today",
-        "valid_upcoming_matches",
-        "valid_matches_available",
-    ):
-        source = summary.get(key)
-        if isinstance(source, list):
-            filtered[key] = [
-                merge_fresh_state(item)
-                for item in source
-                if keep_match(item)
-            ]
-    raw_live = summary.get("valid_live_events") or []
-    filtered["valid_live_events"] = [
-        merge_fresh_state(item) for item in raw_live
-        if item_id(item) in fresh_ids and item_id(item) not in stale_ids
-    ]
-    filtered["stale_live_excluded"] = len(stale_ids)
-    filtered["unconfirmed_live_excluded"] = len(unconfirmed_live_ids)
+    for lane in ('all_valid_matches','valid_matches_today','valid_upcoming_matches','valid_matches_available'):
+        if isinstance(summary.get(lane),list):
+            filtered[lane] = [selected for row in summary[lane] for selected in (own(row),) if selected is not None]
+    filtered['valid_live_events'] = [selected for row in summary.get('valid_live_events') or ()
+        for selected in (own(row),) if selected is not None and canonical_match_status(selected,now=evaluated_at).get('is_live')]
+    filtered['stale_live_excluded'] = max(int(summary.get('stale_live_excluded') or 0),len(stale_objects))
+    filtered['unconfirmed_live_excluded'] = len(unconfirmed_objects)
     return filtered
 
 
-def v931_live_context(summary, lane="live", query=""):
-    lane = str(lane or "live").strip().lower()
-    today = today_iso()
-    sports_metrics = get_sports_metrics_contract(summary)
-    today_matches = [
-        item for item in (summary.get("all_valid_matches") or summary.get("valid_matches_today") or [])
-        if str(item.get("match_date") or "") == today
-    ]
-    live_matches = list(summary.get("valid_live_events") or [])
-    pick_ids = {str(item.get("match_id") or "") for item in summary.get("valid_active_picks") or []}
-    if lane == "all":
-        selected = today_matches
-    elif lane in {"finished", "finalizados"}:
-        # Confirmed late-night finals retain their original kickoff date.
-        # Use the bounded persisted results window rather than dropping them at midnight.
-        result_candidates = list(summary.get("finished_matches") or []) + today_matches
-        selected = dedupe_matches_list([
-            item for item in result_candidates if canonical_match_status(item).get("is_finished")
-        ])
-    elif lane in {"break", "halftime", "descanso"}:
-        selected = [item for item in today_matches if canonical_match_status(item).get("key") == "HT"]
-    elif lane in {"with_pick", "picks"}:
-        selected = [item for item in today_matches if str(item.get("id") or "") in pick_ids]
-    else:
-        selected = [item for item in live_matches if canonical_match_status(item).get("is_live")]
-    query_key = normalized_label(query)
-    if query_key:
-        selected = [item for item in selected if query_key in normalized_label(
-            f"{item.get('home_team')} {item.get('away_team')} {item.get('competition_name')}"
-        )]
-    selected = sort_matches_by_sports_relevance(
-        selected,
-        "live" if lane in {"live", "break", "halftime", "descanso"} else "home",
-        pick_ids=pick_ids,
-    )
-    return {
-        "lane": lane,
-        "matches": selected,
-        "day_groups": [],
-        "counts": {
-            "today": sports_metrics["matches_today"],
-            "live": sports_metrics["live_confirmed"],
-            "halftime": sum(1 for item in today_matches if canonical_match_status(item).get("key") == "HT"),
-            "finished": sports_metrics["finished_verified"],
-            "picks": sports_metrics["matches_with_picks"],
-        },
-        "sports_metrics": sports_metrics,
-        "no_render_api_call": True,
-    }
+from engines.fixture_realtime_projection import build_descriptor as _v991_build_descriptor
+from engines.fixture_realtime_projection import canonical_view as _v991_canonical_view
+from engines.fixture_realtime_projection import verified_api_fixture_id as _v991_owned_api_fixture
+from engines.fixture_realtime_projection import semantic_validator_payload as _v991_semantic_validator_payload
+from engines.fixture_realtime_projection import compact_bootstrap_state as _v991_compact_bootstrap_state
+from engines.fixture_realtime_projection import own_realtime_source as _v991_own_realtime_source
+from engines.fixture_realtime_projection import build_metrics_metadata as _v991_build_metrics_metadata
+from engines.v934_realtime_sports_engine import normalize_match as _v991_normalize_frame
+from engines.v934_realtime_sports_engine import normalize_pick as _v991_normalize_pick
+
+def _v991_directo_scope(lane=None, query=None):
+    if has_request_context():
+        lane = lane if lane is not None else request.args.get('f') or request.args.get('filter') or request.args.get('lane') or 'live'
+        query = query if query is not None else request.args.get('q') or ''
+    return _v991_canonical_view(lane or 'live',query or '',normalized_label)
+
+def _v991_current_rows(summary, operation):
+    return _v991_unique_objects(operation.snapshot.cohorts['current'] if operation else summary.get('all_valid_matches') or ())
+
+def _v991_measure_members(summary, rows, frames):
+    by_object={id(row):frame for row,frame in zip(rows,frames)}
+    state=lambda row:by_object[id(row)].get('realtime_state') or {}
+    today=today_iso()
+    today_rows=[row for row in rows if str(row.get('match_date') or '')==today
+        and state(row).get('status_canonical') in {'UPCOMING','LIVE','HALFTIME'} and not state(row).get('is_stale')]
+    available=[row for row in rows if str(row.get('match_date') or '')>=today
+        and state(row).get('status_canonical') in {'UPCOMING','LIVE','HALFTIME'} and not state(row).get('is_stale')]
+    live=[row for row in rows if state(row).get('is_live') is True]
+    picks={str(item.get('match_id') or '') for item in summary.get('valid_active_picks') or () if isinstance(item,dict)}
+    return {'today':today_rows,'available':available,'live':live,
+        'halftime':[row for row in live if state(row).get('status_canonical')=='HALFTIME'],
+        'finished_verified':[row for row in rows if state(row).get('is_finished') is True
+            and str(row.get('match_date') or '')==today and _sports_match_has_verified_score(row)],
+        'with_pick':[row for row in rows if str(row.get('id') or '') in picks]}
+
+def _v991_view_members(summary, rows, frames, scope):
+    own={id(row):frame.get('realtime_state') or {} for row,frame in zip(rows,frames)}
+    lane=scope['lane'];query=scope['query'];today=today_iso()
+    pick_ids={str(item.get('match_id') or '') for item in summary.get('valid_active_picks') or () if isinstance(item,dict)}
+    selected=[]
+    for row in rows:
+        state=own[id(row)]
+        if lane=='all':eligible=state.get('is_live') is True
+        elif lane=='finished':eligible=state.get('is_finished') is True
+        elif lane=='with_pick':eligible=state.get('is_live') is True and str(row.get('match_date') or '')==today and str(row.get('id') or '') in pick_ids
+        elif lane=='break':eligible=state.get('is_live') is True and state.get('status_canonical')=='HALFTIME'
+        else:eligible=state.get('is_live') is True
+        if not eligible:continue
+        text=normalized_label(f"{row.get('home_team')} {row.get('away_team')} {row.get('competition_name')}")
+        if query and query not in text:continue
+        selected.append(row)
+    return selected
+
+def _v991_realtime_projection(summary, *, lane=None, query=None):
+    scope=_v991_directo_scope(lane,query)
+    operation=_v991_operation_for(summary)
+    source=_v991_current_rows(summary,operation)
+    evaluated=datetime.now(MADRID_TZ)
+    pairs=[];stale=[]
+    for row in source:
+        frame=_v991_normalize_frame(_v991_own_realtime_source(row,match_kickoff_madrid_dt),evaluated)
+        if frame is None:
+            frame={'id':str(row.get('id') or ''),'realtime_state':None}
+        else:
+            # Transport limits never rewrite an action ID. If it is too long or
+            # collides, the whole descriptor fails closed instead of truncating.
+            frame['id']=str(row.get('id') or '')
+            frame['detail_url']='/match/'+str(row.get('id') or '')
+        if frame.get('is_stale'):
+            stale.append(frame)
+        else:pairs.append((row,frame))
+    rows=[row for row,frame in pairs];frames=[frame for row,frame in pairs]
+    measures=_v991_measure_members(summary,rows,frames)
+    view=_v991_view_members(summary,rows,frames,scope)
+    descriptor=_v991_build_descriptor(operation.snapshot if operation else None,rows,frames,
+        scope=scope,date_madrid=today_iso(),measure_rows=measures,view_rows=view,kickoff_for=match_kickoff_madrid_dt,
+        prepared=bool(operation) and summary.get('storage_status')=='ok',historical=bool(operation and (operation.selected_date!=today_iso()
+            or operation.snapshot.cohorts.get('history'))))
+    descriptor['coverage']['stale_excluded_observations']=len(stale)
+    numbers=descriptor['general']['counts'];picks=[item for raw in summary.get('valid_active_picks') or ()
+        for item in (_v991_normalize_pick(raw,evaluated),) if item]
+    freshness_values=[item['odds_freshness']['status'] for item in picks]
+    odds_status=('fresh' if freshness_values and all(value=='fresh' for value in freshness_values)
+                 else 'recorded_or_stale' if freshness_values else 'no_real_odds')
+    counts={'matches':numbers['available'],'today':numbers['today'],'live':numbers['live'],
+        'finished':numbers['finished_verified'],'picks':len(summary.get('valid_active_picks') or ()),'incomplete':len(summary.get('incomplete_matches') or ()),
+        'stale_live':max(int(summary.get('stale_live_excluded') or 0),len(stale)),
+        'matches_with_picks':numbers['with_pick'],'synchronized':int(summary.get('raw_matches_count') or 0)}
+    result={'generated_at_madrid':evaluated.isoformat(timespec='seconds'),'matches':frames,
+        'live':[frame for frame in frames if (frame.get('realtime_state') or {}).get('is_live') is True],
+        'finished':[frame for frame in frames if (frame.get('realtime_state') or {}).get('is_finished') is True],
+        'stale_live':stale,'picks':picks,'counts':counts,'fixture_identity':descriptor,
+        'provider_status':summary.get('provider_status') or 'waiting_for_sync','cache_status':'operation_projection',
+        'cache_state':'request_projection','last_safe_sync':str(summary.get('last_sync') or ''),
+        'last_safe_sync_label':format_madrid_sync_label(summary.get('last_sync') or ''),
+        'poll_after_seconds':V934_LIVE_POLL_SECONDS if measures['live'] else V934_IDLE_POLL_SECONDS,
+        'realtime_match_status':'live_cached' if measures['live'] else 'schedule_cached' if frames else 'waiting_for_real_data',
+        'realtime_live_status':'live' if measures['live'] else 'stale' if stale else 'no_live_events',
+        'odds_freshness_status':odds_status,
+        'safe_message':summary.get('safe_message') or 'Información local confirmada disponible.',
+        'source_snapshot_state':'STALE_FALLBACK' if summary.get('summary_cache_status')=='stale_fallback'
+            else 'LOCAL_SNAPSHOT' if summary.get('storage_status')=='ok' else 'READ_UNAVAILABLE',
+        'source_read_state':str(summary.get('storage_status') or 'NOT_ESTABLISHED'),
+        'endpoint':'/api/realtime/sports','no_external_calls':True,'no_render_api_call':True,'no_fake_data':True}
+    if has_request_context():
+        owners=getattr(g,'v991_realtime_frame_owners',{})
+        for row,frame in pairs:owners[id(frame)]=(frame,row)
+        g.v991_realtime_frame_owners=owners
+        g.v991_realtime_projection_sources=getattr(g,'v991_realtime_projection_sources',{})
+        g.v991_realtime_projection_sources[id(result)]=(result,summary,operation,view,tuple(pairs))
+    return result
+
+def _v991_saved_statistics(frames, *, live_only=True):
+    owners=getattr(g,'v991_realtime_frame_owners',{}) if has_request_context() else {}
+    eligible=[]
+    for frame in frames:
+        owner=owners.get(id(frame))
+        if not owner or owner[0] is not frame:continue
+        row=owner[1]
+        if live_only and (frame.get('realtime_state') or {}).get('is_live') is not True:continue
+        fixture=_v991_owned_api_fixture(row,match_kickoff_madrid_dt)
+        if fixture:eligible.append((frame,row,fixture))
+        if len(eligible)>=40:break
+    cached=live_tracker_summaries_for_matches(DB_PATH,[row for frame,row,fixture in eligible],limit=40) if eligible else {}
+    found={}
+    for frame,row,fixture in eligible:
+        tracker=next((cached.get(str(alias)) for alias in (fixture,row.get('id'),'af-'+fixture)
+                      if alias and cached.get(str(alias))),None)
+        projected=_v970_live_statistics_projection(tracker,fixture)
+        if projected:found[id(frame)]=(frame,tracker,projected)
+    return found
+
+def _v991_attach_poll_statistics(frames):
+    frames=list(frames);saved=_v991_saved_statistics(frames)
+    output=[]
+    for frame in frames:
+        item=dict(frame);known=saved.get(id(frame))
+        if known and known[0] is frame:item['live_statistics']=known[2]
+        output.append(item)
+    return output
+
+
+def v931_live_context(summary, lane='live', query='', fixture_projection=None):
+    projection=fixture_projection or _v991_realtime_projection(summary,lane=lane,query=query)
+    sources=getattr(g,'v991_realtime_projection_sources',{}) if has_request_context() else {}
+    owned=sources.get(id(projection))
+    if not owned or owned[0] is not projection or owned[1] is not summary:
+        projection=_v991_realtime_projection(summary,lane=lane,query=query)
+        owned=getattr(g,'v991_realtime_projection_sources',{}).get(id(projection)) if has_request_context() else None
+    operation=_v991_operation_for(summary)
+    rows=_v991_current_rows(summary,operation)
+    pairs=owned[4] if owned else tuple((row,_v991_normalize_frame(row,datetime.now(MADRID_TZ)) or {}) for row in rows)
+    scope=projection['fixture_identity']['view']['scope']
+    eligible=owned[3] if owned else _v991_view_members(summary,[row for row,frame in pairs],[frame for row,frame in pairs],scope)
+    selected=_v991_selected(summary,eligible,fixture_operation=operation or False,
+        rank_for=lambda row:(provider_family(row.get('source'))=='api-football',match_quality_score(row)))
+    by_object={id(row):frame for row,frame in pairs}
+    matches=[]
+    for row in sorted(selected.rows,key=lambda value:sports_relevance_sort_tuple(value,'live' if scope['lane'] in {'live','break'} else 'home')):
+        item=dict(row);item['realtime_state']=(by_object.get(id(row)) or {}).get('realtime_state')
+        matches.append(item)
+    numbers=projection['fixture_identity']['general']['counts']
+    bootstrap={'scope':'matches','generated_at_madrid':projection['generated_at_madrid'],
+        'matches':[{'id':frame['id'],'realtime_state':_v991_compact_bootstrap_state(frame.get('realtime_state'))} for row,frame in pairs],
+        'counts':dict(projection['counts']),'fixture_identity':projection['fixture_identity']}
+    bootstrap['state_projection']='NEMESIS-DIRECTO-BOOTSTRAP-STATE-V1'
+    surface={'contract':'NEMESIS-DIRECTO-LIVE-ONLY-V1','lane':scope['lane'],'matches':matches,
+             'title':'Resultados finalizados' if scope['lane']=='finished' else 'Ahora mismo',
+             'historical':scope['lane']=='finished','external_calls':0}
+    return {'lane':scope['lane'],'matches':matches,'day_groups':[],'fixture_surface':surface,
+        'counts':{'today':numbers['today'],'live':numbers['live'],'halftime':numbers['halftime'],
+                  'finished':numbers['finished_verified'],'picks':numbers['with_pick']},
+        'sports_metrics':get_sports_metrics_contract(summary),'no_render_api_call':True,
+        'fixture_identity':projection['fixture_identity'],'fixture_bootstrap':bootstrap,
+        'query':scope['query'],'scope_id':projection['fixture_identity']['view']['scope_id']}
 
 
 # ===================== V758 ADAPTIVE DESKTOP/MOBILE TOP APP EXPERIENCE =====================
@@ -21659,7 +22045,6 @@ def home():
     # Reuse the same cached matchday agenda on public and signed-in Home.
     data["home_matchday"] = home_matchday_context(summary)
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
-    data["v934_realtime"] = get_v934_realtime_context(summary)
     return render_template("home.html", data=data, title="NeMeSiS SHARK PRO | Deporte con contexto", meta_description="Partidos, equipos, competiciones y SHARK con datos reales, evidencia y limites visibles.", canonical_url=url_for("home", _external=True))
 
 
@@ -21679,46 +22064,44 @@ def personal_home_agenda(summary):
                                 now=datetime.now(MADRID_TZ))
 
 
-def home_matchday_context(summary, favorites=None, *, now=None):
-    """Present the full existing snapshot without new reads or provider calls."""
+def home_matchday_context(summary, favorites=None, *, now=None, fixture_operation=None):
     from engines.home_matchday import build_matchday
     agenda_now = now or datetime.now(MADRID_TZ)
-    source = []
-    status_by_object = {}
-    canonical_live_ids = {
-        _sports_match_key(item)
-        for item in summary.get("valid_live_events") or []
-        if isinstance(item, dict) and _sports_match_key(item)
-    }
-    for key in ('valid_live_events', 'all_valid_matches', 'valid_matches_today',
-                'valid_upcoming_matches', 'finished_matches'):
-        for item in summary.get(key) or []:
-            if not isinstance(item, dict):
-                continue
-            # The shared lifecycle parser can recognize an old/raw LIVE status
-            # that did not pass the stricter freshness and provider-evidence gate
-            # used to populate valid_live_events. Never let Home promote that row
-            # back into its live count or cards.
-            if now is None:
-                status = canonical_match_status(item)
-            else:
-                status = canonical_match_status(item, now=agenda_now)
-            if status.get("is_live") and _sports_match_key(item) not in canonical_live_ids:
-                continue
-            source.append(item)
-            status_by_object[id(item)] = status
-    source = _v956_unique_home_fixtures(source)
-    result = build_matchday(source, now=agenda_now,
-        status_for=lambda item: status_by_object.get(id(item)) or canonical_match_status(item),
-        kickoff_for=match_kickoff_madrid_dt,
-        priority_for=sports_competition_priority,
-        identity_for=canonical_competition_surface_contract)
+    operation = _v991_operation_for(summary, fixture_operation) or False
     favorites = _normalized_sports_favorites(favorites)
-    for lane in ('live', 'today', 'upcoming', 'results'):
+    live_objects = {id(row) for row in summary.get("valid_live_events") or ()}
+    source = _v991_unique_objects([row for lane in ('valid_live_events','all_valid_matches','valid_matches_today','valid_upcoming_matches','finished_matches')
+                                   for row in summary.get(lane) or ()])
+    status = {id(row): canonical_match_status(row,now=agenda_now) for row in source}
+    eligible = {lane: [] for lane in ('live','today','upcoming','results')}
+    for row in source:
+        state = status[id(row)]
+        stamp = match_kickoff_madrid_dt(row)
+        if stamp is not None:
+            stamp = stamp.replace(tzinfo=MADRID_TZ) if stamp.tzinfo is None else stamp.astimezone(MADRID_TZ)
+        if state.get('is_stale') or state.get('status_conflict'):
+            continue
+        if state.get('is_live') and id(row) in live_objects:
+            lane = 'live'
+        elif state.get('is_upcoming') and stamp and stamp >= agenda_now:
+            lane = 'today' if stamp.date() == agenda_now.date() else 'upcoming'
+        elif state.get('is_finished') and stamp and agenda_now - timedelta(days=2) <= stamp <= agenda_now:
+            lane = 'results'
+        else:
+            continue
+        eligible[lane].append(row)
+    selected = [row for values in eligible.values()
+                for row in _v991_selected(summary,values,fixture_operation=operation,
+                    rank_for=lambda row: (_sports_match_favorite(row,favorites=favorites),
+                        provider_family(row.get('source'))=='api-football',match_quality_score(row))).rows]
+    result = build_matchday(selected,now=agenda_now,status_for=lambda row:status[id(row)],
+        kickoff_for=match_kickoff_madrid_dt,priority_for=sports_competition_priority,
+        identity_for=canonical_competition_surface_contract,dedupe_ids=False)
+    for lane in ('live','today','upcoming','results'):
         for group in result[lane]['groups']:
-            for match in group['matches']:
-                match['is_favorite'] = _sports_match_favorite(
-                    {**match, 'is_favorite': False}, favorites=favorites)
+            for row in group['matches']:
+                row['is_favorite'] = _sports_match_favorite({**row,'is_favorite':False},favorites=favorites)
+    result['identity_state'] = 'PREPARED' if operation else 'UNPREPARED'
     return result
 
 
@@ -22650,146 +23033,106 @@ def _design02_calendar_date_navigation(filters):
     }
 
 
-def v940_calendar_context(summary, lane="today", date_value=None):
-    """One request-local Calendar view over sports-metrics-v1 and canonical matches."""
-    summary = summary if isinstance(summary, dict) else {}
-    filters = _v940_calendar_filters(lane, date_value)
-    sports_metrics = get_sports_metrics_contract(summary)
-    pick_ids = {
-        str(item.get("match_id") or "").strip()
-        for item in summary.get("valid_active_picks") or []
-        if str(item.get("match_id") or "").strip()
-    }
-    favorites = (
-        favorite_sets()
-        if has_request_context() and current_session_user()
-        else {"team": set(), "league": set(), "match": set(), "all": []}
-    )
-    prepared_all = _v957_unique_calendar_fixtures([
-        _v940_calendar_prepare_match(item, pick_ids, favorites)
-        for item in _dedupe_sports_matches(
-            summary.get("all_valid_matches")
-            or summary.get("valid_upcoming_matches")
-            or []
-        )
-    ])
-    prepared_by_id = {
-        _sports_match_key(item): item
-        for item in prepared_all
-        if _sports_match_key(item)
-    }
-    source_matches = _v940_calendar_source_matches(
-        summary,
-        filters,
-        prepared_all,
-        prepared_by_id,
-    )
-    display_today = _dedupe_sports_matches([
-        prepared_by_id[match_id]
-        for raw in summary.get("valid_matches_today") or []
-        if (match_id := _sports_match_key(raw)) in prepared_by_id
-    ])
-    display_live = _v940_calendar_source_matches(
-        summary,
-        {**filters, "lane": "live"},
-        prepared_all,
-        prepared_by_id,
-    )
-    filtered = _calendar_apply_filters(source_matches, filters)
-    sorted_matches = _calendar_sort(filtered, filters.get("sort"))
-    if filters.get("lane") == "results" or str(filters.get("date") or "") < today_iso():
-        sorted_matches = v766_enrich_matches_with_highlights(sorted_matches)
-    day_groups = _calendar_group(
-        sorted_matches,
-        filters.get("sort"),
-        match_dates_prepared=True,
-    )
-    day_navigation = _v940_calendar_group_navigation(day_groups)
-    facets = _calendar_facets(source_matches)
-
-    today = today_iso()
-    tomorrow = today_iso(1)
-    week_end = (datetime.fromisoformat(today).date() + timedelta(days=7)).isoformat()
-    date_counts = {}
-    for item in prepared_all:
-        match_date = str(item.get("match_date") or "")
-        if match_date:
-            date_counts[match_date] = int(date_counts.get(match_date) or 0) + 1
-    # Count the same canonical entities that _calendar_group renders. Display
-    # names are not unique (for example, several countries have a "Premier
-    # League"), so counting labels under-reports the competitions on screen.
-    league_count = len({
-        identity["group_key"]
-        for item in sorted_matches
-        if (identity := canonical_competition_surface_contract(item)).get("group_key")
-    })
-    counts = {
-        "all": len(source_matches),
-        "visible": len(sorted_matches),
-        "days": len(day_groups),
-        "leagues": league_count,
-        "today": len(display_today),
-        "tomorrow": int(date_counts.get(tomorrow) or 0),
-        "week": sum(
-            1 for item in prepared_all
-            if today <= str(item.get("match_date") or "") <= week_end
-        ),
-        "live": len(display_live),
-        "picks": sum(1 for item in prepared_all if item.get("has_pick")),
-        "favorites": sum(1 for item in prepared_all if item.get("is_favorite")),
-        "finished": sum(
-            1 for item in prepared_all
-            if str(item.get("match_date") or "") == filters["date"]
-            and (item.get("status_info") or canonical_match_status(item)).get("is_finished")
-        ),
-        "incidents": len(summary.get("incident_matches") or []),
-    }
-    active_filters = _v940_calendar_active_filters(filters)
-    selected_label = CALENDAR_LANE_LABELS.get(filters["lane"], "Calendario")
-    selected_date_label = date_display_label(filters["date"])
-    selected_summary = {
-        "label": selected_label,
-        "title": selected_date_label if filters["lane"] in {"today", "tomorrow"} else selected_label,
-        "visible": counts["visible"],
-        "total": counts["all"],
-        "source": "Datos reales confirmados" if counts["visible"] else "Sin partidos confirmados para estas capas",
-    }
-    default_context = selected_summary["title"]
-    if counts["visible"]:
-        source_summary = "Partidos disponibles por día y competición. Horarios de Madrid."
-    elif counts["all"]:
-        source_summary = "Ningún partido confirmado coincide con todas las capas activas."
-    else:
-        source_summary = summary.get("safe_message") or "Sin agenda real completa disponible."
-
-    return {
-        "version": APP_VERSION,
-        "contract": "v940-calendar-history-layers-v1",
-        "filters": filters,
-        "matches": sorted_matches,
-        "day_groups": day_groups,
-        "groups": day_groups,
-        "counts": counts,
-        "competition_count": counts["leagues"],
-        "sports_metrics": sports_metrics,
-        "facets": facets,
-        "tabs": _v940_calendar_tabs(filters, counts),
-        "primary_tabs": _v940_calendar_primary_tabs(filters),
-        "date_chips": _v940_calendar_date_chips(filters, date_counts),
-        "date_navigation": _design02_calendar_date_navigation(filters),
-        "day_navigation": day_navigation,
-        "active_filters": active_filters,
-        "has_filters": bool(active_filters),
-        "reset_href": _v940_calendar_href(
-            {"lane": filters["lane"], "date": filters["date"], "sort": "importance"}
-        ),
-        "selected_summary": selected_summary,
-        "default_context": default_context,
-        "source_summary": source_summary,
-        "no_render_api_call": True,
-        "database_written": False,
-        "external_calls": 0,
-    }
+def v940_calendar_context(summary, lane="today", date_value=None, fixture_operation=None):
+    summary = summary if isinstance(summary,dict) else {}
+    filters = _v940_calendar_filters(lane,date_value)
+    operation = _v991_operation_for(summary,fixture_operation,filters['date']) or False
+    sports_metrics = get_sports_metrics_contract(summary,fixture_operation=operation)
+    pick_ids={str(row.get('match_id') or '').strip() for row in summary.get('valid_active_picks') or ()}
+    favorites=favorite_sets() if has_request_context() and current_session_user() else {'team':set(),'league':set(),'match':set(),'all':[]}
+    raw_all=_v991_unique_objects(summary.get('all_valid_matches') or summary.get('valid_upcoming_matches') or ())
+    prepared={id(row):_v940_calendar_prepare_match(row,pick_ids,favorites) for row in raw_all}
+    approved_live_objects={id(row) for row in summary.get('valid_live_events') or ()}
+    raw_all=[row for row in raw_all if id(row) in approved_live_objects or not prepared[id(row)]['status_info'].get('is_live')]
+    original_for_projection={id(value):row for row in raw_all for value in (prepared[id(row)],)}
+    def lane_rows(lane_key):
+        day=filters['date'];today=today_iso();week_end=today_iso(7)
+        members=lambda key:{id(row) for row in summary.get(key) or ()}
+        if lane_key=='week':return [row for row in raw_all if today<=str(row.get('match_date') or '')<=week_end]
+        if lane_key=='upcoming':return [row for row in raw_all if id(row) in members('valid_upcoming_matches')]
+        if lane_key=='live':return [row for row in raw_all if id(row) in members('valid_live_events') and prepared[id(row)]['status_info'].get('is_live')]
+        if lane_key in {'with_pick','picks'}:return [row for row in raw_all if prepared[id(row)].get('has_pick')]
+        if lane_key=='favorites':return [row for row in raw_all if prepared[id(row)].get('is_favorite')]
+        if lane_key in {'finished','results'}:
+            return [row for row in raw_all if str(row.get('match_date') or '')==day and
+                (prepared[id(row)]['status_info'].get('is_finished') or (lane_key=='results' and prepared[id(row)]['status_info'].get('is_result_pending')))]
+        if lane_key=='incidents':return [row for row in raw_all if id(row) in members('incident_matches')]
+        if lane_key in {'top','spain','andalucia','international','uefa','national','world'}:
+            return [row for row in raw_all if match_lane_filter(prepared[id(row)],lane_key)]
+        return [row for row in raw_all if str(row.get('match_date') or '')==day]
+    def select(rows):
+        return _v991_selected(summary,rows,fixture_operation=operation,
+            rank_for=lambda row:(bool(prepared[id(row)].get('has_pick')),bool(prepared[id(row)].get('is_favorite')),
+                provider_family(row.get('source'))=='api-football',match_quality_score(row)))
+    source_rows=lane_rows(filters['lane'])
+    source_selection=select(source_rows)
+    source_matches=[prepared[id(row)] for row in source_selection.rows]
+    filtered_projections=_calendar_apply_filters([prepared[id(row)] for row in source_rows],filters)
+    filtered_rows=[original_for_projection[id(row)] for row in filtered_projections]
+    selection=select(filtered_rows)
+    sorted_matches=_calendar_sort([prepared[id(row)] for row in selection.rows],filters.get('sort'))
+    if filters.get('lane')=='results' or str(filters.get('date') or '')<today_iso():
+        sorted_matches=v766_enrich_matches_with_highlights(sorted_matches)
+    day_groups=_calendar_group(sorted_matches,filters.get('sort'),match_dates_prepared=True)
+    day_navigation=_v940_calendar_group_navigation(day_groups)
+    today=today_iso();tomorrow=today_iso(1);week_end=today_iso(7)
+    date_counts={day:select([row for row in raw_all if str(row.get('match_date') or '')==day]).count
+                 for day in sorted({str(row.get('match_date') or '') for row in raw_all}) if day}
+    counts={'all':source_selection.count,'visible':selection.count,'days':len(day_groups),
+        'leagues':len({canonical_competition_surface_contract(row)['group_key'] for row in sorted_matches}),
+        'today':select([row for row in raw_all if id(row) in {id(item) for item in summary.get('valid_matches_today') or ()}]).count,
+        'tomorrow':date_counts.get(tomorrow,0),'week':select([row for row in raw_all if today<=str(row.get('match_date') or '')<=week_end]).count,
+        'live':select(lane_rows('live')).count,'picks':select(lane_rows('with_pick')).count,
+        'favorites':select(lane_rows('favorites')).count,'finished':select(lane_rows('finished')).count,
+        'incidents':select(lane_rows('incidents')).count}
+    active=_v940_calendar_active_filters(filters)
+    selected_label=CALENDAR_LANE_LABELS.get(filters['lane'],'Calendario')
+    title=date_display_label(filters['date']) if filters['lane'] in {'today','tomorrow'} else selected_label
+    selected_summary={'label':selected_label,'title':title,'visible':counts['visible'],'total':counts['all'],
+                      'source':'Datos reales confirmados' if counts['visible'] else 'Sin partidos confirmados para estas capas'}
+    # Option labels come from every eligible original, including a secondary
+    # member's alias. Counts select that option's own cohort before grouping.
+    facet_rows = {'leagues': {}, 'teams': {}, 'countries': {}}
+    for row in source_rows:
+        item = prepared[id(row)]
+        for family, labels in (
+            ('leagues', (item.get('calendar_competition') or 'Competición',)),
+            ('countries', (item.get('calendar_country') or 'Global',)),
+            ('teams', (item.get('safe_home') or item.get('home_team'), item.get('safe_away') or item.get('away_team'))),
+        ):
+            for label in dict.fromkeys(str(label or '').strip() for label in labels):
+                if label:
+                    facet_rows[family].setdefault(label, []).append(row)
+    facets = {}
+    for family, values in facet_rows.items():
+        options = []
+        for label, values_for_label in values.items():
+            option = {'label':label,'value':label,'count':select(values_for_label).count}
+            if family == 'leagues':
+                option['rank'] = min(int(prepared[id(row)].get('calendar_rank') or 80) for row in values_for_label)
+            options.append(option)
+        facets[family] = sorted(options,key=(lambda item:(item['rank'],-item['count'],item['label']))
+            if family == 'leagues' else (lambda item:(-item['count'],item['label'])))[:{'leagues':28,'teams':32,'countries':18}[family]]
+    source_summary = ('Partidos disponibles por día y competición. Horarios de Madrid.' if counts['visible']
+        else 'Ningún partido confirmado coincide con todas las capas activas.' if counts['all']
+        else summary.get('safe_message') or 'Sin agenda real completa disponible.')
+    if (summary.get('historical_results_read_state') == 'DATABASE_LOCKED'
+            and summary.get('historical_results_date') == filters['date']):
+        selected_summary.update(source='Resultados de esta fecha temporalmente no disponibles.',
+                                read_state='DATABASE_LOCKED',verified_total=None)
+        source_summary = ('No se han podido leer los resultados de esta fecha. Se conserva la información disponible; '
+                          'las tarjetas no acreditan una lectura histórica completa.')
+    return {'version':APP_VERSION,"contract": "v940-calendar-history-layers-v1",'filters':filters,
+        'matches':sorted_matches,'day_groups':day_groups,'groups':day_groups,'counts':counts,
+        'competition_count':counts['leagues'],'sports_metrics':sports_metrics,'facets':facets,
+        'tabs':_v940_calendar_tabs(filters,counts),'primary_tabs':_v940_calendar_primary_tabs(filters),
+        'date_chips':_v940_calendar_date_chips(filters,date_counts),'date_navigation':_design02_calendar_date_navigation(filters),
+        'day_navigation':day_navigation,'active_filters':active,'has_filters':bool(active),
+        'reset_href':_v940_calendar_href({'lane':filters['lane'],'date':filters['date'],'sort':'importance'}),
+        'selected_summary':selected_summary,'default_context':title,
+        'source_summary':source_summary,'historical_results_read_state':summary.get('historical_results_read_state'),
+        'no_render_api_call':True,"database_written": False,"external_calls": 0,
+        'identity_state':'PREPARED' if operation else 'UNPREPARED'}
 
 
 def calendar_experience_data():
@@ -22894,56 +23237,14 @@ def global_football():
 
 
 def _v940_hydrate_selected_date_results(summary, date_value):
-    """Hydrate one past calendar day from persisted match results only.
-
-    This is a read-only SQLite path. It never calls a provider and does not turn
-    pick Track Record into a sports-results archive.
-    """
+    # Calendar handlers retain this call in the first prototype. Getter has
+    # already hydrated before the only prepare; this consumer never reads SQL.
     selected = _safe_date_value(date_value, today_iso())
-    if selected >= today_iso():
+    if _v991_operation_for(summary, selected_date=selected) is not None:
         return summary
-    try:
-        historical = get_results_matches(selected, days_back=0, limit=400)
-    except sqlite3.OperationalError as exc:
-        if "locked" in str(exc).lower():
-            return summary
-        raise
-    exact = [
-        dict(item)
-        for item in historical
-        if str((item or {}).get("match_date") or "") == selected
-    ]
-    if not exact:
-        return summary
-    merged = dict(summary or {})
-    merged_all = _dedupe_sports_matches(
-        list(merged.get("all_valid_matches") or []) + exact
-    )
-    finished = [
-        item for item in exact
-        if canonical_match_status(item).get("is_finished")
-    ]
-    pending = [
-        item for item in exact
-        if canonical_match_status(item).get("is_result_pending")
-    ]
-    merged["all_valid_matches"] = merged_all
-    merged["finished_matches"] = _dedupe_sports_matches(
-        list(merged.get("finished_matches") or []) + finished
-    )
-    merged["result_pending_matches"] = _dedupe_sports_matches(
-        list(merged.get("result_pending_matches") or []) + pending
-    )
-    if pending:
-        merged["incident_matches"] = _dedupe_sports_matches(
-            list(merged.get("incident_matches") or []) + pending
-        )
-    merged["valid_matches_total"] = len(merged_all)
-    merged["historical_results_date"] = selected
-    merged["historical_results_count"] = len(exact)
-    merged["historical_results_source"] = "local_db_read_only"
-    merged["sports_metrics"] = build_sports_metrics_contract(merged)
-    return merged
+    # An unprepared caller must request its date at the getter/finalizer stage.
+    # Do not silently hydrate and create a second context from this consumer.
+    return summary
 
 
 def _v940_calendar_provider_context(summary):
@@ -22994,10 +23295,6 @@ def calendar_page():
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
     data["v925_calendar"] = _v940_calendar_provider_context(summary)
-    data["v934_realtime"] = timed_phase(
-        "realtime_context",
-        lambda: get_realtime_safe_matches_context(summary),
-    )
     return timed_phase("template_render", lambda: render_template("calendar.html", data=data))
 
 
@@ -23104,52 +23401,30 @@ def sports_hub_page():
 @app.route("/directo")
 @app.route("/en-directo")
 def live_page():
-    lane = request.args.get("f") or request.args.get("filter") or request.args.get("lane") or "live"
-    query = (request.args.get("q") or "").strip()
-    data, summary = v932_safe_dashboard_data(
-        request.path,
-        "today",
-        request.args.get("date") or today_iso(),
-        compact=True,
-    )
-    realtime = get_realtime_safe_live_context(summary)
-    live_summary = _v937_live_summary_without_stale(summary, realtime)
-    data["live_experience"] = v931_live_context(live_summary, lane=lane, query=query)
-    # All displayed lanes consume the same snapshot, including confirmed finals.
-    # Preserve the richer row identity/actions when a snapshot projection exists.
-    projected = {str(item["id"]): item for item in realtime.get("matches") or [] if item.get("id")}
-    data["live_experience"]["matches"] = [
-        {**item, **projected.get(str(item.get("id") or item.get("match_id") or item.get("external_id") or ""), {})}
-        for item in data["live_experience"]["matches"]
-    ]
-    tracker_summaries = live_tracker_summaries_for_matches(
-        DB_PATH,
-        data["live_experience"].get("matches") or [],
-    )
-    tracked_matches = []
-    for raw_match in data["live_experience"].get("matches") or []:
-        match = dict(raw_match)
-        match_keys = []
-        for field in ("fixture_id", "external_id", "api_football_fixture_id", "match_id", "id"):
-            value = str(match.get(field) or "").strip()
-            if value:
-                match_keys.append(value)
-                if value.startswith("af-"):
-                    match_keys.append(value[3:])
-        tracker = next((tracker_summaries.get(key) for key in match_keys if tracker_summaries.get(key)), None)
-        if tracker:
-            match["api_football_live_tracker"] = tracker
-            match["live_tracker"] = tracker
-            match.update(enrich_live_match(match))
-        tracked_matches.append(match)
-    data["live_experience"]["matches"] = tracked_matches
-    if lane in {"finished", "results", "history", "finalizados"}:
-        data["live_experience"]["matches"] = v766_enrich_matches_with_highlights(
-            data["live_experience"]["matches"]
-        )
-    data["v925_live"] = _v931_provider_context(summary)
-    data["v934_realtime"] = realtime
-    return render_template("live.html", data=data)
+    scope=_v991_directo_scope()
+    data,summary=v932_safe_dashboard_data(request.path,'today',request.args.get('date') or today_iso(),compact=True,_directo_minimal=True)
+    projection=_v991_realtime_projection(summary,lane=scope['lane'],query=scope['query'])
+    experience=v931_live_context(summary,lane=scope['lane'],query=scope['query'],fixture_projection=projection)
+    sources=g.v991_realtime_projection_sources[id(projection)]
+    frame_by_object={id(row):frame for row,frame in sources[4]}
+    view_objects={id(row) for row in sources[3]}
+    saved=_v991_saved_statistics([frame for row,frame in sources[4] if id(row) in view_objects],live_only=False)
+    # Cards retain the selected original; state/statistics are attached only
+    # through its own frame-object correspondence, never a dict keyed by ID.
+    selected=_v991_selected(summary,sources[3],fixture_operation=sources[2] or False,
+        rank_for=lambda row:(provider_family(row.get('source'))=='api-football',match_quality_score(row)))
+    presented=[]
+    for original in sorted(selected.rows,key=lambda value:sports_relevance_sort_tuple(value,'live' if scope['lane'] in {'live','break'} else 'home')):
+        item=dict(original);frame=frame_by_object.get(id(original));known=saved.get(id(frame)) if frame else None
+        item['realtime_state']=frame.get('realtime_state') if frame else None
+        if known and known[0] is frame:
+            item['api_football_live_tracker']=known[1];item['live_tracker']=known[1]
+            item.update(enrich_live_match(item))
+        presented.append(item)
+    experience['matches']=v766_enrich_matches_with_highlights(presented) if scope['lane']=='finished' else presented
+    experience['fixture_surface']['matches']=experience['matches']
+    data['live_experience']=experience;data['v934_realtime']=projection
+    return render_template('live.html',data=data)
 
 
 @app.route("/match-hub")
@@ -29230,14 +29505,14 @@ def get_safe_odds_context(picks=None) -> dict:
     }
 
 
-def get_v934_realtime_context(summary=None, force=False) -> dict:
+def _v991_legacy_get_v934_realtime_context(summary=None, force=False) -> dict:
     """Return one cached, sanitized snapshot without contacting a provider."""
     cache_key = "v934:sports:" + hashlib.sha256(str(DB_PATH).encode("utf-8")).hexdigest()[:12]
 
     def _builder():
         source = summary if isinstance(summary, dict) else get_public_home_sports_summary()
         snapshot = build_v934_realtime_snapshot(source)
-        sports_metrics = get_sports_metrics_contract(source)
+        sports_metrics = _v991_legacy_sports_metrics_contract(source)
         counts = dict(snapshot.get("counts") or {})
         counts.update({
             "matches": sports_metrics["matches_available"],
@@ -29264,6 +29539,41 @@ def get_v934_realtime_context(summary=None, force=False) -> dict:
     snapshot["endpoint"] = "/api/realtime/sports"
     snapshot["no_render_api_call"] = True
     return snapshot
+
+
+def get_v934_realtime_context(summary=None, force=False):
+    opted=has_request_context() and request.args.get('consumer')=='directo-v2' and request.args.get('scope','all')=='matches'
+    generic=has_request_context() and request.args.get('consumer')=='fixture-metrics-v1'
+    if opted or generic:
+        if isinstance(summary,dict):
+            source=summary
+        elif (request.method=="GET" and request.path=="/api/realtime/sports"
+              and request.endpoint=="api_v934_realtime_sports"
+              and str(request.args.get("scope") or "all").strip().lower()=="matches"):
+            source=get_public_home_sports_summary(_prepare_only=True)
+        else:
+            source=get_public_home_sports_summary()
+        snapshot=_v991_realtime_projection(source)
+        if generic:
+            api_scope=str(request.args.get('scope') or 'all').strip().lower()
+            if api_scope not in {'all','matches','live','picks','odds'}:api_scope='all'
+            snapshot['fixture_metrics']=_v991_build_metrics_metadata(snapshot.pop('fixture_identity'),
+                picks=len(source.get('valid_active_picks') or ()),synchronized=int(source.get('raw_matches_count') or 0),scope=api_scope)
+        return snapshot
+    if isinstance(summary,dict):
+        # Explicit/view/historical input must not populate the DB-only cache.
+        snapshot=_v991_realtime_projection(summary)
+        snapshot['fixture_metrics']=_v991_build_metrics_metadata(snapshot.pop('fixture_identity'),
+            picks=len(summary.get('valid_active_picks') or ()),synchronized=int(summary.get('raw_matches_count') or 0),scope='all')
+        sports_metrics=_v991_legacy_sports_metrics_contract(summary)
+        snapshot['counts'].update(matches=sports_metrics['matches_available'],today=sports_metrics['matches_today'],
+            live=sports_metrics['live_confirmed'],finished=sports_metrics['finished_verified'],
+            picks=sports_metrics['picks_ready'],incomplete=sports_metrics['incomplete_excluded'],
+            stale_live=sports_metrics['stale_live_excluded'],matches_with_picks=sports_metrics['matches_with_picks'],
+            synchronized=sports_metrics['matches_synchronized'])
+        snapshot.update(sports_metrics=sports_metrics,cache_state='request_projection',endpoint='/api/realtime/sports',no_render_api_call=True)
+        return snapshot
+    return _v991_legacy_get_v934_realtime_context(force=force)
 
 
 def _v970_live_statistics_projection(tracker, fixture_id):
@@ -29436,40 +29746,54 @@ def api_v934_realtime_sports():
         "no_external_calls": True,
     }
     if scope in {"all", "matches"}:
-        matches = [dict(item) for item in (snapshot.get("matches") or []) if isinstance(item, dict)]
-        live_matches = [
-            item for item in matches
-            if (item.get("realtime_state") or {}).get("is_live") is True
-        ][:40]
-        if live_matches:
-            cached = live_tracker_summaries_for_matches(DB_PATH, live_matches, limit=40)
-            for item in live_matches:
-                state = item.get("realtime_state") or {}
-                fixture_id = str(state.get("fixture_id") or "")
-                provider = str(state.get("provider") or "").casefold().replace("-", "_")
-                if not fixture_id or "api" not in provider or "football" not in provider:
-                    continue
-                aliases = (fixture_id, item.get("id"), f"af-{fixture_id}")
-                tracker = next((cached.get(str(alias)) for alias in aliases if alias and cached.get(str(alias))), None)
-                projected = _v970_live_statistics_projection(tracker, fixture_id)
-                if projected:
-                    item["live_statistics"] = projected
-        payload["matches"] = matches
+        if snapshot.get("fixture_identity") is not None or snapshot.get("fixture_metrics") is not None:
+            payload["matches"] = _v991_attach_poll_statistics(snapshot.get("matches") or [])
+        else:
+            matches = [dict(item) for item in (snapshot.get("matches") or []) if isinstance(item, dict)]
+            live_matches = [
+                item for item in matches
+                if (item.get("realtime_state") or {}).get("is_live") is True
+            ][:40]
+            if live_matches:
+                cached = live_tracker_summaries_for_matches(DB_PATH, live_matches, limit=40)
+                for item in live_matches:
+                    state = item.get("realtime_state") or {}
+                    fixture_id = str(state.get("fixture_id") or "")
+                    provider = str(state.get("provider") or "").casefold().replace("-", "_")
+                    if not fixture_id or "api" not in provider or "football" not in provider:
+                        continue
+                    aliases = (fixture_id, item.get("id"), f"af-{fixture_id}")
+                    tracker = next((cached.get(str(alias)) for alias in aliases if alias and cached.get(str(alias))), None)
+                    projected = _v970_live_statistics_projection(tracker, fixture_id)
+                    if projected:
+                        item["live_statistics"] = projected
+            payload["matches"] = matches
     if scope in {"all", "live"}:
         payload["live"] = snapshot.get("live") or []
     if scope in {"all", "picks", "odds"}:
         payload["picks"] = snapshot.get("picks") or []
-    etag_payload = {key: value for key, value in payload.items() if key != "cache_state"}
+    if snapshot.get("fixture_identity") is not None:
+        payload["fixture_identity"] = snapshot["fixture_identity"]
+    if snapshot.get("fixture_metrics") is not None:
+        payload["fixture_metrics"] = snapshot["fixture_metrics"]
+    if snapshot.get("fixture_identity") is not None or snapshot.get("fixture_metrics") is not None:
+        payload["source_snapshot_state"] = snapshot.get("source_snapshot_state")
+        payload["source_read_state"] = snapshot.get("source_read_state")
+    weak_identity_validator = snapshot.get("fixture_identity") is not None or snapshot.get("fixture_metrics") is not None
+    etag_payload = (_v991_semantic_validator_payload(payload) if weak_identity_validator else
+                    {key: value for key, value in payload.items() if key != "cache_state"})
     etag_value = hashlib.sha256(
         json.dumps(etag_payload, sort_keys=True, default=str, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
-    if request.if_none_match and request.if_none_match.contains(etag_value):
+    matched_etag = request.if_none_match and (request.if_none_match.contains_weak(etag_value)
+        if weak_identity_validator else request.if_none_match.contains(etag_value))
+    if matched_etag:
         response = Response(status=304)
     else:
         response = jsonify(payload)
-    response.set_etag(etag_value)
+    response.set_etag(etag_value, weak=weak_identity_validator)
     response.headers["Cache-Control"] = "private, max-age=15, stale-while-revalidate=45"
-    response.headers["Vary"] = "Accept"
+    response.headers["Vary"] = "Accept, Cookie" if weak_identity_validator else "Accept"
     modified_raw = str(snapshot.get("last_safe_sync") or snapshot.get("generated_at_madrid") or "").strip()
     if modified_raw:
         try:

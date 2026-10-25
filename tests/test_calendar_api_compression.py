@@ -48,13 +48,36 @@ def _calendar_summary(app_module, count: int = 240) -> dict:
 def test_calendar_api_gzip_preserves_legacy_json_and_reduces_wire_size(
     app_module, client, monkeypatch
 ):
+    from copy import deepcopy
     summary = _calendar_summary(app_module)
-    monkeypatch.setattr(
-        app_module,
-        "v932_safe_dashboard_data",
-        lambda *_args, **_kwargs: ({}, summary),
-    )
+    generation = datetime.now(ZoneInfo("Europe/Madrid")).replace(microsecond=0)
+    source_generations = []
 
+    def supplied_summary(*_args, **_kwargs):
+        # Two independent reads may legitimately carry different generation
+        # metadata. Supply that input explicitly; do not freeze the App clock.
+        current = deepcopy(summary)
+        generated = (generation + timedelta(seconds=len(source_generations))).isoformat()
+        current["metrics_generated_at_madrid"] = generated
+        source_generations.append(generated)
+        return {}, current
+
+    monkeypatch.setattr(app_module, "v932_safe_dashboard_data", supplied_summary)
+    serialized = {}
+    real_jsonify = app_module.jsonify
+
+    def observe_serialized_response(*args, **kwargs):
+        # Observe the actual serializer's untouched response before transport
+        # hooks. The real route, serializer and gzip implementation all run.
+        response = real_jsonify(*args, **kwargs)
+        if app_module.request.path == "/api/calendar":
+            value = response.get_json(silent=True)
+            if isinstance(value, dict) and isinstance(value.get("calendar"), dict):
+                encoding = app_module.request.headers.get("Accept-Encoding", "")
+                serialized.setdefault(encoding, []).append(response.get_data())
+        return response
+
+    monkeypatch.setattr(app_module, "jsonify", observe_serialized_response)
     url = "/api/calendar?lane=week"
     plain = client.get(url, headers={"Accept-Encoding": "identity"})
     compressed = client.get(url, headers={"Accept-Encoding": "gzip"})
@@ -63,8 +86,23 @@ def test_calendar_api_gzip_preserves_legacy_json_and_reduces_wire_size(
     assert "Content-Encoding" not in plain.headers
     assert compressed.headers["Content-Encoding"] == "gzip"
     assert "Accept-Encoding" in compressed.headers.get("Vary", "")
+    assert set(serialized) == {"identity", "gzip"}
+    assert len(serialized["identity"]) == len(serialized["gzip"]) == 1
     decoded = gzip.decompress(compressed.data)
-    assert json.loads(decoded) == plain.get_json()
+    assert plain.data == serialized["identity"][0]
+    assert decoded == serialized["gzip"][0]
+    plain_payload, gzip_payload = plain.get_json(), json.loads(decoded)
+    assert len(source_generations) == 2 and source_generations[0] != source_generations[1]
+    for payload, generated in zip((plain_payload, gzip_payload), source_generations):
+        assert payload["version"] == app_module.APP_VERSION
+        calendar = payload["calendar"]
+        assert calendar["sports_metrics"]["generated_at_madrid"] == generated
+        assert calendar["counts"]["visible"] == len(summary["all_valid_matches"])
+        assert len(calendar["matches"]) == len(summary["all_valid_matches"])
+        assert payload["matches"] == calendar["matches"]
+        assert {row["id"] for row in calendar["matches"]} == {
+            row["id"] for row in summary["all_valid_matches"]
+        }
     assert len(compressed.data) < len(plain.data)
 
 
@@ -100,7 +138,10 @@ def test_calendar_html_exposes_only_bounded_stage_timings(app_module, client, mo
         "_v940_hydrate_selected_date_results",
         lambda value, _date: value,
     )
-    monkeypatch.setattr(app_module, "get_realtime_safe_matches_context", lambda _summary: {})
+    def unexpected_unused_realtime(*_args, **_kwargs):
+        raise AssertionError("Calendar must not derive an unused realtime context")
+
+    monkeypatch.setattr(app_module, "get_realtime_safe_matches_context", unexpected_unused_realtime)
 
     response = client.get("/calendario")
 
@@ -111,12 +152,12 @@ def test_calendar_html_exposes_only_bounded_stage_timings(app_module, client, mo
         "sports_context",
         "historical_results",
         "calendar_context",
-        "realtime_context",
         "template_render",
     ):
         match = re.search(rf"(?:^|,\s*)calendar_{phase};dur=([0-9]+(?:\.[0-9]+)?)", timing)
         assert match, f"Missing timing for {phase}: {timing}"
         assert float(match.group(1)) >= 0
+    assert "calendar_realtime_context;" not in timing
 
 
 def test_calendar_cards_reuse_prepared_madrid_labels(app_module, client, monkeypatch):

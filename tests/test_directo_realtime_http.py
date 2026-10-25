@@ -22,6 +22,37 @@ from engines.v935_launch_trust_engine import enrich_match_lifecycle, match_statu
 from engines.v934_realtime_sports_engine import invalidate_realtime_cache
 
 
+def _put_owned_api(put, **changes):
+    """A synthetic observation with its OWN API identity and coherent native raw.
+
+    No canonical reference or tracker is inferred from labels. Explicit overrides
+    (including raw_json) are retained so this helper cannot repair conflicts.
+    """
+    observed = datetime.now(ZoneInfo('Europe/Madrid'))
+    kickoff = (observed - timedelta(minutes=65)).replace(second=0, microsecond=0)
+    row = dict(id='directo-http-qa', match_id='directo-http-qa', external_id='777',
+        fixture_id='777', source='api_football_live', competition_key='laliga',
+        competition_id='140', country='Spain', season=str(kickoff.year),
+        home_team='Local QA', away_team='Visitante QA', competition_name='Liga QA',
+        home_team_id='101', away_team_id='102', status='LIVE', minute=67,
+        home_score=1, away_score=0, kickoff_iso=kickoff.isoformat(),
+        match_date=kickoff.date().isoformat(), kickoff_time=kickoff.strftime('%H:%M'),
+        last_synced_at=(observed - timedelta(seconds=30)).isoformat())
+    row.update(changes)
+    raw = {
+        'fixture': {'id': int(row['fixture_id']), 'date': row['kickoff_iso'],
+            'status': {'short': {'LIVE': '2H'}.get(row['status'], row['status']),
+                'elapsed': row['minute']}},
+        'league': {'id': int(row['competition_id']), 'name': row['competition_name'],
+            'country': row['country'], 'season': int(row['season'])},
+        'teams': {'home': {'id': int(row['home_team_id']), 'name': row['home_team']},
+            'away': {'id': int(row['away_team_id']), 'name': row['away_team']}},
+        'goals': {'home': row['home_score'], 'away': row['away_score']},
+    }
+    row.setdefault('raw_json', json.dumps(raw))
+    return put(**row)
+
+
 @pytest.fixture
 def live_store(app_module, monkeypatch, tmp_path):
     now = datetime.now(ZoneInfo('Europe/Madrid'))
@@ -61,16 +92,18 @@ def live_store(app_module, monkeypatch, tmp_path):
         invalidate_realtime_cache()
         return row
 
-    def read_summary():
+    def read_summary(*, _prepare_only=False):
         with sqlite3.connect(path.resolve().as_uri()+'?mode=ro', uri=True) as conn:
             raw = [json.loads(row[0]) for row in conn.execute('SELECT payload FROM input_records')]
         rows = [enrich_match_lifecycle(row) for row in raw]
         live = [row for row in rows if match_status_truth(row)['is_live']]
         finished = [row for row in rows if match_status_truth(row)['is_finished']]
-        return dict(all_valid_matches=rows, valid_matches_today=rows, valid_upcoming_matches=[],
+        summary = dict(all_valid_matches=rows, valid_matches_today=rows, valid_upcoming_matches=[],
             valid_live_events=live, valid_active_picks=[], finished_matches=finished,
             incident_matches=[], incomplete_matches=[], raw_matches_count=len(rows),
-            provider_status='observed_test_store', safe_message='SIMULATED_QA', last_sync='')
+            provider_status='observed_test_store', safe_message='SIMULATED_QA', last_sync='',
+            storage_status='ok')
+        return app_module._v991_finish_summary(summary, _prepare_only=_prepare_only)[0]
 
     def dashboard(*args, **kwargs):
         summary = read_summary()
@@ -98,12 +131,22 @@ def test_actual_public_route_uses_the_canonical_card(live_store, route):
     assert 'Etiqueta heredada que no debe prevalecer' not in html
     assert '/match/directo-http-qa' in html
     assert 'Observación registrada' in html
+    blocks = re.findall(r'<script\b(?=[^>]*\bdata-directo-fixture-identity\b)[^>]*>(.*?)</script>', html, re.S)
+    assert len(blocks) == 1
+    descriptor = json.loads(blocks[0])['fixture_identity']
+    assert descriptor['state'] == 'ESTABLISHED_FOR_EMITTED_COHORT'
+    members = descriptor['general']['members']
+    assert [member['id'] for member in members] == ['directo-http-qa']
+    assert members[0]['basis'] == 'UNRESOLVED'
+    assert descriptor['general']['counts']['live'] == 1
 
 
 def test_directo_route_shows_cached_stats_without_provider_calls(live_store, app_module, monkeypatch):
     client, put, now, attempts = live_store
+    _put_owned_api(put)
     tracker = {
-        'provider': 'api_football',
+        'provider': 'api_football', 'fixture_id': '777', 'available': True,
+        'read_only': True, 'external_calls': 0,
         'source_label': 'API-Football Pro',
         'statistics_updated_at': '2026-10-17T16:01:00Z',
         'updated_at': '2026-10-17T16:01:00Z',
@@ -133,7 +176,7 @@ def test_directo_route_shows_cached_stats_without_provider_calls(live_store, app
     monkeypatch.setattr(
         app_module,
         'live_tracker_summaries_for_matches',
-        lambda _db, matches: {'directo-http-qa': tracker} if matches else {},
+        lambda _db, matches, limit=40: {'directo-http-qa': tracker} if matches else {},
     )
     response = client.get('/directo', environ_overrides={'REMOTE_ADDR': '127.0.0.1'})
     html = response.get_data(as_text=True)
@@ -224,9 +267,10 @@ def test_directo_possession_chart_uses_its_own_capture_and_hides_mixed_receipts(
     assert 'datetime="2026-10-17T16:01:00Z"' in rendered_mixed
 
 
-def test_matches_poll_includes_compact_cached_stats_and_etag_tracks_them(live_store, app_module, monkeypatch):
+@pytest.mark.parametrize('consumer', ['', '&consumer=directo-v2'])
+def test_matches_poll_includes_compact_cached_stats_and_etag_tracks_them(live_store, app_module, monkeypatch, consumer):
     client, put, _now, attempts = live_store
-    put(id='af-777', match_id='af-777', external_id='777', fixture_id='777', source='api_football_live_tracker')
+    _put_owned_api(put, id='af-777', match_id='af-777')
     captured_at = datetime.now().astimezone().replace(microsecond=0).isoformat()
     current = {'home': '5'}
     calls = []
@@ -246,7 +290,7 @@ def test_matches_poll_includes_compact_cached_stats_and_etag_tracks_them(live_st
         }}
 
     monkeypatch.setattr(app_module, 'live_tracker_summaries_for_matches', cached)
-    first = client.get('/api/realtime/sports?scope=matches')
+    first = client.get('/api/realtime/sports?scope=matches' + consumer)
     first_payload = first.get_json()
     live = first_payload['matches'][0]['live_statistics']
     assert live['fixture_id'] == '777'
@@ -256,7 +300,7 @@ def test_matches_poll_includes_compact_cached_stats_and_etag_tracks_them(live_st
     first_etag = first.headers['ETag']
 
     current['home'] = '6'
-    second = client.get('/api/realtime/sports?scope=matches')
+    second = client.get('/api/realtime/sports?scope=matches' + consumer)
     assert second.get_json()['matches'][0]['live_statistics']['stat_cards'][0]['home'] == '6'
     assert second.headers['ETag'] != first_etag
     assert calls == [(1, 40), (1, 40)]
@@ -267,8 +311,11 @@ def test_matches_poll_includes_compact_cached_stats_and_etag_tracks_them(live_st
 
 
 def test_directo_route_omits_empty_all_stats_disclosure(live_store, app_module, monkeypatch):
-    client, _put, _now, attempts = live_store
+    client, put, _now, attempts = live_store
+    _put_owned_api(put)
     tracker = {
+        'provider': 'api_football', 'fixture_id': '777', 'available': True,
+        'read_only': True, 'external_calls': 0,
         'stats': {'available': True},
         'stat_cards': [
             {'key': 'shots_on_goal', 'label': 'Tiros a puerta', 'home': '5', 'away': '2'},
@@ -279,7 +326,7 @@ def test_directo_route_omits_empty_all_stats_disclosure(live_store, app_module, 
     monkeypatch.setattr(
         app_module,
         'live_tracker_summaries_for_matches',
-        lambda _db, matches: {'directo-http-qa': tracker} if matches else {},
+        lambda _db, matches, limit=40: {'directo-http-qa': tracker} if matches else {},
     )
 
     response = client.get('/directo', environ_overrides={'REMOTE_ADDR': '127.0.0.1'})
@@ -288,6 +335,33 @@ def test_directo_route_omits_empty_all_stats_disclosure(live_store, app_module, 
     assert 'Tiros a puerta' in html and 'Faltas' in html
     assert 'data-live-statistics-more' not in html
     assert attempts == []
+
+
+def test_directo_stats_do_not_attach_to_an_unverified_provider_row(live_store, app_module, monkeypatch):
+    client, _put, _now, attempts = live_store
+    calls = []
+
+    def cached(_db, matches, limit=40):
+        calls.append((len(matches), limit))
+        return {'directo-http-qa': {
+            'provider': 'api_football', 'fixture_id': '777', 'available': True,
+            'read_only': True, 'external_calls': 0,
+            'stat_cards': [{'key': 'shots_on_goal', 'label': 'Tiros a puerta',
+                'home': '5', 'away': '2'}],
+        }}
+
+    monkeypatch.setattr(app_module, 'live_tracker_summaries_for_matches', cached)
+    response = client.get('/directo')
+    assert response.status_code == 200
+    html = response.get_data(as_text=True)
+    assert 'data-canonical-live="true"' in html
+    assert '/match/directo-http-qa' in html
+    assert 'data-live-statistics' not in html
+    payload = client.get('/api/realtime/sports?scope=matches&consumer=directo-v2').get_json()
+    assert len(payload['matches']) == 1
+    assert payload['matches'][0]['id'] == 'directo-http-qa'
+    assert 'live_statistics' not in payload['matches'][0]
+    assert calls == [] and attempts == []
 
 
 def test_http_html_and_json_share_the_same_fixture_truth(live_store):
@@ -446,7 +520,7 @@ def test_open_actual_live_route_updates_without_reload(live_store, app_module, m
     import mimetypes
     client, put, now, attempts = live_store
     def put_live(**changes):
-        return put(fixture_id='777', source='api_football_live_tracker', **changes)
+        return _put_owned_api(put, **changes)
 
     put_live()
     stats_state = {'available': False, 'home': '5', 'timestamp': (now - timedelta(minutes=11)).isoformat(),
@@ -592,8 +666,9 @@ def test_real_socket_live_match_return_expiry_and_final(live_store, app_module, 
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     base = f'http://127.0.0.1:{server.server_port}'
-    out = Path(app_module.BASE_DIR) / 'data/local_dev/directo-operational-close'
-    out.mkdir(exist_ok=True)
+    out = Path(os.environ.get('NEMESIS_QA_ARTIFACT_ROOT') or
+        (Path(app_module.BASE_DIR) / 'data/local_dev')) / 'directo-operational-close'
+    out.mkdir(parents=True, exist_ok=True)
     report = {'environment':'SIMULATED_QA', 'transport':'REAL_FLASK_HTTP_SOCKET', 'locale':locale, 'width':width, 'states':[], 'errors':[], 'external':[]}
     try:
         with sync_playwright() as pw:
