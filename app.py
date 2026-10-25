@@ -18948,7 +18948,7 @@ def _v991_prepare_summary_operation(summary, *, selected_date=None, current=None
     return operation
 
 
-def _v991_finish_summary(summary, *, selected_date=None):
+def _v991_finish_summary(summary, *, selected_date=None, _prepare_only=False):
     selected = _safe_date_value(selected_date, today_iso())
     # Admit only each original's own fresh LIVE evidence in the already-approved
     # live cohort, before the only context preparation and current/history split.
@@ -18983,8 +18983,13 @@ def _v991_finish_summary(summary, *, selected_date=None):
         summary["historical_results_source"] = "local_db_read_only" if history_read_state == "VERIFIED" else "local_db_unavailable"
         summary["historical_results_read_state"] = history_read_state
     operation = _v991_prepare_summary_operation(summary, selected_date=selected, current=current, history=history)
-    summary["sports_home"] = build_sports_home_sections(summary, reuse_ranked=True, fixture_operation=operation)
-    summary["sports_metrics"] = build_sports_metrics_contract(summary, fixture_operation=operation)
+    if _prepare_only is True:
+        # This is the isolated request-owned cache clone, not the stored payload.
+        summary.pop("sports_home", None)
+        summary.pop("sports_metrics", None)
+    else:
+        summary["sports_home"] = build_sports_home_sections(summary, reuse_ranked=True, fixture_operation=operation)
+        summary["sports_metrics"] = build_sports_metrics_contract(summary, fixture_operation=operation)
     return summary, operation
 
 
@@ -20011,7 +20016,7 @@ def _latest_sports_update_at(*row_groups):
     return max(candidates).isoformat() if candidates else ""
 
 
-def get_public_home_sports_summary(selected_date=None):
+def get_public_home_sports_summary(selected_date=None, *, _prepare_only=False):
     if selected_date is None and has_request_context() and request.path in _V991_CALENDAR_PATHS:
         selected = _v940_calendar_filters(request.args.get("lane") or "today", request.args.get("date"))["date"]
     else:
@@ -20023,12 +20028,20 @@ def get_public_home_sports_summary(selected_date=None):
             # Keep the prepared evidence boundary: mutated originals are checked
             # by C3, never re-prepared to bless their changed identity. Adjacent
             # derived payloads must use that current check on every reuse too.
-            existing["sports_home"] = build_sports_home_sections(existing, reuse_ranked=True, fixture_operation=operation)
-            existing["sports_metrics"] = build_sports_metrics_contract(existing, fixture_operation=operation)
+            if _prepare_only is True:
+                # Preserve the same summary owner and anchors; do not re-prepare.
+                existing.pop("sports_home", None)
+                existing.pop("sports_metrics", None)
+            else:
+                existing["sports_home"] = build_sports_home_sections(existing, reuse_ranked=True, fixture_operation=operation)
+                existing["sports_metrics"] = build_sports_metrics_contract(existing, fixture_operation=operation)
             return existing
     result, cache_status = cached_v934_realtime_snapshot(
         _public_sports_cache_key(), _v991_validated_base_summary, ttl_seconds=300)
-    result, operation = _v991_finish_summary(result, selected_date=selected)
+    if _prepare_only is True:
+        result, operation = _v991_finish_summary(result, selected_date=selected, _prepare_only=True)
+    else:
+        result, operation = _v991_finish_summary(result, selected_date=selected)
     result["summary_cache_status"] = cache_status
     if has_request_context():
         g.v935_public_sports_summary = result
@@ -20353,7 +20366,7 @@ def _v931_minimal_client_data(summary, lane="today", date_value=""):
     }
 
 
-def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None):
+def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None, _directo_minimal=False):
     summary = (
         _v932_locked_sports_summary()
         if has_request_context() and request.environ.get("nemesis.v932.database_locked")
@@ -20363,6 +20376,25 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
             else get_public_home_sports_summary()
         )
     )
+    if compact and _directo_minimal is True:
+        def _directo_client_data():
+            today_matches = list(summary.get("valid_matches_today") or [])
+            upcoming = list(summary.get("valid_upcoming_matches") or [])
+            return {
+                "app_name": APP_NAME,
+                "version": APP_VERSION,
+                "date": date_value or today_iso(),
+                "lane": lane,
+                "matches": today_matches,
+                "upcoming_matches": upcoming,
+                "available_matches": list(summary.get("valid_matches_available") or _dedupe_sports_matches(today_matches + upcoming)),
+                "session_user": current_session_user(),
+                "v931_route_guard": {
+                    "status": "safe_fallback",
+                    "provider_status": summary.get("provider_status"),
+                    "no_render_api_call": True,
+                },
+            }
     if summary.get("storage_status") == "database_locked":
         if has_request_context():
             request.environ["nemesis.v931.degraded"] = True
@@ -20370,9 +20402,14 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
         v931_record_client_route_issue(route, error, "sqlite_read_timeout_guard")
         if current_session_user():
             v932_record_authenticated_issue(route, error, "admin" if is_admin_session() else "client", "sqlite_read_timeout_guard")
+        if compact and _directo_minimal is True:
+            return _directo_client_data(), summary
         return _v931_minimal_client_data(summary, lane, date_value or today_iso()), summary
     if compact:
-        data = _v931_minimal_client_data(summary, lane, date_value or today_iso())
+        if _directo_minimal is True:
+            data = _directo_client_data()
+        else:
+            data = _v931_minimal_client_data(summary, lane, date_value or today_iso())
         data["available_matches"] = list(summary.get("valid_matches_available") or _dedupe_sports_matches(data["matches"] + data["upcoming_matches"]))
         data["v931_route_guard"] = {
             "status": "compact_read_only_context",
@@ -20448,8 +20485,12 @@ def v932_safe_dashboard_data(
     scope="client",
     compact=False,
     sports_summary=None,
+    _directo_minimal=False,
 ):
-    data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary)
+    if compact and _directo_minimal is True:
+        data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary, _directo_minimal=True)
+    else:
+        data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary)
     data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
     data["sports_metrics"] = get_sports_metrics_contract(summary)
     data["v932_authenticated_scope"] = "admin" if scope == "admin" else "client"
@@ -23361,7 +23402,7 @@ def sports_hub_page():
 @app.route("/en-directo")
 def live_page():
     scope=_v991_directo_scope()
-    data,summary=v932_safe_dashboard_data(request.path,'today',request.args.get('date') or today_iso(),compact=True)
+    data,summary=v932_safe_dashboard_data(request.path,'today',request.args.get('date') or today_iso(),compact=True,_directo_minimal=True)
     projection=_v991_realtime_projection(summary,lane=scope['lane'],query=scope['query'])
     experience=v931_live_context(summary,lane=scope['lane'],query=scope['query'],fixture_projection=projection)
     sources=g.v991_realtime_projection_sources[id(projection)]
@@ -23382,7 +23423,7 @@ def live_page():
         presented.append(item)
     experience['matches']=v766_enrich_matches_with_highlights(presented) if scope['lane']=='finished' else presented
     experience['fixture_surface']['matches']=experience['matches']
-    data['live_experience']=experience;data['v925_live']=_v931_provider_context(summary);data['v934_realtime']=projection
+    data['live_experience']=experience;data['v934_realtime']=projection
     return render_template('live.html',data=data)
 
 
@@ -29504,7 +29545,14 @@ def get_v934_realtime_context(summary=None, force=False):
     opted=has_request_context() and request.args.get('consumer')=='directo-v2' and request.args.get('scope','all')=='matches'
     generic=has_request_context() and request.args.get('consumer')=='fixture-metrics-v1'
     if opted or generic:
-        source=summary if isinstance(summary,dict) else get_public_home_sports_summary()
+        if isinstance(summary,dict):
+            source=summary
+        elif (request.method=="GET" and request.path=="/api/realtime/sports"
+              and request.endpoint=="api_v934_realtime_sports"
+              and str(request.args.get("scope") or "all").strip().lower()=="matches"):
+            source=get_public_home_sports_summary(_prepare_only=True)
+        else:
+            source=get_public_home_sports_summary()
         snapshot=_v991_realtime_projection(source)
         if generic:
             api_scope=str(request.args.get('scope') or 'all').strip().lower()

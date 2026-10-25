@@ -92,7 +92,7 @@ def live_store(app_module, monkeypatch, tmp_path):
         invalidate_realtime_cache()
         return row
 
-    def read_summary():
+    def read_summary(*, _prepare_only=False):
         with sqlite3.connect(path.resolve().as_uri()+'?mode=ro', uri=True) as conn:
             raw = [json.loads(row[0]) for row in conn.execute('SELECT payload FROM input_records')]
         rows = [enrich_match_lifecycle(row) for row in raw]
@@ -103,7 +103,7 @@ def live_store(app_module, monkeypatch, tmp_path):
             incident_matches=[], incomplete_matches=[], raw_matches_count=len(rows),
             provider_status='observed_test_store', safe_message='SIMULATED_QA', last_sync='',
             storage_status='ok')
-        return app_module._v991_finish_summary(summary)[0]
+        return app_module._v991_finish_summary(summary, _prepare_only=_prepare_only)[0]
 
     def dashboard(*args, **kwargs):
         summary = read_summary()

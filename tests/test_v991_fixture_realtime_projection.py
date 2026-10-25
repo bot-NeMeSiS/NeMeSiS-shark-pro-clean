@@ -171,3 +171,98 @@ class Contracts(unittest.TestCase):
         self.assertEqual(meta['state'],'NOT_ESTABLISHED');self.assertTrue(all(value is None for value in meta['counts'].values()))
     def test_all_bookmark_is_canonical_live_alias(self):
         self.assertEqual(canonical_view('all','',lambda value:value)['lane'],'live')
+    def test_generation_checks_each_current_context_once_for_state_and_issues(self):
+        # Observe the real checks and digest input; never replace C1/C2/C3.
+        import sys
+        from engines import fixture_realtime_projection as projection
+        from engines.fixture_snapshot_read_model import PreparedFixtureSnapshot
+        refs=copy.deepcopy(self.refs);refs[0]['country']='Portugal'
+        snapshot=self.snapshot(refs=refs);frames=self.frames();checks=[];digests=[]
+        def in_generation(frame):
+            while frame is not None:
+                if frame.f_code is build_descriptor.__code__:return 'clocks' in frame.f_locals
+                frame=frame.f_back
+            return False
+        def observe(frame,event,arg):
+            if not in_generation(frame):return
+            if event=='return' and frame.f_code is PreparedFixtureSnapshot.context_for.__code__:
+                checks.append((frame.f_locals['row'],arg))
+            elif event=='call' and frame.f_code is projection._digest.__code__:
+                digests.append(copy.deepcopy(frame.f_locals['value']))
+        previous=sys.getprofile();sys.setprofile(observe)
+        try:result=self.build(snapshot=snapshot,frames=frames)
+        finally:sys.setprofile(previous)
+        self.assertEqual(len(checks),len(self.rows));self.assertEqual(len(digests),1)
+        self.assertTrue(any(context.issues for _row,context in checks))
+        for position,((row,context),original) in enumerate(zip(checks,self.rows)):
+            self.assertIs(row,original)
+            record=digests[0][2][position]
+            self.assertEqual(record[0],str(original['id']))
+            self.assertEqual(record[2],context.state)
+            self.assertEqual(record[3],list(context.issues))
+        self.assertEqual(result,self.build(snapshot=snapshot,frames=frames))
+        self.assertEqual(len(self.calls),1)
+
+    def test_generation_identifier_conversion_precedes_its_fresh_identity_check(self):
+        import sys
+        from engines.fixture_snapshot_read_model import PreparedFixtureSnapshot
+        events=[]
+        def in_generation(frame):
+            while frame is not None:
+                if frame.f_code is build_descriptor.__code__:return 'clocks' in frame.f_locals
+                frame=frame.f_back
+            return False
+        class Identifier:
+            def __init__(self,row):self.row=row
+            def __str__(self):
+                self.row.triggered=True
+                self.row['home_canonical_team_id']='changed-during-identifier-conversion'
+                events.append(('identifier',None))
+                return dict.__getitem__(self.row,'id')
+        class Row(dict):
+            def __init__(self,value):super().__init__(value);self.triggered=False
+            def __getitem__(self,key):
+                if key=='id' and not self.triggered and in_generation(sys._getframe(1)):
+                    return Identifier(self)
+                return dict.__getitem__(self,key)
+        self.rows[0]=Row(self.rows[0]);target=self.rows[0]
+        snapshot=self.snapshot();frames=self.frames()
+        self.assertEqual(snapshot.select_rows(self.rows).count,2)
+        def observe(frame,event,arg):
+            if (event=='return' and frame.f_code is PreparedFixtureSnapshot.context_for.__code__
+                    and frame.f_locals['row'] is target and in_generation(frame)):
+                events.append(('guard',arg.state))
+        previous=sys.getprofile();sys.setprofile(observe)
+        try:self.build(snapshot=snapshot,frames=frames)
+        finally:sys.setprofile(previous)
+        self.assertTrue(target.triggered)
+        mutation=next(index for index,event in enumerate(events) if event[0]=='identifier')
+        guards=[event for event in events[mutation+1:] if event[0]=='guard']
+        self.assertEqual(guards,[('guard','UNKNOWN_IDENTITY_CHANGED')])
+        self.assertEqual(snapshot.context_for(target).state,'UNKNOWN_IDENTITY_CHANGED')
+        self.assertEqual(snapshot.select_rows(self.rows).count,3)
+        self.assertEqual(len(self.calls),1)
+
+    def test_descriptor_does_not_reuse_context_after_nested_or_key_mutation(self):
+        for kind in ('nested_alias','reference_key'):
+            with self.subTest(kind=kind):
+                rows=copy.deepcopy(self.rows)
+                if kind=='nested_alias':rows[0]['home_team_aliases']=['Real Madrid']
+                before=len(self.calls);snapshot=self.snapshot(rows);frames=self.frames(rows)
+                first=self.build(rows=rows,snapshot=snapshot,frames=frames)
+                self.assertEqual(first['general']['counts']['today'],2)
+                ids=[row['id'] for row in rows]
+                if kind=='nested_alias':rows[0]['home_team_aliases'].append('A changed alias')
+                else:rows[0]['competition_key']='another-canonical-reference'
+                self.assertEqual(snapshot.context_for(rows[0]).state,'UNKNOWN_IDENTITY_CHANGED')
+                self.assertEqual(snapshot.select_rows(rows).count,3)
+                second=self.build(rows=rows,snapshot=snapshot,frames=self.frames(rows))
+                # The changed member stays separate, or the whole descriptor is
+                # unavailable. Reusing the former two-group grant is forbidden.
+                self.assertNotEqual(second['general']['counts']['today'],2)
+                if second['general']['counts']['today'] is None:
+                    self.assertEqual(second['state'],'NOT_ESTABLISHED')
+                else:self.assertEqual(second['general']['counts']['today'],3)
+                self.assertNotEqual(first['generation'],second['generation'])
+                self.assertEqual([row['id'] for row in rows],ids)
+                self.assertEqual(len(self.calls),before+1)

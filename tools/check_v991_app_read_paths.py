@@ -152,6 +152,29 @@ class AppReadPathContract(unittest.TestCase):
         self.assertEqual(calendar['count'], 2)
         self.assertEqual(len(calendar['ids']), 2)
 
+    def test_11_API_prepare_only_contracts_share_the_fresh_real_worker(self):
+        proof = self.evidence['api_prepare_only_contracts']
+        self.assertTrue(proof['success'])
+        self.assertEqual(proof['unittest_run'], 11)
+        self.assertEqual(proof['failures'], [])
+        self.assertEqual(proof['errors'], [])
+        self.assertEqual(proof['App_getter_normalizer_C3_rebindings'], 0)
+        self.assertTrue(proof['requests'])
+        self.assertEqual(len(proof['business_SQL_checks']), 11)
+        self.assertTrue(all(item['equal'] for item in proof['business_SQL_checks']))
+        self.assertLessEqual(max(item['reference_PK_batches'] for item in proof['requests']), 1)
+
+    def test_12_LIVE_minimal_contracts_reuse_the_same_actual_App_runtime(self):
+        proof = self.evidence['live_minimal_contracts']
+        self.assertTrue(proof['success'])
+        self.assertEqual(proof['unittest_run'], 5)
+        self.assertEqual(proof['failures'], [])
+        self.assertEqual(proof['errors'], [])
+        self.assertEqual(proof['App_getter_normalizer_C3_rebindings'], 0)
+        self.assertEqual(len(proof['business_SQL_checks']), 5)
+        self.assertTrue(all(item['equal'] for item in proof['business_SQL_checks']))
+        self.assertLessEqual(max(item['reference_PK_batches'] for item in proof['requests']), 1)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--repo-root', type=Path)

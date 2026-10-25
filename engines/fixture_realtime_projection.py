@@ -223,7 +223,12 @@ def build_descriptor(snapshot,rows,frames,*,scope,date_madrid,measure_rows,view_
             'reference_state':reference,'not_covered_observations':0,'reasons':[]}}
     clocks=('provider_observed_at','provider_observed_at_source','live_valid_until_madrid',
             'lifecycle_observed_at','score_observed_at','minute_observed_at','events_observed_at','stats_observed_at')
-    context=[(str(row['id']),proof[id(row)],snapshot.context_for(row).state,list(snapshot.context_for(row).issues),
-              {key:frame['realtime_state'].get(key) for key in clocks}) for row,frame in zip(rows,frames)]
+    context=[]
+    for row,frame in zip(rows,frames):
+        identifier=str(row['id'])
+        row_proof=proof[id(row)]
+        current_context=snapshot.context_for(row)
+        context.append((identifier,row_proof,current_context.state,list(current_context.issues),
+                        {key:frame['realtime_state'].get(key) for key in clocks}))
     result['generation']=_digest([scope,cohort,context,result['general'],result['view']])
     return result

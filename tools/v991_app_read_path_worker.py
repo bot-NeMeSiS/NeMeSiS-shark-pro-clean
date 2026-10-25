@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import hashlib
 from html import unescape
 import importlib
+import importlib.util
 import inspect
 import json
 import os
@@ -77,7 +78,9 @@ def main():
     source_paths = ('app.py','engines/home_matchday.py','engines/fixture_realtime_projection.py','engines/data_vault_engine.py',
              'engines/canonical_competition_context.py','engines/fixture_identity_read_model.py','engines/fixture_snapshot_read_model.py',
              'templates/home.html','templates/calendar.html','templates/live.html','templates/components/v933_ui.html',
-             'static/v934-realtime.js','localization/ui.json','APP_VERSION','VERSION.txt')
+             'static/v934-realtime.js','localization/ui.json','APP_VERSION','VERSION.txt',
+             'tests/v991_fixture_identity.json','tests/v991_api_prepare_only_cases.py','tests/v991_live_minimal_cases.py',
+             'tools/v991_app_read_path_worker.py','tools/check_v991_app_read_paths.py')
     def hashes(): return {name:hashlib.sha256((repo/name).read_bytes()).hexdigest() for name in source_paths}
     before = hashes()
     facts = {'errors':[], 'boundary_events':boundary, 'reference_reads_per_request':[], 'source_hashes_before':before,
@@ -284,6 +287,22 @@ def main():
                 new,_,_ = get(role,'/api/realtime/sports',{'scope':scope,'consumer':'fixture-metrics-v1'})
                 def financial(response): return sorted([{key:row.get(key) for key in keys} for row in response.get_json().get('picks',[])],key=lambda row:str(row['id']))
                 facts['retention'].append({'role':role,'scope':scope,'http':[old.status_code,new.status_code],'legacy':financial(old),'modern':financial(new)})
+        # Persistent API source-only contracts share this fresh real App/DB/guard.
+        # The test helper is stdlib-only and never imports/rebinds App in the parent.
+        test_spec = importlib.util.spec_from_file_location(
+            'v991_api_prepare_only_cases', repo/'tests/v991_api_prepare_only_cases.py')
+        test_module = importlib.util.module_from_spec(test_spec)
+        test_spec.loader.exec_module(test_module)
+        facts['api_prepare_only_contracts'] = json.loads(json.dumps(test_module.run_contracts(app, repo, database, out, refs)))
+        if not facts['api_prepare_only_contracts']['success']:
+            raise AssertionError('API prepare-only contracts failed; see unittest-output.txt/junit.xml and receipt')
+        live_spec = importlib.util.spec_from_file_location(
+            'v991_live_minimal_cases', repo/'tests/v991_live_minimal_cases.py')
+        live_module = importlib.util.module_from_spec(live_spec)
+        live_spec.loader.exec_module(live_module)
+        facts['live_minimal_contracts'] = live_module.run_live_contracts(test_module.ApiPrepareOnlyContracts.runtime)
+        if not facts['live_minimal_contracts']['success']:
+            raise AssertionError('Live minimal contracts failed; see live-unittest-output.txt/live-junit.xml and receipt')
     except BaseException as exc:
         facts['errors'].append({'type':type(exc).__name__,'message':str(exc),'traceback':traceback.format_exc()})
     finally:

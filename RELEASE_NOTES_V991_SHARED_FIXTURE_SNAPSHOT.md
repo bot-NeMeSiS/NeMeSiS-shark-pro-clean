@@ -28,6 +28,17 @@ Weak validators for the new consumers retain identity, source clocks, status and
 legacy consumers retain their existing response. Historical lock notices preserve the
 available cards without claiming that a historical read was complete.
 
+Modern matches-only GET consumers can prepare the same source evidence without
+building unused Home and legacy metrics payloads. Full summaries remain the default;
+switching modes within one request retains the same owner and prepared identity
+anchors. The stored cache payload and its original acceptance checks are unchanged.
+
+Directo uses a smaller explicit presentation context through its existing safe
+wrappers. It retains session validation, degraded-state reporting, authenticated
+auditing and fresh metric reads after the remaining callbacks. Other compact and
+full consumers keep their existing context. Descriptor generation reads state and
+issues from one fresh checked context, after converting the original action ID.
+
 Validation before integration: 182 real-App RAM contract checks; 563 real HTTP checks
 over 91 GET requests; a separate 48-check/6-GET absent-versus-empty gate; frontend
 67 Directo, 43 metadata, 23 isolated Chromium checks and one normalizer case.
