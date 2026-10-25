@@ -14,6 +14,7 @@ import secrets
 import sqlite3
 import time
 from zoneinfo import ZoneInfo
+from engines.closed_operation_timing import operation as timed_operation, phase as timed_phase
 
 CONTRACT = 'NEMESIS-POSTMATCH-RECOVERY-V1'
 KINDS = ('highlights', 'statistics')
@@ -105,19 +106,23 @@ class Store:
 
     @contextmanager
     def connection(self, write=False):
-        conn = sqlite3.connect(self.path.as_uri() + ('?mode=rw' if write else '?mode=ro'),
-                               uri=True, timeout=.6)
+        with timed_phase('postmatch_discover', 'connect'):
+            conn = sqlite3.connect(self.path.as_uri() + ('?mode=rw' if write else '?mode=ro'),
+                                   uri=True, timeout=.6)
         conn.row_factory = sqlite3.Row
         try:
             conn.execute('PRAGMA busy_timeout=600')
             if not write:
                 conn.execute('PRAGMA query_only=ON')
-            conn.execute('BEGIN IMMEDIATE' if write else 'BEGIN')
+            with timed_phase('postmatch_discover', 'begin', conn):
+                conn.execute('BEGIN IMMEDIATE' if write else 'BEGIN')
             yield conn
             if write:
-                conn.commit()
+                with timed_phase('postmatch_discover', 'commit', conn):
+                    conn.commit()
         except BaseException:
-            conn.rollback()
+            with timed_phase('postmatch_discover', 'rollback', conn):
+                conn.rollback()
             raise
         finally:
             conn.close()
@@ -179,54 +184,58 @@ class Store:
         conn.execute('INSERT INTO postmatch_audit(job_id,action,detail,actor,created_at) VALUES(?,?,?,?,?)',
                      (job, action, json.dumps(detail, ensure_ascii=False, sort_keys=True), str(actor)[:120], now))
 
+    @timed_operation('postmatch_discover')
     def discover(self, now: float, *, include_archive=False, priority=None, inventory_batch=250) -> int:
         day = datetime.fromtimestamp(now - 7 * 86400, ZoneInfo('Europe/Madrid')).date().isoformat()
         with self.connection(True) as conn:
             # Only source-confirmed terminal matches; include score truth checks below.
-            rows = conn.execute("SELECT * FROM matches WHERE substr(match_date,1,10)>=? "
-                                "AND upper(status) IN ('FT','FINISHED','FINAL','AET','PEN','FINALIZADO') "
-                                "ORDER BY match_date DESC,id LIMIT 500", (day,)).fetchall()
-            if include_archive:
-                conn.execute('INSERT OR IGNORE INTO postmatch_inventory_cursor VALUES(1,0,?)',(now,))
-                cursor = conn.execute('SELECT row_cursor FROM postmatch_inventory_cursor WHERE id=1').fetchone()[0]
-                historical = conn.execute('SELECT rowid AS inventory_row,* FROM matches WHERE rowid>? '
-                                          'ORDER BY rowid LIMIT ?',(cursor,max(1,min(500,int(inventory_batch))))).fetchall()
-                conn.execute('UPDATE postmatch_inventory_cursor SET row_cursor=?,updated_at=? WHERE id=1',
-                             (historical[-1]['inventory_row'] if historical else 0,now))
-                rows = list(rows)+list(historical)
-            count = 0
-            seen = set()
-            for raw in rows:
-                match = dict(raw)
-                if str(match.get('id')) in seen or not is_final(match, now) or not (
-                    match.get('competition_name') or match.get('league_name') or match.get('league_id')):
-                    continue
-                seen.add(str(match['id']))
-                mid, ident = str(match['id']), identity(match)
-                conn.execute("UPDATE postmatch_jobs SET state='CANCELLED',reason='IDENTITY_CHANGED',"
-                             "lease_token=NULL,lease_until=0,updated_at=? WHERE match_id=? AND identity<>? "
-                             "AND state NOT IN ('COMPLETE','CANCELLED')", (now, mid, ident))
-                for kind in (*KINDS, 'archive') if include_archive else KINDS:
-                    count += conn.execute('INSERT OR IGNORE INTO postmatch_jobs'
-                        '(match_id,kind,identity,due_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
-                        (mid, kind, ident, now, now, now)).rowcount
-                conn.execute('UPDATE postmatch_jobs SET priority=?,match_day=? WHERE match_id=? AND identity=?',
-                             (int(priority(match)) if priority else 0,str(match['match_date'])[:10],mid,ident))
+            with timed_phase('postmatch_discover', 'read', conn):
+                rows = conn.execute("SELECT * FROM matches WHERE substr(match_date,1,10)>=? "
+                                    "AND upper(status) IN ('FT','FINISHED','FINAL','AET','PEN','FINALIZADO') "
+                                    "ORDER BY match_date DESC,id LIMIT 500", (day,)).fetchall()
+            with timed_phase('postmatch_discover', 'inventory', conn):
                 if include_archive:
-                    from engines.postmatch_sources import final_scope, SourceError
-                    try:
-                        scope = final_scope(match.get('status'))
-                    except SourceError:
-                        # Canonical finality can come from persisted provider evidence.
-                        # An unresolved period must defer this job, not roll back the inventory.
+                    conn.execute('INSERT OR IGNORE INTO postmatch_inventory_cursor VALUES(1,0,?)',(now,))
+                    cursor = conn.execute('SELECT row_cursor FROM postmatch_inventory_cursor WHERE id=1').fetchone()[0]
+                    historical = conn.execute('SELECT rowid AS inventory_row,* FROM matches WHERE rowid>? '
+                                              'ORDER BY rowid LIMIT ?',(cursor,max(1,min(500,int(inventory_batch))))).fetchall()
+                    conn.execute('UPDATE postmatch_inventory_cursor SET row_cursor=?,updated_at=? WHERE id=1',
+                                 (historical[-1]['inventory_row'] if historical else 0,now))
+                    rows = list(rows)+list(historical)
+            with timed_phase('postmatch_discover', 'enqueue', conn):
+                count = 0
+                seen = set()
+                for raw in rows:
+                    match = dict(raw)
+                    if str(match.get('id')) in seen or not is_final(match, now) or not (
+                        match.get('competition_name') or match.get('league_name') or match.get('league_id')):
                         continue
-                    # A corrected period must be checked again, without mixing old receipts.
-                    conn.execute("UPDATE postmatch_jobs SET state='PENDING',attempts=0,due_at=?,reason='SCOPE_CHANGED' "
-                                 "WHERE match_id=? AND identity=? AND kind='archive' AND state='COMPLETE' "
-                                 'AND EXISTS (SELECT 1 FROM postmatch_sections s WHERE s.match_id=? AND s.identity=? AND s.scope<>?) '
-                                 'AND NOT EXISTS (SELECT 1 FROM postmatch_sections s WHERE s.match_id=? AND s.identity=? '
-                                 "AND s.scope=? AND s.payload_json<>'[]' GROUP BY s.match_id HAVING COUNT(DISTINCT section)=2)",
-                                 (now,mid,ident,mid,ident,scope,mid,ident,scope))
+                    seen.add(str(match['id']))
+                    mid, ident = str(match['id']), identity(match)
+                    conn.execute("UPDATE postmatch_jobs SET state='CANCELLED',reason='IDENTITY_CHANGED',"
+                                 "lease_token=NULL,lease_until=0,updated_at=? WHERE match_id=? AND identity<>? "
+                                 "AND state NOT IN ('COMPLETE','CANCELLED')", (now, mid, ident))
+                    for kind in (*KINDS, 'archive') if include_archive else KINDS:
+                        count += conn.execute('INSERT OR IGNORE INTO postmatch_jobs'
+                            '(match_id,kind,identity,due_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
+                            (mid, kind, ident, now, now, now)).rowcount
+                    conn.execute('UPDATE postmatch_jobs SET priority=?,match_day=? WHERE match_id=? AND identity=?',
+                                 (int(priority(match)) if priority else 0,str(match['match_date'])[:10],mid,ident))
+                    if include_archive:
+                        from engines.postmatch_sources import final_scope, SourceError
+                        try:
+                            scope = final_scope(match.get('status'))
+                        except SourceError:
+                            # Canonical finality can come from persisted provider evidence.
+                            # An unresolved period must defer this job, not roll back the inventory.
+                            continue
+                        # A corrected period must be checked again, without mixing old receipts.
+                        conn.execute("UPDATE postmatch_jobs SET state='PENDING',attempts=0,due_at=?,reason='SCOPE_CHANGED' "
+                                     "WHERE match_id=? AND identity=? AND kind='archive' AND state='COMPLETE' "
+                                     'AND EXISTS (SELECT 1 FROM postmatch_sections s WHERE s.match_id=? AND s.identity=? AND s.scope<>?) '
+                                     'AND NOT EXISTS (SELECT 1 FROM postmatch_sections s WHERE s.match_id=? AND s.identity=? '
+                                     "AND s.scope=? AND s.payload_json<>'[]' GROUP BY s.match_id HAVING COUNT(DISTINCT section)=2)",
+                                     (now,mid,ident,mid,ident,scope,mid,ident,scope))
             return count
 
     def claim(self, now: float, *, prefer_critical=False) -> dict | None:

@@ -28,6 +28,7 @@ from pathlib import Path
 from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for, before_render_template
 from werkzeug.security import check_password_hash, generate_password_hash
 from contextvars import ContextVar as _V991ContextVar
+from engines.closed_operation_timing import operation as timed_operation, phase as timed_phase
 from dataclasses import dataclass as _v991_dataclass
 from types import SimpleNamespace as _V991Selection
 from engines.fixture_snapshot_read_model import preserve_match_observations
@@ -525,7 +526,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V992_CURRENT_FIXTURE_ADMISSION'
+APP_VERSION = 'V993_LIVE_EXPIRY_AND_OPERATION_TIMING'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17807,7 +17808,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V992_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V993_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -20817,7 +20818,7 @@ def _v991_realtime_projection(summary, *, lane=None, query=None):
         'last_safe_sync_label':format_madrid_sync_label(summary.get('last_sync') or ''),
         'poll_after_seconds':V934_LIVE_POLL_SECONDS if measures['live'] else V934_IDLE_POLL_SECONDS,
         'realtime_match_status':'live_cached' if measures['live'] else 'schedule_cached' if frames else 'waiting_for_real_data',
-        'realtime_live_status':'live' if measures['live'] else 'stale' if stale else 'no_live_events',
+        'realtime_live_status':'live' if measures['live'] else 'stale' if stale or int(summary.get('stale_live_excluded') or 0) > 0 else 'no_live_events',
         'odds_freshness_status':odds_status,
         'safe_message':summary.get('safe_message') or 'Información local confirmada disponible.',
         'source_snapshot_state':'STALE_FALLBACK' if summary.get('summary_cache_status')=='stale_fallback'
@@ -21610,6 +21611,7 @@ def v766_calendar_order_context(calendar=None):
     }
 
 
+@timed_operation('media_request')
 def v766_sync_highlights_daily(force=False, days_back=7, limit=250, priority=None):
     """Bounded highlight sync with persistent freshness/retry guards."""
     import os
@@ -21662,7 +21664,8 @@ def v766_sync_highlights_daily(force=False, days_back=7, limit=250, priority=Non
     result["finished_at"] = now_iso()
     result["date"] = today_iso()
     result['attempt_finished_epoch'] = time.time()
-    automation_set("sportsdb_highlights_last_sync", result)
+    with timed_phase('media_request', 'receipt'):
+        automation_set("sportsdb_highlights_last_sync", result)
     return result
 
 

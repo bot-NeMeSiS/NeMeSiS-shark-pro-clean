@@ -16,6 +16,29 @@ TIMELINE={'idEvent':'101','idTimeline':'789','strTimeline':'Goal','strTimelineDe
           'strHome':'Yes','strTeam':MATCH['home_team'],'intTime':'30','strPlayer':'Jugador de prueba'}
 
 
+def test_discovery_busy_is_attributed_to_begin_and_keeps_rollback(store,capsys):
+    owner=sqlite3.connect(store.path)
+    owner.execute('BEGIN IMMEDIATE')
+    try:
+        with pytest.raises(sqlite3.OperationalError):
+            store.discover(NOW)
+    finally:
+        owner.rollback();owner.close()
+    rows=[json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    phases=[row for row in rows if row.get('event')=='operational_phase']
+    begin=[row for row in phases if row['phase']=='begin' and row['point']=='end']
+    assert len(begin)==1 and begin[0]['error']=='SQLITE_BUSY'
+    assert begin[0]['in_transaction'] is False
+    assert any(row['phase']=='rollback' and row['point']=='end' and row['error'] is None for row in phases)
+    assert not any(row['phase'] in {'read','inventory','enqueue','commit'} for row in phases)
+    with store.connection() as conn:
+        assert conn.execute('SELECT COUNT(*) FROM postmatch_jobs').fetchone()[0]==0
+    assert store.discover(NOW)==2
+    resumed=[json.loads(line) for line in capsys.readouterr().out.splitlines()]
+    commits=[row for row in resumed if row.get('phase')=='commit' and row.get('point')=='end']
+    assert len(commits)==1 and commits[0]['error'] is None and commits[0]['in_transaction'] is False
+
+
 @pytest.mark.parametrize('stage,method',[('INITIALIZE','initialize'),('DISCOVER','discover'),('RECONCILE',None)])
 def test_storage_failure_reports_closed_stage_without_sensitive_exception(store,monkeypatch,caplog,stage,method):
     def fail(*args,**kwargs):

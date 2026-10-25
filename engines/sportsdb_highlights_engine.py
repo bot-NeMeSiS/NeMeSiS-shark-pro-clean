@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 from engines.content_rights_engine import classify_media_asset
 from engines.highlight_url_engine import public_https_url, safe_embed_url
 from engines.video_highlights_engine import classify_match_video
+from engines.closed_operation_timing import operation as timed_operation, phase as timed_phase, trace_id
 
 TZ = ZoneInfo('Europe/Madrid')
 
@@ -594,6 +595,7 @@ def reconcile_cached_highlight_links(db_path, *, days_back=7, limit=250):
 _MEDIA_STAGES = ('schema', 'associations', 'inventory', 'save', 'enrichment', 'total')
 
 
+@timed_operation('media')
 def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, historical_only=False, priority=None):
     """Measure whole collection, including local preparation, without payloads."""
     timings = {}
@@ -607,7 +609,8 @@ def sync_sportsdb_highlights(db_path, days_back=7, limit=250, force=False, histo
         for label in _MEDIA_STAGES:
             if label in timings:
                 try:
-                    print(json.dumps({'event':'media_stage', 'stage':label, 'duration_ms':timings[label]}), flush=True)
+                    print(json.dumps({'event':'media_stage', 'stage':label, 'duration_ms':timings[label],
+                                      'trace':trace_id('media')}), flush=True)
                 except (OSError, ValueError):
                     pass
 
@@ -633,8 +636,10 @@ def _sync_sportsdb_highlights(db_path, days_back, limit, force, historical_only,
     historical_phase = [False]
     # Start before schema, reconciliation and inventory. This is cooperative:
     # a transaction already in progress may finish, but no new unit starts late.
-    scope = SportsDBBudget(max_calls=12, max_seconds=16,
-                          before_call=lambda: coverage.reserve_media_call(historical_phase[0]))
+    def reserve_call():
+        with timed_phase('media', 'reserve_call'):
+            return coverage.reserve_media_call(historical_phase[0])
+    scope = SportsDBBudget(max_calls=12, max_seconds=16, before_call=reserve_call)
 
     def check_budget():
         if scope.remaining() < .25:
@@ -665,10 +670,17 @@ def _sync_sportsdb_highlights(db_path, days_back, limit, force, historical_only,
                 'provider_coverage_complete':False, 'playback_verified':False, **scope.metrics()}
     historical = {'processed': 0, 'state': 'NOT_RUN'}
     run_id, start = uuid.uuid4().hex[:22], _now()
-    with _connect(db_path) as conn:
-        conn.execute('INSERT INTO sportsdb_highlight_runs(id,started_at,finished_at,status,days_back,highlights_found,linked_matches,errors) VALUES (?,?,?,?,?,?,?,?)',
-                     (run_id, start, '', 'RUNNING', days, 0, 0, ''))
-        conn.commit()
+    with timed_phase('media', 'ledger_start_connect'):
+        run_connection = _connect(db_path)
+    try:
+        with run_connection as conn:
+            with timed_phase('media', 'ledger_start_write', conn):
+                conn.execute('INSERT INTO sportsdb_highlight_runs(id,started_at,finished_at,status,days_back,highlights_found,linked_matches,errors) VALUES (?,?,?,?,?,?,?,?)',
+                             (run_id, start, '', 'RUNNING', days, 0, 0, ''))
+            with timed_phase('media', 'ledger_start_commit', conn):
+                conn.commit()
+    finally:
+        run_connection.close()
     found = linked = 0
     errors, seen, saturated_dates = [], set(), []
     partitions = 0
@@ -766,6 +778,10 @@ def _sync_sportsdb_highlights(db_path, days_back, limit, force, historical_only,
         return list(dict.fromkeys(x for x in ids if x.isdigit() and int(x) > 0))[:12]
 
     def v2_candidates(max_items=4):
+        with timed_phase('media', 'v2_candidates'):
+            return _v2_candidates(max_items)
+
+    def _v2_candidates(max_items=4):
         """Finished SportsDB matches with a provider event ID and no stored video."""
         check_budget()
         with _connect(db_path) as conn:
@@ -885,18 +901,19 @@ def _sync_sportsdb_highlights(db_path, days_back, limit, force, historical_only,
     try:
         check_budget()
         # Reuse provider payloads already acquired by enrichment. No extra HTTP.
-        with _connect(db_path) as conn:
-            profiles = []
-            if {'raw_json', 'event_date', 'video_url'} <= _cols(conn, 'sportsdb_event_profiles'):
-                profiles = _rows(conn, "SELECT raw_json FROM sportsdb_event_profiles WHERE event_date BETWEEN ? AND ? AND COALESCE(video_url,'')<>'' ORDER BY updated_at DESC LIMIT ?",
-                                 ((_today() - timedelta(days=days)).isoformat(), _today().isoformat(), capacity))
-        for profile in profiles:
-            try:
-                item = json.loads(profile['raw_json'])
-                if isinstance(item, dict) and item.get('idEvent') and item.get('strVideo'):
-                    profile_items.append(item)
-            except (ValueError, TypeError):
-                continue
+        with timed_phase('media', 'profile_cache'):
+            with _connect(db_path) as conn:
+                profiles = []
+                if {'raw_json', 'event_date', 'video_url'} <= _cols(conn, 'sportsdb_event_profiles'):
+                    profiles = _rows(conn, "SELECT raw_json FROM sportsdb_event_profiles WHERE event_date BETWEEN ? AND ? AND COALESCE(video_url,'')<>'' ORDER BY updated_at DESC LIMIT ?",
+                                     ((_today() - timedelta(days=days)).isoformat(), _today().isoformat(), capacity))
+            for profile in profiles:
+                try:
+                    item = json.loads(profile['raw_json'])
+                    if isinstance(item, dict) and item.get('idEvent') and item.get('strVideo'):
+                        profile_items.append(item)
+                except (ValueError, TypeError):
+                    continue
         with scope:
             partition_jobs = []
             deferred_day = None
@@ -958,7 +975,8 @@ def _sync_sportsdb_highlights(db_path, days_back, limit, force, historical_only,
             # during a cached-feed tick. Keep a margin for arrivals later in the
             # window; spend only the unreserved remainder on bounded history.
             recent_pending = sum(not item['fresh'] for item in v2_candidates(max_items=12))
-            coverage.set_recent_reserve(recent_pending)
+            with timed_phase('media', 'recent_reserve'):
+                coverage.set_recent_reserve(recent_pending)
             historical_phase[0] = True
             historical_jobs = []
             feed_attempted = [False]
@@ -983,8 +1001,9 @@ def _sync_sportsdb_highlights(db_path, days_back, limit, force, historical_only,
                 save(items)
                 return items
             for _ in range(HISTORY_BATCH):
-                job = run_one(coverage,scope,acquire_v2_event,lambda rows: save(rows,observe=False),
-                              _sportsdb_v1,batch_lookup=historical_feed)
+                with timed_phase('media', 'historical_job'):
+                    job = run_one(coverage,scope,acquire_v2_event,lambda rows: save(rows,observe=False),
+                                  _sportsdb_v1,batch_lookup=historical_feed)
                 historical_jobs.append(job)
                 if job.get('reason') or job.get('state') == 'IDLE':
                     if job.get('state') == 'RETRY_LATER' and job.get('reason'):
@@ -1027,11 +1046,18 @@ def _sync_sportsdb_highlights(db_path, days_back, limit, force, historical_only,
                               'ITEM_BUDGET', 'SCOPED_COVERAGE_ONLY', 'LEAGUE_RESPONSE_LIMIT', 'ENRICHMENT_PENDING'}
     status = 'FAILED' if technical else 'PARTIAL' if errors else 'OK'
     errors = list(dict.fromkeys(errors))
-    with _connect(db_path) as conn:
-        conn.execute('UPDATE sportsdb_highlight_runs SET finished_at=?,status=?,highlights_found=?,linked_matches=?,errors=?,external_calls=?,persistent_cache_hits=?,profile_links_reused=?,v2_event_lookups=?,v2_cache_hits=?,v2_highlights_found=?,associations_reconciled=? WHERE id=?',
-                     (_now(), status, found, linked, '; '.join(errors[:8]), scope.calls, persistent_cache_hits, profile_links_reused,
-                      v2_event_lookups, v2_cache_hits, v2_highlights_found, associations_reconciled, run_id))
-        conn.commit()
+    with timed_phase('media', 'ledger_finalize_connect'):
+        run_connection = _connect(db_path)
+    try:
+        with run_connection as conn:
+            with timed_phase('media', 'ledger_finalize_write', conn):
+                conn.execute('UPDATE sportsdb_highlight_runs SET finished_at=?,status=?,highlights_found=?,linked_matches=?,errors=?,external_calls=?,persistent_cache_hits=?,profile_links_reused=?,v2_event_lookups=?,v2_cache_hits=?,v2_highlights_found=?,associations_reconciled=? WHERE id=?',
+                             (_now(), status, found, linked, '; '.join(errors[:8]), scope.calls, persistent_cache_hits, profile_links_reused,
+                              v2_event_lookups, v2_cache_hits, v2_highlights_found, associations_reconciled, run_id))
+            with timed_phase('media', 'ledger_finalize_commit', conn):
+                conn.commit()
+    finally:
+        run_connection.close()
     return {'ok': status == 'OK', 'status': status, 'run_id': run_id,
             'days_back': days, 'highlights_found': found, 'linked_matches': linked,
             'historical_backfill': historical,
