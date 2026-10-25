@@ -7,6 +7,24 @@ import sqlite3
 import pytest
 
 
+@pytest.mark.parametrize('hour,minute', [(0,0),(0,1),(0,19),(0,20),(12,30),(23,59)])
+def test_actual_app_test_fixture_stays_on_current_day_at_midnight(hour, minute):
+    # Load only the stdlib fixture helper; do not import App or replace its clock.
+    import ast
+    from pathlib import Path
+    from zoneinfo import ZoneInfo
+    source = Path(__file__).with_name('v991_api_prepare_only_cases.py').read_text(encoding='utf-8')
+    node = next(n for n in ast.parse(source).body
+                if isinstance(n, ast.FunctionDef) and n.name=='current_day_live_kickoff')
+    namespace = {'timedelta':timedelta}
+    exec(compile(ast.Module(body=[node],type_ignores=[]), '<fixture-helper>', 'exec'),namespace)
+    now = datetime(2026,10,26,hour,minute,17,tzinfo=ZoneInfo('Europe/Madrid'))
+    kickoff = namespace['current_day_live_kickoff'](now)
+    assert kickoff.date()==now.date() and kickoff<=now
+    assert kickoff==max((now-timedelta(minutes=20)).replace(second=0,microsecond=0),
+                        now.replace(hour=0,minute=0,second=0,microsecond=0))
+
+
 def _database(tmp_path, rows, *, status_column=True):
     path = tmp_path / "dense-calendar.sqlite3"
     status = ", status TEXT" if status_column else ""

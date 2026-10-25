@@ -13,6 +13,7 @@ from engines import sportsdb_highlights_engine as media
 from engines.postmatch_sources import OfficialSources
 from engines.postmatch_store import Store
 from engines.postmatch_recovery import tick
+from engines.closed_operation_timing import phase as timed_phase
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -30,6 +31,7 @@ def load_app_function(name, **namespace):
     tree = ast.parse((ROOT/'app.py').read_bytes().decode())
     node = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == name)
     node.decorator_list = []
+    namespace.setdefault('timed_phase', timed_phase)
     exec(compile(ast.Module(body=[node], type_ignores=[]), 'app.py', 'exec'), namespace)
     return namespace[name]
 

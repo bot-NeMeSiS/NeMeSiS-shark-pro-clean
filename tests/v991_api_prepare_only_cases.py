@@ -23,6 +23,12 @@ def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, default=str).encode()).hexdigest()
 
 
+def current_day_live_kickoff(now):
+    """Keep the synthetic current-day fixture in today's lane at midnight."""
+    return max((now-timedelta(minutes=20)).replace(second=0, microsecond=0),
+               now.replace(hour=0, minute=0, second=0, microsecond=0))
+
+
 class Runtime:
     def __init__(self, app, repo, database, out, references):
         self.app, self.repo, self.db, self.out, self.references = app, repo, database, out, references
@@ -73,7 +79,7 @@ class Runtime:
 
     def seed(self, *, live=False, empty=False):
         rows = [] if empty else deepcopy(self.fixture['rows'])
-        kickoff = (self.now-timedelta(minutes=20)).replace(second=0, microsecond=0) if live else (
+        kickoff = current_day_live_kickoff(self.now) if live else (
             self.now+timedelta(days=1)).replace(hour=20, minute=0, second=0, microsecond=0)
         for row in rows:
             row.update(match_date=kickoff.date().isoformat(), kickoff_iso=kickoff.isoformat(),
