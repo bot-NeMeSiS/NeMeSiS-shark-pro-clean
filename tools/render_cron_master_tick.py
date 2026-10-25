@@ -5,7 +5,7 @@ The runner owns all production recurrence and keeps no local state:
 
 1. Independent Sports, Odds and Telegram automation lanes.
 2. Continuous Evolution tick on the persistent web service.
-3. Data Vault backup only inside the daily UTC maintenance window.
+3. Data Vault backup only inside 04:30-06:30 Europe/Madrid each day.
 
 The web service owns backup dedupe and persistent storage. The runner uses only
 PUBLIC_BASE_URL and AUTOMATION_SECRET, emits one sanitized JSON
@@ -44,8 +44,9 @@ READINESS_ENDPOINT = "/api/runtime-version?compact=1"
 TELEGRAM_TIMEOUT_SECONDS = 45
 CONTINUOUS_EVOLUTION_TIMEOUT_SECONDS = 90
 BACKUP_TIMEOUT_SECONDS = 90
-BACKUP_WINDOW_START_MINUTE_UTC = 2 * 60 + 30
-BACKUP_WINDOW_END_MINUTE_UTC = 4 * 60 + 30
+BACKUP_WINDOW_TIMEZONE = "Europe/Madrid"
+BACKUP_WINDOW_START_MINUTE_MADRID = 4 * 60 + 30
+BACKUP_WINDOW_END_MINUTE_MADRID = 6 * 60 + 30
 POSTMATCH_TIMEOUT_SECONDS = 45
 HIGHLIGHTS_TIMEOUT_SECONDS = 24
 READINESS_TIMEOUT_SECONDS = 8
@@ -79,13 +80,17 @@ def now_labels() -> tuple[str, str]:
 
 
 def backup_due(utc_now: str) -> bool:
-    """Allow several cron attempts; the web service dedupes the successful day."""
+    """Allow attempts from 04:30 inclusive to 06:30 exclusive in Madrid.
+
+    Production supplies aware UTC; naive inputs retain Python's host-local
+    interpretation. The web service still dedupes the successful day.
+    """
     try:
-        current = datetime.fromisoformat(str(utc_now).replace("Z", "+00:00")).astimezone(timezone.utc)
+        current = datetime.fromisoformat(str(utc_now).replace("Z", "+00:00")).astimezone(ZoneInfo(BACKUP_WINDOW_TIMEZONE))
     except (TypeError, ValueError):
         return False
     minute = current.hour * 60 + current.minute
-    return BACKUP_WINDOW_START_MINUTE_UTC <= minute < BACKUP_WINDOW_END_MINUTE_UTC
+    return BACKUP_WINDOW_START_MINUTE_MADRID <= minute < BACKUP_WINDOW_END_MINUTE_MADRID
 
 
 def print_event(payload: dict) -> None:
