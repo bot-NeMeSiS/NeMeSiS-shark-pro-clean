@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from engines.company_intelligence_engine import collect_sports_signals
@@ -50,6 +52,11 @@ def _match(app_module, match_id: str, *, lifecycle: str = "UPCOMING", score: boo
         "last_synced_at": app_module.now_iso(),
         "v935_lifecycle": lifecycle,
     }
+    if lifecycle == "LIVE":
+        kickoff = (datetime.now(ZoneInfo("Europe/Madrid")) - timedelta(minutes=65)).replace(microsecond=0)
+        item.update(kickoff_iso=kickoff.isoformat(), match_date=kickoff.date().isoformat(),
+            kickoff_time=kickoff.strftime("%H:%M"), status="LIVE", minute=67,
+            home_score=1, away_score=0)
     if score:
         item.update({"home_score": 2, "away_score": 1})
     return item
@@ -61,6 +68,7 @@ def _summary(app_module):
     upcoming = _match(app_module, "m-next")
     finished = _match(app_module, "m-finished", lifecycle="FINISHED", score=True)
     return {
+        "all_valid_matches": [today, live, finished, upcoming],
         "valid_matches_today": [today, live, finished],
         "valid_upcoming_matches": [today, upcoming],
         "valid_matches_available": [today, live, finished, upcoming],
@@ -85,7 +93,7 @@ def test_sports_data_contract_has_one_definition_and_deterministic_snapshot(app_
     summary["sports_metrics"] = first
     second = app_module.get_sports_metrics_contract(summary)
 
-    assert first is second
+    assert first == second
     assert first["contract"] == "sports-metrics-v1"
     assert first["matches_today"] == 3
     assert first["matches_available"] == 4
@@ -105,28 +113,47 @@ def test_sports_data_contract_has_one_definition_and_deterministic_snapshot(app_
 
 def test_all_runtime_contexts_keep_the_same_snapshot(app_module):
     summary = _summary(app_module)
-    summary["sports_metrics"] = app_module.build_sports_metrics_contract(summary)
-    expected = summary["sports_metrics"]["snapshot_id"]
-
+    # Explicit positive source contract supplied by this synthetic reader unit.
+    # No canonical reference is invented: these observations remain unresolved.
+    summary["storage_status"] = "ok"
     with app_module.app.test_request_context("/calendar"):
+        summary, operation = app_module._v991_finish_summary(summary)
+        expected = summary["sports_metrics"]["snapshot_id"]
         calendar = app_module.v931_calendar_context(summary)
         live = app_module.v931_live_context(summary)
         provider = app_module._v931_provider_context(summary)
         dashboard, _ = app_module.v931_safe_dashboard_data(
             "/calendar", compact=True, sports_summary=summary
         )
+        contexts = [app_module._v931_legacy_home_summary(summary), calendar, live, provider, dashboard]
+        assert all(context["sports_metrics"]["snapshot_id"] == expected for context in contexts)
+        assert app_module._v991_operation_for(summary) is operation
+        assert operation.snapshot.identity_coverage["resolved"] == 0
+    assert calendar["counts"]["today"] == summary["sports_metrics"]["matches_today"] == 3
+    assert live["counts"]["live"] == summary["sports_metrics"]["live_confirmed"] == 1
+    assert live["fixture_identity"]["state"] == "ESTABLISHED_FOR_EMITTED_COHORT"
+    assert provider["counts"]["picks"] == summary["sports_metrics"]["matches_with_picks"] == 2
 
-    contexts = [
-        app_module._v931_legacy_home_summary(summary),
-        calendar,
-        live,
-        provider,
-        dashboard,
-    ]
-    assert all(context["sports_metrics"]["snapshot_id"] == expected for context in contexts)
-    assert calendar["counts"]["today"] == summary["sports_metrics"]["matches_today"]
-    assert live["counts"]["live"] == summary["sports_metrics"]["live_confirmed"]
-    assert provider["counts"]["picks"] == summary["sports_metrics"]["matches_with_picks"]
+
+def test_unprepared_runtime_does_not_claim_live_count(app_module):
+    summary = _summary(app_module)
+    with app_module.app.test_request_context("/live"):
+        live = app_module.v931_live_context(summary)
+    assert live["counts"]["live"] is None
+    assert live["fixture_identity"]["state"] == "NOT_ESTABLISHED"
+    assert "UNPREPARED_CONTEXT" in live["fixture_identity"]["coverage"]["reasons"]
+
+
+def test_cached_metrics_are_recalculated_instead_of_trusting_foreign_owner(app_module):
+    summary = _summary(app_module)
+    original = app_module.build_sports_metrics_contract(summary)
+    forged = dict(original, matches_today=999, matches_available=999)
+    summary["sports_metrics"] = forged
+    current = app_module.get_sports_metrics_contract(summary)
+    assert current is not forged and current["matches_today"] == 3
+    assert current["matches_available"] == 4
+    summary["valid_matches_today"] = []
+    assert app_module.get_sports_metrics_contract(summary)["matches_today"] == 0
 
 
 def test_company_intelligence_never_recalculates_without_contract(app_module):

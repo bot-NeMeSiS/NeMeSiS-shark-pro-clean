@@ -1,12 +1,23 @@
 # V991 — shared fixture snapshots
 
-Candidate status: local validation complete for the cases below; CI and the
+Candidate status: the local gates below cover their stated cases; final CI and the
 material large-cohort Directo CPU gate remain open. This is not a published release.
 
 Home, Calendar and Directo select complete original observations through the same
 operation-owned fixture evidence. Filters precede grouping and presentation limits.
 Historical rows retain their own bounded cohort and unknown/conflicting occurrences
 remain visible without fabricated action IDs.
+
+The coordinator admits a LIVE original only when the source's validated LIVE
+collection approves that same object and its own evidence is still fresh. This
+happens before preparation, so Home, Calendar, Directo and their grouped counts
+cannot independently promote an unapproved nominal LIVE status. Reusing the
+getter within one request preserves the prepared owner; changed identity is not
+re-prepared into new trusted evidence.
+
+Home recomputes current user favorites, picks, status and date from intact copies.
+The legacy ranking hint cannot authorize cached user flags or a cached profile.
+This is a correctness change, not a classification-cache speedup.
 
 Directo and the existing generic realtime bars opt into explicit grouped contracts.
 Each score, minute, statistic and expiry remains tied to its own provider observation.
@@ -26,6 +37,13 @@ ten fresh-worker real-App contracts; 25 isolated QA file-restoration/predicate
 checks; 45 release/PWA/language cases and the V915 safety checker. These gates
 overlap and are not a combined pytest total. The fresh-worker gate is included
 in CI, with isolated synthetic storage and no providers or real accounts.
+
+Follow-up managed gates: 139 historical/Calendar/metrics/LIVE admission cases,
+159 Home/language/Directo/Calendar WSGI cases, and eight actual Chromium desktop
+and mobile cases. They passed with isolated synthetic storage and no external
+connections. The eight browser cases are explicitly excluded from the WSGI gate
+and executed separately. Counts from these scopes must not be added to older
+overlapping validation totals or treated as a production certificate.
 
 Home and Calendar no longer construct an unused realtime projection. The guarded
 call-observation regression demonstrates one-to-zero calls on those routes while

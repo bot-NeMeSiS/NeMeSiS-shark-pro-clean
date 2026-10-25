@@ -64,7 +64,7 @@ def test_past_date_hydrates_persisted_results_missing_from_main_snapshot(app_mod
 
     monkeypatch.setattr(app_module, "get_results_matches", persisted)
     base = _empty_summary(app_module)
-    hydrated = app_module._v940_hydrate_selected_date_results(base, "2026-09-18")
+    hydrated, operation = app_module._v991_finish_summary(base, selected_date="2026-09-18")
 
     assert calls == [("2026-09-18", 0, 400)]
     assert hydrated["historical_results_source"] == "local_db_read_only"
@@ -73,7 +73,10 @@ def test_past_date_hydrates_persisted_results_missing_from_main_snapshot(app_mod
     assert [item["id"] for item in hydrated["finished_matches"]] == ["hist-result-1"]
 
     with app_module.app.test_request_context("/calendar?lane=today&date=2026-09-18"):
-        calendar = app_module.v940_calendar_context(hydrated, "today", "2026-09-18")
+        assert app_module._v940_hydrate_selected_date_results(hydrated, "2026-09-18") is hydrated
+        calendar = app_module.v940_calendar_context(hydrated, "today", "2026-09-18", fixture_operation=operation)
+    assert calls == [("2026-09-18", 0, 400)]
+    assert operation.snapshot.context.lookup_calls == 0
     assert calendar["counts"]["visible"] == 1
     assert calendar["matches"][0]["id"] == "hist-result-1"
     assert calendar["matches"][0]["home_score"] == 2
@@ -89,9 +92,11 @@ def test_historical_reader_keeps_only_the_selected_day(app_module, monkeypatch):
         "get_results_matches",
         lambda *a, **k: [_finished("selected", "2026-09-18"), _finished("other", "2026-09-17")],
     )
-    hydrated = app_module._v940_hydrate_selected_date_results(
-        _empty_summary(app_module), "2026-09-18"
+    hydrated, operation = app_module._v991_finish_summary(
+        _empty_summary(app_module), selected_date="2026-09-18"
     )
+    assert operation.snapshot.cohorts["current"] == ()
+    assert len(operation.snapshot.cohorts["history"]) == 1
     assert [item["id"] for item in hydrated["all_valid_matches"]] == ["selected"]
 
 
@@ -117,7 +122,14 @@ def test_historical_db_lock_falls_back_without_fabricating_results(app_module, m
 
     monkeypatch.setattr(app_module, "get_results_matches", locked)
     summary = _empty_summary(app_module)
-    assert app_module._v940_hydrate_selected_date_results(summary, "2026-09-18") is summary
+    hydrated, operation = app_module._v991_finish_summary(summary, selected_date="2026-09-18")
+    assert hydrated is summary
+    assert hydrated["historical_results_count"] is None
+    assert hydrated["historical_results_read_state"] == "DATABASE_LOCKED"
+    assert hydrated["historical_results_source"] == "local_db_unavailable"
+    assert hydrated["all_valid_matches"] == []
+    assert operation.snapshot.cohorts["history"] == ()
+    assert app_module._v940_hydrate_selected_date_results(hydrated, "2026-09-18") is hydrated
 
 
 def test_historical_provider_state_matches_visible_results(app_module, monkeypatch):
@@ -170,7 +182,8 @@ def test_calendar_api_hydrates_same_persisted_history_as_page(app_module, monkey
     monkeypatch.setattr(
         app_module,
         "v932_safe_dashboard_data",
-        lambda *a, **k: ({}, _empty_summary(app_module)),
+        lambda *a, **k: ({}, app_module._v991_finish_summary(
+            _empty_summary(app_module), selected_date="2026-09-18")[0]),
     )
 
     response = app_module.app.test_client().get(
@@ -190,7 +203,8 @@ def test_calendar_page_provider_state_uses_hydrated_history(app_module, monkeypa
     monkeypatch.setattr(
         app_module,
         "v932_safe_dashboard_data",
-        lambda *a, **k: ({}, _empty_summary(app_module)),
+        lambda *a, **k: ({}, app_module._v991_finish_summary(
+            _empty_summary(app_module), selected_date="2026-09-18")[0]),
     )
     captured = {}
 
@@ -233,3 +247,34 @@ def test_past_calendar_enriches_authorized_highlight_state_without_provider_call
     assert calendar["matches"][0]["client_highlight_label"] == "Resumen disponible"
     assert calendar["external_calls"] == 0
     assert calendar["database_written"] is False
+
+
+def test_unprepared_history_consumer_never_reads_or_prepares(app_module, monkeypatch):
+    summary = _empty_summary(app_module)
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("History must be finalized before the consumer")
+
+    monkeypatch.setattr(app_module, "get_results_matches", forbidden)
+    monkeypatch.setattr(app_module, "_v991_prepare_summary_operation", forbidden)
+    assert app_module._v940_hydrate_selected_date_results(summary, "2026-09-18") is summary
+    assert summary["all_valid_matches"] == []
+    assert "historical_results_count" not in summary
+
+
+def test_history_keeps_same_id_occurrences_and_foreign_day_is_excluded(app_module, monkeypatch):
+    monkeypatch.setattr(app_module, "today_iso", _today_factory("2026-09-20"))
+    current = _finished("same-action-id", "2026-09-18")
+    historical = _finished("same-action-id", "2026-09-18")
+    other_day = _finished("other-day", "2026-09-17")
+    summary = _empty_summary(app_module)
+    summary["all_valid_matches"] = [current]
+    monkeypatch.setattr(app_module, "get_results_matches", lambda *a, **k: [historical, other_day])
+    finalized, operation = app_module._v991_finish_summary(summary, selected_date="2026-09-18")
+    assert finalized["all_valid_matches"] == [current, historical]
+    assert finalized["all_valid_matches"][0] is current
+    assert finalized["all_valid_matches"][1] is historical
+    selection = operation.snapshot.select_rows(finalized["all_valid_matches"])
+    assert selection.count == 2 and len(selection.rows) == 2
+    assert selection.identity_basis == ("UNRESOLVED", "UNRESOLVED")
+    assert finalized["historical_results_count"] == 1

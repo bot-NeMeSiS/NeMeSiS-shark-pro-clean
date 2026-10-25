@@ -18950,6 +18950,9 @@ def _v991_prepare_summary_operation(summary, *, selected_date=None, current=None
 
 def _v991_finish_summary(summary, *, selected_date=None):
     selected = _safe_date_value(selected_date, today_iso())
+    # Admit only each original's own fresh LIVE evidence in the already-approved
+    # live cohort, before the only context preparation and current/history split.
+    summary.update(_v937_live_summary_without_stale(summary, None))
     current = _v991_unique_objects(summary.get("all_valid_matches") or ())
     history = []
     history_read_state = "NOT_REQUESTED"
@@ -19814,7 +19817,13 @@ def build_sports_home_sections(summary, limit=6, reuse_ranked=False, fixture_ope
     favorites = favorite_sets() if has_request_context() and current_session_user() else {"team":set(),"league":set(),"match":set(),"all":[]}
     pick_ids = {str(row.get("match_id") or "").strip() for row in summary.get("valid_active_picks") or ()}
     originals = _v991_unique_objects([row for lane in _V991_LANES for row in summary.get(lane) or ()])
-    projected = {id(row): apply_sports_relevance(row, pick_ids=pick_ids, favorites=favorites) for row in originals}
+    def current_projection(row):
+        # These are request/user overlays, never authority from a cached row.
+        current = dict(row)
+        current["is_favorite"] = False
+        current["has_pick"] = False
+        return apply_sports_relevance(current, pick_ids=pick_ids, favorites=favorites)
+    projected = {id(row): current_projection(row) for row in originals}
     select = lambda rows, **kw: _v991_selected(summary, rows, fixture_operation=operation,
         rank_for=lambda row: (bool(projected[id(row)].get("is_favorite")), bool(projected[id(row)].get("has_pick")),
                              provider_family(row.get("source"))=="api-football",match_quality_score(row)), **kw)
@@ -20019,8 +20028,6 @@ def get_public_home_sports_summary(selected_date=None):
             return existing
     result, cache_status = cached_v934_realtime_snapshot(
         _public_sports_cache_key(), _v991_validated_base_summary, ttl_seconds=300)
-    realtime = build_v934_realtime_snapshot(result)
-    result = _v937_live_summary_without_stale(result, realtime)
     result, operation = _v991_finish_summary(result, selected_date=selected)
     result["summary_cache_status"] = cache_status
     if has_request_context():
@@ -20609,6 +20616,7 @@ def _v937_live_summary_without_stale(summary, realtime):
     from engines.v934_realtime_sports_engine import normalize_match
     summary = summary if isinstance(summary, dict) else {}
     evaluated_at = datetime.now(MADRID_TZ)
+    approved_live_objects = {id(row) for row in summary.get('valid_live_events') or ()}
     reconciled, stale_objects, unconfirmed_objects = {}, set(), set()
 
     def own(row):
@@ -20621,7 +20629,7 @@ def _v937_live_summary_without_stale(summary, realtime):
         if frame and frame.get('is_stale'):
             stale_objects.add(id(row));result = None
         elif canonical_match_status(row,now=evaluated_at).get('is_live'):
-            if not frame or not frame.get('is_live'):
+            if id(row) not in approved_live_objects or not frame or not frame.get('is_live'):
                 unconfirmed_objects.add(id(row));result = None
             else:
                 result = dict(row)
@@ -22993,6 +23001,8 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
     favorites=favorite_sets() if has_request_context() and current_session_user() else {'team':set(),'league':set(),'match':set(),'all':[]}
     raw_all=_v991_unique_objects(summary.get('all_valid_matches') or summary.get('valid_upcoming_matches') or ())
     prepared={id(row):_v940_calendar_prepare_match(row,pick_ids,favorites) for row in raw_all}
+    approved_live_objects={id(row) for row in summary.get('valid_live_events') or ()}
+    raw_all=[row for row in raw_all if id(row) in approved_live_objects or not prepared[id(row)]['status_info'].get('is_live')]
     original_for_projection={id(value):row for row in raw_all for value in (prepared[id(row)],)}
     def lane_rows(lane_key):
         day=filters['date'];today=today_iso();week_end=today_iso(7)
