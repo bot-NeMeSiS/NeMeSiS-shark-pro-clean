@@ -19833,12 +19833,12 @@ def get_v932_real_sports_value_context(summary=None):
         if cached is not None:
             return dict(cached)
     summary = dict(summary or get_public_home_sports_summary())
-    provider = {}
+    provider = {"read_state": "NOT_REQUESTED"}
     if summary.get("storage_status") not in {"database_locked", "route_not_required"}:
         try:
             provider = get_api_sports_status(DB_PATH) or {}
-        except Exception as exc:
-            provider = {"ok": False, "last_error": type(exc).__name__}
+        except Exception:
+            provider = {"ok": False, "read_state": "READ_UNAVAILABLE", "read_error": "storage_unavailable"}
     valid_today = list(summary.get("valid_matches_today") or [])
     valid_upcoming = list(summary.get("valid_upcoming_matches") or [])
     valid_live = list(summary.get("valid_live_events") or [])
@@ -19856,15 +19856,24 @@ def get_v932_real_sports_value_context(summary=None):
     else:
         client_message = "No hay partidos completos disponibles ahora. La app no muestra encuentros de ejemplo."
         next_action = "run_protected_sports_sync" if provider_available else "review_provider_configuration"
+    provider_cache_known = (
+        provider.get("ok") is not False
+        and provider.get("read_state") in {None, "READY"}
+        and provider.get("fixtures_cached") is not None
+        and provider.get("live_cached") is not None
+    )
     result = {
         "source": "Datos deportivos",
         "provider_status": summary.get("provider_status") or "waiting_for_sync",
         "provider_configured": bool(provider.get("api_sports_configured")),
         "provider_available": provider_available,
         "cache_enabled": bool(provider.get("api_sports_cache_enabled", True)),
-        "cache_status": "available" if provider.get("fixtures_cached") or provider.get("live_cached") else "empty",
-        "cached_fixtures": int(provider.get("fixtures_cached") or 0),
-        "cached_live": int(provider.get("live_cached") or 0),
+        "cache_status": (
+            "available" if provider.get("fixtures_cached") or provider.get("live_cached") else "empty"
+        ) if provider_cache_known else "unknown",
+        "cached_fixtures": int(provider["fixtures_cached"]) if provider_cache_known else None,
+        "cached_live": int(provider["live_cached"]) if provider_cache_known else None,
+        "provider_read_state": provider.get("read_state") or ("READY" if provider_cache_known else "READ_UNAVAILABLE"),
         "raw_matches_count": int(summary.get("raw_matches_count") or 0),
         "valid_matches_count": int(summary.get("valid_matches_total") or 0),
         "valid_matches_today_count": len(valid_today),
@@ -26392,7 +26401,7 @@ def api_admin_api_sports_status():
     if not is_admin_session():
         return admin_json_forbidden()
     status = get_api_sports_status(DB_PATH)
-    state = explain_api_sports_provider_state(DB_PATH)
+    state = explain_api_sports_provider_state(status=status)
     dry_run = {
         "fixtures": sync_api_sports_fixtures(days=2, dry_run=True),
         "live": sync_api_sports_live(dry_run=True),
@@ -26846,19 +26855,7 @@ def shark_page():
     openai_ready = v845_openai_configured()
     question = requested_question if requested_question and not question_block else "resumen"
     provider_status = dict(getattr(g, "v932_api_sports_status", {}) or {})
-    if not provider_status.get("api_sports_configured"):
-        provider_label = "API-SPORTS no configurada"
-        provider_message = "Render debe incluir API_FOOTBALL_KEY o API_SPORTS_KEY para activar fixtures/live reales."
-    elif provider_status.get("last_error"):
-        provider_label = "Esperando proveedor"
-        provider_message = "La clave existe, pero el último estado del proveedor tiene error seguro. Se mantiene caché/fallback."
-    elif provider_status.get("fixtures_cached") or provider_status.get("live_cached"):
-        provider_label = "Proveedor activo con caché"
-        provider_message = "La app tiene datos API-SPORTS/API-Football cacheados y no necesita llamar al proveedor en cada render."
-    else:
-        provider_label = "Proveedor configurado sin caché visible"
-        provider_message = "La clave está configurada, pero aún no hay fixtures/live cacheados en las tablas detectadas."
-    provider_state = {"label": provider_label, "message": provider_message, "status": provider_status}
+    provider_state = explain_api_sports_provider_state(status=provider_status)
     context = timed_phase(
         "assistant_context",
         lambda: v931_safe_context(
@@ -28042,6 +28039,8 @@ def v822_runtime_stability_snapshot():
         "api_sports_cache_enabled": api_sports_status.get("api_sports_cache_enabled"),
         "api_sports_credit_guard_enabled": api_sports_status.get("api_sports_credit_guard_enabled"),
         "api_sports_last_sync_known": bool(api_sports_status.get("last_sync")),
+        "api_sports_read_state": api_sports_status.get("read_state"),
+        "api_sports_read_error": api_sports_status.get("read_error"),
         "provider_active": api_sports_status.get("provider_active"),
         "last_sync": api_sports_status.get("last_sync"),
         "last_error": last_provider_error,
@@ -30412,7 +30411,14 @@ def api_runtime_version():
     runtime_stability = sanitize_runtime_value(v822_runtime_stability_snapshot())
     if isinstance(runtime_stability, dict) and runtime_stability.get("last_error"):
         runtime_stability["last_error"] = sanitize_runtime_error_value(runtime_stability.get("last_error"))
-    last_error_state = runtime_error_state(runtime_stability.get("last_error") if isinstance(runtime_stability, dict) else "")
+    if isinstance(runtime_stability, dict) and runtime_stability.get("api_sports_read_state") not in (None, "READY"):
+        last_error_state = {
+            "active": False,
+            "status": "Estado local sin comprobar",
+            "message": "No se pudo comprobar el estado local del proveedor.",
+        }
+    else:
+        last_error_state = runtime_error_state(runtime_stability.get("last_error") if isinstance(runtime_stability, dict) else "")
     openai_ready = env_present("OPENAI_API_KEY")
     openai_state = "Configurado" if openai_ready else "SHARK IA avanzada pendiente de configuración"
     logo_cache_count = int((runtime_stability or {}).get("team_logo_cache_count") or 0) + int((runtime_stability or {}).get("league_logo_cache_count") or 0)
