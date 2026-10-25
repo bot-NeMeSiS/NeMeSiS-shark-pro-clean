@@ -151,7 +151,7 @@ def test_home_does_not_promote_unconfirmed_live_rows(app_module,monkeypatch):
     accepted=match('confirmed',now=now,hours=-.25,state='live')
     unconfirmed=match('unconfirmed',now=now,hours=-.25,state='live')
     summary={'valid_live_events':[accepted],'all_valid_matches':[accepted,unconfirmed]}
-    monkeypatch.setattr(app_module,'canonical_match_status',lambda item: {
+    monkeypatch.setattr(app_module,'canonical_match_status',lambda item, now=None: {
         'is_live':True,'is_upcoming':False,'is_finished':False,'is_stale':False,'status_conflict':False,
     })
 
@@ -161,7 +161,7 @@ def test_home_does_not_promote_unconfirmed_live_rows(app_module,monkeypatch):
     assert [item['id'] for item in items(result,'live')]==['confirmed']
 
 
-def test_home_collapses_exact_cross_provider_fixture_and_prefers_api_football(app_module, monkeypatch):
+def test_home_keeps_unprepared_cross_provider_observations_separate(app_module, monkeypatch):
     now = NOW
     kickoff = (now + timedelta(hours=2)).isoformat()
     api_fixture = {
@@ -188,10 +188,69 @@ def test_home_collapses_exact_cross_provider_fixture_and_prefers_api_football(ap
     result = app_module.home_matchday_context(summary, now=now)
     shown = items(result, 'today')
 
-    assert len(shown) == 1
-    assert shown[0]['id'] == 'af-1570389'
-    assert shown[0]['source'] == 'api_football'
+    assert result['identity_state'] == 'UNPREPARED'
+    assert result['today']['total'] == 2
+    assert len(shown) == 2
+    by_id = {item['id']: item for item in shown}
+    assert set(by_id) == {api_fixture['id'], sportsdb_fixture['id']}
+    assert by_id[api_fixture['id']]['source'] == api_fixture['source']
+    assert by_id[sportsdb_fixture['id']]['source'] == sportsdb_fixture['source']
+    assert all(item['kickoff_iso'] == kickoff for item in shown)
     assert summary == original
+
+
+def test_home_groups_only_verified_prepared_cross_provider_fixture_and_keeps_owners(app_module, monkeypatch):
+    import json
+    from pathlib import Path
+    from engines.fixture_snapshot_read_model import PreparedFixtureSnapshot, prepare_fixture_snapshot
+
+    fixture = json.loads(Path(__file__).with_name('v991_fixture_identity.json').read_text(encoding='utf-8'))['input']
+    observations = deepcopy(fixture['rows'][:2])
+    catalogue = deepcopy(fixture['catalogue'])
+    before = deepcopy(observations)
+    api_fixture, sportsdb_fixture = observations
+    kickoff = datetime.fromisoformat(api_fixture['kickoff_iso'])
+    now = kickoff - timedelta(hours=2)
+    selected_date = kickoff.date().isoformat()
+    summary = {'all_valid_matches': observations, 'valid_matches_today': observations}
+    original = deepcopy(summary)
+    reference_calls = []
+
+    def read_competitions(keys):
+        reference_calls.append(tuple(keys))
+        return [deepcopy(row) for row in catalogue if row['key'] in keys]
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError('Prepared Home selection must not read SQL or rebuild references')
+
+    for helper in ('rows', 'db', 'get_favorites', 'dashboard_data', 'get_public_home_sports_summary', '_v991_references'):
+        monkeypatch.setattr(app_module, helper, forbidden)
+    snapshot = prepare_fixture_snapshot({'current': observations, 'history': ()}, read_competitions,
+                                        kickoff_for=app_module.match_kickoff_madrid_dt)
+    operation = app_module._V991Operation(summary, selected_date,
+        app_module._v991_generation(snapshot, selected_date), app_module._v991_membership(summary), snapshot)
+
+    assert isinstance(snapshot, PreparedFixtureSnapshot)
+    assert reference_calls == [('laliga',)]
+    assert all(snapshot.context_for(row).state == 'RESOLVED' for row in observations)
+    assert operation.summary is summary and operation.matches(summary, selected_date)
+    assert snapshot.cohorts['current'][0] is api_fixture
+    assert snapshot.cohorts['current'][1] is sportsdb_fixture
+
+    result = app_module.home_matchday_context(summary, now=now, fixture_operation=operation,
+        favorites={'team': set(), 'league': set(), 'match': set(), 'all': []})
+    shown = items(result, 'today')
+
+    assert result['identity_state'] == 'PREPARED'
+    assert result['today']['total'] == 1 and len(shown) == 1
+    assert shown[0]['id'] == api_fixture['id']
+    for field in ('id', 'external_id', 'source', 'raw_json', 'kickoff_iso', 'home_team_id', 'away_team_id'):
+        assert shown[0][field] == api_fixture[field]
+    assert shown[0]['id'] != sportsdb_fixture['id']
+    assert reference_calls == [('laliga',)]
+    assert observations == before and summary == original
+    shown[0]['home_team'] = 'changed only in the presentation copy'
+    assert observations == before and summary == original
 
 
 @pytest.mark.parametrize(('country', 'kickoff_delta'), [

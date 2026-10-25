@@ -48,6 +48,9 @@ jobs:
           python -m unittest discover -s tests -p test_sports_history.py -v
           python -m unittest discover -s tests -p test_sports_history_operations.py -v
 
+      - name: Real App read-path contracts (fresh guarded worker)
+        run: python -B tools/check_v991_app_read_paths.py --output-dir "$RUNNER_TEMP/v991-app-read-paths" -v
+
       - name: Existing project checks
         run: |
           python tools/check_madrid_times.py
@@ -71,6 +74,9 @@ jobs:
         with:
           name: nemesis-ci-artifacts
           path: |
+            ${{ runner.temp }}/v991-app-read-paths/receipt.json
+            ${{ runner.temp }}/v991-app-read-paths/worker.stdout.txt
+            ${{ runner.temp }}/v991-app-read-paths/worker.stderr.txt
             reports/V941_*
             reports/V942_*
             release_output/*_RENDER_READY.zip

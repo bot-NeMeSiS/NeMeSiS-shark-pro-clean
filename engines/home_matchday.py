@@ -68,7 +68,7 @@ def _identity(match, identity_for):
     }
 
 
-def build_matchday(matches, *, now, status_for, kickoff_for, priority_for, limit=None, identity_for=None):
+def build_matchday(matches, *, now, status_for, kickoff_for, priority_for, limit=None, identity_for=None, dedupe_ids=True):
     """Reserve space across peers, then render each league as one contiguous block.
 
     Today uses up to 48 cached matches. Other lanes stay at 12. An explicit
@@ -87,7 +87,7 @@ def build_matchday(matches, *, now, status_for, kickoff_for, priority_for, limit
         if not isinstance(match, Mapping):
             continue
         identifier = str(match.get('id') or '').strip()
-        if not identifier or identifier in seen:
+        if not identifier or (dedupe_ids and identifier in seen):
             continue
         status = status_for(match)
         kickoff = _local(kickoff_for(match))

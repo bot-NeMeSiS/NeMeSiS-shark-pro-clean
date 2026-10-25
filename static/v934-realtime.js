@@ -29,8 +29,8 @@
     return Math.max(30, Math.round(seconds * (0.92 + Math.random() * 0.16)));
   }
 
-  function sharedLoad(endpoint, scope) {
-    var key = endpoint + '?scope=' + encodeURIComponent(scope);
+  function sharedLoad(endpoint, scope, identityScope) {
+    var key = fixtureRequestKey(endpoint, scope, identityScope);
     var entry = shared.entries[key] || (shared.entries[key] = { payload: null, fetchedAt: 0, etag: '', modified: '', pending: null });
     if (entry.payload && Date.now() - entry.fetchedAt < 15000) return Promise.resolve({payload: entry.payload, serverTime: entry.serverTime, receivedMono: entry.receivedMono});
     if (entry.pending) return entry.pending;
@@ -124,6 +124,220 @@
     });
   }
 
+
+  // V991 fixture identity helpers begin.
+  // Plain transport descriptors; never an identity inferred by this client.
+  var fixtureMeasures = ['live', 'halftime', 'today', 'available', 'finished_verified', 'with_pick'];
+  var fixtureBases = ['CANONICAL_COMPETITION', 'PROVIDER_NATIVE_FIXTURE', 'UNRESOLVED'];
+  function fixtureIdentifier(value) {
+    return typeof value === 'string' && value.length > 0 && value.length <= 90 &&
+      value === value.trim() && !/[\x00-\x1f\x7f]/.test(value);
+  }
+  function fixtureDigest(value) { return typeof value === 'string' && /^[a-f0-9]{24}$/.test(value); }
+  function fixtureToken(value) { return typeof value === 'string' && /^fg-[a-f0-9]{24}$/.test(value); }
+  function fixtureRequestKey(endpoint, scope, identityScope) {
+    if (!identityScope) return endpoint + '?scope=' + encodeURIComponent(scope);
+    var parts = String(endpoint).split('?');
+    var params = new URLSearchParams(parts.slice(1).join('?'));
+    params.set('scope', scope); params.set('consumer', identityScope.consumer === 'fixture-metrics-v1' ? 'fixture-metrics-v1' : 'directo-v2');
+    if (identityScope.consumer !== 'fixture-metrics-v1') {
+      params.set('lane', identityScope.lane); params.set('q', identityScope.query);
+    }
+    params.sort();
+    return parts[0] + '?' + params.toString();
+  }
+  function readFixtureIdentity(descriptor, rows, expected, validState) {
+    function reject(reason) { return {ok:false, reason:reason}; }
+    if (!descriptor || descriptor.contract !== 'NEMESIS-FIXTURE-GROUPS-V1') return reject('CONTRACT');
+    if (descriptor.state !== 'ESTABLISHED_FOR_EMITTED_COHORT') return reject('NOT_ESTABLISHED');
+    if (!fixtureDigest(descriptor.generation) || !descriptor.cohort_scope ||
+        descriptor.cohort_scope.kind !== 'current_sports' || descriptor.cohort_scope.historical !== false ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(descriptor.cohort_scope.date_madrid || '')) return reject('COHORT');
+    var general = descriptor.general, view = descriptor.view;
+    if (!general || !view || !general.counts || !view.scope || !expected ||
+        view.scope.consumer !== 'directo-v2' || view.scope.consumer !== expected.consumer ||
+        !['live','all','break','finished','with_pick'].includes(view.scope.lane) ||
+        view.scope.lane !== expected.lane || typeof view.scope.query !== 'string' ||
+        view.scope.query.length > 90 || view.scope.query !== expected.query ||
+        !fixtureDigest(view.scope_id) || view.scope_id !== expected.scope_id) return reject('SCOPE');
+    if (!Array.isArray(rows) || rows.length > 800) return reject('ROWS');
+    var byId = new Map();
+    for (var row of rows) {
+      if (!row || !fixtureIdentifier(row.id) || byId.has(row.id) ||
+          !validState(row.realtime_state)) return reject('ROW_ID_OR_STATE');
+      byId.set(row.id, row.realtime_state);
+    }
+    function members(values, all, isView) {
+      if (!Array.isArray(values) || values.length > 800) return null;
+      var output = new Map(), baseByGroup = new Map(), measureBases = Object.create(null);
+      for (var member of values) {
+        if (!member || !fixtureIdentifier(member.id) || output.has(member.id) || !all.has(member.id) ||
+            !fixtureToken(member.group) || !fixtureBases.includes(member.basis) ||
+            !member.measures || typeof member.measures !== 'object' || Array.isArray(member.measures)) return null;
+        if (baseByGroup.has(member.group) && (baseByGroup.get(member.group) !== member.basis ||
+            member.basis === 'UNRESOLVED')) return null;
+        baseByGroup.set(member.group, member.basis);
+        var measures = Object.create(null);
+        for (var measure of Object.keys(member.measures)) {
+          var proof = member.measures[measure];
+          if (!fixtureMeasures.includes(measure) || (isView && !['live','halftime'].includes(measure)) ||
+              !proof || !fixtureToken(proof.group) ||
+              !fixtureBases.includes(proof.basis)) return null;
+          var proofBases = measureBases[measure] || (measureBases[measure] = new Map());
+          if (proofBases.has(proof.group) && (proofBases.get(proof.group) !== proof.basis ||
+              proof.basis === 'UNRESOLVED')) return null;
+          proofBases.set(proof.group, proof.basis);
+          measures[measure] = Object.freeze({group:proof.group, basis:proof.basis});
+        }
+        var state = byId.get(member.id);
+        if (Boolean(measures.live) !== (state.is_live === true) ||
+            Boolean(measures.halftime) !== (state.is_live === true && state.status_canonical === 'HALFTIME')) return null;
+        output.set(member.id, Object.freeze({id:member.id, group:member.group, basis:member.basis,
+                                            measures:Object.freeze(measures)}));
+      }
+      if (!isView && output.size !== byId.size) return null;
+      return output;
+    }
+    var generalMembers = members(general.members, byId, false);
+    if (!generalMembers) return reject('GENERAL_MEMBERS');
+    var viewMembers = members(view.members, generalMembers, true);
+    if (!viewMembers) return reject('VIEW_MEMBERS');
+    var counts = {};
+    for (var name of fixtureMeasures) {
+      var groups = new Set(), bases = new Map(), inconsistent = false;
+      generalMembers.forEach(function (member) {
+        var proof = member.measures[name];
+        if (proof) {
+          if (bases.has(proof.group) && (bases.get(proof.group) !== proof.basis || proof.basis === 'UNRESOLVED')) inconsistent = true;
+          groups.add(proof.group); bases.set(proof.group, proof.basis);
+        }
+      });
+      if (!Number.isInteger(general.counts[name]) || general.counts[name] < 0 ||
+          general.counts[name] !== groups.size || inconsistent) return reject('COUNT');
+      counts[name] = general.counts[name];
+    }
+    var viewGroups = new Set(); viewMembers.forEach(function (member) { viewGroups.add(member.group); });
+    if (!Number.isInteger(view.groups_before_limit) || view.groups_before_limit !== viewGroups.size) return reject('VIEW_COUNT');
+    var coverage = descriptor.coverage, allGroups = new Set(), unresolved = 0;
+    generalMembers.forEach(function (member) {
+      allGroups.add(member.group); if (member.basis === 'UNRESOLVED') unresolved += 1;
+    });
+    if (!coverage || coverage.emitted_observations !== byId.size || coverage.not_covered_observations !== 0 ||
+        coverage.grouped_observations !== allGroups.size || coverage.unresolved_singletons !== unresolved ||
+        !['RESOLVED','PARTIAL_UNKNOWN','UNKNOWN'].includes(coverage.reference_state) ||
+        !Array.isArray(coverage.reasons) || coverage.reasons.length !== 0) return reject('COVERAGE');
+    return Object.freeze({ok:true, generation:descriptor.generation, scope_id:view.scope_id,
+      general:generalMembers, view:viewMembers, counts:Object.freeze(counts),
+      unresolved_singletons:descriptor.coverage.unresolved_singletons});
+  }
+  function fixtureGroupCount(members, records, measure, eligible) {
+    var groups = new Set();
+    members.forEach(function (member, id) {
+      var proof = member.measures[measure], entry = records.get(id);
+      if (proof && entry && eligible(entry, id)) groups.add(proof.group);
+    });
+    return groups.size;
+  }
+  // V991 fixture identity helpers end.
+
+
+
+  // V991 fixture metrics helpers begin.
+  // Current-cohort metric evidence is separate from the optional row arrays.
+  // In particular picks/odds do not pretend to contain all fixture members.
+  var fixtureMetricUnits = {matches:'retained_fixture_groups', today:'retained_fixture_groups',
+    live:'retained_fixture_groups', finished:'retained_fixture_groups',
+    matches_with_picks:'retained_fixture_groups', picks:'safe_active_pick_observations',
+    synchronized:'source_observations'};
+  var fixtureMetricSnapshots = new WeakMap();
+  function readFixtureMetrics(payload, expectedScope) {
+    function reject() { return Object.freeze({ok:false}); }
+    var allowedScopes = ['all','matches','live','picks','odds'];
+    var metric = payload && payload.fixture_metrics;
+    if (!payload || payload.scope !== expectedScope || !allowedScopes.includes(expectedScope) ||
+        !metric || metric.contract !== 'NEMESIS-FIXTURE-METRICS-V1' ||
+        metric.state !== 'ESTABLISHED_FOR_CURRENT_COHORT' || metric.unit !== 'mixed_declared_units' ||
+        !fixtureDigest(metric.generation) || !metric.cohort_scope ||
+        metric.cohort_scope.kind !== 'current_sports' || metric.cohort_scope.historical !== false ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(metric.cohort_scope.date_madrid || '') ||
+        !metric.units || !metric.counts || !metric.coverage) return reject();
+    var coverage = metric.coverage;
+    if (!Number.isInteger(coverage.source_observations) || coverage.source_observations < 0 ||
+        coverage.source_observations > 800 || coverage.not_covered_observations !== 0 ||
+        !Number.isInteger(coverage.unresolved_singletons) || coverage.unresolved_singletons < 0 ||
+        coverage.unresolved_singletons > coverage.source_observations ||
+        !['RESOLVED','PARTIAL_UNKNOWN','UNKNOWN'].includes(coverage.reference_state) ||
+        !Array.isArray(coverage.reasons) || coverage.reasons.length !== 0) return reject();
+    var counts = {};
+    for (var name of Object.keys(fixtureMetricUnits)) {
+      var count = metric.counts[name];
+      if (metric.units[name] !== fixtureMetricUnits[name] || !Number.isSafeInteger(count) || count < 0 ||
+          (fixtureMetricUnits[name] === 'retained_fixture_groups' && count > coverage.source_observations)) return reject();
+      counts[name] = count;
+    }
+    var evaluated = Date.parse(payload.generated_at_madrid || '');
+    if (!Number.isFinite(evaluated) || !/(?:Z|[+-]\d\d:\d\d)$/.test(payload.generated_at_madrid || '')) return reject();
+    return Object.freeze({ok:true, counts:Object.freeze(counts), generation:metric.generation,
+      evaluated:evaluated, signature:JSON.stringify([expectedScope,metric.cohort_scope.kind,metric.cohort_scope.date_madrid,false,counts,
+        coverage.source_observations,coverage.reference_state,coverage.unresolved_singletons]),
+      unresolved_singletons:coverage.unresolved_singletons});
+  }
+  function fixtureMetricUpdateIds(payload) {
+    var seen = new Map(), ambiguous = new Set(), malformed = false;
+    ['matches','live'].forEach(function (name) {
+      var rows = payload[name];
+      if (rows === undefined) return;
+      if (!Array.isArray(rows) || rows.length > 800) { malformed = true; return; }
+      var ownIds = new Set();
+      rows.forEach(function (row) {
+        if (!row || !fixtureIdentifier(row.id)) { malformed = true; return; }
+        if (ownIds.has(row.id)) ambiguous.add(row.id);
+        ownIds.add(row.id);
+        var state = row.realtime_state;
+        if (!state || state.contract !== 'NEMESIS-REALTIME-STATE-V1' ||
+            state.sports_truth_contract !== 'MATCH-STATUS-TRUTH-V2' ||
+            typeof state.fixture_id !== 'string' || !state.fixture_id || typeof state.provider !== 'string' ||
+            !['LIVE','HALFTIME','FINISHED','ARCHIVED','STALE','INCOMPLETE','RESULT_PENDING','UPCOMING',
+              'POSTPONED','SUSPENDED','CANCELLED','ABANDONED'].includes(state.status_canonical) ||
+            ['is_live','is_finished','is_stale','status_conflict'].some(function (key) { return typeof state[key] !== 'boolean'; }) ||
+            ['score_home','score_away'].some(function (key) {
+              return state[key] !== null && state[key] !== undefined &&
+                (typeof state[key] !== 'number' || !Number.isFinite(state[key]) || state[key] < 0);
+            })) {
+          ambiguous.add(row.id); return;
+        }
+        // Same original may occur in matches+live. Contradictory own clocks or
+        // identities for that exact action ID cannot update either DOM copy.
+        var signature = JSON.stringify(['fixture_id','provider','competition_id','season','home_team_id','away_team_id',
+          'status_canonical','is_live','is_finished','is_stale','status_conflict','provider_observed_at',
+          'live_valid_until_madrid','score_home','score_away','minute'].map(function (key) { return state[key]; }));
+        if (seen.has(row.id) && seen.get(row.id) !== signature) ambiguous.add(row.id);
+        seen.set(row.id, signature);
+      });
+    });
+    ambiguous.forEach(function (id) { seen.delete(id); });
+    return {ids:malformed ? new Set() : new Set(seen.keys()), complete:!malformed && ambiguous.size === 0};
+  }
+  function fixtureMetricOwnUpdate(row) {
+    var state = row.realtime_state;
+    // A withheld top-level score is intentional (for example UPCOMING0-0).
+    // Preserve that absence; when a score is publishable use only its own state.
+    return Object.assign({}, row, {home_score:row.home_score === null || row.home_score === undefined ? null : state.score_home,
+      away_score:row.away_score === null || row.away_score === undefined ? null : state.score_away,
+      is_live:state.is_live === true, is_stale:state.is_stale === true, minute:state.minute,
+      canonical_status:state.status_canonical});
+  }
+  function fixtureMetricsUnavailable(bar) {
+    ['matches','live','picks'].forEach(function (key) {
+      var node = bar.querySelector('[data-v934-count="' + key + '"]');
+      if (node) node.textContent = '—';
+    });
+    bar.setAttribute('data-v934-metrics-state', 'NOT_ESTABLISHED');
+    bar.removeAttribute('data-v934-metrics-generation');
+    bar.setAttribute('aria-label', text('Recuento no disponible temporalmente'));
+  }
+  // V991 fixture metrics helpers end.
+
   // Directo consumes the existing poller, not a second network loop. The server
   // exports the publication deadline. This controller can WITHDRAW a LIVE claim;
   // it cannot infer kickoff, minutes, goals, final scores or restored freshness.
@@ -134,6 +348,11 @@
     var hasResponse = false;
     var expiryTimer = null;
     var stopped = false;
+    var groupedMode = root.getAttribute('data-directo-identity') === 'v1';
+    var fixtureInfo = null;
+    var ambiguousIds = new Set();
+    var expectedScope = groupedMode ? {consumer:'directo-v2', lane:root.getAttribute('data-directo-lane'),
+      query:root.getAttribute('data-directo-query'), scope_id:root.getAttribute('data-directo-scope-id')} : null;
     var lastFrame = Date.parse(root.getAttribute('data-directo-evaluated-at') || '') || -Infinity;
     var lastTrustedServerNow = Date.now();
     var lastTrustedServerMono = performance.now();
@@ -174,6 +393,13 @@
     function belongsToLane(entry, id) {
       var lane = root.getAttribute('data-directo-lane');
       if (!entry || entry.withheld) return false;
+      if (groupedMode) {
+        if (!fixtureInfo || !fixtureInfo.view.has(id)) return false;
+        if (lane === 'finished') return entry.state.is_finished && !entry.state.status_conflict;
+        if (lane === 'live' || lane === 'break') return live(entry) &&
+          (lane !== 'break' || entry.state.status_canonical === 'HALFTIME');
+        return !entry.state.is_live || live(entry);
+      }
       if (lane === 'finished') return entry.state.is_finished && !entry.state.status_conflict;
       if (!live(entry)) return false;
       if (lane === 'break') return entry.state.status_canonical === 'HALFTIME';
@@ -238,7 +464,9 @@
         budget = Math.min(budget, Math.max(0, remaining(previous)));
         withheld = previous.withheld;
       }
-      records.set(id, {state: state, evaluated: evaluated, observed: observed, budget: budget,
+      // Do not retain a mutable shared transport object as the prior observation.
+      var ownedState = groupedMode ? Object.assign({}, state) : state;
+      records.set(id, {state: ownedState, evaluated: evaluated, observed: observed, budget: budget,
         mono: performance.now(), wall: Date.now(), withheld: withheld, change:change});
       return true;
     }
@@ -853,7 +1081,8 @@
       });
       article.querySelectorAll('.v935-provenance small').forEach(function (node) { setNodeText(node, label); });
       var lane = root.getAttribute('data-directo-lane');
-      var outside = (['live', 'with_pick'].includes(lane) && !isLive) || (lane === 'break' && (!isLive || status !== 'HALFTIME')) ||
+      var outside = groupedMode ? !belongsToLane(entry, article.getAttribute('data-v934-match-id')) :
+        (['live', 'with_pick'].includes(lane) && !isLive) || (lane === 'break' && (!isLive || status !== 'HALFTIME')) ||
         (lane === 'finished' && !state.is_finished);
       wrapper.setAttribute('data-directo-filter-match', String(!outside));
       var detail = wrapper.querySelector('[data-directo-card-notice]');
@@ -882,6 +1111,12 @@
         } else if (entry.state.is_live) degraded = true;
         if (wrappers.has(id)) draw(wrappers.get(id), entry);
       });
+      if (groupedMode && fixtureInfo) {
+        liveCount = fixtureGroupCount(fixtureInfo.general, records, 'live', live);
+        halftimeCount = fixtureGroupCount(fixtureInfo.general, records, 'halftime', function (entry) {
+          return live(entry) && entry.state.status_canonical === 'HALFTIME';
+        });
+      }
       var statsNow = estimatedServerNow();
       wrappers.forEach(function (wrapper) {
         var statsSection = wrapper.querySelector('[data-live-statistics]');
@@ -890,19 +1125,47 @@
       function count(key, value) {
         kpis(key).forEach(function (kpi) {
           setNodeText(kpi.querySelector('strong'), value);
-          setNodeText(kpi.querySelector('small'), completeCount ? 'Ahora' : 'Pendiente de confirmar');
+          setNodeText(kpi.querySelector('small'), completeCount ? (groupedMode && fixtureInfo.unresolved_singletons > 0
+            ? 'Lecturas disponibles' : 'Ahora') : 'Pendiente de confirmar');
+          if (groupedMode) kpi.setAttribute('aria-label', completeCount
+            ? 'Recuento de información disponible; cada marcador conserva su propia vigencia.'
+            : 'Recuento no disponible temporalmente');
         });
       }
       if (completeCount || degraded || hasResponse) {
         count('live', completeCount ? liveCount : '—');
         count('break', completeCount ? halftimeCount : '—');
+        if (groupedMode) {
+          count('finished', completeCount ? fixtureInfo.counts.finished_verified : '—');
+          count('with_pick', completeCount ? fixtureInfo.counts.with_pick : '—');
+        }
         if (completeCount) root.setAttribute('data-sports-live-confirmed', String(liveCount));
         else root.removeAttribute('data-sports-live-confirmed');
       }
-      root.setAttribute('data-directo-visible-live-count', String(Array.from(wrappers.keys()).filter(function (id) { return live(records.get(id)); }).length));
-      root.setAttribute('data-directo-live-count-scope', 'snapshot');
+      if (groupedMode) {
+        var countAttributes = {today:'matches-today', available:'matches-available',
+          finished_verified:'finished-verified', with_pick:'matches-with-picks'};
+        Object.keys(countAttributes).forEach(function (key) {
+          var attribute = 'data-sports-' + countAttributes[key];
+          if (completeCount && fixtureInfo) root.setAttribute(attribute, String(fixtureInfo.counts[key]));
+          else root.removeAttribute(attribute);
+        });
+        if (completeCount && fixtureInfo) {
+          root.setAttribute('data-directo-identity-generation', fixtureInfo.generation);
+          root.setAttribute('data-directo-view-live-count', String(fixtureGroupCount(fixtureInfo.view, records, 'live', live)));
+          root.setAttribute('data-directo-visible-live-count', String(fixtureGroupCount(fixtureInfo.view, records, 'live', function (entry, id) {
+            return wrappers.has(id) && live(entry) && belongsToLane(entry, id);
+          })));
+        } else {
+          root.removeAttribute('data-directo-identity-generation');
+          root.removeAttribute('data-directo-view-live-count');
+          root.removeAttribute('data-directo-visible-live-count');
+        }
+      } else root.setAttribute('data-directo-visible-live-count', String(Array.from(wrappers.keys()).filter(function (id) { return live(records.get(id)); }).length));
+      root.setAttribute('data-directo-live-count-scope', groupedMode ? 'current-sports-groups' : 'snapshot');
       root.setAttribute('data-directo-live-count-state', completeCount ? 'OBSERVED' : 'NOT_ESTABLISHED');
-      if (degraded) notice('Algunas lecturas ya no confirman un directo vigente. No se inventan minutos ni resultados.', true);
+      if (groupedMode && !completeCount) notice('Recuento no disponible temporalmente. Cada lectura conserva su vigencia original.', false);
+      else if (degraded) notice('Algunas lecturas ya no confirman un directo vigente. No se inventan minutos ni resultados.', true);
       else if (delayedNotice()) notice('Algunas lecturas ya no confirman un directo vigente. No se inventan minutos ni resultados.', false);
       if (!stopped && Number.isFinite(delay)) expiryTimer = window.setTimeout(tick, Math.max(1, Math.ceil(delay)));
     }
@@ -910,6 +1173,7 @@
       var article = wrapper.querySelector('[data-v934-match-id]');
       if (!article) return;
       var id = article.getAttribute('data-v934-match-id');
+      if (groupedMode && (wrappers.has(id) || !fixtureIdentifier(id))) ambiguousIds.add(id);
       wrappers.set(id, wrapper);
       try {
         var state = JSON.parse(wrapper.getAttribute('data-realtime-state'));
@@ -925,11 +1189,62 @@
         if (minuteNode) { setNodeText(minuteNode, ''); minuteNode.hidden = true; }
       }
     });
+    function applyGrouped(envelope) {
+      var payload = envelope.payload;
+      var frame = payload && stamp(payload.generated_at_madrid);
+      if (payload && Number.isFinite(frame) && frame < lastFrame) { tick(); return; }
+      var next = payload && payload.scope === 'matches' && Number.isFinite(frame)
+        ? readFixtureIdentity(payload.fixture_identity, payload.matches, expectedScope, valid) : {ok:false};
+      if (!next.ok || ambiguousIds.size) {
+        fixtureInfo = null; completeCount = false; hasResponse = true;
+        if (ambiguousIds.size) {
+          ambiguousIds.forEach(function (id) { records.delete(id); });
+          root.querySelectorAll('[data-realtime-consumer="directo-v1"]').forEach(function (wrapper) {
+            var article = wrapper.querySelector('[data-v934-match-id]');
+            if (article && ambiguousIds.has(article.getAttribute('data-v934-match-id'))) {
+              article.setAttribute('data-canonical-live', 'false');
+              article.setAttribute('data-canonical-status', 'INCOMPLETE');
+              setNodeText(article.querySelector('[data-v934-status] .v933-status-chip'), 'Identidad pendiente de confirmar');
+              var minuteNode = article.querySelector('[data-v934-minute]');
+              if (minuteNode) minuteNode.hidden = true;
+            }
+          });
+        }
+        tick(); return;
+      }
+      fixtureInfo = next; lastFrame = frame; hasResponse = true;
+      var serverNow = Number.isFinite(envelope.serverTime)
+        ? envelope.serverTime + Math.max(0, performance.now() - envelope.receivedMono) : Date.now();
+      lastTrustedServerNow = serverNow; lastTrustedServerMono = performance.now(); lastTrustedClientWall = Date.now();
+      var seen = new Set(), safe = true, newItems = false;
+      payload.matches.forEach(function (row) {
+        seen.add(row.id);
+        var accepted = accept(row.id, row.realtime_state, serverNow);
+        if (!accepted) safe = false;
+        if (accepted && wrappers.has(row.id)) updateLiveStatistics(wrappers.get(row.id), records.get(row.id).state, row.live_statistics, serverNow);
+        if (accepted && !wrappers.has(row.id) && belongsToLane(records.get(row.id), row.id)) newItems = true;
+      });
+      records.forEach(function (entry, id) {
+        if (!seen.has(id)) {
+          if (wrappers.has(id)) entry.withheld = 'Fuera de la última lectura confirmada';
+          else records.delete(id);
+        }
+      });
+      completeCount = safe;
+      notice(newItems ? 'Hay partidos fuera de esta vista. Actualiza la lista para aplicar tus filtros al nuevo conjunto.' : '', newItems);
+      tick();
+    }
     var initialLive = Array.from(records.values()).filter(function (entry) { return entry.state.is_live; }).length;
-    completeCount = initialLive === Number(root.getAttribute('data-sports-live-confirmed')) && records.size === wrappers.size;
+    if (groupedMode) {
+      try {
+        var bootstrap = JSON.parse(root.querySelector('[data-directo-fixture-identity]').textContent);
+        applyGrouped({payload:bootstrap, serverTime:Math.max(Date.now(), stamp(bootstrap.generated_at_madrid) + performance.now()), receivedMono:performance.now()});
+      } catch (_) { fixtureInfo = null; completeCount = false; hasResponse = true; }
+    } else completeCount = initialLive === Number(root.getAttribute('data-sports-live-confirmed')) && records.size === wrappers.size;
     tick();
     return {
       apply: function (envelope) {
+        if (groupedMode) { applyGrouped(envelope); return; }
         var payload = envelope.payload;
         if (payload.scope !== 'matches' || !Array.isArray(payload.matches)) throw new Error('invalid_directo_scope');
         var frame = stamp(payload.generated_at_madrid);
@@ -1000,9 +1315,18 @@
   }
 
   function render(bar, payload) {
-    var counts = payload.counts || {};
+    var modernMetrics = bar.getAttribute('data-v934-metrics') === 'v1';
+    var metric = modernMetrics ? readFixtureMetrics(payload, bar.getAttribute('data-v934-realtime') || 'all') : null;
+    var updateIds = modernMetrics ? fixtureMetricUpdateIds(payload) : null;
+    if (modernMetrics && metric.ok) {
+      var previous = fixtureMetricSnapshots.get(bar);
+      if (!updateIds.complete || (previous && (metric.evaluated < previous.evaluated ||
+          (metric.generation === previous.generation && metric.signature !== previous.signature)))) metric = {ok:false};
+      else fixtureMetricSnapshots.set(bar, metric);
+    }
+    var counts = modernMetrics ? (metric.ok ? metric.counts : {}) : payload.counts || {};
     ['matches', 'live', 'picks'].forEach(function (key) {
-      setText(bar, '[data-v934-count="' + key + '"]', counts[key] || 0);
+      setText(bar, '[data-v934-count="' + key + '"]', modernMetrics ? (metric.ok ? counts[key] : '—') : counts[key] || 0);
     });
     var hasLive = number(counts.live) > 0;
     var hasData = number(counts.matches) > 0 || number(counts.picks) > 0;
@@ -1010,7 +1334,18 @@
     var message = technical
       ? 'DB/caché: ' + (payload.cache_state || payload.cache_status || 'estado seguro') + '. Render sin llamada directa al proveedor.'
       : clientMessage(payload.safe_message);
-    setText(bar, '[data-v934-realtime-title]', text(hasLive ? 'Actualización en directo' : payload.realtime_live_status === 'stale' ? 'Datos retrasados' : hasData ? 'Datos deportivos sincronizados' : 'Esperando datos reales'));
+    if (modernMetrics) {
+      if (!metric.ok) {
+        fixtureMetricsUnavailable(bar);
+        message = text('Recuento no disponible temporalmente. Se conservan las lecturas y los accesos originales.');
+      } else {
+        bar.setAttribute('data-v934-metrics-state', 'OBSERVED');
+        bar.setAttribute('data-v934-metrics-generation', metric.generation);
+        bar.setAttribute('aria-label', text('Recuentos de la última lectura disponible. Cada marcador conserva su propia vigencia.'));
+        if (!technical && metric.unresolved_singletons > 0) message = text('Hay lecturas de partidos pendientes de distinguir. Los recuentos muestran la información disponible.');
+      }
+    }
+    setText(bar, '[data-v934-realtime-title]', text(modernMetrics && !metric.ok ? 'Recuento no disponible temporalmente' : hasLive ? 'Actualización en directo' : payload.realtime_live_status === 'stale' ? 'Datos retrasados' : hasData ? 'Datos deportivos sincronizados' : 'Esperando datos reales'));
     setText(bar, '[data-v934-realtime-message]', message);
     setText(bar, '[data-v934-cache-state]', technical ? (payload.cache_state || payload.cache_status || 'cache seguro') : text('Actualización segura'));
     updateSyncTimestamp(bar, payload, technical);
@@ -1018,8 +1353,16 @@
     bar.classList.toggle('is-live', hasLive);
     bar.classList.toggle('is-stale', payload.realtime_live_status === 'stale');
     bar.classList.remove('is-error');
-    (payload.matches || []).forEach(updateMatch);
-    (payload.live || []).forEach(updateMatch);
+    if (!modernMetrics) {
+      (payload.matches || []).forEach(updateMatch);
+      (payload.live || []).forEach(updateMatch);
+    } else if (metric.ok) {
+      ['matches','live'].forEach(function (name) {
+        (payload[name] || []).forEach(function (row) {
+          if (updateIds.ids.has(row.id)) updateMatch(fixtureMetricOwnUpdate(row));
+        });
+      });
+    }
     (payload.picks || []).forEach(updatePick);
   }
 
@@ -1045,7 +1388,10 @@
         schedule(180);
         return;
       }
-      sharedLoad(endpoint, scope)
+      sharedLoad(endpoint, scope, bar.getAttribute('data-directo-identity') === 'v1' ? {
+        consumer:'directo-v2', lane:bar.getAttribute('data-directo-lane'), query:bar.getAttribute('data-directo-query'),
+        scope_id:bar.getAttribute('data-directo-scope-id')
+      } : bar.getAttribute('data-v934-metrics') === 'v1' ? {consumer:'fixture-metrics-v1'} : null)
         .then(function (envelope) {
           if (stopped) return;
           var payload = envelope.payload;
@@ -1056,6 +1402,7 @@
         .catch(function () {
           if (stopped) return;
           if (directo) directo.failed();
+          else if (bar.getAttribute('data-v934-metrics') === 'v1') fixtureMetricsUnavailable(bar);
           failures += 1;
           bar.classList.add('is-error');
           setText(bar, '[data-v934-realtime-message]', text('Actualización temporalmente no disponible. Se conserva la última lectura segura.'));

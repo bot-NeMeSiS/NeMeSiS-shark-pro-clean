@@ -5583,5 +5583,39 @@
       "en": "This match is archived; the saved date is not confirmed as upcoming.",
       "fr": "Ce match est archivé ; la date enregistrée n’est pas confirmée comme à venir."
     }
+  },
+  "fixture_snapshot_v991": {
+    "Datos no disponibles temporalmente": {
+      "en": "Data temporarily unavailable",
+      "fr": "Données temporairement indisponibles"
+    },
+    "No se ha podido leer la información de partidos. Vuelve a intentarlo más tarde.": {
+      "en": "Match information could not be read. Please try again later.",
+      "fr": "Les informations des matchs n’ont pas pu être lues. Réessayez plus tard."
+    },
+    "Recuento no disponible temporalmente": {
+      "en": "Count temporarily unavailable",
+      "fr": "Décompte temporairement indisponible"
+    },
+    "Recuento no disponible temporalmente. Cada lectura conserva su vigencia original.": {
+      "en": "Count temporarily unavailable. Each observation keeps its original validity period.",
+      "fr": "Décompte temporairement indisponible. Chaque observation conserve sa période de validité initiale."
+    },
+    "Recuento no disponible temporalmente. Se conservan las lecturas y los accesos originales.": {
+      "en": "Count temporarily unavailable. Original observations and links are preserved.",
+      "fr": "Décompte temporairement indisponible. Les observations et liens d’origine sont conservés."
+    },
+    "Recuentos de la última lectura disponible. Cada marcador conserva su propia vigencia.": {
+      "en": "Counts from the latest available reading. Each score keeps its own validity period.",
+      "fr": "Décomptes de la dernière lecture disponible. Chaque score conserve sa propre période de validité."
+    },
+    "Hay lecturas de partidos pendientes de distinguir. Los recuentos muestran la información disponible.": {
+      "en": "Some match observations have yet to be distinguished. Counts show the available information.",
+      "fr": "Certaines observations de matchs restent à distinguer. Les décomptes reflètent les informations disponibles."
+    },
+    "Recuento de información disponible; cada marcador conserva su propia vigencia.": {
+      "en": "Count of available information; each score keeps its own validity period.",
+      "fr": "Décompte des informations disponibles ; chaque score conserve sa propre période de validité."
+    }
   }
 }

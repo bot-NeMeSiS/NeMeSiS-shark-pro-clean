@@ -100,7 +100,10 @@ def test_calendar_html_exposes_only_bounded_stage_timings(app_module, client, mo
         "_v940_hydrate_selected_date_results",
         lambda value, _date: value,
     )
-    monkeypatch.setattr(app_module, "get_realtime_safe_matches_context", lambda _summary: {})
+    def unexpected_unused_realtime(*_args, **_kwargs):
+        raise AssertionError("Calendar must not derive an unused realtime context")
+
+    monkeypatch.setattr(app_module, "get_realtime_safe_matches_context", unexpected_unused_realtime)
 
     response = client.get("/calendario")
 
@@ -111,12 +114,12 @@ def test_calendar_html_exposes_only_bounded_stage_timings(app_module, client, mo
         "sports_context",
         "historical_results",
         "calendar_context",
-        "realtime_context",
         "template_render",
     ):
         match = re.search(rf"(?:^|,\s*)calendar_{phase};dur=([0-9]+(?:\.[0-9]+)?)", timing)
         assert match, f"Missing timing for {phase}: {timing}"
         assert float(match.group(1)) >= 0
+    assert "calendar_realtime_context;" not in timing
 
 
 def test_calendar_cards_reuse_prepared_madrid_labels(app_module, client, monkeypatch):
