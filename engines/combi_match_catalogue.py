@@ -15,9 +15,10 @@ from engines.combi_advisor_engine import (
 )
 from engines.market_forecast_engine import normalized_market_probabilities
 from engines.picks_quality_engine import competition_priority
-from engines.spanish_localization_engine import spanish_competition_name, spanish_country_name
-from engines.team_identity_engine import provider_team_identity_key
+from engines.spanish_localization_engine import spanish_country_name
 from engines.v935_launch_trust_engine import match_kickoff_madrid, match_status_truth
+from engines.fixture_snapshot_read_model import prepare_fixture_snapshot
+from engines.data_vault_engine import read_competition_references_from_connection
 
 PREFIX = 'market:'
 SCAN_LIMIT = 2000
@@ -62,21 +63,6 @@ def _odds(conn, mids):
     return rows, False
 
 
-def _fixture_identity(item):
-    """Conservative display identity: exact teams, Madrid minute and canonical league."""
-    match, kickoff, competition, _rank = item
-    canonical_competition = spanish_competition_name(competition) or competition
-    minute = kickoff.astimezone(timezone.utc).replace(second=0, microsecond=0)
-    home = key(match.get('home_team'))
-    away = key(match.get('away_team'))
-    return (
-        provider_team_identity_key(home),
-        provider_team_identity_key(away),
-        minute,
-        key(canonical_competition),
-    )
-
-
 def _fixture_record_score(item):
     match, _kickoff, _competition, rank = item
     useful_fields = (
@@ -94,15 +80,34 @@ def _fixture_record_score(item):
     )
 
 
-def _group_fixtures(items):
-    """Collapse provider aliases for display without changing stored match rows."""
-    grouped = {}
-    for item in items:
-        grouped.setdefault(_fixture_identity(item), []).append(item)
+def _group_fixtures(items, *, read_competitions):
+    """Select verified fixtures after eligibility filters, retaining every member.
+
+    The context reader runs once for the complete filtered cohort. Members stay
+    attached to their original match dictionary so each saved quote is assessed
+    against the provider row that owns its match_id. Unknown and conflicting
+    competition references remain separate groups.
+    """
+    by_object = {id(item[0]): item for item in items}
+    snapshot = prepare_fixture_snapshot(
+        {'catalogue': [item[0] for item in items]},
+        read_competitions,
+        kickoff_for=match_kickoff_madrid,
+    )
+    selected = snapshot.select(
+        'catalogue',
+        rank_for=lambda row: _fixture_record_score(by_object[id(row)]),
+    )
+    primary_by_object = {id(row): row for row in selected.rows}
     output = []
-    for members in grouped.values():
-        primary = max(members, key=_fixture_record_score)
-        output.append({'primary': primary, 'members': members})
+    for rows in selected.groups:
+        primary = next(row for row in rows if id(row) in primary_by_object)
+        output.append({
+            'primary': by_object[id(primary)],
+            'members': [by_object[id(row)] for row in rows],
+            'identity_states': tuple(snapshot.context_for(row).state for row in rows),
+            'identity_confirmed': all(snapshot.context_for(row).state == 'RESOLVED' for row in rows),
+        })
     return output
 
 
@@ -272,6 +277,10 @@ def read_catalogue(conn, user, *, filters=None, selected=None, now=None):
     result = {'state':'EMPTY','matches':[], 'total':0,'page':page,'pages':1,
               'q':q,'day':day,'league':league,'leagues':[], 'truncated':False,
               'external_calls':0, 'scan_limit':SCAN_LIMIT, 'quote_truncated':False}
+    result['identity_coverage'] = {
+        'state': 'NOT_PREPARED', 'confirmed_fixture_groups': None,
+        'unresolved_observations': None,
+    }
     if not store._table(conn,'matches'):
         return result
     cols = {r[1] for r in conn.execute('PRAGMA table_info(matches)')}
@@ -309,7 +318,17 @@ def read_catalogue(conn, user, *, filters=None, selected=None, now=None):
             continue
         rank=competition_priority(competition)
         items.append((m,kickoff,competition,rank))
-    fixture_groups = _group_fixtures(items)
+    fixture_groups = _group_fixtures(
+        items,
+        read_competitions=lambda keys: read_competition_references_from_connection(conn, keys),
+    )
+    result['identity_coverage'] = {
+        'state': 'OBSERVED',
+        'scope': 'bounded_filtered_cohort',
+        'confirmed_fixture_groups': sum(1 for group in fixture_groups if group['identity_confirmed']),
+        'unresolved_observations': sum(len(group['members']) for group in fixture_groups if not group['identity_confirmed']),
+        'states': sorted({state for group in fixture_groups for state in group['identity_states']}),
+    }
     target=text(filters.get('target'),180) if not q else ''
     fixture_groups.sort(key=lambda group: (
         bool(target) and all(str(item[0]['id']) != target for item in group['members']),
