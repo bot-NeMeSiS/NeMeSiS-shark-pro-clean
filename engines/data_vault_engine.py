@@ -152,6 +152,39 @@ def connect_readonly(db_path: str | Path) -> sqlite3.Connection:
     return conn
 
 
+def _competition_reference_keys(keys):
+    if not isinstance(keys, tuple):
+        raise TypeError("reference keys must be an immutable tuple")
+    if len(keys) > 500:
+        raise ValueError("maximum 500 exact competition primary keys")
+    if any(not isinstance(key, str) or not key or len(key) > 256
+           or any(ord(char) < 32 or ord(char) == 127 for char in key) for key in keys):
+        raise ValueError("invalid exact competition primary key")
+    if keys != tuple(sorted(set(keys))):
+        raise ValueError("reference keys must be sorted and unique")
+    return keys
+
+
+def read_competition_references_from_connection(conn, keys):
+    """One bounded, parameterized reference read; SQLite errors stay explicit."""
+    keys = _competition_reference_keys(keys)
+    if not keys:
+        return ()
+    placeholders = ",".join("?" for _ in keys)
+    query = ("SELECT key,name,country,source,external_id FROM competitions "
+             "WHERE key IN (" + placeholders + ") ORDER BY key")
+    return tuple(dict(record) for record in conn.execute(query, keys))
+
+
+def read_competition_references(db_path, keys):
+    """Use the official Data Vault readonly connection, without app imports."""
+    keys = _competition_reference_keys(keys)
+    if not keys:
+        return ()
+    with closing(connect_readonly(db_path)) as conn:
+        return read_competition_references_from_connection(conn, keys)
+
+
 def table_names(db_path: str | Path) -> list[str]:
     if not Path(db_path).exists():
         return []

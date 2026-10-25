@@ -67,7 +67,7 @@ def review_draft(path, user_id, draft_id, *, now=None):
             raw_picks = [dict(p) for p in conn.execute('SELECT * FROM picks WHERE id IN ('+marks+')', ids)]
         if not cap['can_build'] or any(not visible_pick(leg, cap['plan']) for leg in previous + raw_picks):
             raise CombiError('PLAN_REQUIRED', 'Tu plan actual no permite revisar todas las selecciones de este borrador.', 403)
-        pool = {leg['id']: leg for leg in store.candidates(conn, user, now, ids)}
+        pool = {leg['id']: leg for leg in store.candidates(conn, user, now, ids, bind_fixtures=True)}
         comparisons, current_legs = [], []
         blocked = 0
         identity_fields = ('match_id', 'market', 'selection', 'event_key')

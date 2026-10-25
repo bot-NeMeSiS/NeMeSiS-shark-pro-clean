@@ -186,6 +186,16 @@ def assess_market_choice(choice, match, odds_record, user, *, now=None):
     return result
 
 
+def _verified_fixture_key(leg):
+    """Additional veto from a current server-side C3 binding, never a permission.
+
+    Client/saved metadata is not passed to this evaluator by the store. Runtime
+    markers are operation-local and never enter output legs or their revision.
+    """
+    value = leg.get('_verified_fixture_key')
+    return value if isinstance(value, str) and re.fullmatch(r'[a-f0-9]{64}', value) else ''
+
+
 def preview(legs, stake, *, user, now=None):
     cap = capabilities(user)
     if not cap['can_build']:
@@ -196,8 +206,15 @@ def preview(legs, stake, *, user, now=None):
         raise CombiError('INELIGIBLE_PICK', 'Alguna selección ya no es válida. Revisa la lista antes de continuar.', 409)
     if len({p['event_key'] for p in legs}) != len(legs) or len({p['id'] for p in legs}) != len(legs):
         raise CombiError('DUPLICATE_EVENT', 'No se pueden combinar dos selecciones del mismo partido.')
+    verified = [_verified_fixture_key(leg) for leg in legs if _verified_fixture_key(leg)]
+    if len(set(verified)) != len(verified):
+        raise CombiError('DUPLICATE_EVENT', 'No se pueden combinar dos selecciones del mismo partido.')
     if len({key(p['bookmaker']) for p in legs}) != 1:
         raise CombiError('MIXED_BOOKMAKERS', 'Utiliza cuotas de una misma casa. No existe una oferta conjunta confirmada entre casas.')
+    # Do not mutate originals, persist a cohort-local token, or let a different
+    # cohort during explicit save spuriously change the financial revision.
+    legs = [{field: value for field, value in leg.items()
+             if field not in {'_verified_fixture_key', '_verified_fixture_basis'}} for leg in legs]
     amount = decimal(stake, money=True)
     with localcontext() as ctx:
         ctx.prec = 90
@@ -214,6 +231,8 @@ def preview(legs, stake, *, user, now=None):
                   'warnings': ['Simulación: no coloca apuestas ni confirma que la casa acepte la combinación.',
                                'El retorno solo se ilustra si todas las selecciones se resuelven como ganadoras a esas cuotas.',
                                'No calculamos una probabilidad conjunta: no hay un modelo calibrado de dependencias.']}
+    if len(verified) != len(legs):
+        result['warnings'].append('No se ha verificado la identidad de todos los encuentros; no se confirma que las selecciones sean independientes.')
     if len(legs) >= 5:
         result['warnings'].append('Combinada larga: basta una selección perdida para perder el importe simulado; no hay garantía de éxito.')
     teams = [key(p[side]) for p in legs for side in ('home', 'away')]
@@ -243,7 +262,22 @@ def suggest(candidates, count, *, user, risk='conservador', date='', bookmaker='
         old = group.get(leg['event_key'])
         if not old or (Decimal(leg['odds']), leg['id']) < (Decimal(old['odds']), old['id']):
             group[leg['event_key']] = leg
-    choices = [sorted(g.values(), key=lambda p:(Decimal(p['odds']),p['kickoff'],p['id'])) for g in groups.values() if len(g) >= count]
+    choices = []
+    for group in groups.values():
+        # Existing event_key winners retain their lowest-quote/id preference.
+        # The verified key is a second independent veto, not a replacement key
+        # or a pair(event_key, proof) that would permit either duplicate alone.
+        unique, seen_verified, seen_ids = [], set(), set()
+        for leg in sorted(group.values(), key=lambda p:(Decimal(p['odds']),p['id'])):
+            verified = _verified_fixture_key(leg)
+            if leg['id'] in seen_ids or (verified and verified in seen_verified):
+                continue
+            seen_ids.add(leg['id'])
+            if verified:
+                seen_verified.add(verified)
+            unique.append(leg)
+        if len(unique) >= count:
+            choices.append(sorted(unique, key=lambda p:(Decimal(p['odds']),p['kickoff'],p['id'])))
     if not choices:
         raise CombiError('INSUFFICIENT_EVIDENCE', 'No hay suficientes partidos 1X2 válidos de una misma casa. No se completa con relleno.', 409)
     # Never label a heuristic as model confidence. All modes stay within eligible

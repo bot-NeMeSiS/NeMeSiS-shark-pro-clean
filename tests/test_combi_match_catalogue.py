@@ -44,6 +44,26 @@ def ids_for_two(db):
     return [m['groups'][0]['choices'][0]['id'] for m in cat['matches'] if m['groups']][:2]
 
 
+def verified_competition_reference(db, *, canonical_key, name, country, sportsdb_id, api_id):
+    """Synthetic proof for the two cross-provider identity-positive fixtures only.
+
+    Names are display data. The shared canonical PK is supplied explicitly and
+    the API native league ID is verified against a compatible local reference;
+    the existing registry separately verifies the SportsDB native league ID.
+    No original event/team IDs or quote ownership are replaced.
+    """
+    with sqlite3.connect(db) as conn:
+        for column in ('country', 'competition_key', 'competition_id'):
+            conn.execute('ALTER TABLE matches ADD COLUMN '+column+' TEXT')
+        conn.execute('CREATE TABLE competitions(key TEXT PRIMARY KEY, name TEXT, country TEXT, source TEXT, external_id TEXT)')
+        conn.execute('INSERT INTO competitions VALUES (?,?,?,?,?)',
+                     (canonical_key, name, country, 'API-Football', api_id))
+        conn.execute('UPDATE matches SET country=?,competition_key=?,competition_id=? WHERE id=?',
+                     (country, canonical_key, sportsdb_id, 'm1'))
+        conn.execute('UPDATE matches SET country=?,competition_key=?,competition_id=? WHERE id=?',
+                     (country, canonical_key, api_id, 'm18'))
+
+
 def test_catalogue_independent_of_picks_and_writes(db):
     quotes(db)
     with sqlite3.connect(db) as conn:conn.execute('DROP TABLE picks')
@@ -93,6 +113,8 @@ def test_provider_aliases_render_as_one_fixture_and_keep_the_quote_record(db):
     with sqlite3.connect(db) as conn:
         conn.execute("UPDATE matches SET competition_name='La Liga' WHERE id='m1'")
         conn.execute('INSERT INTO matches VALUES ('+','.join('?' for _ in alias)+')', list(alias.values()))
+    verified_competition_reference(db, canonical_key='laliga', name='LaLiga EA Sports',
+                                   country='Spain', sportsdb_id='4335', api_id='140')
     quotes(db, ids=(18,), home_team='Local 1', away_team='Visitante 1')
 
     cat = catalogue(db)
@@ -136,6 +158,9 @@ def test_known_provider_team_name_variants_render_as_one_fixture(db):
         conn.execute("UPDATE matches SET home_team='Tottenham', away_team='Coventry' WHERE id='m1'")
         conn.execute("UPDATE matches SET competition_name='Premier League' WHERE id='m1'")
         conn.execute('INSERT INTO matches VALUES ('+','.join('?' for _ in alias)+')', list(alias.values()))
+
+    verified_competition_reference(db, canonical_key='premier-league', name='Premier League',
+                                   country='England', sportsdb_id='4328', api_id='39')
 
     cat = catalogue(db)
     variants = [m for m in cat['matches'] if m['home'] in {'Tottenham', 'Tottenham Hotspur'}
@@ -341,3 +366,48 @@ def test_explicit_closed_snapshot_is_not_usable(db,field,value):
         conn.execute('UPDATE odds_snapshots SET payload_json=?',(json.dumps({field:value}),))
     group=next(m for m in catalogue(db)['matches'] if m['id']=='m1')['groups'][0]
     assert not any(p['eligible'] for p in group['choices'])
+
+
+@pytest.mark.parametrize('reference_state', [
+    'labels_only', 'missing_reference', 'country_conflict', 'native_id_conflict',
+    'reference_read_unavailable',
+])
+def test_same_display_alias_without_verified_reference_keeps_original_quote_ownership(db, monkeypatch, reference_state):
+    from engines import combi_match_catalogue as mod
+    from test_combi_advisor_contract import fixture
+
+    alias = fixture(18)
+    alias.update(home_team='Local 1', away_team='Visitante 1',
+                 competition_name='Spanish La Liga', source='API-Football',
+                 kickoff_iso=fixture(1)['kickoff_iso'])
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE matches SET competition_name='La Liga' WHERE id='m1'")
+        conn.execute('INSERT INTO matches VALUES ('+','.join('?' for _ in alias)+')', list(alias.values()))
+    if reference_state != 'labels_only':
+        verified_competition_reference(db, canonical_key='laliga', name='LaLiga EA Sports',
+                                       country='Spain', sportsdb_id='4335', api_id='140')
+        with sqlite3.connect(db) as conn:
+            if reference_state == 'missing_reference':
+                conn.execute('DELETE FROM competitions')
+            elif reference_state == 'country_conflict':
+                conn.execute("UPDATE matches SET country='Portugal' WHERE id='m18'")
+            elif reference_state == 'native_id_conflict':
+                conn.execute("UPDATE matches SET competition_id='141' WHERE id='m18'")
+        if reference_state == 'reference_read_unavailable':
+            def unavailable(*args, **kwargs):
+                raise sqlite3.OperationalError('synthetic reference read unavailable')
+            monkeypatch.setattr(mod, 'read_competition_references_from_connection', unavailable)
+    quotes(db, ids=(18,), home_team='Local 1', away_team='Visitante 1')
+    before = open(db, 'rb').read()
+
+    cat = catalogue(db)
+    same_labels = [m for m in cat['matches'] if m['home'] == 'Local 1' and m['away'] == 'Visitante 1']
+    assert cat['total'] == 18
+    assert len(same_labels) == 2
+    owned = next(m for m in same_labels if m['id'] == 'm18')
+    unquoted = next(m for m in same_labels if m['id'] == 'm1')
+    assert unquoted['groups'] == []
+    assert owned['groups']
+    assert all(choice['id'].startswith('market:q18:') for choice in owned['groups'][0]['choices'])
+    assert all(choice['match_id'] == 'm18' for choice in owned['groups'][0]['choices'])
+    assert open(db, 'rb').read() == before

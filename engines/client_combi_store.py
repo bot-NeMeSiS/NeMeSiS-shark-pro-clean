@@ -7,6 +7,7 @@ assigned to users or broadcast. A draft is not evidence that a bet was placed.
 from __future__ import annotations
 from contextlib import closing, contextmanager
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -161,7 +162,59 @@ def _quote(pick, match, observations):
             'bookmaker': pick.get('bookmaker'), 'closed': closed}
 
 
-def candidates(conn, user, now, ids=None):
+def _bind_fixture_identity(conn, legs):
+    """Bind current assessed owners once; no quote or ID is replaced.
+
+    One additional exact matches batch (<=200), then at most one exact-PK
+    reference batch through the official readonly helper, in this transaction.
+    The result's private fields are stripped by preview before output/revision.
+    """
+    from engines.fixture_snapshot_read_model import prepare_fixture_snapshot
+    from engines.data_vault_engine import read_competition_references_from_connection
+    if not isinstance(legs, list) or len(legs) > 200:
+        raise CombiError('IDENTITY_EVIDENCE_UNAVAILABLE', 'No se pudo verificar la identidad dentro del límite de esta lectura.', 409)
+    output = [{field: value for field, value in leg.items()
+               if field not in {'_verified_fixture_key', '_verified_fixture_basis'}} for leg in legs]
+    active = [leg for leg in output if leg.get('eligible')]
+    if not active:
+        return output
+    if any(not isinstance(leg.get(field), str) or not 1 <= len(leg[field]) <= 180
+           for leg in active for field in ('id', 'match_id')) or len({leg['id'] for leg in active}) != len(active):
+        raise CombiError('IDENTITY_EVIDENCE_UNAVAILABLE', 'La asociación actual de las selecciones no es inequívoca.', 409)
+    mids = sorted({leg['match_id'] for leg in active})
+    try:
+        rows = [dict(row) for row in conn.execute(
+            'SELECT * FROM matches WHERE id IN (' + ','.join('?' for _ in mids) + ')', mids)]
+    except sqlite3.Error:
+        raise CombiError('IDENTITY_EVIDENCE_UNAVAILABLE', 'No se pudo leer la identidad actual de las selecciones.', 409) from None
+    loaded = [row.get('id') for row in rows]
+    if len(rows) != len(mids) or len(set(loaded)) != len(loaded) or set(loaded) != set(mids):
+        raise CombiError('IDENTITY_EVIDENCE_UNAVAILABLE', 'Falta una asociación única de partido para verificar las selecciones.', 409)
+    snapshot = prepare_fixture_snapshot({'financial': rows},
+        lambda keys: read_competition_references_from_connection(conn, keys), kickoff_for=match_kickoff_madrid)
+    if (snapshot.context.read_state not in {'OK', 'NOT_REQUESTED'}
+            or any(snapshot.context_for(row).state in {'UNKNOWN_IDENTITY_LIMIT', 'UNKNOWN_IDENTITY_CHANGED', 'UNKNOWN_NOT_COVERED'} for row in rows)):
+        raise CombiError('IDENTITY_EVIDENCE_UNAVAILABLE', 'No se pudo confirmar la lectura de referencias de identidad. Revisa de nuevo antes de continuar.', 409)
+    selected = snapshot.select('financial')
+    proof = {}
+    for group, basis in zip(selected.groups, selected.identity_basis):
+        if basis not in {'CANONICAL_COMPETITION', 'PROVIDER_NATIVE_FIXTURE'}:
+            continue
+        # C3 also labels a singleton by its resolved competition context when
+        # fixture identity was rejected. That is not proof of a fixture match.
+        if basis == 'CANONICAL_COMPETITION' and len(group) < 2:
+            continue
+        marker = hashlib.sha256(json.dumps([basis, sorted(row['id'] for row in group)], ensure_ascii=False).encode()).hexdigest()
+        for row in group:
+            proof[row['id']] = (marker, basis)
+    for leg in active:
+        verified = proof.get(leg['match_id'])
+        if verified:
+            leg['_verified_fixture_key'], leg['_verified_fixture_basis'] = verified
+    return output
+
+
+def candidates(conn, user, now, ids=None, *, bind_fixtures=False):
     from engines.combi_match_catalogue import is_market_id, resolve_choices
     direct_ids = [i for i in (ids or []) if is_market_id(i)]
     editorial_ids = [i for i in ids if not is_market_id(i)] if ids is not None else None
@@ -177,7 +230,7 @@ def candidates(conn, user, now, ids=None):
         observations = by_event_book.get((str(pick.get('match_id')), key(pick.get('bookmaker'))), [])
         result.append(assess_pick(pick, match, _quote(pick, match, observations), user, now=now))
     result.extend(resolve_choices(conn,user,now,direct_ids))
-    return result
+    return _bind_fixture_identity(conn, result) if bind_fixtures else result
 
 
 def _ids(values):
@@ -206,11 +259,11 @@ def _build(conn, user, values, now):
         raw_count = str(values.get('count', values.get('limit','3')))
         if not re.fullmatch(r'\d{1,2}', raw_count):
             raise CombiError('INVALID_OPTIONS', 'Número de selecciones no válido.')
-        legs = suggest(candidates(conn,user,now), int(raw_count), user=user,
+        legs = suggest(candidates(conn,user,now,bind_fixtures=True), int(raw_count), user=user,
                        risk=text(values.get('risk') or 'conservador'),
                        date=text(values.get('date'),10), bookmaker=text(values.get('bookmaker'),120))
     else:
-        pool = {p['id']:p for p in candidates(conn,user,now,ids)}
+        pool = {p['id']:p for p in candidates(conn,user,now,ids,bind_fixtures=True)}
         if any(pid not in pool for pid in ids):
             raise CombiError('SELECTION_UNAVAILABLE', 'Alguna selección no está disponible para tu cuenta.', 409)
         legs = [pool[pid] for pid in ids]
