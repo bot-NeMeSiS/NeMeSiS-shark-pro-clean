@@ -5,6 +5,14 @@ El único propietario periódico es el recurso Render `telegram-auto-tick`, con
 cadencia, secretos ni almacenamiento. GitHub Actions ejecuta controles de QA,
 no la operación periódica de la aplicación.
 
+El backup diario se intenta entre las 04:30 inclusive y las 06:30 exclusive de
+Europe/Madrid durante todo el año. El Cron convierte el instante UTC al huso de
+Madrid antes de decidir: la ventana equivale a 02:30–04:30 UTC en verano y a
+03:30–05:30 UTC en invierno. La frecuencia de cinco minutos, la deduplicación
+diaria, los bloqueos de solapes y las comprobaciones de capacidad e integridad
+se conservan. Estar dentro de la ventana permite un intento; no acredita que se
+haya creado una copia.
+
 El registro `engines/automation_domains.py` concentra seis dominios de
 producción sin importar módulos ni iniciar hilos. Los módulos y endpoints
 existentes siguen siendo adaptadores compatibles. Sports, Odds y Delivery usan

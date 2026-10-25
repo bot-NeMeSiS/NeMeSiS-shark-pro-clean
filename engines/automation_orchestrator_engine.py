@@ -69,7 +69,7 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
     )
     master["description"] = "Único propietario recurrente: datos deportivos, cuotas, evaluación de pronósticos, Telegram, evolución segura y backup diario."
     master["included_flows"] = ["sports_sync", "odds", "pick_grading", "highlights", "postmatch", "telegram", "continuous_evolution", "data_backup"]
-    master["backup_window"] = "02:30–04:30 UTC; el web service deduplica por día y bloquea solapes."
+    master["backup_window"] = "04:30–06:30 Europe/Madrid; el web service deduplica por día y bloquea solapes."
 
     jobs = [master]
     ready = len([job for job in jobs if job["status"] == "READY"])
@@ -130,7 +130,7 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
             "data_backup": {
                 "enabled": backup_enabled,
                 "owner": "master_tick",
-                "window": "02:30–04:30 UTC",
+                "window": "04:30–06:30 Europe/Madrid",
                 "last_run": (state.get("last_cron_data_backup_call") or {}).get("time") or "",
             }
         },
@@ -149,7 +149,7 @@ def build_automation_center_summary(db_path: str, app_version: str = "", env: di
         "warnings": warnings,
         "next_actions": [
             "Mantener un único servicio cron cada 5 minutos.",
-            "El backup se intenta dentro de 02:30–04:30 UTC y se deduplica en el web service.",
+            "El backup se intenta dentro de 04:30–06:30 Europe/Madrid y se deduplica en el web service.",
             "Highlights y postmatch pertenecen al Cron maestro; QA visual, navegador y control de despliegue son controles separados.",
         ],
     }

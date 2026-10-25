@@ -3,7 +3,10 @@ from __future__ import annotations
 import gzip
 import json
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo
+
+import pytest
 
 
 def _calendar_summary(app_module, count: int = 240) -> dict:
@@ -146,5 +149,25 @@ def test_calendar_cards_reuse_prepared_madrid_labels(app_module, client, monkeyp
     response = client.get("/calendario?lane=week", headers={"Accept-Language": "en"})
 
     assert response.status_code == 200
-    assert expected_label.endswith("· 01:30")
+    madrid_clock = datetime.fromisoformat(match["kickoff_iso"].replace("Z", "+00:00")).astimezone(
+        ZoneInfo("Europe/Madrid")
+    ).strftime("%H:%M")
+    assert expected_label.endswith(f"· {madrid_clock}")
     assert expected_label.encode("utf-8") in response.data
+
+
+@pytest.mark.parametrize("kickoff_iso,expected_clock", (
+    ("2026-01-15T23:30:00Z", "00:30"),
+    ("2026-07-15T23:30:00Z", "01:30"),
+    ("2026-03-29T23:30:00Z", "01:30"),
+    ("2026-10-25T23:30:00Z", "00:30"),
+))
+def test_calendar_madrid_label_respects_seasonal_offset(
+    app_module, kickoff_iso, expected_clock
+):
+    # Fixed input instants test display conversion without changing any clock.
+    with app_module.app.test_request_context(
+        "/calendario?lane=week", headers={"Accept-Language": "en"}
+    ):
+        label = app_module.ui_match_datetime({"kickoff_iso": kickoff_iso})
+    assert label.endswith(f"· {expected_clock}")

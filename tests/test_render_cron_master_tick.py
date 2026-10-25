@@ -84,7 +84,7 @@ def backup_ok(status: str = "PASS", created: bool = True) -> MockResponse:
     return MockResponse({"ok": True, "status": status, "backup_created": created})
 
 
-def test_backup_window_is_utc_and_bounded():
+def test_backup_window_is_madrid_and_bounded_in_summer():
     assert master.backup_due("2026-09-26T02:30:00+00:00") is True
     assert master.backup_due("2026-09-26T04:29:59+00:00") is True
     assert master.backup_due("2026-09-26T02:29:59+00:00") is False
