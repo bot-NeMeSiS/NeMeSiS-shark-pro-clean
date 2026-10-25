@@ -525,7 +525,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V991_SHARED_FIXTURE_SNAPSHOT'
+APP_VERSION = 'V992_CURRENT_FIXTURE_ADMISSION'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17807,7 +17807,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V991_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V992_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -18569,14 +18569,39 @@ def _v931_read_table_rows(table, limit=600):
                 kickoff_value = coalesce_sql(kickoff_parts)
                 history_value = order_value
                 today = today_iso()
+                admission_order = ""
+                if "status" in columns:
+                    # Admission hints only, never LIVE authorization. On dense
+                    # days, chronological LIMIT can otherwise select hundreds
+                    # of completed fixtures before every current live row.
+                    status_value = 'LOWER(TRIM(REPLACE(REPLACE(CAST("status" AS TEXT), \'_\', \' \'), \'-\', \' \')))'
+                    live_candidates = SPORTS_SYNC_LIVE_STATUSES | {
+                        "in play", "inplay", "in progress", "playing", "en directo",
+                        "first half", "second half", "1st half", "2nd half",
+                        "extra time", "penalties", "penalty shootout", "half time", "break",
+                    }
+                    scheduled_candidates = {
+                        "ns", "not started", "scheduled", "programado", "fixture",
+                        "upcoming", "proximo", "próximo",
+                    }
+                    def status_literals(values):
+                        return ",".join("'" + value.replace("'", "''") + "'" for value in sorted(values))
+                    live_candidate = f"{status_value} IN ({status_literals(live_candidates)})"
+                    scheduled_candidate = f"{status_value} IN ({status_literals(scheduled_candidates)})"
+                    admission_order = (
+                        f" CASE WHEN {date_value} >= ? THEN CASE WHEN {live_candidate} THEN 0"
+                        f" WHEN {scheduled_candidate} THEN 1 ELSE 2 END END ASC,"
+                        f" CASE WHEN {date_value} >= ? AND {live_candidate} THEN {history_value} END DESC,"
+                    )
                 order_sql = (
                     f" ORDER BY CASE WHEN {date_value} >= ? THEN 0 ELSE 1 END ASC,"
                     f" CASE WHEN {date_value} >= ? THEN {date_value} END ASC,"
+                    f"{admission_order}"
                     f" CASE WHEN {date_value} >= ? THEN {kickoff_value} END ASC,"
                     f" CASE WHEN {date_value} < ? THEN {date_value} END DESC,"
                     f" {history_value} DESC"
                 )
-                query_params = [today, today, today, today, int(limit)]
+                query_params = [today] * (6 if admission_order else 4) + [int(limit)]
         records = [
             dict(row)
             for row in conn.execute(
