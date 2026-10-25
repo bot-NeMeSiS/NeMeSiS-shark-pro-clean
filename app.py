@@ -23071,7 +23071,7 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
                                 read_state='DATABASE_LOCKED',verified_total=None)
         source_summary = ('No se han podido leer los resultados de esta fecha. Se conserva la información disponible; '
                           'las tarjetas no acreditan una lectura histórica completa.')
-    return {'version':APP_VERSION,'contract':'v940-calendar-history-layers-v1','filters':filters,
+    return {'version':APP_VERSION,"contract": "v940-calendar-history-layers-v1",'filters':filters,
         'matches':sorted_matches,'day_groups':day_groups,'groups':day_groups,'counts':counts,
         'competition_count':counts['leagues'],'sports_metrics':sports_metrics,'facets':facets,
         'tabs':_v940_calendar_tabs(filters,counts),'primary_tabs':_v940_calendar_primary_tabs(filters),
@@ -23080,7 +23080,7 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
         'reset_href':_v940_calendar_href({'lane':filters['lane'],'date':filters['date'],'sort':'importance'}),
         'selected_summary':selected_summary,'default_context':title,
         'source_summary':source_summary,'historical_results_read_state':summary.get('historical_results_read_state'),
-        'no_render_api_call':True,'database_written':False,'external_calls':0,
+        'no_render_api_call':True,"database_written": False,"external_calls": 0,
         'identity_state':'PREPARED' if operation else 'UNPREPARED'}
 
 
