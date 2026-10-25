@@ -233,8 +233,45 @@ class CombiFixtureContextIntegrationTests(unittest.TestCase):
 
     def test_no_app_import_is_needed_for_the_real_catalogue_path(self):
         self.seed([fixture(api=True)],references=[reference()])
-        self.assertEqual(self.read()["external_calls"],0)
-        self.assertNotIn("app",sys.modules)
+        import builtins
+        import importlib
+        attempts = []
+        original_import = builtins.__import__
+        original_import_module = importlib.import_module
+
+        def guarded_import(name, *args, **kwargs):
+            if name == "app" or name.startswith("app."):
+                attempts.append(name)
+                raise AssertionError("catalogue must not import App")
+            return original_import(name, *args, **kwargs)
+
+        def guarded_import_module(name, package=None):
+            if (name == "app" or name.startswith("app.")
+                    or (name.startswith(".") and (package == "app" or str(package).startswith("app.")))):
+                attempts.append(name)
+                raise AssertionError("catalogue must not import App")
+            return original_import_module(name, package)
+
+        # Other full-suite tests legitimately imported App earlier. Block it for
+        # this read instead of asserting unrelated process-wide import history.
+        previous = sys.modules.get("app")
+        was_loaded = "app" in sys.modules
+        with patch.dict(sys.modules, {"app": None}), \
+                patch.object(builtins, "__import__", guarded_import), \
+                patch.object(importlib, "import_module", guarded_import_module):
+            for invoke in (lambda: __import__("app"), lambda: importlib.import_module("app")):
+                with self.assertRaisesRegex(AssertionError, "catalogue must not import App"):
+                    invoke()
+            self.assertEqual(attempts, ["app", "app"])
+            attempts.clear()
+            result = self.read()
+        self.assertEqual(attempts, [])
+        self.assertEqual(result["external_calls"], 0)
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(len(self.reference_reads()), 1)
+        self.assertEqual("app" in sys.modules, was_loaded)
+        if was_loaded:
+            self.assertIs(sys.modules["app"], previous)
 
 if __name__=="__main__":
     unittest.main(verbosity=2)
