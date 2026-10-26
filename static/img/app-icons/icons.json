@@ -1,8 +1,8 @@
 {
   "master": "official_app_icon_master.svg",
-  "source": "../nemesis-shark-atmosphere-v2.webp",
-  "source_sha256": "76961eeb2fa2ab328b5a91e6e31b917903237ae34479c9b96b233fcfd098e60e",
-  "fingerprint": "8d0ed4207e73",
+  "source": "../approved-identity/nemesis-approved-mark-1024.webp",
+  "source_sha256": "32b0d10e343b69e220ec414658f0760b0805f8fd06e6c5491101e271f146a15b",
+  "fingerprint": "d16d0a0a4017",
   "sizes": [
     16,
     32,
@@ -20,64 +20,64 @@
   "maskable_scale": 0.8,
   "files": {
     "app-icon-16.png": {
-      "bytes": 658,
-      "sha256": "5f365acc35c290d624def6e724bfcd480e48d2fe705e81ff369af675965d0ef6"
+      "bytes": 644,
+      "sha256": "7bae77701daa9c9eb226ea87645b1d8a02fc3a92ab06a37b31e21903eb40bca5"
     },
     "app-icon-32.png": {
-      "bytes": 1739,
-      "sha256": "6fcdb305875502c9a7899ccb68ef3b12abf74e269d22e121a4a63c1c0e8acfed"
+      "bytes": 1563,
+      "sha256": "aa2d7d3bf1543d97bb82b511bf51a8b6ad5fc39d9d0f762f812fdcb8ba3baed1"
     },
     "app-icon-48.png": {
-      "bytes": 2959,
-      "sha256": "c133c974fa6fdbbf39d79469e3889a01b8f7d90ce7dec0847a2eb5a1b49896b6"
+      "bytes": 2705,
+      "sha256": "f3e86d62c0b5d5200ca5480045db29220cced348d1da85d4123602a80921caac"
     },
     "app-icon-64.png": {
-      "bytes": 5488,
-      "sha256": "a49569a370b28adef8ff014ad31d5a25b434c16ea2c7c5224e22466425ad7393"
+      "bytes": 4135,
+      "sha256": "894934f3056eedb5b682e8649a5ac1aab8a7414e8116a8211458660e25ab90bb"
     },
     "app-icon-96.png": {
-      "bytes": 9722,
-      "sha256": "f0b5bd0d456110d83f5d13ea08e633fa39b6e203453bea75c69d7def92289dc5"
+      "bytes": 7522,
+      "sha256": "47967ee2f84a5230fc6619f8eca99bc1e84ae2f13a2f9b706ce81a52f8779378"
     },
     "app-icon-128.png": {
-      "bytes": 15298,
-      "sha256": "35e37dd35f2127f775eba6f058640746c054308d6c13cb8fffce9829317efc20"
+      "bytes": 11341,
+      "sha256": "962e73efea8713d142b14b8757162f7296137493e76293c6525fad0f67a2bd03"
     },
     "app-icon-152.png": {
-      "bytes": 19804,
-      "sha256": "9c55dd1bb9c957448c958c6ab8625016339877706649aa102a2a409318e1305f"
+      "bytes": 14393,
+      "sha256": "04771aa5d0a6baf6d843b3ba51bb660fc3b0c9264b73b4386877aa1a67924671"
     },
     "app-icon-167.png": {
-      "bytes": 22831,
-      "sha256": "963aa9ed7806ed3c11adc509aad44ae8b1d035e1c7745a01c6b743b92ed78faf"
+      "bytes": 16623,
+      "sha256": "2115ba6079b45c01c5ff836b18bb10950f892b69bd2d38c672f68525eb16afce"
     },
     "app-icon-180.png": {
-      "bytes": 25751,
-      "sha256": "ac5d13d97f49d52fe3b69fd100f06a1b0679c6e1c7308253a81e3ffd49514fa8"
+      "bytes": 18690,
+      "sha256": "dc0bb8c2ff6f71dc5aea354a3d0c505ba431b653ede3f7d9e7a723d4cd361432"
     },
     "app-icon-192.png": {
-      "bytes": 28242,
-      "sha256": "a71cda5cfc471203379ae94f4d363f7faed1fbcc2257bc18bce7275d6fe181e2"
+      "bytes": 20722,
+      "sha256": "c21dc5ae759742d936f64261cd79c6aced9c2a946adc5a97e4674cc29dbb4b57"
     },
     "app-icon-256.png": {
-      "bytes": 44323,
-      "sha256": "4cfef4d2fcefd73afb4e35b7ad1b887ae28374c8e5085800ac355d56ede67376"
+      "bytes": 32909,
+      "sha256": "c5d0656948fc62169b1f23715518156efc70b84816b968ab09641a77e35f8aee"
     },
     "app-icon-512.png": {
-      "bytes": 129358,
-      "sha256": "adbf492dfe86976c141996566da98c1485d1c3e413926b85ef91a14e47bed9eb"
+      "bytes": 105931,
+      "sha256": "d7f3993f449fef6d4ad80d36d74bf12d9883b393ecc1f13ecd2527513873f8a4"
     },
     "app-icon-maskable-192.png": {
-      "bytes": 24824,
-      "sha256": "170b65a1393dad09e042f79ed3fd53724724fb2beaf2e5cb5bbac6053e25b188"
+      "bytes": 16576,
+      "sha256": "bad2f36709813d00e93086f41b801f39f239123b347f85e78fefd3f6c7ac5ff2"
     },
     "app-icon-maskable-512.png": {
-      "bytes": 105645,
-      "sha256": "d9c30a52c5cee0e16272214f95e7af7788251b2cfe67a817aa3f86126b3f01a5"
+      "bytes": 78012,
+      "sha256": "acbe1e276d0df00a61afea2ee5ed4d1dfd27956f2e4eb41f515a70528e1a4749"
     },
     "app-icon.ico": {
-      "bytes": 70567,
-      "sha256": "63d8fd817d810b4dfc6d35995dcce3f6adff62c1a04550dd775b748dfdc9f2ac"
+      "bytes": 53399,
+      "sha256": "d386fec9655d4ca91b9eb3060a569dd0f0723539a37e864ab5b69b01f90674d6"
     }
   }
 }

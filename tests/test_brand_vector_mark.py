@@ -1,4 +1,4 @@
-"""Primary brand vector stays crisp, self-contained, and separate from the PWA icon."""
+"""Approved active family and integrity of the retained historical vector."""
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_primary_brand_vector_is_self_contained_and_described():
+def test_retained_legacy_vector_is_self_contained_and_described():
     asset = ROOT / "static/img/nemesis-shark-mark.svg"
     svg = ET.parse(asset).getroot()
 
@@ -19,15 +19,16 @@ def test_primary_brand_vector_is_self_contained_and_described():
                 if node.tag.rsplit("}", 1)[-1] in forbidden]
 
 
-def test_shared_brand_uses_vector_mark_while_pwa_install_icon_remains_independent():
+def test_shared_brand_and_install_icon_reference_the_same_approved_family():
     partial = (ROOT / "templates/partials/brand_logo.html").read_text(encoding="utf-8")
     app = (ROOT / "app.py").read_text(encoding="utf-8")
     css = (ROOT / "static/product-system.css").read_text(encoding="utf-8")
     contracts = (ROOT / "reference_images/design_contracts.json").read_text(encoding="utf-8")
 
-    assert "nemesis-shark-mark.svg?v=brand-20261020-1" in partial
-    assert 'data-brand-source="official-brand-vector"' in partial
+    assert "approved-identity/nemesis-approved-mark-128.webp" in partial
+    assert "approved-identity/nemesis-approved-mark-256.webp?v=" in partial and " 2x" in partial
+    assert 'data-brand-source="owner-approved-family-20261023"' in partial
     assert "app-icon-{size}.png" in app
     assert "official_app_icon_master.svg" in (ROOT / "static/img/app-icons/icons.json").read_text(encoding="utf-8")
     assert ".brand.v949-brand .ns-brand-name" in css
-    assert "PRIMARY_BRAND_MARK" in contracts and "nemesis-shark-mark.svg" in contracts
+    assert "PRIMARY_BRAND_MARK" in contracts and "nemesis-approved-mark-128.webp" in contracts

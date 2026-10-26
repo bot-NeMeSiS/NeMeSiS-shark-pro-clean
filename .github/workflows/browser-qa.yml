@@ -16,6 +16,7 @@ on:
       - 'browser_qa/playwright_requirements.txt'
       - 'tools/run_v929_click_navigation_qa.py'
       - 'tools/check_shark_workspace_browser.py'
+      - 'tools/check_approved_identity_browser.py'
   push:
     branches: [main]
     paths:
@@ -31,6 +32,7 @@ on:
       - 'browser_qa/playwright_requirements.txt'
       - 'tools/run_v929_click_navigation_qa.py'
       - 'tools/check_shark_workspace_browser.py'
+      - 'tools/check_approved_identity_browser.py'
   workflow_dispatch:
     inputs:
       base_url:
@@ -85,6 +87,8 @@ jobs:
           python tools/run_visual_browser_qa.py --output /tmp/premium-visual-evidence
       - name: Real SHARK workspace HTTP and served JavaScript
         run: python -B tools/check_shark_workspace_browser.py --output-dir /tmp/shark-workspace-evidence
+      - name: Approved identity on real client and Admin HTTP surfaces
+        run: python -B tools/check_approved_identity_browser.py --output-dir /tmp/approved-identity-evidence
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -93,6 +97,7 @@ jobs:
             /tmp/premium-visual-evidence/
             /tmp/visual-preview.log
             /tmp/shark-workspace-evidence/
+            /tmp/approved-identity-evidence/
           retention-days: 7
 
   journey-controls:

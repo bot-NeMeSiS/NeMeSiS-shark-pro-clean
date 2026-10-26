@@ -24357,3 +24357,64 @@ body.ns-app:has(dialog[open]:not(#ns-assistant-dialog)) .ns-assistant-launcher {
 @media (forced-colors: active) {
   body.ns-app .ns-assistant-launcher, body.ns-app .ns-assistant-dialog { border: 2px solid CanvasText; }
 }
+
+/* Approved identity: one quiet static scene, not repeated hero watermarks.
+   This source is compiled into the canonical bundle; no extra stylesheet. */
+html body.ns-app[data-ns-design="core"]::before,
+html body.ns-app[data-ns-design="core"]::after,
+html body.ns-app[data-ns-design="core"] .shark-dot-watermark,
+html body.ns-app[data-ns-design="core"] :is(.v933-public-hero,.v933-client-hero,.v933-admin-sidebar,.v845-shark-hero,.v799-appbar,.v812-hero-shell,.v783-public-hero,.hero,.hero-panel,.v774-client-hero,.ns-not-found-card)::after,
+html body.ns-app[data-ns-design="core"] :is(.v817-shark-screen,.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero,.action-platform-hero,.ns-video-empty-dashboard,.v931-safe-error)::before {
+  content: none !important;
+  display: none !important;
+}
+body.ns-app[data-ns-design="core"] .ns-brand-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  contain: paint;
+  pointer-events: none;
+  user-select: none;
+  background: #020c18;
+}
+body.ns-app .ns-brand-scene::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,rgba(2,12,24,.60),rgba(2,12,24,.82)),
+    url('/static/img/approved-identity/nemesis-approved-ocean-1600.webp?v=2ed30406c2ec') center top / cover no-repeat;
+  opacity: .62;
+}
+body.ns-app .ns-brand-scene::after {
+  content: "";
+  position: absolute;
+  right: max(12px,3vw);
+  bottom: 0;
+  width: min(720px,52vw);
+  aspect-ratio: 1704 / 923;
+  background: url('/static/img/approved-identity/nemesis-approved-wireframe-960.webp?v=450705f95bd2') center / contain no-repeat;
+  opacity: .12;
+}
+body.ns-app.ns-admin .ns-brand-scene::before { opacity: .32; }
+body.ns-app.ns-admin .ns-brand-scene::after { opacity: .10; width: min(520px,42vw); }
+body.ns-app:is([data-ns-route="/cliente-login"],[data-ns-route="/login"],[data-ns-route="/registro"],[data-ns-route="/admin-login"]) .ns-brand-scene::after { opacity: .38; }
+body.ns-app .v933-legal-footer { position: relative; z-index: 1; }
+@media (max-width: 767px) {
+  body.ns-app .ns-brand-scene::before {
+    background-image: linear-gradient(180deg,rgba(2,12,24,.62),rgba(2,12,24,.84)),
+      url('/static/img/approved-identity/nemesis-approved-ocean-768.webp?v=75d7e7023da1');
+    opacity: .52;
+  }
+  body.ns-app .ns-brand-scene::after {
+    right: -24px;
+    bottom: calc(70px + env(safe-area-inset-bottom,0px));
+    width: min(460px,86vw);
+    background-image: url('/static/img/approved-identity/nemesis-approved-wireframe-480.webp?v=71f916315adf');
+    opacity: .12;
+  }
+  body.ns-app.ns-admin .ns-brand-scene::after { width: 70vw; opacity: .08; }
+}
+@media (forced-colors: active) {
+  body.ns-app .ns-brand-scene { display: none; }
+}

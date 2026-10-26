@@ -1,4 +1,4 @@
-# V997 — organización de Inicio y agenda
+# V997 — organización de Inicio, agenda e identidad aprobada
 
 El menú cliente comparte cuatro destinos en escritorio y móvil: En directo,
 Calendario, Pronósticos y Mi cuenta. Inicio conserva su ruta y los accesos desde
@@ -23,7 +23,14 @@ de una misma competición. Los enlaces a la agenda conservan la fecha de la
 selección; resultados abre el día más reciente con datos aceptados, sin
 confundirlo con una jornada vacía.
 
+La identidad aprobada utiliza derivados proporcionados del logo, océano y tiburón
+con balón existentes, sin regenerar ni rediseñar el arte. Cabeceras, SHARK e
+iconos instalables comparten la misma familia. Una sola escena estática queda
+detrás del contenido; no recibe pulsaciones ni repite marcas dentro de tarjetas.
+Móvil descarga derivados menores, Admin reduce la decoración y alto contraste
+la oculta. Los recursos se versionan por su contenido y sus tamaños se verifican.
+
 No cambia proveedores, presupuestos, pagos, base de datos, reloj de frescura,
-servicios o disco. La integración visual aprobada se realiza en el siguiente
-lote independiente. Copia certificada/restore y cadencia LIVE siguen siendo
-criterios operativos independientes; esta versión no los certifica.
+servicios o disco. Luz opcional y rotación controlable de destacados quedan para
+el siguiente lote compatible. Copia certificada/restore y cadencia LIVE siguen
+siendo criterios operativos independientes; esta versión no los certifica.
