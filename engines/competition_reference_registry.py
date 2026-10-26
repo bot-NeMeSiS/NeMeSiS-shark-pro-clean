@@ -74,14 +74,30 @@ def _gender_conflict(value):
     return bool(words & {"female", "femenina", "femenino", "women", "woman", "ladies", "w"})
 
 
+def _non_senior_category(value):
+    """Names can contradict the reviewed senior scope, never prove identity.
+
+    Keep the closed age/reserve markers used by fixture identity local here:
+    importing that matcher would cycle through canonical_competition_context.
+    """
+    words = normalized(value).replace("-", " ")
+    return bool(re.search(
+        r"\b(?:u|under|sub)\s*\d{1,2}\b|"
+        r"\b(?:b|c|ii|iii|iv|reserves?|reservas?|youth|juvenil|juveniles|"
+        r"academy|academia|filial|filiales)\b", words))
+
+
 def _scope_conflicts(reference, item):
     issues = set()
     for field in ("sport", "sport_name", "sport_key", "strSport"):
         if _text(item.get(field)) and _sport(item[field]) != _sport(reference.sport):
             issues.add("CONFLICT_REFERENCE_SPORT")
-    for field in ("gender", "strGender", "competition_name", "league_name", "name"):
+    for field in ("gender", "strGender", "competition_name", "league_name", "_raw_competition_name", "name"):
         if _gender_conflict(item.get(field)):
             issues.add("CONFLICT_REFERENCE_GENDER")
+    for field in ("competition_name", "league_name", "_raw_competition_name", "name"):
+        if _non_senior_category(item.get(field)):
+            issues.add("CONFLICT_REFERENCE_CATEGORY")
     for field in ("gender", "strGender"):
         gender = normalized(item.get(field))
         if gender and gender not in {"male", "men", "masculino", "masculina"} and not _gender_conflict(gender):
@@ -106,7 +122,7 @@ def observation_reference_issues(reference, row):
     # These are the same row identity inputs captured by the snapshot guard.
     # Arbitrary provider metadata must not silently become a new identity input.
     scope_fields = ("sport", "sport_name", "sport_key", "gender", "category", "age_group",
-                    "competition_name", "league_name", "country")
+                    "competition_name", "league_name", "_raw_competition_name", "country")
     issues = _scope_conflicts(reference, {field: row.get(field) for field in scope_fields})
     if not any(_text(row.get(field)) for field in ("sport", "sport_name", "sport_key")):
         issues.add("UNKNOWN_REFERENCE_SCOPE_SPORT")

@@ -42,6 +42,13 @@ def catalogue(**changes):
     return result
 
 
+def senior_odds_observation():
+    return observation(id="odds-owned-senior", external_id="owned-senior-event",
+                       source="The Odds API", competition_id="soccer_spain_la_liga",
+                       competition_key="laliga", competition_name="La Liga",
+                       home_team_id="", away_team_id="", raw_json={})
+
+
 def prepare(rows=None, records=None, **kwargs):
     rows = [observation()] if rows is None else rows
     records = [catalogue()] if records is None else records
@@ -170,6 +177,7 @@ def test_malformed_raw_season_is_not_silently_ignored():
 
 @pytest.mark.parametrize("path,value", [
     (("sport_key",), "basketball"), (("gender",), "Female"), (("category",), "U21"),
+    (("_raw_competition_name",), "La Liga U21"),
     (("raw_json", "league", "id"), 141), (("raw_json", "league", "name"), "La Liga Women"),
     (("raw_json", "league", "country"), "France"), (("raw_json", "league", "season"), 2025),
 ])
@@ -194,6 +202,8 @@ def test_every_new_scope_input_is_already_guarded_after_snapshot_preparation(pat
     ({"sport": "Basketball"}, "CONFLICT_REFERENCE_SPORT"),
     ({"gender": "Female"}, "CONFLICT_REFERENCE_GENDER"),
     ({"name": "La Liga Women"}, "CONFLICT_REFERENCE_GENDER"),
+    ({"name": "La Liga U21"}, "CONFLICT_REFERENCE_CATEGORY"),
+    ({"name": "La Liga Filial"}, "CONFLICT_REFERENCE_CATEGORY"),
 ])
 def test_conflicting_canonical_catalogue_reference_remains_conflict(changes, issue):
     batch, _ = prepare(records=[catalogue(**changes)])
@@ -296,3 +306,53 @@ def test_historical_two_pk_case_keeps_odds_season_team_identity_clocks_and_favor
     assert odds["season"] == ""
     assert odds["away_team_id"] == ""
     assert calls == [("la-liga-spain", "laliga")]
+
+
+@pytest.mark.parametrize("name", [
+    "La Liga U21", "La Liga Under-21", "La Liga Sub 21", "La Liga Reserves",
+    "La Liga Reservas", "La Liga Filial", "La Liga Juvenil", "La Liga B",
+])
+@pytest.mark.parametrize("path", [
+    ("competition_name",), ("league_name",), ("_raw_competition_name",),
+    ("raw_json", "league", "name"),
+])
+def test_non_senior_competition_evidence_keeps_cross_provider_fixtures_separate(path, name):
+    api = observation()
+    target = api
+    for field in path[:-1]:
+        target = target[field]
+    target[path[-1]] = name
+    odds = senior_odds_observation()
+    rows = [api, odds]
+    before = deepcopy(rows)
+    calls = []
+    def read(keys):
+        calls.append(keys)
+        return [catalogue()]
+    snapshot = prepare_fixture_snapshot({"actual": rows}, read, kickoff_for=match_kickoff_madrid)
+    context = snapshot.context_for(api)
+    assert context.state == "CONFLICT"
+    assert "CONFLICT_REFERENCE_CATEGORY" in context.issues
+    assert context.canonical_key == ""
+    selection = snapshot.select("actual")
+    assert selection.count == 2
+    assert selection.groups == ((api,), (odds,))
+    assert rows == before
+    assert calls == [("la-liga-spain", "laliga")]
+
+
+@pytest.mark.parametrize("name", ["La Liga", "LaLiga", "LaLiga EA Sports"])
+def test_reviewed_senior_reference_still_groups_matching_cross_provider_observations(name):
+    api = observation(competition_name=name)
+    api["raw_json"]["league"]["name"] = name
+    odds = senior_odds_observation()
+    rows = [api, odds]
+    before = deepcopy(rows)
+    snapshot = prepare_fixture_snapshot({"actual": rows}, lambda keys: [catalogue()],
+                                        kickoff_for=match_kickoff_madrid)
+    assert snapshot.context_for(api).state == "RESOLVED"
+    selection = snapshot.select("actual")
+    assert selection.count == 1
+    assert selection.groups == ((api, odds),)
+    assert selection.raw_rows == tuple(rows)
+    assert rows == before

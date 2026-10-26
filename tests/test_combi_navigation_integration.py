@@ -188,7 +188,7 @@ def client_pages(app_module):
         with c.session_transaction() as sess:
             sess['user_id'] = ident; sess['user_role'] = 'PRO'; sess['membership'] = 'PRO'
         output = {}
-        for path in ['/app','/profile','/picks','/combinadas','/combis']:
+        for path in ['/app','/mi-cuenta','/profile','/membresias','/picks','/combinadas','/combis']:
             res = c.get(path)
             assert res.status_code == 200, (path,res.status_code)
             output[path] = res.get_data(as_text=True)
@@ -201,13 +201,18 @@ def client_pages(app_module):
 
 def test_actual_home_account_and_picks_reach_one_combi_screen(client_pages,app_module):
     home = Elements(client_pages['/app'])
-    account = Elements(client_pages['/profile'])
+    account = Elements(client_pages['/mi-cuenta'])
     shortcuts = [e for e in home.find('a') if any('ns16-home-actions' in a.get('class','').split() for t,a in e.parents)]
-    assert [e.attrs['href'] for e in shortcuts] == ['/favoritos','/membresias','/soporte']
+    assert [e.attrs['href'] for e in shortcuts] == ['/favoritos','/mi-cuenta','/soporte']
+    assert len({e.attrs['href'] for e in shortcuts}) == len(shortcuts)
     assert any(e.attrs['href'] == '/combinadas' and any('ns16-featured-pick' in a.get('class','').split()
                for t,a in e.parents) for e in home.find('a'))
     assert account.find('a',href='/combinadas#combinadas-guardadas')
-    assert account.find('a',href='/membresias')  # plan access is retained
+    # Home reaches one account destination; the real account response retains
+    # both plan management and saved combinadas, and those routes still load.
+    assert account.find('a',href='/membresias')
+    assert Elements(client_pages['/profile']).find('a',href='/membresias')
+    assert Elements(client_pages['/membresias']).find('h1')
     for route in ('/combis','/combinadas','/picks'):
         assert len(Elements(client_pages[route]).find('nav',**{'data-picks-workspace-nav':None})) == 1
     app = app_module.app

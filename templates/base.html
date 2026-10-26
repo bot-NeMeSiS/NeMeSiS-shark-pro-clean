@@ -138,6 +138,12 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
     <aside class="v933-inline-notice" role="status">{{ admin_operational_settings.get('banner_text') }}</aside>
     {% endif %}
     {% block content %}{% endblock %}
+    <details class="ns-motion-preferences" data-motion-preferences hidden data-pause="{{ ui('Pausar movimiento') }}" data-resume="{{ ui('Activar movimiento') }}" data-reduced="{{ ui('Movimiento reducido del dispositivo') }}" data-unavailable="{{ ui('Movimiento desactivado en este navegador') }}">
+      <summary>{{ ui('Apariencia') }}</summary><div>
+        <button type="button" data-motion-toggle aria-pressed="false">{{ ui('Pausar movimiento') }}</button>
+        <label><input type="checkbox" data-marine-toggle> {{ ui('Luz marina suave') }}</label>
+      </div>
+    </details>
   </main>
   {% block admin_page_navigation %}{% endblock %}
 
@@ -148,14 +154,6 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
     {{ navigation_content('admin' if show_admin_nav else ('client' if current_user else 'public')) }}
   </dialog>
   {% endif %}
-
-
-  <details class="shell ns-motion-preferences" data-motion-preferences hidden data-pause="{{ ui('Pausar movimiento') }}" data-resume="{{ ui('Activar movimiento') }}" data-reduced="{{ ui('Movimiento reducido del dispositivo') }}" data-unavailable="{{ ui('Movimiento desactivado en este navegador') }}">
-    <summary>{{ ui('Apariencia') }}</summary><div>
-      <button type="button" data-motion-toggle aria-pressed="false">{{ ui('Pausar movimiento') }}</button>
-      <label><input type="checkbox" data-marine-toggle> {{ ui('Luz marina suave') }}</label>
-    </div>
-  </details>
   <footer class="v787-legal-footer v933-legal-footer" aria-label="Aviso legal y responsable">
     <strong>{{ ns_ui("+18 - Información deportiva, no casa de apuestas.") }}</strong>
     <span>{{ ns_ui("NeMeSiS SHARK PRO no acepta apuestas, no custodia saldo de juego, no paga premios y no garantiza beneficios.") }}</span>

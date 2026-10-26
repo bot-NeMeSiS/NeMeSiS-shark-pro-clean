@@ -303,3 +303,61 @@ def test_actual_admin_explore_without_javascript_keeps_every_destination(actual_
         finally:
             context.close()
             browser.close()
+
+
+@pytest.mark.parametrize("width", [390, 1024, 1440])
+def test_actual_admin_appearance_controls_remain_reachable_beside_navigation(actual_http, tmp_path, width):
+    """The optional controls must receive pointer input, not the fixed sidebar."""
+    import json
+    from playwright.sync_api import sync_playwright
+
+    base, cookie_name, cookie, _path = actual_http
+    requests, external, errors = [], [], []
+    with sync_playwright() as playwright:
+        launch = {"headless": True, "args": ["--no-sandbox"]}
+        if os.getenv("NEMESIS_QA_CHROMIUM"):
+            launch["executable_path"] = os.environ["NEMESIS_QA_CHROMIUM"]
+        browser = playwright.chromium.launch(**launch)
+        context = browser.new_context(viewport={"width": width, "height": 900}, reduced_motion="no-preference")
+        try:
+            context.add_cookies([{"name": cookie_name, "value": cookie, "url": base, "httpOnly": True}])
+            page = context.new_page()
+
+            def boundary(route):
+                requests.append((route.request.method, urlsplit(route.request.url).path))
+                if route.request.url.startswith(base + "/"):
+                    route.continue_()
+                else:
+                    external.append(urlsplit(route.request.url).netloc)
+                    route.abort()
+
+            page.route("**/*", boundary)
+            page.on("pageerror", lambda error: errors.append(str(error)))
+            assert page.goto(base + "/admin/founder-os", wait_until="networkidle").status == 200
+            preferences = page.locator("[data-motion-preferences]")
+            preferences.locator("summary").click()
+            toggle = preferences.locator("[data-motion-toggle]")
+            toggle.evaluate("el => el.scrollIntoView({block: 'center', behavior: 'instant'})")
+            geometry = toggle.evaluate("""el => {
+              const box = el.getBoundingClientRect();
+              const hit = document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+              const preferences = el.closest('[data-motion-preferences]');
+              const sidebar = document.querySelector('.v933-admin-sidebar');
+              return {width: innerWidth, control: box.toJSON(), receivesPointer: el.contains(hit),
+                hit: hit ? {tag: hit.tagName, classes: hit.className} : null,
+                preferences: preferences.getBoundingClientRect().toJSON(),
+                bottomPadding: getComputedStyle(preferences).paddingBottom,
+                sidebar: sidebar ? sidebar.getBoundingClientRect().toJSON() : null};
+            }""")
+            (tmp_path / f"appearance-{width}.json").write_text(json.dumps(geometry, indent=2), encoding="utf-8")
+            page.screenshot(path=str(tmp_path / f"appearance-{width}.png"))
+            assert geometry["receivesPointer"], geometry
+            assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+            before = toggle.get_attribute("aria-pressed")
+            toggle.click()
+            assert toggle.get_attribute("aria-pressed") != before
+            assert not external and not errors, (external, errors)
+            assert all(method == "GET" for method, _ in requests), requests
+        finally:
+            context.close()
+            browser.close()

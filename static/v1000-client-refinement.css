@@ -19,6 +19,7 @@ body.ns-app [data-v1000-home] .ns16-home-hero{min-height:0;padding-block:12px}
 body.ns-app [data-v1000-home] .ns16-home-hero h1{font-size:clamp(1.25rem,2.4vw,1.8rem);line-height:1.2;margin:0}
 body.ns-app [data-v1000-home] .ns16-home-hero p:not([data-home-greeting]){font-size:.78rem;margin:6px 0 0}
 body.ns-app [data-v1000-home] .sports-priority-hero [data-home-greeting]{margin-bottom:8px}
+body.ns-app [data-v1000-home] [data-home-secondary-actions]{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
 @media(prefers-reduced-motion:reduce){body.ns-app .ns-marine-light,body.ns-app .ns-assistant-launcher.ns-discovery-pulse img{animation:none!important;transform:none!important}body.ns-app .ns-marine-light{display:none}}
 @media(prefers-reduced-transparency:reduce){body.ns-app .ns-marine-light{display:none}}
 @media(forced-colors:active){body.ns-app .ns-marine-light{display:none}body.ns-app .ns-motion-preferences button{border:1px solid ButtonText}}

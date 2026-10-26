@@ -252,6 +252,35 @@ $a.Save()
 
 
 @WINDOWS_COM
+def test_missing_admin_browser_does_not_transfer_its_profile_to_another_family(tmp_path):
+    chrome_profile = tmp_path / "Owned Chrome profile reference"
+    edge_profile = tmp_path / "Owned Edge profile reference"
+    chrome_flags = '--user-data-dir="' + str(chrome_profile) + '" --profile-directory="Chrome Company"'
+    edge_flags = '--user-data-dir="' + str(edge_profile) + '" --profile-directory="Edge Company"'
+    fixture = _owned_fixture(tmp_path, admin_profile=chrome_flags)
+    (fixture["browser"] / "chrome.exe").unlink()  # owned dummy target, never a real browser
+    edge = fixture["browser"] / "msedge.exe"
+    edge.write_bytes(b"owned-edge-shortcut-target-only")
+    _powershell(f"""
+$s = New-Object -ComObject WScript.Shell
+$c = $s.CreateShortcut({_quote(fixture['desktop'] / CLIENT)})
+$c.TargetPath = {_quote(edge)}
+$c.Arguments = {_quote(edge_flags + ' --app-id=owned-pwa-app-id-preserve-exactly')}
+$c.Save()
+""")
+    client_before = (fixture["desktop"] / CLIENT).read_bytes()
+    project_before = (fixture["desktop"] / PROJECT).read_bytes()
+    _install(fixture)
+    admin = _inspect(fixture["desktop"] / ADMIN)
+    assert Path(admin["Target"]) == edge
+    assert admin["Arguments"] == edge_flags + ' --app="' + ADMIN_URL + '"'
+    assert str(chrome_profile) not in admin["Arguments"]
+    assert (fixture["desktop"] / CLIENT).read_bytes() == client_before
+    assert (fixture["desktop"] / PROJECT).read_bytes() == project_before
+    assert not chrome_profile.exists() and not edge_profile.exists()
+
+
+@WINDOWS_COM
 def test_missing_client_creates_only_web_access_and_does_not_claim_pwa(tmp_path):
     fixture = _owned_fixture(tmp_path, client=False)
     project_before = (fixture["desktop"] / PROJECT).read_bytes()

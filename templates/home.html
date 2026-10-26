@@ -113,7 +113,7 @@
       </div>
       <nav class="v933-launch-start-strip sports-priority-start" aria-label="Accesos deportivos principales" data-launch-excellence="home-start" data-home-secondary-actions>
         {% if not current_user and live_count and not agenda_unavailable %}<a href="/directo">{{ icon('live') }}<span>{{ ui('Directo') }}</span></a>{% endif %}
-        <a href="/calendario">{{ icon('calendar') }}<span>{{ ui("Calendario") }}</span></a>
+        {% if not current_user or (live_count and not agenda_unavailable) %}<a href="/calendario">{{ icon('calendar') }}<span>{{ ui("Calendario") }}</span></a>{% endif %}
         <a href="/favoritos">{{ icon('star') }}<span>{{ ui("Favoritos") }}</span></a>
         <a href="/picks">{{ icon('target') }}<span>{{ ui("Pronósticos") }}</span></a>
       </nav>

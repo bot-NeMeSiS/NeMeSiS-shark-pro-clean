@@ -106,8 +106,53 @@ def _json_response(base_url: str, path: str) -> tuple[dict[str, Any], dict[str, 
     try:
         payload = json.loads(response["body"])
     except (TypeError, json.JSONDecodeError):
-        payload = {}
+        response["json_state"] = "invalid_json"
+        return {}, response
+    response["json_state"] = "object" if isinstance(payload, dict) else "not_object"
     return payload if isinstance(payload, dict) else {}, response
+
+
+def _sports_probe_evidence(response: dict[str, Any]) -> dict[str, Any]:
+    """Keep the first observation without response bodies or redirected URLs."""
+    status = response["status"]
+    json_state = response["json_state"]
+    if status == 0:
+        failure_kind = "transport"
+    elif status != 200:
+        failure_kind = "http"
+    elif json_state == "invalid_json":
+        failure_kind = "json_decode"
+    elif json_state != "object":
+        failure_kind = "json_shape"
+    else:
+        failure_kind = None
+    # Only fixed exception names may enter the report. Never include exception
+    # messages, response content, headers or a redirect carrying credentials.
+    transport_error = response.get("error")
+    safe_transport_errors = {
+        "TimeoutError", "URLError", "ConnectionError", "ConnectionResetError",
+        "ConnectionRefusedError", "RemoteDisconnected", "SSLError", "OSError",
+        "IncompleteRead", "BadStatusLine",
+    }
+    error_type = None
+    if failure_kind == "transport":
+        error_type = transport_error if transport_error in safe_transport_errors else "TransportError"
+    elif failure_kind == "http":
+        error_type = "HTTPError"
+    elif failure_kind == "json_decode":
+        error_type = "JSONDecodeError"
+    elif failure_kind == "json_shape":
+        error_type = "JSONNotObject"
+    return {
+        "path": "/api/realtime/sports",
+        "status": status,
+        "latency_ms": response["latency_ms"],
+        "failure_kind": failure_kind,
+        "error_type": error_type,
+        "json_state": json_state if status == 200 else "not_evaluated",
+        "payload_evaluable": failure_kind is None,
+        "contract_status": "NOT_EVALUATED",
+    }
 
 
 def _parse_offsets(value: str) -> list[int]:
@@ -187,6 +232,7 @@ def _probe(
     warnings: list[str] = []
     runtime, runtime_response = _json_response(base_url, "/api/runtime-version?compact=1")
     sports, sports_response = _json_response(base_url, "/api/realtime/sports")
+    sports_probe = _sports_probe_evidence(sports_response)
 
     if runtime_response["status"] != 200:
         errors.append("runtime_http_failure")
@@ -199,36 +245,47 @@ def _probe(
     if runtime.get("deployment_alignment_status") != "aligned_local_files":
         errors.append("deployment_alignment_failure")
     warnings.append("sentinel_admin_review_required_not_checked_by_public_certifier")
-    matches = [item for item in sports.get("matches") or [] if isinstance(item, dict)]
-    live = [item for item in sports.get("live") or [] if isinstance(item, dict)]
-    public_stale = [item for item in matches if item.get("is_stale") is True]
-    false_live = [
-        item
-        for item in live
-        if item.get("is_stale") is True or item.get("is_live") is not True or not _live_has_evidence(item)
-    ]
+    matches: list[dict[str, Any]] = []
+    live: list[dict[str, Any]] = []
+    public_stale: list[dict[str, Any]] = []
+    false_live: list[dict[str, Any]] = []
+    sync_age_seconds = None
     if sports_response["status"] != 200:
         errors.append("sports_api_http_failure")
-    if sports.get("no_external_calls") is not True:
-        errors.append("sports_render_external_call_guard_missing")
-    if public_stale:
-        errors.append(f"public_stale_live:{len(public_stale)}")
-    if false_live:
-        errors.append(f"false_live:{len(false_live)}")
-    if int((sports.get("counts") or {}).get("live") or 0) != len(live):
-        errors.append("live_counter_mismatch")
-    expected_poll = 45 if live else 180
-    if int(sports.get("poll_after_seconds") or 0) != expected_poll:
-        errors.append("polling_interval_mismatch")
-
-    last_sync = _parse_timestamp(sports.get("last_safe_sync"))
-    sync_age_seconds = None
-    if last_sync is None:
-        errors.append("sports_last_sync_missing")
+    elif sports_probe["failure_kind"] == "json_decode":
+        errors.append("sports_api_json_invalid")
+    elif sports_probe["failure_kind"] == "json_shape":
+        errors.append("sports_api_payload_not_object")
     else:
-        sync_age_seconds = max(0, int((datetime.now(MADRID) - last_sync).total_seconds()))
-        if sync_age_seconds > 1200:
-            errors.append("sports_data_stale")
+        sports_error_start = len(errors)
+        matches = [item for item in sports.get("matches") or [] if isinstance(item, dict)]
+        live = [item for item in sports.get("live") or [] if isinstance(item, dict)]
+        public_stale = [item for item in matches if item.get("is_stale") is True]
+        false_live = [
+            item
+            for item in live
+            if item.get("is_stale") is True or item.get("is_live") is not True or not _live_has_evidence(item)
+        ]
+        if sports.get("no_external_calls") is not True:
+            errors.append("sports_render_external_call_guard_missing")
+        if public_stale:
+            errors.append(f"public_stale_live:{len(public_stale)}")
+        if false_live:
+            errors.append(f"false_live:{len(false_live)}")
+        if int((sports.get("counts") or {}).get("live") or 0) != len(live):
+            errors.append("live_counter_mismatch")
+        expected_poll = 45 if live else 180
+        if int(sports.get("poll_after_seconds") or 0) != expected_poll:
+            errors.append("polling_interval_mismatch")
+
+        last_sync = _parse_timestamp(sports.get("last_safe_sync"))
+        if last_sync is None:
+            errors.append("sports_last_sync_missing")
+        else:
+            sync_age_seconds = max(0, int((datetime.now(MADRID) - last_sync).total_seconds()))
+            if sync_age_seconds > 1200:
+                errors.append("sports_data_stale")
+        sports_probe["contract_status"] = "FAIL" if len(errors) > sports_error_start else "PASS"
 
     routes: list[dict[str, Any]] = []
     five_xx = 0
@@ -280,15 +337,16 @@ def _probe(
         "sha": runtime.get("git_commit_hint"),
         "sentinel_admin_review": "NOT_CHECKED_REQUIRES_AUTHENTICATED_ADMIN",
         "runtime_diagnostics_scope": "public_readiness_only",
-        "matches": len(matches),
-        "live": len(live),
-        "stale_live_diagnostic": int((sports.get("counts") or {}).get("stale_live") or 0),
-        "public_stale_live": len(public_stale),
-        "false_live": len(false_live),
-        "poll_after_seconds": sports.get("poll_after_seconds"),
-        "last_safe_sync": sports.get("last_safe_sync"),
+        "sports_probe": sports_probe,
+        "matches": len(matches) if sports_probe["payload_evaluable"] else None,
+        "live": len(live) if sports_probe["payload_evaluable"] else None,
+        "stale_live_diagnostic": int((sports.get("counts") or {}).get("stale_live") or 0) if sports_probe["payload_evaluable"] else None,
+        "public_stale_live": len(public_stale) if sports_probe["payload_evaluable"] else None,
+        "false_live": len(false_live) if sports_probe["payload_evaluable"] else None,
+        "poll_after_seconds": sports.get("poll_after_seconds") if sports_probe["payload_evaluable"] else None,
+        "last_safe_sync": sports.get("last_safe_sync") if sports_probe["payload_evaluable"] else None,
         "sync_age_seconds": sync_age_seconds,
-        "provider_status": sports.get("provider_status"),
+        "provider_status": sports.get("provider_status") if sports_probe["payload_evaluable"] else None,
         "five_xx": five_xx,
         "routes": routes,
         "warnings": warnings,
@@ -381,6 +439,7 @@ def main() -> int:
             "sha": sample["sha"],
             "public_stale_live": sample["public_stale_live"],
             "false_live": sample["false_live"],
+            "sports_probe": sample["sports_probe"],
             "five_xx": sample["five_xx"],
             "warnings": sample["warnings"],
             "errors": sample["errors"],

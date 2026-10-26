@@ -126,7 +126,11 @@ $existingAdmin = Read-ExistingShortcut $adminPath
 $existingClient = Read-ExistingShortcut $clientPath
 $existingProject = Read-ExistingShortcut $projectPath
 $browser = Get-BrowserPath $existingAdmin $existingClient
-$profileArguments = Get-ProfileArguments $existingAdmin
+$profileArguments = ""
+if ($null -ne $existingAdmin -and
+    (Get-BrowserFamily $browser) -eq (Get-BrowserFamily $existingAdmin.Target)) {
+    $profileArguments = Get-ProfileArguments $existingAdmin
+}
 if ([string]::IsNullOrWhiteSpace($profileArguments) -and $null -ne $existingClient -and
     (Get-BrowserFamily $browser) -eq (Get-BrowserFamily $existingClient.Target)) {
     $profileArguments = Get-ProfileArguments $existingClient
