@@ -3,7 +3,7 @@
 ## Cambios del candidato
 
 - Ficha canónica: el escudo y el nombre forman una unidad por equipo, con marcador independiente. Diseño simétrico, nombres largos, RTL y fallback a 320/390/834/1440 px.
-- Acceso cliente/Admin: formulario compacto, identidad aprobada visible en el espacio libre, campos sólidos y superficie moderadamente translúcida. Contraste, colores forzados, reducción de transparencia, CSRF, sesión y destinos conservados.
+- Acceso cliente/Admin: formulario compacto, identidad aprobada visible en el espacio libre, campos y superficie sólidos. Contraste, colores forzados, reducción de transparencia, CSRF, sesión y destinos conservados. La transparencia queda localizada en decoración y espacios libres; conserva superficies de lectura firmes.
 - Inicio: saludo secundario con el nombre real permitido; partidos como encabezado; cuenta/plan/preferencias en un acceso coherente. El CTA principal usa el calendario cuando no hay directo confirmado. Corrección del singular del resumen de otras competiciones.
 - Admin: búsqueda por grupos y términos como «clientes» e «incidencias», también con GET sin JavaScript; los mismos 16 destinos agrupados para escritorio y Explorar móvil; frecuentes y búsqueda accesibles. La bandeja del fundador precede los indicadores; una lectura fallida o un importe no registrado no aparecen como un cero demostrado.
 - Movimiento opcional: luz marina desactivada por defecto; pausa persistente y preferencias del dispositivo. El descubrimiento de SHARK tiene dos pulsos finitos y después permanece quieto. Interacción, modal, escritura y visibilidad detienen la decoración. Abrir/animar no inicia una pregunta. El almacenamiento bloqueado deja el movimiento y la telemetría opcional en silencio.

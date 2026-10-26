@@ -823,7 +823,8 @@ body[data-ns-design="core"] .ns-main-shell,
 body[data-ns-design="core"] .app-shell,
 body[data-ns-design="core"] .page,
 body[data-ns-design="core"] .container{position:relative;z-index:1}
-body[data-ns-design="core"] :is(.top.ns-topbar,.topbar,.nav-clean,header){
+/* The canonical match header owns its data surface; this is navigation chrome. */
+body[data-ns-design="core"] :is(.top.ns-topbar,.topbar,.nav-clean,header:not(.v944-match-header)){
   background:linear-gradient(135deg,rgba(5,12,24,.96),rgba(9,22,39,.80))!important;
   border-bottom:1px solid rgba(148,163,184,.20)!important;
   backdrop-filter:blur(22px) saturate(1.35);
@@ -4883,7 +4884,7 @@ body[data-ns-design="core"] input,
 body[data-ns-design="core"] select,
 body[data-ns-design="core"] textarea{
   border-color:var(--v838-line)!important;
-  background:rgba(2,9,19,.68)!important;
+  background:#020913!important;
   color:var(--v838-text)!important;
 }
 body[data-ns-design="core"] .team-crest,
@@ -17076,7 +17077,7 @@ body.ns-app .v933-support-form :is(input,select,textarea) { width: 100%; min-wid
 
 .v933-safe-copy { padding: 10px; border: 1px dashed rgba(242,189,56,.25); border-radius: var(--v933-radius-xs); color: #c6b987; background: rgba(242,189,56,.05); font-size: .67rem; line-height: 1.45; }
 
-.v933-table-shell { width: 100%; overflow-x: auto; border: 1px solid var(--v933-border); border-radius: var(--v933-radius); background: rgba(4,14,27,.94); }
+.v933-table-shell { width: 100%; overflow-x: auto; border: 1px solid var(--v933-border); border-radius: var(--v933-radius); background: var(--product-panel); }
 
 .v933-data-table { width: 100%; min-width: 720px; border-collapse: collapse; }
 
@@ -21901,7 +21902,8 @@ body.ns-app :is(.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-matc
   background:
     radial-gradient(ellipse at 76% 12%, rgba(21, 132, 255, .22), transparent 32%),
     radial-gradient(ellipse at 12% 110%, rgba(22, 103, 207, .16), transparent 38%),
-    linear-gradient(108deg, rgba(3, 14, 29, .97), rgba(2, 12, 26, .88) 48%, rgba(1, 8, 20, .7)) !important;
+    linear-gradient(108deg, rgba(3, 14, 29, .97), rgba(2, 12, 26, .88) 48%, rgba(1, 8, 20, .7)),
+    var(--product-panel) !important;
   box-shadow: var(--nsx-shadow), inset 0 1px 0 rgba(255,255,255,.05), 0 0 0 1px rgba(57,216,255,.04) !important;
 }
 
@@ -23378,7 +23380,7 @@ body.ns-app .ns-video-flat-band .v933-feature-grid > article {
   border: 0;
   border-left: 2px solid rgba(57,216,255,.2);
   border-radius: 0;
-  background: rgba(15,77,126,.06);
+  background: var(--product-panel-raised);
 }
 
 body.ns-app.ns-admin .v933-fact-grid > article {

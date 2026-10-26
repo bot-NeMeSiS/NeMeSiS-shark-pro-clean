@@ -53,11 +53,6 @@ html body.ns-app[data-ns-design="core"] [data-auth-layout="v1000"] form.auth-car
   -webkit-backdrop-filter: none !important;
   color: #edf6ff;
 }
-@supports (background-color: rgb(7 21 37 / .88)) {
-  html body.ns-app[data-ns-design="core"] [data-auth-layout="v1000"] form.auth-card {
-    background: rgb(7 21 37 / .88) !important;
-  }
-}
 html body.ns-app[data-ns-design="core"] [data-auth-layout="v1000"] .v1000-auth-heading h1 {
   color: #edf6ff;
   font-size: 1.8rem;

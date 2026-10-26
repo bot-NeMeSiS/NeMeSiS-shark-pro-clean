@@ -93,7 +93,10 @@ def test_actual_fixture_header_keeps_each_crest_with_its_name_and_score_separate
                 observation = page.evaluate("""() => {
                   const rect=e=>{const r=e.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height,right:r.right,bottom:r.bottom}};
                   const score=document.querySelector('.v944-match-header__status');
+                  const surface=getComputedStyle(document.querySelector('[data-match-component="MatchHeader"]'));
                   return {viewport:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth+2,
+                    surface:{background:surface.backgroundColor,image:surface.backgroundImage,opacity:surface.opacity,
+                      panel:surface.getPropertyValue('--product-panel').trim()},
                     score:rect(score),scoreLabel:score.querySelector('.v944-score-widget strong').textContent.trim(),
                     teams:[...document.querySelectorAll('.v944-match-team')].map(e=>{
                       const logo=e.querySelector('.v933-team-logo'),name=e.querySelector('strong');
@@ -107,8 +110,11 @@ def test_actual_fixture_header_keeps_each_crest_with_its_name_and_score_separate
                 }""")
                 observation["case"] = case
                 observations.append(observation)
+                (tmp_path / f"geometry-{width}.json").write_text(json.dumps(observations, ensure_ascii=False, indent=2), encoding="utf-8")
                 assert [team["name"] for team in observation["teams"]] == [home, away]
                 assert observation["scoreLabel"] == ("2-1" if status == "FT" else "VS")
+                assert observation["surface"]["background"] == "rgb(20, 28, 41)", observation["surface"]
+                assert observation["surface"]["opacity"] == "1"
                 assert not observation["overflow"]
                 assert all(not team["nameClipped"] for team in observation["teams"])
                 assert page.locator('.v944-match-team strong[dir="auto"]').count() == 2

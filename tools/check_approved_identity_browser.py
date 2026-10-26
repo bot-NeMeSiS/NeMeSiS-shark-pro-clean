@@ -16,6 +16,37 @@ from urllib.parse import urlsplit
 ROOT=Path(__file__).resolve().parents[1]
 
 
+def surface_opacity(page):
+    """Measure only visible functional surfaces; no values, copy or child spans."""
+    selectors={
+        'auth_card':'[data-auth-layout="v1000"] form.auth-card',
+        'text_controls':','.join('input[type="'+kind+'"]' for kind in
+            ('text','search','password','email','url','tel','number','date','datetime-local','month','week','time'))+',input:not([type]),select,textarea',
+        'table_shell':'.v933-table-shell',
+        'account_quick_actions':'.ns16-account-actions .v933-quick-action',
+        'product_cards':'.v933-panel:not(.v933-filter-panel),.v933-admin-panel,.v933-match-card,.v933-pick-card,.v933-kpi',
+        # Filter bars are layout containers. Their actual text controls are
+        # checked separately; the approved ocean can remain in these margins.
+        'filter_layout':'.v933-filter-panel',
+    }
+    return page.evaluate('''families => {
+      const pixel = document.createElement('canvas'); pixel.width = pixel.height = 1;
+      const ctx = pixel.getContext('2d', {willReadFrequently:true});
+      return Object.entries(families).map(([family, selector]) => {
+        const elements = [...document.querySelectorAll(selector)].flatMap((el, index) => {
+          const style = getComputedStyle(el), rect = el.getBoundingClientRect();
+          if (!rect.width || !rect.height || style.display === 'none' || style.visibility !== 'visible') return [];
+          ctx.clearRect(0,0,1,1); ctx.fillStyle = style.backgroundColor; ctx.fillRect(0,0,1,1);
+          return [{index, tag:el.tagName, classes:el.className, backgroundColor:style.backgroundColor, backgroundImage:style.backgroundImage,
+            pixelAlpha:ctx.getImageData(0,0,1,1).data[3]/255, opacity:Number(style.opacity),
+            width:rect.width, height:rect.height}];
+        });
+        return {family, selector, opaqueRequired:family !== 'filter_layout', visibleCount:elements.length,
+          state:elements.length ? 'MEASURED' : 'NOT_PRESENT', elements};
+      });
+    }''',selectors)
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True)
@@ -48,7 +79,7 @@ def main():
     import app
     app.DB_PATH=str(database);app._SEEDED_DB_PATH=str(database);app.APP_INITIALIZED=True
     app.app.config.update(TESTING=True)
-    http=[];errors=[];external=[];views=[]
+    http=[];errors=[];external=[];views=[];surface_checks=[]
     @app.app.after_request
     def record(response):
         from flask import request
@@ -100,11 +131,24 @@ def main():
             visible:el.getBoundingClientRect().width>0&&getComputedStyle(el).visibility!=='hidden'}))})''')
         assert _official_brand_in_page(brand_metrics, base), (role,path,width)
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),(role,path,width)
-        assert page.locator('[data-ns-assistant]').count()==(0 if role=='admin' else 1)
+        measured=surface_opacity(page)
+        surface_checks.append(dict(width=width,role=role,path=path,families=measured))
+        for family in measured:
+            if not family['opaqueRequired']:
+                continue
+            for element in family['elements']:
+                assert element['pixelAlpha']==1 and element['opacity']==1,(role,path,width,family['family'],element)
+        authentication=urlsplit(path).path in {'/cliente-login','/admin-login'}
+        if role=='admin' or authentication:
+            assert page.locator('[data-ns-assistant], [data-ns-assistant-open], #ns-assistant-dialog').count()==0,(role,path,width)
+        else:
+            assert page.locator('[data-ns-assistant]').count()==1,(role,path,width)
+            assert page.locator('[data-ns-assistant-open]').count()==1,(role,path,width)
         file=out/(str(width)+'-'+role+'-'+path.strip('/').replace('/','-')+'.png')
         page.screenshot(path=str(file),animations='disabled')
         views.append(dict(width=width,role=role,path=path,screenshot=file.name,
-                          sha256=hashlib.sha256(file.read_bytes()).hexdigest(),decoded_scene=decoded))
+                          sha256=hashlib.sha256(file.read_bytes()).hexdigest(),decoded_scene=decoded,
+                          surface_opacity_index=len(surface_checks)-1))
     try:
         with sync_playwright() as pw:
             options={'headless':True}
@@ -132,7 +176,7 @@ def main():
     finally:
         server.shutdown();thread.join(timeout=10);server.server_close()
         after_assets={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in asset_files if p.is_file()}
-        receipt=dict(views=views,http=http,errors=errors,external_requests=external,
+        receipt=dict(views=views,http=http,errors=errors,external_requests=external,surface_opacity=surface_checks,
             boundary_events=boundary,source_unchanged=before==source_fingerprint(),
             assets_unchanged=asset_hashes==after_assets,asset_hashes=asset_hashes,
             origin='SIMULATED_QA',real_application=str(app.__file__)==str(ROOT/'app.py'),

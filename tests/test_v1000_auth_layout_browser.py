@@ -125,7 +125,7 @@ def test_real_login_layout_preserves_password_csrf_session_and_safe_return(auth_
                 if width >= 834:
                     assert 400 <= first["card"]["box"]["w"] <= 460
                 assert not first["side"] and not first["hero"]
-                assert first["card"]["background"].startswith("rgba(")
+                assert first["card"]["background"] == "rgb(7, 21, 37)"
                 assert all(item["background"].startswith("rgb(") for item in first["inputs"][:2])
                 assert first["card"]["backdropFilter"] == "none"
             csrf = page.locator('.auth-card input[name="csrf_token"]').input_value()
