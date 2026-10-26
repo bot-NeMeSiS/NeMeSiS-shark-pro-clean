@@ -4,6 +4,9 @@
 {% from "components/home_competition_groups.html" import competition_groups, remaining with context %}
 {% block content %}
 {% set day = data.get("home_matchday")|home_preview %}
+{% set agenda_href = day.agenda_href if day else '/calendario' %}
+{% set upcoming_href = day.upcoming_href if day else '/calendario?lane=week' %}
+{% set results_href = day.results_href if day else '/calendario?lane=finished' %}
 {% set summary = data.get('home_summary') or {} %}
 {% set counts = summary.get('counts') or {} %}
 {% set sports_home = summary.get('sports_home') or (data.get('match_hub') or {}).get('sports_home') or {} %}
@@ -147,9 +150,9 @@
   <section class="v933-two-col sports-priority-layout">
     <div class="v933-main-stack">
       {% if day or important_matches or not original_sections.important %}<section class="v933-panel sports-priority-section" data-sports-priority="important-today">
-        {{ section_header('Partidos de hoy' if day else 'Importantes hoy', 'Por liga · Hora Madrid' if day else '', 'Todos los partidos', '/calendario') }}
-{% if day and day.today.shown %}{{ competition_groups(day.today.groups, false, section='public-today') }}{{ remaining(day.today, '/calendario') }}
-        {% elif day and day.today.total %}{{ remaining(day.today, '/calendario') }}
+        {{ section_header('Partidos de hoy' if day else 'Importantes hoy', 'Por liga · Hora Madrid' if day else '', 'Todos los partidos', agenda_href) }}
+{% if day and day.today.shown %}{{ competition_groups(day.today.groups, false, section='public-today') }}{{ remaining(day.today, agenda_href) }}
+        {% elif day and day.today.total %}{{ remaining(day.today, agenda_href) }}
         {% elif not day and important_matches %}
           <div class="v933-match-grid sports-priority-grid">
             {% for match in important_matches[:3] %}{{ match_card(match, true, true) }}{% endfor %}
@@ -161,9 +164,9 @@
 
       {% endif %}
       {% if day or upcoming_matches or not original_sections.upcoming %}<section class="v933-panel sports-priority-section" data-sports-priority="upcoming">
-        {{ section_header('Próximos partidos', '', 'Explorar semana', '/calendario?lane=week', 'Agenda') }}
-{% if day and day.upcoming.shown %}{{ competition_groups(day.upcoming.groups, true, section='public-upcoming') }}{{ remaining(day.upcoming, '/calendario?lane=week') }}
-        {% elif day and day.upcoming.total %}{{ remaining(day.upcoming, '/calendario?lane=week') }}
+        {{ section_header('Próximos partidos', '', 'Explorar semana', upcoming_href, 'Agenda') }}
+{% if day and day.upcoming.shown %}{{ competition_groups(day.upcoming.groups, true, section='public-upcoming') }}{{ remaining(day.upcoming, upcoming_href) }}
+        {% elif day and day.upcoming.total %}{{ remaining(day.upcoming, upcoming_href) }}
         {% elif not day and upcoming_matches %}
           <div class="v933-match-grid sports-priority-grid is-compact">
             {% for match in upcoming_matches[:3] %}{{ match_card(match, true, true) }}{% endfor %}
@@ -175,9 +178,9 @@
 
       {% endif %}
       {% if day or recent_results or not original_sections.results %}<section class="v933-panel sports-priority-section" data-sports-priority="recent-results">
-        {{ section_header('Resultados recientes', '', 'Ver finalizados', '/calendario?lane=finished', 'Resultados') }}
-{% if day and day.results.shown %}{{ competition_groups(day.results.groups, true, section='public-results') }}{{ remaining(day.results, '/calendario?lane=finished') }}
-        {% elif day and day.results.total %}{{ remaining(day.results, '/calendario?lane=finished') }}
+        {{ section_header('Resultados recientes', '', 'Ver finalizados', results_href, 'Resultados') }}
+{% if day and day.results.shown %}{{ competition_groups(day.results.groups, true, section='public-results') }}{{ remaining(day.results, results_href) }}
+        {% elif day and day.results.total %}{{ remaining(day.results, results_href) }}
         {% elif not day and recent_results %}
           <div class="v933-match-grid sports-priority-grid is-compact">
             {% for match in recent_results[:4] %}{{ match_card(match, true, true) }}{% endfor %}

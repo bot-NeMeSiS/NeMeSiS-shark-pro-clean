@@ -95,7 +95,7 @@ def test_summary_keeps_bounded_sample_without_other_match_leak(catalogue):
     ('public','/historico','/historico'),('public','/track-record','/historico'),
     ('public','/resumenes','/calendario?lane=finished'),
     ('public','/resumen/h1','/calendario?lane=finished'),
-    ('client','/live','/calendario?lane=today'),
+    ('client','/live','/directo'),
     ('client','/track-record','/picks'),('client','/combinadas','/picks'),
     ('client','/notificaciones','/mi-cuenta'),('client','/actividad','/mi-cuenta'),
 ])
@@ -191,7 +191,7 @@ def test_browser_real_templates_and_css_are_readable_offline(width,tmp_path):
         try:
             for name,body in [('videos',env().get_template('highlights.html').render(data=page_data(available=videos()))),
                  ('menu',str(env().get_template('components/app_navigation.html').module.navigation_content('client',True,'')))]:
-                css=(ROOT/'static/product-system.css').read_text()+'\n'+(ROOT/'static/app-navigation.css').read_text()
+                css=(ROOT/'static/product-system.css').read_text(encoding='utf-8')+'\n'+(ROOT/'static/app-navigation.css').read_text(encoding='utf-8')
                 page.set_content('<!doctype html><html><head><meta name="viewport" content="width=device-width"><style>'+css+'</style></head><body class="ns-app">'+body+'</body></html>')
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+2')
                 if name=='menu':

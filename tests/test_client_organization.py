@@ -49,7 +49,11 @@ def test_client_home_has_five_unique_fixtures_total_and_links_for_undisplayed_la
     assert len(ids) == len(set(ids)) == 5
     assert day['live']['total'] == 8
     links=[n['attrs'].get('href') for n in dom.nodes if n['tag']=='a']
-    assert '/directo' in links and '/calendario?lane=week' in links and '/calendario?lane=finished' in links
+    from urllib.parse import urlsplit,parse_qs
+    queries=[parse_qs(urlsplit(href).query) for href in links if href and href.startswith('/calendario')]
+    assert '/directo' in links
+    assert any(q.get('lane')==['week'] and q.get('date')==[day['date']] for q in queries)
+    assert any(q.get('lane')==['finished'] and q.get('date')==[day['results']['groups'][0]['date']] for q in queries)
     assert 'Sin resultados recientes verificados' not in render_home(app_module,{'home_matchday':day},language)
 
 

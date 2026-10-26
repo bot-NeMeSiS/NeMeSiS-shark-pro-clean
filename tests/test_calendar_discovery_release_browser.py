@@ -111,7 +111,8 @@ def test_mid_mobile_calendar_keeps_sort_and_submit_on_one_row(browser,app_module
         assert first_group.locator('summary').bounding_box()['y'] < 740
         first_group.locator('summary').click()
         first_match=first_group.locator('.v933-match-card').first.bounding_box()
-        assert first_match['y'] < 740
+        heading=first_group.locator('summary').bounding_box()
+        assert 0 <= first_match['y'] - (heading['y'] + heading['height']) <= 20
         assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
         assert not errors
     finally:page.close()

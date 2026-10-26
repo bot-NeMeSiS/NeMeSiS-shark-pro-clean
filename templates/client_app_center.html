@@ -7,6 +7,9 @@
 {% set sports_home = home_summary.get('sports_home') if home_summary.get('sports_home') is mapping else (hub.get('sports_home') or {}) %}
 {% set matches = data.get('available_matches') or [] %}
 {% set day = data.get('home_matchday')|home_preview(false) %}
+{% set agenda_href = day.agenda_href if day else '/calendario' %}
+{% set upcoming_href = day.upcoming_href if day else '/calendario?lane=week' %}
+{% set results_href = day.results_href if day else '/calendario?lane=finished' %}
 {% set live_matches = sports_home.get('live_now', hub.get('live') or []) or [] %}
 {% set important_matches = sports_home.get('important_today', hub.get('today') or []) or [] %}
 {% set favorite_matches = sports_home.get('favorites', hub.get('favorites') or []) or [] %}
@@ -51,9 +54,9 @@
     <div class="ns16-home-primary">
       <section class="ns16-section ns16-home-sports" data-v939-layout-contract="full-width-continuation" data-sports-priority="important-today">
         {% if day %}
-          {{ section_header('Partidos de hoy', 'Por liga · Hora Madrid', 'Calendario completo', '/calendario') }}
-          {% if day.today.shown %}{{ competition_groups(day.today.groups, section='today') }}{{ remaining(day.today, '/calendario') }}
-          {% elif day.today.total %}{{ remaining(day.today, '/calendario') }}
+          {{ section_header('Partidos de hoy', 'Por liga · Hora Madrid', 'Calendario completo', agenda_href) }}
+          {% if day.today.shown %}{{ competition_groups(day.today.groups, section='today') }}{{ remaining(day.today, agenda_href) }}
+          {% elif day.today.total %}{{ remaining(day.today, agenda_href) }}
           {% elif safe.get('provider_status') == 'temporarily_unavailable' %}<div data-home-empty="ERROR">{{ empty_state('Agenda temporalmente no disponible', 'No se pudo consultar la agenda. Vuelve a intentarlo.', 'Reintentar', '/app', 'calendar') }}</div>
           {% else %}<p class="home-agenda-note">{{ ui('No hay más partidos programados para hoy entre los datos disponibles.') }}</p>{% endif %}
         {% else %}
@@ -67,19 +70,19 @@
       </section>
 
       <section class="ns16-section" data-sports-priority="upcoming">
-        {{ section_header('Próximos partidos', '', 'Semana completa', '/calendario?lane=week') }}
+        {{ section_header('Próximos partidos', '', 'Semana completa', upcoming_href) }}
         {% if day %}
-          {% if day.upcoming.shown %}{{ competition_groups(day.upcoming.groups, true, section='upcoming') }}{{ remaining(day.upcoming, '/calendario?lane=week') }}
-          {% elif day.upcoming.total %}{{ remaining(day.upcoming, '/calendario?lane=week') }}
+          {% if day.upcoming.shown %}{{ competition_groups(day.upcoming.groups, true, section='upcoming') }}{{ remaining(day.upcoming, upcoming_href) }}
+          {% elif day.upcoming.total %}{{ remaining(day.upcoming, upcoming_href) }}
           {% else %}<p class="home-agenda-note">{{ ui('Los próximos encuentros aparecerán aquí cuando estén disponibles.') }}</p>{% endif %}
         {% elif upcoming_matches %}<div class="ns16-match-row is-two">{% for match in upcoming_matches[:2] %}{{ match_card(match, true, true) }}{% endfor %}</div>{% endif %}
       </section>
 
       <section class="ns16-section" data-sports-priority="recent-results">
-        {{ section_header('Resultados recientes', '', 'Ver finalizados', '/calendario?lane=finished') }}
+        {{ section_header('Resultados recientes', '', 'Ver finalizados', results_href) }}
         {% if day %}
-          {% if day.results.shown %}{{ competition_groups(day.results.groups, true, section='results') }}{{ remaining(day.results, '/calendario?lane=finished') }}
-          {% elif day.results.total %}{{ remaining(day.results, '/calendario?lane=finished') }}
+          {% if day.results.shown %}{{ competition_groups(day.results.groups, true, section='results') }}{{ remaining(day.results, results_href) }}
+          {% elif day.results.total %}{{ remaining(day.results, results_href) }}
           {% else %}<p class="home-agenda-note">{{ ui('Sin resultados recientes verificados') }}</p>{% endif %}
         {% elif recent_results or favorite_matches %}<div class="ns16-match-row is-two">{% for match in (recent_results + favorite_matches)[:4] %}{{ match_card(match, true, true) }}{% endfor %}</div>{% endif %}
       </section>

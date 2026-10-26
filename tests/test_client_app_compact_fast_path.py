@@ -166,10 +166,13 @@ def _home_environment(template_override=None):
     stubs = {"base.html": "{% block content %}{% endblock %}", "components/v933_ui.html": _MACROS}
     if template_override is not None:
         stubs["client_app_center.html"] = template_override
-    return Environment(
+    env = Environment(
         loader=ChoiceLoader([DictLoader(stubs), FileSystemLoader(ROOT / "templates")]),
         autoescape=select_autoescape(["html"]),
     )
+    from engines.home_preview import home_preview
+    env.filters['home_preview'] = home_preview
+    return env
 
 
 def _render_home(data, env=None):

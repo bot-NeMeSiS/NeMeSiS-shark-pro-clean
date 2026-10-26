@@ -18,6 +18,10 @@ portada pública el destacado consume uno de esos cinco lugares. Se priorizan
 directos aceptados y favoritos explícitos, conservando estados, marcadores y
 relojes originales. Los totales completos y los enlaces a la agenda siguen
 disponibles: un límite de presentación no se anuncia como falta de datos.
+El presupuesto reserva espacios entre ligas antes de mostrar un segundo partido
+de una misma competición. Los enlaces a la agenda conservan la fecha de la
+selección; resultados abre el día más reciente con datos aceptados, sin
+confundirlo con una jornada vacía.
 
 No cambia proveedores, presupuestos, pagos, base de datos, reloj de frescura,
 servicios o disco. La integración visual aprobada se realiza en el siguiente

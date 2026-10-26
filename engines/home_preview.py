@@ -1,5 +1,7 @@
 """Presentation-only, globally bounded Home selection from accepted agenda rows."""
 from collections.abc import Mapping
+from datetime import date
+from urllib.parse import urlencode
 
 LANES = ('live', 'today', 'upcoming', 'results')
 
@@ -12,12 +14,20 @@ def home_preview(day, with_hero=True, limit=5):
     """
     if not isinstance(day, Mapping):
         return day
-    candidates = [(lane, group, row) for lane in LANES
-                  for group in day.get(lane, {}).get('groups', ())
-                  for row in group.get('matches', ())]
-    candidates.sort(key=lambda item: (item[0] != 'live', item[2].get('is_favorite') is not True))
+    candidates = []
+    for lane_index, lane in enumerate(LANES):
+        for group in day.get(lane, {}).get('groups', ()):
+            positions = {}
+            for row in group.get('matches', ()):
+                tier = (lane != 'live', row.get('is_favorite') is not True, lane_index)
+                position = positions.get(tier, 0)
+                positions[tier] = position + 1
+                candidates.append((tier, position, lane, group, row))
+    # Keep canonical group order, but reserve a slot across peers before taking
+    # a second fixture from one league. Favorites and LIVE still win first.
+    candidates.sort(key=lambda item: (item[0], item[1]))
     chosen, seen = [], set()
-    for lane, group, row in candidates:
+    for _, _, lane, group, row in candidates:
         identity = str(row.get('id') or '').strip()
         # An unidentifiable fixture must not consume a slot or fabricate identity.
         if not identity or identity in seen:
@@ -29,6 +39,21 @@ def home_preview(day, with_hero=True, limit=5):
     hero = chosen[0] if chosen and with_hero else None
     result = dict(day, hero=hero[2] if hero else None,
                   hero_lane=hero[0] if hero else '', featured_count=len(chosen))
+    def valid_date(value):
+        try:
+            return date.fromisoformat(str(value)).isoformat()
+        except (TypeError, ValueError):
+            return ''
+    selected_date = valid_date(day.get('date'))
+    result_dates = [valid_date(group.get('date')) for group in day.get('results', {}).get('groups', ())]
+    result_date = max(filter(None, result_dates), default=selected_date)
+    def href(lane='', selected=selected_date):
+        query = dict(lane=lane) if lane else {}
+        if selected:
+            query['date'] = selected
+        return '/calendario' + ('?' + urlencode(query) if query else '')
+    result.update(agenda_href=href(), upcoming_href=href('week'),
+                  results_href=href('finished', result_date))
     for lane in LANES:
         original = day.get(lane) or {}
         groups = []

@@ -89,7 +89,7 @@ def test_matchday_is_visible_diverse_and_navigable(browser,app_module,width,lang
             card=page.locator('[data-v934-match-id="'+identity+'"]')
             assert card.count()==1 and card.is_visible()
         assert day['upcoming']['total']==6
-        assert page.locator('[data-sports-priority="upcoming"] a[href="/calendario?lane=week"]').count()>=1
+        assert page.locator('[data-sports-priority="upcoming"] a[href^="/calendario?lane=week&date="]').count()>=1
         assert page.locator('[data-v934-match-id="qa-laliga"] .fav-star').get_attribute('aria-pressed')=='true'
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
         assert not page.locator('.home-agenda-matches').evaluate_all('(nodes)=>nodes.some(el=>el.scrollWidth>el.clientWidth+1)')

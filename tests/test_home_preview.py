@@ -66,3 +66,35 @@ def test_client_without_hero_uses_same_global_budget_and_preserves_all_counts():
     assert result['live']['shown'] == result['live']['preview_displayed'] == 5
     assert result['upcoming']['total'] == 60
     assert result['upcoming']['shown'] == 0 and result['upcoming']['has_more']
+
+
+def test_global_budget_reserves_space_across_competitions_before_second_fixture():
+    day=day_fixture()
+    day['live'].update(total=0,groups=[])
+    for lane in ('upcoming','results'):
+        day[lane].update(total=0,groups=[])
+    day['today']['groups']=[dict(key=str(i),matches=[
+        dict(id=str(i)+'-'+str(j)) for j in range(6)]) for i in range(6)]
+    result=home_preview(day,with_hero=False)
+    assert [group['key'] for group in result['today']['groups']]==['0','1','2','3','4']
+    assert all(group['shown']==1 for group in result['today']['groups'])
+    assert len(selected(result))==5
+
+
+def test_complete_agenda_links_preserve_snapshot_day_and_latest_result_day():
+    day=day_fixture()
+    day['date']='2026-10-26'
+    day['results']['groups'][0]['date']='2026-10-25'
+    result=home_preview(day)
+    assert result['agenda_href']=='/calendario?date=2026-10-26'
+    assert result['upcoming_href']=='/calendario?lane=week&date=2026-10-26'
+    assert result['results_href']=='/calendario?lane=finished&date=2026-10-25'
+    assert result['results']['total']==60
+
+
+def test_invalid_snapshot_date_never_becomes_navigation_markup_or_query():
+    day=day_fixture()
+    day['date']='"><script>alert(1)</script>'
+    result=home_preview(day)
+    assert result['agenda_href']=='/calendario'
+    assert result['results_href']=='/calendario?lane=finished'
