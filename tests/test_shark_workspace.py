@@ -77,3 +77,17 @@ def test_browser_controller_has_no_context_prefetch_or_prompt_storage():
     assert 'innerHTML' not in code and 'textContent' in code
     assert 'sessionStorage' not in code
     assert 'localStorage.setItem' not in code  # Transition fallback has no message or token storage.
+
+
+def test_workspace_controls_are_identified_without_hiding_inert_buttons():
+    from engines.navigation_integrity_engine import _NavigationHTMLParser
+    parser = _NavigationHTMLParser('components/shark_workspace.html')
+    parser.feed((ROOT/'templates/components/shark_workspace.html').read_text(encoding='utf-8'))
+    controls = [x for x in parser.entries if x['kind'] == 'button']
+    assert len(controls) == 3
+    assert {x['selector'] for x in controls} == {
+        'button#ns-assistant-expand', 'button#ns-assistant-minimize', 'button#ns-assistant-hide'}
+    assert all(x.get('has_identifier') for x in controls)
+    inert = _NavigationHTMLParser('unbound.html')
+    inert.feed('<button type="button">Unbound action</button>')
+    assert any(x['kind'] == 'button' and not x.get('has_identifier') for x in inert.entries)
