@@ -1,6 +1,7 @@
 """Real keyboard/link journeys over owned SQLite under the original LOCAL SAFE guard.
 
-The imported fixtures perform a real password login and serve the actual App.
+The shared admin fixture and local client fixture perform real password logins.
+The local HTTP observer forwards the actual App's responses unchanged.
 No business action or SHARK question is submitted; external requests are denied.
 """
 from datetime import datetime, timezone
@@ -9,6 +10,7 @@ import os
 import secrets
 import sqlite3
 import sys
+import threading
 from urllib.parse import urlsplit
 
 import pytest
@@ -16,12 +18,18 @@ from playwright.sync_api import sync_playwright
 from werkzeug.security import generate_password_hash
 
 from test_v1000_actual_admin_navigation import (
-    actual_admin, actual_http, _Document, _get, _post,
+    actual_admin, _Document, _get, _post,
 )
+
+@pytest.fixture
+def expected_identity(actual_admin):
+    _module, client, _path, _cookie_name, _cookie = actual_admin
+    with client.session_transaction(base_url="http://127.0.0.1") as session:
+        return {"user_id": session["user_id"]}
 
 
 @pytest.fixture
-def actual_client(actual_admin):
+def actual_client(actual_admin, expected_identity):
     module, _admin, path, cookie_name, _cookie = actual_admin
     ident = "ui-accessibility-" + secrets.token_hex(6)
     password = secrets.token_urlsafe(24)
@@ -44,11 +52,45 @@ def actual_client(actual_admin):
     assert cookie is not None
     with client.session_transaction(base_url="http://127.0.0.1") as session:
         assert session.get("user_id") == ident and session.get("user_role") == "FREE"
+    expected_identity["user_id"] = ident
     return cookie_name, cookie.value
 
 
+@pytest.fixture
+def actual_http(actual_admin, expected_identity):
+    from werkzeug.serving import make_server
+    module, _client, path, cookie_name, cookie = actual_admin
+    documents = []
+
+    def observe_document(environ, start_response):
+        def capture_language(status, headers, exc_info=None):
+            if environ.get("REQUEST_METHOD") == "GET" and environ.get("PATH_INFO") in {
+                    "/admin/founder-os", "/mi-cuenta", "/shark"}:
+                documents.append({
+                    "path": environ["PATH_INFO"],
+                    "accept_language": environ.get("HTTP_ACCEPT_LANGUAGE", ""),
+                    "content_language": next((value for name, value in headers
+                                              if name.lower() == "content-language"), ""),
+                    "same_user": (module.current_session_user() or {}).get("id") == expected_identity["user_id"],
+                })
+            return start_response(status, headers, exc_info)
+        return module.app(environ, capture_language)
+
+    server = make_server("127.0.0.1", 0, observe_document, threaded=True)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_port}", cookie_name, cookie, path, documents
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
 def _context(playwright, base, width, cookie_name, cookie):
-    launch = {"headless": True, "args": ["--no-sandbox"]}
+    # Native popups can navigate before Playwright applies locale emulation or
+    # request routing; declare the browser's initial HTTP language as well.
+    launch = {"headless": True, "args": ["--no-sandbox", "--accept-lang=es-ES,es"]}
     if os.getenv("NEMESIS_QA_CHROMIUM"):
         launch["executable_path"] = os.environ["NEMESIS_QA_CHROMIUM"]
     browser = playwright.chromium.launch(**launch)
@@ -69,6 +111,14 @@ def _context(playwright, base, width, cookie_name, cookie):
     return browser, context, requests, external, errors
 
 
+def _assert_spanish_documents(documents, paths):
+    assert [document["path"] for document in documents] == paths, documents
+    for document in documents:
+        assert document["accept_language"].split(",", 1)[0] == "es-ES", document
+        assert document["content_language"] == "es", document
+        assert document["same_user"] is True, document
+
+
 def _keyboard_geometry(control):
     return control.evaluate("""el => {
         const rect = el.getBoundingClientRect(), style = getComputedStyle(el);
@@ -85,7 +135,7 @@ def _keyboard_geometry(control):
 
 @pytest.mark.parametrize("width", [320, 390, 1440])
 def test_founder_keyboard_focus_is_unobstructed(actual_http, tmp_path, width):
-    base, name, cookie, _path = actual_http
+    base, name, cookie, _path, documents = actual_http
     with sync_playwright() as pw:
         browser, context, requests, external, errors = _context(pw, base, width, name, cookie)
         try:
@@ -94,6 +144,7 @@ def test_founder_keyboard_focus_is_unobstructed(actual_http, tmp_path, width):
             page.wait_for_function("Boolean(window.NemesisNavigation)")
             assert response.status == 200
             assert response.headers.get("content-language") == "es"
+            _assert_spanish_documents(documents, ["/admin/founder-os"])
             assert page.locator("html").get_attribute("lang") == "es"
             summary = page.locator(".founder-os-alert summary").first
             summary.focus()
@@ -122,6 +173,8 @@ def test_founder_keyboard_focus_is_unobstructed(actual_http, tmp_path, width):
             assert not external and not errors, (external, errors)
             assert all(method == "GET" for method, _ in requests), requests
         finally:
+            (tmp_path / f"founder-documents-{width}.json").write_text(json.dumps(documents, indent=2), encoding="utf-8")
+            print("DOCUMENT_LANGUAGES", json.dumps(documents))
             context.close()
             browser.close()
 
@@ -129,7 +182,7 @@ def test_founder_keyboard_focus_is_unobstructed(actual_http, tmp_path, width):
 @pytest.mark.parametrize("source", ["launcher", "explorer"])
 @pytest.mark.parametrize("modifier", ["Control", "Meta", "Shift"])
 def test_shark_modified_click_preserves_native_navigation(actual_http, actual_client, tmp_path, source, modifier):
-    base, _name, _cookie, _path = actual_http
+    base, _name, _cookie, _path, documents = actual_http
     name, cookie = actual_client
     with sync_playwright() as pw:
         browser, context, requests, external, errors = _context(pw, base, 1440, name, cookie)
@@ -139,6 +192,7 @@ def test_shark_modified_click_preserves_native_navigation(actual_http, actual_cl
             page.wait_for_function("Boolean(window.NemesisNavigation)")
             assert response.status == 200
             assert response.headers.get("content-language") == "es"
+            _assert_spanish_documents(documents, ["/mi-cuenta"])
             assert page.locator("html").get_attribute("lang") == "es"
             def source_link():
                 if source == "explorer":
@@ -163,6 +217,7 @@ def test_shark_modified_click_preserves_native_navigation(actual_http, actual_cl
                     # on macOS it is the browser's new-tab modifier.
                     link.click(modifiers=[modifier])
                     page.wait_for_url(base + "/shark", wait_until="domcontentloaded")
+                    _assert_spanish_documents(documents, ["/mi-cuenta", "/shark"])
                     assert page.locator("html").get_attribute("lang") == "es"
                     assert not page.locator("#ns-assistant-dialog").count()
                 else:
@@ -171,6 +226,7 @@ def test_shark_modified_click_preserves_native_navigation(actual_http, actual_cl
                     popup = new_page.value
                     popup.wait_for_url(base + "/shark", wait_until="domcontentloaded")
                     assert popup.url == base + "/shark"
+                    _assert_spanish_documents(documents, ["/mi-cuenta", "/shark"])
                     assert popup.locator("html").get_attribute("lang") == "es"
                     assert page.url == base + "/mi-cuenta"
                     assert not dialog.is_visible()
@@ -183,5 +239,7 @@ def test_shark_modified_click_preserves_native_navigation(actual_http, actual_cl
             assert not any(path == "/api/shark/ask" for _method, path in requests), requests
             assert all(method == "GET" or path == "/api/growth/funnel-event" for method, path in requests), requests
         finally:
+            (tmp_path / f"shark-documents-{source}-{modifier}.json").write_text(json.dumps(documents, indent=2), encoding="utf-8")
+            print("DOCUMENT_LANGUAGES", json.dumps(documents))
             context.close()
             browser.close()
