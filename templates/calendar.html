@@ -4,7 +4,7 @@
 {% from "components/v937_sports_lifecycle.html" import lifecycle_story %}
 {% from "components/sports_search.html" import suggestions with context %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='calendar-discovery.css') }}?v=calendar-discovery-10">
+<link rel="stylesheet" href="{{ url_for('static', filename='calendar-discovery.css') }}?v=calendar-discovery-11">
 <link rel="stylesheet" href="{{ url_for('static', filename='competition-grouping.css') }}?v={{ app_version }}-1">
 {# Standalone delivery: existing catalogue for labels; one page-owned status message. #}
 {% set pending_copy = {'es': 'Cambios sin aplicar. Pulsa Encontrar partidos.', 'en': 'Changes not applied. Select Find matches.', 'fr': 'Modifications non appliquées. Choisissez Trouver des matchs.'} %}
@@ -211,6 +211,7 @@
           data-v939-layout-contract="full-width-continuation"
           data-v940-calendar-collection
           aria-label="{{ ui("Partidos encontrados") }}">
+      {% set favorite_groups = namespace(opened=0) %}
       {% for day in day_groups %}
       <section class="v933-calendar-day v940-calendar-day"
                id="{{ day.get('anchor_id') }}"
@@ -254,11 +255,14 @@
             <span>{{ ui_plural('{count} competición', '{count} competiciones', collection.get('count', 0)) }}</span>
           </header>
           {% for league in collection.get('leagues') or [] %}
-        <section class="v933-league-group v940-calendar-league"
+        {% set favorite_group = (league.get('matches') or [])|selectattr('is_favorite', 'sameas', true)|list %}
+        {% set open_group = filters.get('q') or filters.get('league') or filters.get('team') or (favorite_group and favorite_groups.opened < 2) %}
+        {% if favorite_group and open_group %}{% set favorite_groups.opened = favorite_groups.opened + 1 %}{% endif %}
+        <details class="v933-league-group v940-calendar-league"
                  id="{{ league.get('anchor_id') }}"
                  data-v940-calendar-section="league"
-                 data-v940-context-label="{{ league.get('context_label') }}">
-          <header>
+                 data-v940-context-label="{{ league.get('context_label') }}"{% if open_group %} open{% endif %}>
+          <summary>
             {% set league_name = league.get('label') or league.get('name') or league.get('competition') or ui('Competición') %}
             {% set first_match = (league.get('matches') or [{}])[0] %}
             {% set supplied_logo = league.get('logo_url') or first_match.get('competition_logo') or first_match.get('league_logo') or '' %}
@@ -273,10 +277,16 @@
               {% set league_badge_source = 'cache_lookup' %}
             {% endif %}
             <div>{{ competition_logo(league_name, league_asset, league_badge_url, league_badge_source) }}<strong>{{ league_name }}</strong></div>
+            {% set verified_live = namespace(count=0) %}
+            {% for row in league.get('matches') or [] %}
+              {% set state = row.get('status_info') or {} %}
+              {% if state.get('is_live') is sameas true and not state.get('is_stale') and not state.get('status_conflict') %}{% set verified_live.count = verified_live.count + 1 %}{% endif %}
+            {% endfor %}
+            <small data-league-live-count="{{ verified_live.count }}" data-live-label="{{ ui('{count} en directo', count='{count}') }}"{% if not verified_live.count %} hidden{% endif %}>{{ ui('{count} en directo', count=verified_live.count) }}</small>
             <span>{{ ui('{count} partido' if (league.get('matches') or [])|length == 1 else '{count} partidos', count=(league.get('matches') or [])|length) }}</span>
-          </header>
+          </summary>
           <div class="v933-match-grid">{% for match in league.get('matches') or [] %}{{ match_card(match, false, true) }}{% endfor %}</div>
-        </section>
+        </details>
         {% endfor %}
         </section>
         {% endfor %}
@@ -323,5 +333,5 @@
   </section>
 </details>
 </div>
-<script src="{{ url_for('static', filename='v940-calendar.js') }}?v={{ app_version }}-calendar-context-2" defer></script>
+<script src="{{ url_for('static', filename='v940-calendar.js') }}?v={{ app_version }}-calendar-context-3" defer></script>
 {% endblock %}

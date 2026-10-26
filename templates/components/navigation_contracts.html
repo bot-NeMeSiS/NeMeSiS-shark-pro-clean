@@ -11,10 +11,10 @@
 ] %}
 
 {% set CLIENT_LINKS = [
-  ('Inicio','/app','home'),
-  ('Partidos','/calendario?lane=today','calendar'),
-  ('Picks','/picks','target'),
-  ('Cuenta','/mi-cuenta','user')
+  ('En directo','/directo','live'),
+  ('Calendario','/calendario?lane=today','calendar'),
+  ('Pronósticos','/picks','target'),
+  ('Mi cuenta','/mi-cuenta','user')
 ] %}
 {% set ADMIN_LINKS = [
   ('Centro de mando','/admin/dashboard','dashboard'),
@@ -98,7 +98,7 @@
 {%- set results_center = clean_href == '/calendario' and ('lane=finished' in href or 'lane=today' in href) -%}
 {%- if (not contextual or results_center) and (
        path == clean_href
-       or (clean_href == '/calendario' and (path in calendar_aliases or (path in ['/resultados','/equipos','/competiciones','/mercados','/highlights','/resumenes','/resumenes-partidos'] or (scope == 'client' and path in ['/directo','/live'])) or path.startswith(('/team/','/equipo/','/competition/','/competicion/','/match/','/resumen/','/resumenes/','/highlight/'))))
+       or (clean_href == '/calendario' and (path in calendar_aliases or path in ['/resultados','/equipos','/competiciones','/mercados','/highlights','/resumenes','/resumenes-partidos'] or path.startswith(('/team/','/equipo/','/competition/','/competicion/','/match/','/resumen/','/resumenes/','/highlight/'))))
        or (clean_href == '/directo' and path in live_aliases)
        or (clean_href == '/historico' and path in history_aliases)
        or (clean_href == '/picks' and (path in picks_aliases or (scope == 'client' and path in ['/historico','/track-record'])))

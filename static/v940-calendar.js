@@ -27,6 +27,33 @@
   const currentPosition = root.querySelector("[data-v940-current-position]");
   const positionRow = root.querySelector("[data-v940-position]");
   const sections = Array.from(root.querySelectorAll("[data-v940-calendar-section]"));
+  const leagues = Array.from(root.querySelectorAll('details[data-v940-calendar-section="league"]'));
+  function updateLeagueLiveCount(league) {
+    const label = league.querySelector("[data-league-live-count]");
+    if (!label) return;
+    const count = league.querySelectorAll('[data-v934-match-card][data-canonical-live="true"]:not(.is-stale)').length;
+    label.hidden = count === 0;
+    label.dataset.leagueLiveCount = String(count);
+    label.textContent = (label.dataset.liveLabel || "{count}").replace("{count}", String(count));
+  }
+  if ("MutationObserver" in window) {
+    const observer = new MutationObserver((records) => {
+      const changed = new Set(records.map((entry) => entry.target.closest('details[data-v940-calendar-section="league"]')).filter(Boolean));
+      changed.forEach(updateLeagueLiveCount);
+    });
+    leagues.forEach((league) => {
+      updateLeagueLiveCount(league);
+      observer.observe(league, {subtree: true, attributes: true, attributeFilter: ["data-canonical-live"]});
+    });
+  }
+  function openAnchor(hash) {
+    let id;
+    try { id = decodeURIComponent(hash.replace(/^#/, "")); } catch (_) { return; }
+    const league = leagues.find((node) => node.id === id);
+    if (league) league.open = true;
+  }
+  openAnchor(window.location.hash);
+  window.addEventListener("hashchange", () => openAnchor(window.location.hash));
   const currentUrl = `${window.location.pathname}${window.location.search}`;
   const storageKey = `nemesis:v940:calendar:${document.documentElement.lang}:${currentUrl}`;
   const maxRestoreAgeMs = 2 * 60 * 60 * 1000;
@@ -50,6 +77,7 @@
       contract: "calendar-position-v2", url: currentUrl,
       scrollY: Number.isFinite(y) ? Math.max(0, Math.round(y)) : 0,
       sectionId, savedAt: Date.now(),
+      openLeagues: leagues.filter((node) => node.open).slice(0, 500).map((node) => node.id),
     }));
   }
 
@@ -74,6 +102,10 @@
           || state.scrollY < 0) return;
       window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
         if (userInteracted || window.location.hash) return;
+        if (Array.isArray(state.openLeagues)) {
+          const opened = new Set(state.openLeagues.slice(0, 500).filter((id) => typeof id === "string" && id.length <= 160));
+          leagues.forEach((node) => { node.open = opened.has(node.id); });
+        }
         // Labels always come from this response, not a cached sports observation.
         const section = sections.find((element) => element.id === state.sectionId);
         const label = section ? section.getAttribute("data-v940-context-label") : "";
@@ -131,6 +163,7 @@
     if (!plainClick) return;
     const link = target.closest("a");
     if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
+    if (link.hasAttribute("data-v940-scroll-link")) openAnchor(link.hash);
     if (link.getAttribute("href") === "#v933-calendar-filters" && search) {
       // Native anchor scroll and history remain intact; keyboard focus follows.
       window.requestAnimationFrame(() => search.focus({preventScroll: true}));

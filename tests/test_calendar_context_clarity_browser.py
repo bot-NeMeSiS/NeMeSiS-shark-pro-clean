@@ -93,7 +93,7 @@ def test_calendar_order_context_and_get_continuity(browser,app_module,width,lang
             if width==320:
                 assert density['overflow']
         assert page.locator('[data-results-calendar-tabs] a[href="/directo"]').count()==1
-        assert '-calendar-context-2' in page.locator('script[src*="v940-calendar.js"]').get_attribute('src')
+        assert '-calendar-context-3' in page.locator('script[src*="v940-calendar.js"]').get_attribute('src')
         sort=page.locator('select[name=sort]'); assert sort.count()==1 and sort.is_visible()
         assert sort.bounding_box()['height']>=44-0.001
         sort.select_option('time')

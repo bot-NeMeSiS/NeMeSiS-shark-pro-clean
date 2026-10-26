@@ -3,7 +3,7 @@
 {% from "components/v936_product.html" import value_ladder, evidence_receipt, decision_radar, data_trust_meter %}
 {% from "components/home_competition_groups.html" import competition_groups, remaining with context %}
 {% block content %}
-{% set day = data.get("home_matchday") %}
+{% set day = data.get("home_matchday")|home_preview %}
 {% set summary = data.get('home_summary') or {} %}
 {% set counts = summary.get('counts') or {} %}
 {% set sports_home = summary.get('sports_home') or (data.get('match_hub') or {}).get('sports_home') or {} %}
@@ -39,7 +39,7 @@
 
 {% set original_sections = {'live': live_matches|length, 'important': important_matches|length, 'upcoming': upcoming_matches|length, 'results': recent_results|length} %}
 {% set priority_pool = live_matches + important_matches + favorite_matches + upcoming_matches + recent_results %}
-{% set hero_match = priority_pool[0] if priority_pool else none %}
+{% set hero_match = day.hero if day is mapping else (priority_pool[0] if priority_pool else none) %}
 {# Reuse only an existing display bucket for the SAME accepted fixture and
    lifecycle. Never copy an old score, clock, status or row back into the agenda. #}
 {% if hero_match and day is mapping and not hero_match.get('sports_relevance_bucket') and not (hero_match.get('sports_relevance') or {}).get('bucket') %}
@@ -57,11 +57,11 @@
   {% endfor %}
   {% if retained.bucket %}{% set hero_match = dict(hero_match, sports_relevance_bucket=retained.bucket) %}{% endif %}
 {% endif %}
-{% if live_matches %}
+{% if live_matches or (day and day.hero_lane == 'live') %}
   {% set hero_title = 'En directo ahora' %}
   {% set hero_summary = 'Marcador, estado y minuto actualizados cuando están disponibles.' %}
   {% set hero_board_title = 'Partido en directo' %}
-{% elif important_matches %}
+{% elif important_matches or (day and day.hero_lane == 'today') %}
   {% set hero_title = 'Lo importante de hoy' %}
   {% set hero_summary = 'Los partidos de tu jornada y los análisis SHARK disponibles.' %}
   {% set hero_board_title = 'Destacado hoy' %}
@@ -69,11 +69,11 @@
   {% set hero_title = 'Tus favoritos, primero' %}
   {% set hero_summary = 'Consulta los partidos de hoy, abre el calendario o sigue los resultados de la jornada.' %}
   {% set hero_board_title = 'Favorito destacado' %}
-{% elif upcoming_matches %}
+{% elif upcoming_matches or (day and day.hero_lane == 'upcoming') %}
   {% set hero_title = 'Próximos partidos' %}
   {% set hero_summary = 'La agenda priorizada y lista para abrir la ficha de cada partido.' %}
   {% set hero_board_title = 'Próximo partido' %}
-{% elif recent_results %}
+{% elif recent_results or (day and day.hero_lane == 'results') %}
   {% set hero_title = 'Últimos resultados' %}
   {% set hero_summary = 'Marcadores finales confirmados, sin convertirlos en directo.' %}
   {% set hero_board_title = 'Resultado reciente' %}
@@ -133,6 +133,7 @@
   {% if day or live_matches or not original_sections.live %}<section class="v933-panel sports-priority-section" data-sports-priority="live-now">
     {{ section_header('En directo ahora', '', 'Abrir Directo', '/directo', 'Directo') }}
 {% if day and day.live.shown %}{{ competition_groups(day.live.groups, false, section='public-live') }}{{ remaining(day.live, '/directo') }}
+    {% elif day and day.live.total %}{{ remaining(day.live, '/directo') }}
         {% elif not day and live_matches %}
       <div class="v933-match-grid sports-priority-grid is-live">
         {% for match in live_matches[:4] %}{{ live_card(match) }}{% endfor %}
@@ -148,6 +149,7 @@
       {% if day or important_matches or not original_sections.important %}<section class="v933-panel sports-priority-section" data-sports-priority="important-today">
         {{ section_header('Partidos de hoy' if day else 'Importantes hoy', 'Por liga · Hora Madrid' if day else '', 'Todos los partidos', '/calendario') }}
 {% if day and day.today.shown %}{{ competition_groups(day.today.groups, false, section='public-today') }}{{ remaining(day.today, '/calendario') }}
+        {% elif day and day.today.total %}{{ remaining(day.today, '/calendario') }}
         {% elif not day and important_matches %}
           <div class="v933-match-grid sports-priority-grid">
             {% for match in important_matches[:3] %}{{ match_card(match, true, true) }}{% endfor %}
@@ -161,6 +163,7 @@
       {% if day or upcoming_matches or not original_sections.upcoming %}<section class="v933-panel sports-priority-section" data-sports-priority="upcoming">
         {{ section_header('Próximos partidos', '', 'Explorar semana', '/calendario?lane=week', 'Agenda') }}
 {% if day and day.upcoming.shown %}{{ competition_groups(day.upcoming.groups, true, section='public-upcoming') }}{{ remaining(day.upcoming, '/calendario?lane=week') }}
+        {% elif day and day.upcoming.total %}{{ remaining(day.upcoming, '/calendario?lane=week') }}
         {% elif not day and upcoming_matches %}
           <div class="v933-match-grid sports-priority-grid is-compact">
             {% for match in upcoming_matches[:3] %}{{ match_card(match, true, true) }}{% endfor %}
@@ -174,6 +177,7 @@
       {% if day or recent_results or not original_sections.results %}<section class="v933-panel sports-priority-section" data-sports-priority="recent-results">
         {{ section_header('Resultados recientes', '', 'Ver finalizados', '/calendario?lane=finished', 'Resultados') }}
 {% if day and day.results.shown %}{{ competition_groups(day.results.groups, true, section='public-results') }}{{ remaining(day.results, '/calendario?lane=finished') }}
+        {% elif day and day.results.total %}{{ remaining(day.results, '/calendario?lane=finished') }}
         {% elif not day and recent_results %}
           <div class="v933-match-grid sports-priority-grid is-compact">
             {% for match in recent_results[:4] %}{{ match_card(match, true, true) }}{% endfor %}

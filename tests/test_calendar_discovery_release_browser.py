@@ -105,7 +105,12 @@ def test_mid_mobile_calendar_keeps_sort_and_submit_on_one_row(browser,app_module
         assert page.locator('[data-v940-calendar-search]').is_visible()
         assert page.locator('.v940-calendar-advanced > summary').is_visible()
         assert page.locator('.v933-calendar-date-navigation').is_visible()
-        first_match=page.locator('.v940-calendar-league .v933-match-card').first.bounding_box()
+        # Rows are intentionally folded; disclosure is reachable before any card.
+        first_group=page.locator('details.v940-calendar-league').first
+        assert first_group.get_attribute('open') is None
+        assert first_group.locator('summary').bounding_box()['y'] < 740
+        first_group.locator('summary').click()
+        first_match=first_group.locator('.v933-match-card').first.bounding_box()
         assert first_match['y'] < 740
         assert not page.evaluate('document.documentElement.scrollWidth > innerWidth')
         assert not errors
@@ -331,7 +336,10 @@ def test_single_competition_uses_full_desktop_lane_and_mobile_layout_stays_respo
              'status_info':{'key':'UPCOMING','is_live':False},'source':'SIMULATED_QA'}
     page,requests,errors=mount(browser,app_module,width=width,day_groups=groups_for([fixture]),run_script=False)
     try:
-        assert page.locator('link[href*="calendar-discovery.css?v=calendar-discovery-10"]').count()==1
+        assert page.locator('link[href*="calendar-discovery.css?v=calendar-discovery-11"]').count()==1
+        league=page.locator('details.v940-calendar-league')
+        assert league.get_attribute('open') is None
+        league.locator(':scope > summary').click()
         grid=page.locator('.v940-calendar-league > .v933-match-grid')
         card=grid.locator('> .v933-match-card')
         measurements=page.evaluate('''() => {

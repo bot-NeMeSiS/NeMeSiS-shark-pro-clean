@@ -50,7 +50,7 @@ def mount(browser, app_module, scope='client', width=390, *, javascript=True):
 
 @pytest.mark.parametrize('scope',['public','client','admin'])
 @pytest.mark.parametrize('width',[320,390,768,1440])
-def test_explorer_filter_focus_and_mobile_layout(browser, app_module, scope, width):
+def test_explorer_filter_focus_and_mobile_layout(browser, app_module, scope, width, tmp_path):
     context,page,errors,calls = mount(browser,app_module,scope,width)
     try:
         trigger = page.locator('#v933-admin-search') if scope == 'admin' and width == 1440 else page.locator('[data-open-explore]:visible').first
@@ -77,7 +77,7 @@ def test_explorer_filter_focus_and_mobile_layout(browser, app_module, scope, wid
         assert dialog.locator('[data-explore-item]:visible').count() >= 15
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
         assert dialog.evaluate('(el)=>el.scrollWidth <= el.clientWidth+1')
-        evidence = ROOT/'reports/app-navigation-20261008'
+        evidence = tmp_path/'app-navigation'
         evidence.mkdir(parents=True,exist_ok=True)
         page.screenshot(path=str(evidence/f'{scope}-{width}.png'))
         page.keyboard.press('Escape')

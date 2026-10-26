@@ -227,3 +227,33 @@ body.ns-app[data-v928-shell="true"] .v933-page[data-calendar-discovery="v1"] .v9
     white-space: nowrap;
   }
 }
+/* League rows disclose their existing cards; heading, search and totals stay visible. */
+[data-calendar-discovery="v1"] details.v940-calendar-league > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 12px;
+}
+[data-calendar-discovery="v1"] details.v940-calendar-league > summary > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+[data-calendar-discovery="v1"] details.v940-calendar-league > summary > span {
+  flex-shrink: 0;
+}
+[data-calendar-discovery="v1"] details.v940-calendar-league > summary::after {
+  content: "+";
+  margin-inline-start: auto;
+}
+[data-calendar-discovery="v1"] details.v940-calendar-league[open] > summary::after { content: "−"; }
+[data-calendar-discovery="v1"] details.v940-calendar-league > summary:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}

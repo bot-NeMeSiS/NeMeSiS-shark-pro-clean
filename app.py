@@ -526,7 +526,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V996_SHARK_WORKSPACE'
+APP_VERSION = 'V997_CLIENT_ORGANIZATION'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -12526,6 +12526,12 @@ def current_user_id():
         return ""
     user = _validated_session_user_record()
     return str(user.get("id") or "") if user else ""
+
+
+@app.template_filter("home_preview")
+def jinja_home_preview(value, with_hero=True):
+    from engines.home_preview import home_preview
+    return home_preview(value, with_hero=with_hero)
 
 
 @app.template_filter("competition_es")
