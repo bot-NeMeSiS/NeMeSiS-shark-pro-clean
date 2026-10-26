@@ -526,7 +526,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V993_LIVE_EXPIRY_AND_OPERATION_TIMING'
+APP_VERSION = 'V994_OVERNIGHT_LIVE_ADMISSION'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -17808,7 +17808,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V993_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V994_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -18532,6 +18532,7 @@ def _v931_read_table_rows(table, limit=600):
         }
         order_columns = [column for column in preferred_order.get(table, ()) if column in columns]
         order_sql = ""
+        selection_policy = "recent_update"
         query_params = [int(limit)]
         date_parts = []
 
@@ -18571,6 +18572,9 @@ def _v931_read_table_rows(table, limit=600):
                 history_value = order_value
                 today = today_iso()
                 admission_order = ""
+                recent_live_order = ""
+                recent_live_params = []
+                selection_policy = "current_upcoming_then_history"
                 if "status" in columns:
                     # Admission hints only, never LIVE authorization. On dense
                     # days, chronological LIMIT can otherwise select hundreds
@@ -18589,20 +18593,45 @@ def _v931_read_table_rows(table, limit=600):
                         return ",".join("'" + value.replace("'", "''") + "'" for value in sorted(values))
                     live_candidate = f"{status_value} IN ({status_literals(live_candidates)})"
                     scheduled_candidate = f"{status_value} IN ({status_literals(scheduled_candidates)})"
+                    # A match may still be LIVE after Madrid midnight. Keep
+                    # recent own-clock hints ahead of the date-ranked window;
+                    # native identity/lifecycle/freshness remain final gates.
+                    clock_parts = []
+                    for column in ("live_updated_at", "provider_updated_at", "last_synced_at"):
+                        if column in columns:
+                            part = f'CAST("{column}" AS TEXT)'
+                            for absent in ("", "None", "null", "undefined"):
+                                part = f"NULLIF({part}, '{absent}')"
+                            clock_parts.append(part)
+                    if clock_parts:
+                        from engines.v935_launch_trust_engine import (
+                            LIVE_STALE_SECONDS, LIVE_FUTURE_SKEW_SECONDS,
+                        )
+                        clock_value = coalesce_sql(clock_parts)
+                        recent_live_order = (
+                            f" CASE WHEN {live_candidate} AND {date_value} <= ?"
+                            f" AND julianday({clock_value}) BETWEEN julianday('now') - ? / 86400.0"
+                            f" AND julianday('now') + ? / 86400.0 THEN 0 ELSE 1 END ASC,"
+                        )
+                        # Canonical ages round to whole seconds. This one-second
+                        # admission margin never extends a final LIVE lease.
+                        recent_live_params = [today, LIVE_STALE_SECONDS + 1,
+                                              LIVE_FUTURE_SKEW_SECONDS + 1]
+                        selection_policy = "recent_live_current_upcoming_then_history"
                     admission_order = (
                         f" CASE WHEN {date_value} >= ? THEN CASE WHEN {live_candidate} THEN 0"
                         f" WHEN {scheduled_candidate} THEN 1 ELSE 2 END END ASC,"
                         f" CASE WHEN {date_value} >= ? AND {live_candidate} THEN {history_value} END DESC,"
                     )
                 order_sql = (
-                    f" ORDER BY CASE WHEN {date_value} >= ? THEN 0 ELSE 1 END ASC,"
+                    f" ORDER BY{recent_live_order} CASE WHEN {date_value} >= ? THEN 0 ELSE 1 END ASC,"
                     f" CASE WHEN {date_value} >= ? THEN {date_value} END ASC,"
                     f"{admission_order}"
                     f" CASE WHEN {date_value} >= ? THEN {kickoff_value} END ASC,"
                     f" CASE WHEN {date_value} < ? THEN {date_value} END DESC,"
                     f" {history_value} DESC"
                 )
-                query_params = [today] * (6 if admission_order else 4) + [int(limit)]
+                query_params = recent_live_params + [today] * (6 if admission_order else 4) + [int(limit)]
         records = [
             dict(row)
             for row in conn.execute(
@@ -18614,7 +18643,7 @@ def _v931_read_table_rows(table, limit=600):
             "status": "ok",
             "error_type": "",
             "ordered_by": order_columns,
-            "selection_policy": "current_upcoming_then_history" if table == "matches" and date_parts else "recent_update",
+            "selection_policy": selection_policy,
         }
     except sqlite3.OperationalError as exc:
         message = str(exc).lower()
