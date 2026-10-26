@@ -165,8 +165,87 @@ def _sports_truth(payload: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
     }
 
 
+def _approved_assets() -> dict[str, dict]:
+    manifest = json.loads((ROOT / 'static/img/approved-identity/manifest.json').read_text(encoding='utf-8'))
+    return {row['file']: row for row in manifest['assets']}
+
+
+def _approved_url(url: str, base_url: str, names: set[str]) -> bool:
+    parsed, base = urllib.parse.urlsplit(url), urllib.parse.urlsplit(base_url)
+    name = parsed.path.rsplit('/', 1)[-1]
+    row = _approved_assets().get(name)
+    return bool(base.scheme in {'http', 'https'} and base.netloc and row and name in names
+                and (parsed.scheme, parsed.netloc) == (base.scheme, base.netloc)
+                and parsed.path == '/static/img/approved-identity/' + name
+                and urllib.parse.parse_qs(parsed.query).get('v') == [row['sha256'][:12]])
+
+
+def _capture_approved_scene(page) -> dict:
+    return page.evaluate(r'''async () => {
+      const scenes=[...document.querySelectorAll('[data-brand-scene]')];
+      const el=scenes[0];if(!el)return {count:0};
+      const style=getComputedStyle(el),shark=getComputedStyle(el,'::after');
+      const loaded=new Set(performance.getEntriesByType('resource').map(e=>e.name));
+      const images=await Promise.all(['::before','::after'].flatMap(layer=>
+        [...getComputedStyle(el,layer).backgroundImage.matchAll(/url\(["']?([^"')]+)["']?\)/g)].map(async m=>{
+          const paint=getComputedStyle(el,layer);
+          const image=new Image();image.src=m[1];let decoded=false;
+          try{await image.decode();decoded=true;}catch(_){}
+          return {layer,url:image.src,decoded,width:image.naturalWidth,height:image.naturalHeight,
+            loaded:loaded.has(image.src),content:paint.content,display:paint.display,visibility:paint.visibility,
+            animation_name:paint.animationName,opacity:parseFloat(paint.opacity),
+            box_width:parseFloat(paint.width),box_height:parseFloat(paint.height)};
+        })));
+      return {count:scenes.length,source:el.dataset.brandScene,aria_hidden:el.getAttribute('aria-hidden'),
+        pointer_events:style.pointerEvents,position:style.position,animation_name:style.animationName,
+        visible:style.display!=='none'&&style.visibility!=='hidden'&&el.getBoundingClientRect().width>0,
+        wrapper_opacity:parseFloat(style.opacity),height:el.getBoundingClientRect().height,
+        viewport_width:innerWidth,shark_width:parseFloat(shark.width),shark_opacity:parseFloat(shark.opacity),images};
+    }''')
+
+
+def _approved_scene_in_page(scene: dict, base_url: str) -> bool:
+    try:
+        width = float(scene.get('viewport_width', 0))
+        ratio = float(scene.get('shark_width', 0)) / width
+        opacity = float(scene.get('shark_opacity', 0))
+        wrapper_opacity = float(scene.get('wrapper_opacity', 0))
+        height = float(scene.get('height', 0))
+    except (ValueError, TypeError, ZeroDivisionError):
+        return False
+    if not (scene.get('count') == 1 and scene.get('source') == 'approved-family-20261023'
+            and scene.get('aria_hidden') == 'true' and scene.get('pointer_events') == 'none'
+            and scene.get('position') == 'fixed' and scene.get('animation_name') == 'none'
+            and scene.get('visible') is True and 0 < wrapper_opacity <= 1 and height > 0
+            and .05 <= opacity <= .4
+            and .16 <= ratio <= (.9 if width < 768 else .55)):
+        return False
+    images = scene.get('images') or []
+    if len(images) != 2 or {i.get('layer') for i in images} != {'::before', '::after'}:
+        return False
+    for image in images:
+        kind = 'ocean' if image['layer'] == '::before' else 'wireframe'
+        size = ('768' if width < 768 else '1600') if kind == 'ocean' else ('480' if width < 768 else '960')
+        name = 'nemesis-approved-' + kind + '-' + size + '.webp'
+        row = _approved_assets()[name]
+        try:
+            paint_visible = (0 < float(image.get('opacity', 0)) <= 1
+                             and float(image.get('box_width', 0)) > 0
+                             and float(image.get('box_height', 0)) > 0)
+        except (ValueError, TypeError):
+            return False
+        if not (_approved_url(str(image.get('url', '')), base_url, {name})
+                and image.get('decoded') is True and image.get('loaded') is True
+                and image.get('content') in {'""', "''"}
+                and image.get('display') not in {None, 'none'} and image.get('visibility') == 'visible'
+                and image.get('animation_name') == 'none' and paint_visible
+                and [image.get('width'), image.get('height')] == row['size']):
+            return False
+    return True
+
+
 def _official_brand_in_page(metrics: dict[str, Any], base_url: str) -> bool:
-    """Accept the vector brand mark only with same-origin, decoded, visible DOM evidence."""
+    """Require same-origin, decoded, visible and loaded approved or historical identity."""
     base = urllib.parse.urlsplit(base_url)
     if base.scheme not in {"http", "https"} or not base.netloc:
         return False
@@ -178,21 +257,32 @@ def _official_brand_in_page(metrics: dict[str, Any], base_url: str) -> bool:
             decoded = float(image.get("naturalWidth") or 0) > 0 and float(image.get("naturalHeight") or 0) > 0
         except (TypeError, ValueError):
             decoded = False
-        if (image.get("source") == "official-brand-vector" and image.get("visible") is True
+        legacy = image.get('source') == 'official-brand-vector' and parsed.path == '/static/img/nemesis-shark-mark.svg'
+        approved = image.get('source') == 'owner-approved-family-20261023' and _approved_url(
+            url, base_url, {'nemesis-approved-mark-128.webp', 'nemesis-approved-mark-256.webp'})
+        if approved:
+            approved = [image.get('naturalWidth'), image.get('naturalHeight')] == _approved_assets()[parsed.path.rsplit('/', 1)[-1]]['size']
+        if ((legacy or approved) and image.get("visible") is True
                 and image.get("complete") is True and decoded and url in loaded
-                and (parsed.scheme, parsed.netloc) == (base.scheme, base.netloc)
-                and parsed.path == "/static/img/nemesis-shark-mark.svg"):
+                and (parsed.scheme, parsed.netloc) == (base.scheme, base.netloc)):
             return True
     return False
 
 
-def _visual_asset_contract(resources: list[str], *, official_brand_verified: bool = False) -> tuple[bool, dict[str, Any]]:
+def _visual_asset_contract(resources: list[str], *, official_brand_verified: bool = False, approved_scene_verified: bool = False) -> tuple[bool, dict[str, Any]]:
     # Keep legacy references for old surfaces, and require visible decoded DOM
     # evidence before accepting the current primary vector mark.
     brand_shark = any("nemesis-shark-brand.svg" in value for value in resources)
     official_mark_loaded = any(urllib.parse.urlsplit(value).path == "/static/img/nemesis-shark-mark.svg" for value in resources)
     brand_shark = brand_shark or (official_brand_verified is True and official_mark_loaded)
     atmospheric_shark = any("nemesis-shark-atmosphere-v2.webp" in value for value in resources)
+    approved_mark = any(urllib.parse.urlsplit(value).path in {
+        '/static/img/approved-identity/nemesis-approved-mark-128.webp',
+        '/static/img/approved-identity/nemesis-approved-mark-256.webp'} for value in resources)
+    if approved_mark:
+        # A current header must never borrow an old scene's success.
+        brand_shark = official_brand_verified is True
+        atmospheric_shark = approved_scene_verified is True
     legacy_shark = any("shark-logo.svg" in value for value in resources)
     return brand_shark and atmospheric_shark and not legacy_shark, {
         "brand_shark_loaded": brand_shark,
@@ -497,7 +587,7 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
             mediaMatches: !link.media || window.matchMedia(link.media).matches,
           })),
           resources: performance.getEntriesByType('resource').map((entry) => entry.name),
-          officialBrandImages: [...document.querySelectorAll('.ns-brand img[data-brand-source="official-brand-vector"]')].map((img) => ({
+          officialBrandImages: [...document.querySelectorAll('.ns-brand img[data-brand-source="official-brand-vector"],.ns-brand img[data-brand-source="owner-approved-family-20261023"]')].map((img) => ({
             url: img.currentSrc || img.src,
             source: img.getAttribute('data-brand-source'),
             complete: img.complete,
@@ -522,6 +612,7 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
           }).filter((item) => item.matchId),
         })"""
     )
+    metrics['approvedScene'] = _capture_approved_scene(page)
     metrics["imageFailures"] = _remember_image_failures(page)
     metrics["brokenImages"] = [row["url"] for row in metrics["imageFailures"]]
     from engines.canonical_assets import template_css_href
@@ -706,7 +797,14 @@ def run_gate(
         for item in [*pages, mobile_evidence]
     ]
     official_brand_verified = bool(official_brand_surfaces) and all(item["verified"] for item in official_brand_surfaces)
-    visual_assets_pass, visual_asset_evidence = _visual_asset_contract(resources, official_brand_verified=official_brand_verified)
+    approved_scene_surfaces = [
+        {'path': item.get('path') or '/', 'verified': _approved_scene_in_page(item.get('approvedScene') or {}, base_url)}
+        for item in [*pages, mobile_evidence]
+    ]
+    approved_scene_verified = bool(approved_scene_surfaces) and all(item['verified'] for item in approved_scene_surfaces)
+    visual_assets_pass, visual_asset_evidence = _visual_asset_contract(
+        resources, official_brand_verified=official_brand_verified, approved_scene_verified=approved_scene_verified)
+    visual_asset_evidence['approved_scene_surfaces'] = approved_scene_surfaces
     visual_asset_evidence["official_brand_surfaces"] = official_brand_surfaces
     performance_pass = all(
         item.get("elapsed_ms", 99_999) <= (8_000 if item["path"] == "/shark" else 5_000)

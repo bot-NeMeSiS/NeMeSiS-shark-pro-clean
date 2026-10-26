@@ -470,14 +470,12 @@ def _set_role_cookie(context, app_module, role: str) -> None:
 
 
 def _inspect(page, screen: str, viewport: str) -> dict:
-    return page.evaluate(
+    metrics = page.evaluate(
         r"""({screen, viewport}) => {
           const body = document.body;
           const text = body ? body.innerText.replace(/\s+/g, ' ').trim() : '';
           const hero = document.querySelector('.v933-public-hero,.v933-client-hero,.v933-page-header,.v944-match-header,.team-center-hero,.competition-center-hero,.player-center-hero,.shark-intelligence-hero');
           const heroTitle = hero ? hero.querySelector('h1') : null;
-          const shark = hero ? getComputedStyle(hero, '::before') : null;
-          const bodyStyle = body ? getComputedStyle(body) : null;
           const brandMark = document.querySelector('.ns-brand-mark');
           const brandImage = brandMark ? brandMark.querySelector('img') : null;
           const brandStyle = brandMark ? getComputedStyle(brandMark) : null;
@@ -693,15 +691,6 @@ def _inspect(page, screen: str, viewport: str) -> dict:
               overflow,
             };
           }
-          const bg = bodyStyle ? bodyStyle.backgroundImage : '';
-          const sharkImage = shark ? shark.backgroundImage : '';
-          const sharkWidth = shark ? parseFloat(shark.width || '0') : 0;
-          const sharkOpacity = shark ? parseFloat(shark.opacity || '0') : 0;
-          const sharkRatio = innerWidth ? sharkWidth / innerWidth : 0;
-          const sharkAssetOk = /nemesis-shark-atmosphere-v2\.webp(?:\?[^"')]+)?/.test(sharkImage);
-          const sharkGeometryOk = sharkRatio >= .16 && sharkRatio <= (innerWidth <= 767 ? .78 : .55) && sharkOpacity >= .18 && sharkOpacity <= .98;
-          const backgroundLayers = (bg.match(/gradient/g) || []).length;
-          const backgroundOk = backgroundLayers >= 4 && !/^none$/i.test(bg);
           const lineup = document.querySelector('[data-lineups-contract]');
           const summary = document.querySelector('[data-summary-contract]');
           const rightsNodes = Array.from(document.querySelectorAll('[data-rights-decision]')).filter(node => {
@@ -760,18 +749,6 @@ def _inspect(page, screen: str, viewport: str) -> dict:
               border_radius: brandStyle ? brandStyle.borderRadius : '',
               box_shadow: brandStyle ? brandStyle.boxShadow : '',
               overflow: brandStyle ? brandStyle.overflow : '',
-            },
-            shark: {
-              asset: sharkImage,
-              width_px: sharkWidth,
-              width_ratio: Math.round(sharkRatio * 1000) / 1000,
-              opacity: sharkOpacity,
-              classification: sharkAssetOk && sharkGeometryOk ? 'FOUNDER_REVIEW_REQUIRED' : 'MAJOR_GAP',
-              evidence: `asset=${sharkImage}; ratio=${sharkRatio.toFixed(3)}; opacity=${sharkOpacity}`,
-            },
-            background: {
-              classification: backgroundOk ? 'FOUNDER_REVIEW_REQUIRED' : 'MAJOR_GAP',
-              evidence: `layers=${backgroundLayers}; background=${bg.slice(0, 420)}`,
             },
             live_contract: {
               confirmed: Number(document.querySelector('[data-sports-live-confirmed]')?.getAttribute('data-sports-live-confirmed') || 0),
@@ -834,6 +811,18 @@ def _inspect(page, screen: str, viewport: str) -> dict:
         }""",
         {"screen": screen, "viewport": viewport},
     )
+
+    from tools.run_production_quality_browser_gate import _capture_approved_scene, _approved_scene_in_page
+    scene = _capture_approved_scene(page)
+    verified = _approved_scene_in_page(scene, page.url)
+    classification = 'FOUNDER_REVIEW_REQUIRED' if verified else 'MAJOR_GAP'
+    metrics['approved_scene'] = scene
+    metrics['shark'] = {'asset': next((i['url'] for i in scene.get('images', []) if i['layer'] == '::after'), ''),
+        'width_px': scene.get('shark_width'), 'opacity': scene.get('shark_opacity'),
+        'classification': classification, 'evidence': 'Approved static scene; decoded same-origin assets and quiet noninteractive geometry verified=' + str(verified)}
+    metrics['background'] = {'classification': classification,
+        'evidence': 'Approved ocean layer; decoded same-origin asset verified=' + str(verified)}
+    return metrics
 
 
 def _exact_click(page, *, zone: str, label: str, expected_path: str, screen: str, viewport: str, screenshot: str) -> dict:
@@ -1520,7 +1509,15 @@ def _visual_tree_fingerprint() -> str:
         "static/img/nemesis-shark-brand.svg",
         "reference_images/reference_manifest.json",
         "tools/run_autonomous_product_qa.py",
+        "tools/run_production_quality_browser_gate.py",
+        "templates/partials/brand_logo.html",
+        "static/design-tokens.css",
+        "static/design-system.css",
+        "static/product-system.css",
+        "static/img/app-icons/official_app_icon_master.svg",
+        "static/img/app-icons/icons.json",
     )
+    paths = (*paths, *(p.relative_to(ROOT).as_posix() for p in sorted((ROOT / 'static/img/approved-identity').glob('*')) if p.is_file()))
     digest = hashlib.sha256()
     for relative in paths:
         path = ROOT / relative
@@ -1583,59 +1580,35 @@ def _shark_asset_contract_from_text(atmosphere: str, brand: str) -> dict:
 
 
 def _shark_asset_contract() -> dict:
-    atmosphere_path = ROOT / "static" / "img" / "nemesis-shark-atmosphere-v2.webp"
-    brand_path = ROOT / "static" / "img" / "nemesis-shark-brand.svg"
+    """Technical provenance is separate from rendered-screen/human acceptance."""
+    directory = ROOT / 'static/img/approved-identity'
+    name = 'nemesis-approved-wireframe-960.webp'
     try:
         from PIL import Image
-
-        brand = brand_path.read_text(encoding="utf-8")
-        with Image.open(atmosphere_path) as image:
-            width, height = image.size
-            bands = image.getbands()
-            alpha = image.getchannel("A") if "A" in bands else None
-            alpha_extrema = alpha.getextrema() if alpha else (255, 255)
-            alpha_bbox = list(alpha.getbbox()) if alpha and alpha.getbbox() else None
-        brand_markers = {
-            "filled_body": "brand-body" in brand,
-            "forked_tail": 'id="brand-reference-tail"' in brand,
-            "dorsal_fin": 'id="brand-reference-dorsal"' in brand,
-            "pectoral_fin": 'id="brand-reference-pectoral"' in brand,
-            "eye": 'id="brand-reference-eye"' in brand,
-        }
-        size_bytes = atmosphere_path.stat().st_size
-        passed = (
-            width >= 1200
-            and height >= 700
-            and size_bytes <= 350_000
-            and "A" in bands
-            and alpha_extrema[0] == 0
-            and alpha_extrema[1] == 255
-            and alpha_bbox is not None
-            and all(brand_markers.values())
-        )
-    except (OSError, ValueError, ImportError) as exc:
-        return {
-            "status": "FAIL",
-            "classification": "MAJOR_GAP",
-            "evidence": f"{type(exc).__name__}: {str(exc)[:180]}",
-        }
-    return {
-        "status": "PASS" if passed else "FAIL",
-        "classification": "FOUNDER_REVIEW_REQUIRED" if passed else "MAJOR_GAP",
-        "asset": str(atmosphere_path.relative_to(ROOT)).replace("\\", "/"),
-        "provenance": "ORIGINAL_RECREATION_FOR_NEMESIS",
-        "format": "WEBP",
-        "dimensions": [width, height],
-        "size_bytes": size_bytes,
-        "alpha_extrema": list(alpha_extrema),
-        "alpha_bbox": alpha_bbox,
-        "brand_anatomy": brand_markers,
-        "evidence": (
-            f"technical_status={'PASS' if passed else 'FAIL'}; dimensions={width}x{height}; "
-            f"bytes={size_bytes}; alpha={alpha_extrema}; provenance=ORIGINAL_RECREATION_FOR_NEMESIS; "
-            "la semejanza anatomica permanece sujeta a comparacion renderizada y revision humana"
-        ),
-    }
+        manifest = json.loads((directory / 'manifest.json').read_text(encoding='utf-8'))
+        assert manifest['family'] == 'owner-approved-20261023'
+        assert manifest['status'] == 'OWNER_APPROVED_ARTWORK'
+        assert len(manifest['assets']) == 7
+        for row in manifest['assets']:
+            path = directory / row['file']
+            assert path.parent == directory and not path.is_symlink()
+            assert hashlib.sha256(path.read_bytes()).hexdigest() == row['sha256']
+            assert path.stat().st_size == row['bytes']
+            with Image.open(path) as image:
+                assert list(image.size) == row['size']
+        with Image.open(directory / name) as image:
+            size = list(image.size)
+            alpha_extrema = list(image.getchannel('A').getextrema())
+        size_bytes = (directory / name).stat().st_size
+        passed = size == [960, 520] and size_bytes < 150000 and alpha_extrema == [0, 255]
+    except (OSError, ValueError, ImportError, AssertionError, KeyError, TypeError) as exc:
+        return {'status': 'FAIL', 'classification': 'MAJOR_GAP', 'evidence': type(exc).__name__}
+    return {'status': 'PASS' if passed else 'FAIL',
+        'classification': 'FOUNDER_REVIEW_REQUIRED' if passed else 'MAJOR_GAP',
+        'asset': 'static/img/approved-identity/' + name, 'provenance': 'OWNER_APPROVED_ARTWORK',
+        'format': 'WEBP', 'dimensions': size, 'size_bytes': size_bytes,
+        'alpha_extrema': alpha_extrema, 'asset_hashes_valid': True,
+        'evidence': 'Approved derivative hashes/dimensions/transparency verified; rendered-screen and human acceptance remain separate.'}
 
 
 def _reference_similarity(screenshot: Path, reference_file: str) -> dict:

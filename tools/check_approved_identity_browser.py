@@ -79,21 +79,26 @@ def main():
         expected_shark='wireframe-480' if width<768 else 'wireframe-960'
         assert expected_ocean in scene.evaluate('(el)=>getComputedStyle(el,"::before").backgroundImage')
         assert expected_shark in scene.evaluate('(el)=>getComputedStyle(el,"::after").backgroundImage')
-        decoded=scene.evaluate('''async (el) => {
-          const sources=["::before","::after"].flatMap(pseudo=>
-            Array.from(getComputedStyle(el,pseudo).backgroundImage.matchAll(/url\\(["']?([^"')]+)["']?\\)/g),m=>m[1]));
-          return Promise.all(sources.map(async src=>{
-            const image=new Image();image.src=src;await image.decode();
-            return {src,width:image.naturalWidth,height:image.naturalHeight};
-          }));
-        }''')
-        assert len(decoded)==2 and all(item['width']>0 and item['height']>0 for item in decoded)
+        from tools.run_production_quality_browser_gate import _capture_approved_scene, _approved_scene_in_page, _official_brand_in_page
+        # Bind loading to CSS before the first explicit image-decode probe.
+        proof=_capture_approved_scene(page)
+        assert _approved_scene_in_page(proof, base), (role,path,width)
+        decoded=proof['images']
+        inspection=qa._inspect(page, path, str(width)+'x'+str(page.viewport_size['height']))
+        assert inspection['shark']['classification']=='FOUNDER_REVIEW_REQUIRED', (role,path,width)
+        assert inspection['background']['classification']=='FOUNDER_REVIEW_REQUIRED', (role,path,width)
         assert page.evaluate('getComputedStyle(document.body,"::before").content')=='none'
         assert page.evaluate('getComputedStyle(document.body,"::after").content')=='none'
         logos=page.locator('img[data-brand-source="owner-approved-family-20261023"]:visible')
         assert logos.count()>=1,(role,path)
         for logo in logos.all():
             assert logo.evaluate('(el)=>el.complete&&el.naturalWidth>0')
+        brand_metrics=page.evaluate('''() => ({resources:performance.getEntriesByType('resource').map(e=>e.name),
+          officialBrandImages:[...document.querySelectorAll('.ns-brand img[data-brand-source]')].map(el=>({
+            url:el.currentSrc||el.src,source:el.dataset.brandSource,complete:el.complete,
+            naturalWidth:el.naturalWidth,naturalHeight:el.naturalHeight,
+            visible:el.getBoundingClientRect().width>0&&getComputedStyle(el).visibility!=='hidden'}))})''')
+        assert _official_brand_in_page(brand_metrics, base), (role,path,width)
         assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1'),(role,path,width)
         assert page.locator('[data-ns-assistant]').count()==(0 if role=='admin' else 1)
         file=out/(str(width)+'-'+role+'-'+path.strip('/').replace('/','-')+'.png')

@@ -61,6 +61,13 @@ jobs:
       - uses: pnpm/action-setup@v4
         with:
           version: '11.25.0'
+      - name: Use signed upstream Ubuntu packages for browser dependencies
+        run: |
+          for source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/ubuntu.sources; do
+            if [ -f "$source" ]; then
+              sudo sed -i 's|https\?://azure\.archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$source"
+            fi
+          done
       - name: Verify committed CSS and semantic states
         run: |
           pnpm install --frozen-lockfile --ignore-scripts
@@ -122,6 +129,11 @@ jobs:
           python-version: '3.11.9'
       - name: Install isolated test dependencies
         run: |
+          for source in /etc/apt/apt-mirrors.txt /etc/apt/sources.list.d/ubuntu.sources; do
+            if [ -f "$source" ]; then
+              sudo sed -i 's|https\?://azure\.archive\.ubuntu\.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' "$source"
+            fi
+          done
           python -m pip install -r requirements-dev.txt -r browser_qa/playwright_requirements.txt
           python -m playwright install --with-deps chromium
           python -c 'from playwright.sync_api import sync_playwright'

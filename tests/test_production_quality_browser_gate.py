@@ -290,6 +290,66 @@ def test_official_brand_capture_and_all_surfaces_gate_are_wired():
     assert 'for item in [*pages, mobile_evidence]' in source
     assert 'all(item["verified"] for item in official_brand_surfaces)' in source
     assert 'official_brand_verified=official_brand_verified' in source
+    assert 'all(item[\'verified\'] for item in approved_scene_surfaces)' in source
+    assert '.ns-brand img[data-brand-source="owner-approved-family-20261023"]' in source
+
+
+def approved_scene_metrics():
+    from tools.run_production_quality_browser_gate import _approved_assets
+    assets = _approved_assets()
+    images = []
+    for layer, name in [('::before','nemesis-approved-ocean-768.webp'),('::after','nemesis-approved-wireframe-480.webp')]:
+        row = assets[name]
+        images.append(dict(layer=layer,url='https://example.invalid/static/img/approved-identity/'+name+'?v='+row['sha256'][:12],
+                           decoded=True,loaded=True,width=row['size'][0],height=row['size'][1],
+                           content='""',display='block',visibility='visible',animation_name='none',
+                           opacity=.12,box_width=335.4,box_height=181.7))
+    return dict(count=1,source='approved-family-20261023',aria_hidden='true',pointer_events='none',position='fixed',
+                animation_name='none',visible=True,wrapper_opacity=1,height=844,viewport_width=390,
+                shark_width=335.4,shark_opacity=.12,images=images)
+
+
+def test_current_identity_requires_loaded_decoded_same_origin_scene_and_brand():
+    from tools.run_production_quality_browser_gate import _approved_assets, _approved_scene_in_page, _official_brand_in_page
+    scene = approved_scene_metrics()
+    assert _approved_scene_in_page(scene,'https://example.invalid') is True
+    row = _approved_assets()['nemesis-approved-mark-256.webp']
+    url = 'https://example.invalid/static/img/approved-identity/nemesis-approved-mark-256.webp?v='+row['sha256'][:12]
+    metrics = dict(resources=[url],officialBrandImages=[dict(url=url,source='owner-approved-family-20261023',
+        visible=True,complete=True,naturalWidth=256,naturalHeight=256)])
+    assert _official_brand_in_page(metrics,'https://example.invalid') is True
+    resources=[url,*[image['url'] for image in scene['images']]]
+    assert _visual_asset_contract(resources,official_brand_verified=True)[0] is False
+    assert _visual_asset_contract(resources,official_brand_verified=True,approved_scene_verified=True)[0] is True
+    assert _visual_asset_contract(resources,official_brand_verified=True,approved_scene_verified='true')[0] is False
+    assert _visual_asset_contract([url,'https://example.invalid/static/img/nemesis-shark-atmosphere-v2.webp'],
+                                  official_brand_verified=True,approved_scene_verified=False)[0] is False
+    metrics['officialBrandImages'][0]['naturalWidth']=128
+    assert _official_brand_in_page(metrics,'https://example.invalid') is False
+    metrics['officialBrandImages'][0]['naturalWidth']=256
+    metrics['officialBrandImages'][0]['url']=url.replace(row['sha256'][:12],'wrong')
+    metrics['resources']=[metrics['officialBrandImages'][0]['url']]
+    assert _official_brand_in_page(metrics,'https://example.invalid') is False
+
+
+@pytest.mark.parametrize('field,value', [('count',2),('source','unknown'),('aria_hidden','false'),
+    ('pointer_events','auto'),('position','absolute'),('animation_name','pulse'),('visible',False),
+    ('shark_opacity',.9),('shark_width',390),('viewport_width',0),('wrapper_opacity',0),('height',0)])
+def test_current_scene_rejects_wrong_geometry_or_interactive_decoration(field,value):
+    from tools.run_production_quality_browser_gate import _approved_scene_in_page
+    scene=approved_scene_metrics();scene[field]=value
+    assert _approved_scene_in_page(scene,'https://example.invalid') is False
+
+
+@pytest.mark.parametrize('field,value',[('decoded',False),('loaded',False),('width',0),('height',1),
+    ('content','none'),('display','none'),('visibility','hidden'),('animation_name','pulse'),
+    ('opacity',0),('box_height',0),('box_width',0),
+    ('layer','::after'),('url','https://foreign.invalid/static/img/approved-identity/nemesis-approved-ocean-768.webp'),
+    ('url','https://example.invalid/static/img/approved-identity/nemesis-approved-ocean-768.webp?v=wrong')])
+def test_current_scene_rejects_unproven_or_wrong_images(field,value):
+    from tools.run_production_quality_browser_gate import _approved_scene_in_page
+    scene=approved_scene_metrics();scene['images'][0][field]=value
+    assert _approved_scene_in_page(scene,'https://example.invalid') is False
 
 
 def test_production_quality_gate_uses_current_public_navigation_contract():

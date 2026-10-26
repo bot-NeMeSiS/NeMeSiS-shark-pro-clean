@@ -30,3 +30,17 @@ def test_builder_and_auditor_exclude_sqlite3_sidecars():
     for suffix in ('.sqlite3-wal', '.sqlite3-shm', '.sqlite3-journal'):
         assert suffix in builder['EXCLUDE_SUFFIXES']
         assert suffix in auditor['FORBIDDEN_SUFFIXES']
+
+
+
+def test_importing_release_policy_is_read_only(monkeypatch):
+    import importlib
+    import pytest
+    from tools import build_clean_release as builder
+    def forbidden(*args, **kwargs):
+        pytest.fail('Importing a packaging policy must not create or probe output files')
+    with monkeypatch.context() as patch:
+        patch.setattr(Path, 'mkdir', forbidden)
+        patch.setattr(Path, 'write_text', forbidden)
+        importlib.reload(builder)
+    assert builder.include(ROOT / 'config/audience-priority.json')
