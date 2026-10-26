@@ -246,6 +246,19 @@ def _click_one(page, base_url: str, origin: str, action: dict, timeout: int, pro
                     raise AssertionError("Section finder has no safe destination to verify")
                 item["interaction"] = "navigation_dialog"
                 locator = destination
+            if (locator.get_attribute("data-ns-assistant-open") is not None or
+                    locator.get_attribute("data-ns-assistant-restore") is not None):
+                # SHARK progressively opens the actual workspace. Keep proving
+                # the compatible full-page destination as well, rather than
+                # dropping this control from navigation coverage.
+                origin_url = page.url
+                locator.click(timeout=timeout)
+                workspace = page.locator("#ns-assistant-dialog")
+                workspace.wait_for(state="visible", timeout=timeout)
+                if page.url != origin_url or workspace.count() != 1:
+                    raise AssertionError("SHARK did not open a unique in-page workspace")
+                item["interaction"] = "shark_workspace_and_full_page"
+                locator = workspace.locator('footer a[href="/shark"]')
             with page.expect_navigation(wait_until="domcontentloaded", timeout=timeout) as nav:
                 locator.click(timeout=timeout)
             click_response = nav.value

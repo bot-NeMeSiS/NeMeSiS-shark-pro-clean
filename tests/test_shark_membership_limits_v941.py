@@ -104,9 +104,12 @@ def test_shark_forms_and_widget_have_no_get_fallback():
     root=Path(__file__).resolve().parents[1]
     shark=(root/"templates/shark.html").read_text(encoding="utf-8")
     base=(root/"templates/base.html").read_text(encoding="utf-8")
+    workspace=(root/"templates/components/shark_workspace.html").read_text(encoding="utf-8")
     core=(root/"templates/shark_core.html").read_text(encoding="utf-8")
     assert '<form method="post" action="/shark">' in shark
-    assert 'id="sharkForm" class="shark-form" method="post" action="/shark"' in base
+    assert '{% include "components/shark_workspace.html" %}' in base
+    assert 'id="ns-assistant-form" class="ns-assistant-form" method="post" action="/shark"' in workspace
+    assert 'name="csrf_token" value="{{ csrf_token() }}"' in workspace
     assert "/api/shark/ask?q=" not in base
     assert 'method="post" action="/shark" class="chip-form"' in core
 

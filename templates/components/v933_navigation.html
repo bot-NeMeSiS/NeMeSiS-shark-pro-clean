@@ -85,7 +85,7 @@
 
 {% macro v933_mobile_bottom_nav(authenticated=false) -%}
 {% set links = nav_contracts.CLIENT_MOBILE_LINKS if authenticated else nav_contracts.PUBLIC_MOBILE_LINKS %}
-<nav class="v933-mobile-bottom-nav" aria-label="{{ ui("Navegación móvil") }}" data-nav-zone="client-bottom">
+<nav class="v933-mobile-bottom-nav" aria-label="{{ ui("Navegación móvil") }}" data-nav-zone="client-bottom" data-nav-items="{{ links|length }}">
   {% for label, href, icon_name in links %}
   {% set active = nav_contracts.is_active(href, request.path, 'client' if authenticated else 'public') %}
   <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>

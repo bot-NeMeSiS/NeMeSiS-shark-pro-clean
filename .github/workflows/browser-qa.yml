@@ -15,6 +15,7 @@ on:
       - 'requirements*.txt'
       - 'browser_qa/playwright_requirements.txt'
       - 'tools/run_v929_click_navigation_qa.py'
+      - 'tools/check_shark_workspace_browser.py'
   push:
     branches: [main]
     paths:
@@ -29,6 +30,7 @@ on:
       - 'requirements*.txt'
       - 'browser_qa/playwright_requirements.txt'
       - 'tools/run_v929_click_navigation_qa.py'
+      - 'tools/check_shark_workspace_browser.py'
   workflow_dispatch:
     inputs:
       base_url:
@@ -81,6 +83,8 @@ jobs:
               raise SystemExit('Visual preview failed to start')
           PY
           python tools/run_visual_browser_qa.py --output /tmp/premium-visual-evidence
+      - name: Real SHARK workspace HTTP and served JavaScript
+        run: python -B tools/check_shark_workspace_browser.py --output-dir /tmp/shark-workspace-evidence
       - uses: actions/upload-artifact@v7
         if: always()
         with:
@@ -88,6 +92,7 @@ jobs:
           path: |
             /tmp/premium-visual-evidence/
             /tmp/visual-preview.log
+            /tmp/shark-workspace-evidence/
           retention-days: 7
 
   journey-controls:
