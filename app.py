@@ -14167,23 +14167,41 @@ def v845_openai_configured():
     return env_present("OPENAI_API_KEY")
 
 
-def _v845_pick_by_id(pick_id):
+def _v845_pick_for_user(pick, user):
+    """Authorize the stored row before normalization can coerce its tier."""
+    if not pick:
+        return None
+    pick = dict(pick)
+    if normalize_pick_status(pick.get("status")) not in {"published", "won", "lost", "void"}:
+        return None
+    membership = "ADMIN" if normalize_role(user.get("role")) == "ADMIN" else get_user_membership(user)
+    if not _client_pick_membership_allows(membership, pick):
+        return None
+    return normalize_pick_row(pick)
+
+
+def _v845_pick_by_id(pick_id, user):
     if not pick_id:
         return None
     pick = one("SELECT * FROM picks WHERE id=?", (str(pick_id),))
-    return normalize_pick_row(pick) if pick else None
+    return _v845_pick_for_user(pick, user)
 
 
-def _v845_pick_for_match(match_id):
+def _v845_pick_for_match(match_id, user):
     if not match_id:
         return None
+    membership = "ADMIN" if normalize_role(user.get("role")) == "ADMIN" else get_user_membership(user)
+    scope = _prediction_membership_sql("p", membership)
+    if membership == "ADMIN":
+        scope = "upper(trim(COALESCE(p.membership_required,'FREE'))) IN ('FREE','PRO','ELITE','ADMIN')"
     pick = one(
-        """SELECT * FROM picks
-           WHERE match_id=? AND lower(status) IN ('published','won','lost','void')
-           ORDER BY COALESCE(published_at, updated_at, created_at) DESC LIMIT 1""",
+        f"""SELECT p.* FROM picks AS p
+           WHERE p.match_id=? AND lower(p.status) IN ('published','won','lost','void')
+             AND {scope}
+           ORDER BY COALESCE(p.published_at, p.updated_at, p.created_at) DESC LIMIT 1""",
         (str(match_id),),
     )
-    return normalize_pick_row(pick) if pick else None
+    return _v845_pick_for_user(pick, user)
 
 
 def v845_build_product_assistant_context(
@@ -14195,6 +14213,7 @@ def v845_build_product_assistant_context(
 ):
     payload = dict(payload or {})
     args = request.args if has_request_context() else {}
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     match_id = payload.get("match_id") or payload.get("match") or args.get("match") or args.get("match_id") or ""
     pick_id = payload.get("pick_id") or payload.get("pick") or args.get("pick") or args.get("pick_id") or ""
     match = one("SELECT * FROM matches WHERE id=?", (str(match_id),)) if match_id else None
@@ -14204,14 +14223,13 @@ def v845_build_product_assistant_context(
             match.update(client_match_display_context(match))
         except Exception:
             pass
-    pick = _v845_pick_by_id(pick_id) if pick_id else None
+    pick = _v845_pick_by_id(pick_id, user) if pick_id else None
     if not pick and match:
-        pick = _v845_pick_for_match(match.get("id"))
+        pick = _v845_pick_for_match(match.get("id"), user)
     try:
         telegram_quality = explain_telegram_filter_decision(pick or match or {})
     except Exception:
         telegram_quality = {}
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     try:
         recent_picks = _shark_visible_picks(user, limit=6, min_score=68)
     except Exception:
