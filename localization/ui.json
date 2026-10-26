@@ -1,4 +1,25 @@
 {
+  "shark_workspace": {
+    "Ampliar SHARK": {"en": "Expand SHARK", "fr": "Agrandir SHARK"},
+    "Reducir SHARK": {"en": "Reduce SHARK", "fr": "Réduire SHARK"},
+    "Minimizar SHARK": {"en": "Minimize SHARK", "fr": "Minimiser SHARK"},
+    "Ocultar asistente": {"en": "Hide assistant", "fr": "Masquer l’assistant"},
+    "Conversación temporal de esta página. No garantiza resultados.": {"en": "Temporary conversation on this page. Results are not guaranteed.", "fr": "Conversation temporaire sur cette page. Les résultats ne sont pas garantis."},
+    "Conversación SHARK": {"en": "SHARK conversation", "fr": "Conversation SHARK"},
+    "Tu pregunta": {"en": "Your question", "fr": "Votre question"},
+    "Pregunta por partidos, pronósticos o tus favoritos.": {"en": "Ask about matches, predictions or your favorites.", "fr": "Posez une question sur les matchs, les pronostics ou vos favoris."},
+    "Inicia sesión para preguntar a SHARK.": {"en": "Sign in to ask SHARK.", "fr": "Connectez-vous pour interroger SHARK."},
+    "Consultar planes": {"en": "View plans", "fr": "Consulter les offres"},
+    "Abrir página SHARK": {"en": "Open SHARK page", "fr": "Ouvrir la page SHARK"},
+    "Oculto: puedes recuperarlo desde Explorar → SHARK.": {"en": "When hidden, restore it from Explore → SHARK.", "fr": "Une fois masqué, retrouvez-le depuis Explorer → SHARK."},
+    "SHARK está preparando la respuesta…": {"en": "SHARK is preparing the answer…", "fr": "SHARK prépare la réponse…"},
+    "La sesión ha cambiado. Inicia sesión de nuevo para continuar.": {"en": "The session has changed. Sign in again to continue.", "fr": "La session a changé. Reconnectez-vous pour continuer."},
+    "Has alcanzado el límite de consultas de tu plan.": {"en": "You have reached your plan’s question limit.", "fr": "Vous avez atteint la limite de questions de votre offre."},
+    "No se ha podido confirmar la respuesta. La consulta puede haber consumido tu límite; no se reenviará automáticamente.": {"en": "The answer could not be confirmed. The question may have used your allowance; it will not be resent automatically.", "fr": "La réponse n’a pas pu être confirmée. La question a pu utiliser votre quota ; elle ne sera pas renvoyée automatiquement."},
+    "Consultas restantes: {count}": {"en": "Questions remaining: {count}", "fr": "Questions restantes : {count}"},
+    "Tú": {"en": "You", "fr": "Vous"},
+    "Escribe una pregunta para continuar.": {"en": "Write a question to continue.", "fr": "Écrivez une question pour continuer."}
+  },
   "personal_home": {
     "Los partidos seleccionados aparecen en tu seguimiento.": {
       "en": "The selected matches appear in your following.",

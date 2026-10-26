@@ -26,7 +26,7 @@
         {% for label, href, icon in entries %}
         {% set matches = navigation_matches(ui(label) ~ ' ' ~ (navigation.DISCOVERY_SEARCH.get(href, '') if not admin else ''), query) %}
         {% if matches %}{% set found.count = found.count + 1 %}{% endif %}
-        <a href="{{ href }}" data-explore-item data-explore-label="{{ ui(label) }}{% if not admin %} {{ navigation.DISCOVERY_SEARCH.get(href, '') }}{% endif %}"{% if not matches %} hidden{% endif %}><span>{{ ui(label) }}</span><span aria-hidden="true">→</span></a>
+        <a href="{{ href }}"{% if not admin and href == '/shark' %} data-ns-assistant-restore{% endif %} data-explore-item data-explore-label="{{ ui(label) }}{% if not admin %} {{ navigation.DISCOVERY_SEARCH.get(href, '') }}{% endif %}"{% if not matches %} hidden{% endif %}><span>{{ ui(label) }}</span><span aria-hidden="true">→</span></a>
         {% endfor %}
       </div>
     </section>

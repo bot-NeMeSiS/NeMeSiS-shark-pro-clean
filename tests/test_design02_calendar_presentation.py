@@ -109,17 +109,20 @@ def test_shared_card_preserves_unknown_and_confirmed_zero(app_module, scores, ex
 
 
 @pytest.mark.parametrize('authenticated', [True, False])
-def test_mobile_primary_navigation_keeps_shark_and_results(app_module, authenticated):
+def test_mobile_primary_navigation_keeps_results_and_shark_discovery(app_module, authenticated):
     with app_module.app.test_request_context('/calendar'):
         module = app_module.app.jinja_env.get_template('components/v933_navigation.html').make_module()
         html = str(module.v933_mobile_bottom_nav(authenticated))
         client_header = str(module.v933_client_navigation('PRO')) if authenticated else ''
     dom = Structure(html)
     links = [n['attrs']['href'] for n in dom.nodes if n['tag'] == 'a']
-    assert links == (['/app', '/calendario?lane=today', '/picks', '/shark', '/mi-cuenta'] if authenticated else ['/', '/calendario?lane=finished', '/directo', '/picks', '/cliente-login'])
+    assert links == (['/app', '/calendario?lane=today', '/picks', '/mi-cuenta'] if authenticated else ['/', '/calendario?lane=finished', '/directo', '/picks', '/cliente-login'])
     assert ('<span>Partidos</span>' if authenticated else '<span>Resultados</span>') in html
     if authenticated:
         assert 'href="/mi-cuenta"' in client_header
+        with app_module.app.test_request_context('/app'):
+            contract = app_module.app.jinja_env.get_template('components/navigation_contracts.html').make_module()
+        assert ('SHARK', '/shark', 'shark') in contract.DISCOVERY_ANALYSIS
     else:
         assert '/shark' not in links
 
