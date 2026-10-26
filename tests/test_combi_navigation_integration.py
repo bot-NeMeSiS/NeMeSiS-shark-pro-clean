@@ -126,11 +126,11 @@ def test_denied_pick_entry_does_not_leak_premium_label(webapp, db):
 
 @pytest.mark.parametrize('path',['/combis','/combinadas','/combinadas?borrador=abc'])
 @pytest.mark.parametrize('authenticated',[False,True])
-def test_mobile_keeps_five_items_and_marks_picks_section(app_module,path,authenticated):
+def test_mobile_keeps_primary_items_and_marks_picks_section(app_module,path,authenticated):
     with app_module.app.test_request_context(path):
         macro = app_module.app.jinja_env.get_template('components/v933_navigation.html').module
         elements = Elements(macro.v933_mobile_bottom_nav(authenticated))
-        assert len(elements.find('a')) == 5
+        assert len(elements.find('a')) == (4 if authenticated else 5)
         current = elements.find('a',**{'aria-current':None})
         assert len(current) == 1 and current[0].attrs['href'] == '/picks'
         assert current[0].attrs['aria-current'] == 'page'  # current section follows the canonical page token
@@ -146,7 +146,7 @@ def test_desktop_marks_same_section_without_extra_primary_items(app_module,path,
         assert len(current) == 1 and current[0].attrs['href'] == '/picks'
 
 
-@pytest.mark.parametrize('path,href',[('/picks','/picks'),('/calendar','/calendario?lane=today'),('/shark','/shark'),('/app','/app'),('/historico','/picks'),('/telegram','/mi-cuenta'),('/directo','/calendario?lane=today')])
+@pytest.mark.parametrize('path,href',[('/picks','/picks'),('/calendar','/calendario?lane=today'),('/app','/app'),('/historico','/picks'),('/telegram','/mi-cuenta'),('/directo','/calendario?lane=today')])
 def test_other_primary_destinations_keep_their_current_page(app_module,path,href):
     with app_module.app.test_request_context(path):
         macro = app_module.app.jinja_env.get_template('components/v933_navigation.html').module
@@ -159,9 +159,16 @@ def test_mobile_header_and_bottom_nav_keep_account_and_shark_access(app_module):
         macro = app_module.app.jinja_env.get_template('components/v933_navigation.html').module
         shell = Elements(macro.v933_client_navigation('PRO'))
         bottom = Elements(macro.v933_mobile_bottom_nav(True))
+        from flask import render_template
+        full = Elements(render_template('base.html', data={}, current_user={'id':'qa-shark-discovery','role':'PRO','membership':'PRO'}))
     assert shell.find('a',href='/mi-cuenta')
-    assert bottom.find('a',href='/shark')
     assert bottom.find('a',href='/mi-cuenta')
+    assert not bottom.find('a',href='/shark')
+    assert not bottom.find('a',**{'aria-current':'page'})
+    # SHARK is a compatible full-page destination in discovery, with no false
+    # active primary section or duplicate floating panel on its own page.
+    assert full.find('a',href='/shark',**{'data-ns-assistant-restore':None})
+    assert not full.find('dialog',id='ns-assistant-dialog')
 
 
 @pytest.fixture
