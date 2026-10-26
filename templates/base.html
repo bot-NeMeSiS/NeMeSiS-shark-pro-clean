@@ -67,6 +67,7 @@
   {% endif %}
   <script defer src="{{ url_for('static', filename='founder-os.js') }}?v={{ app_version }}"></script>
   {% endif %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/ads.css') }}?v=1">
 </head>
 {% from "partials/brand_logo.html" import nemesis_brand %}
 {% from "components/v933_shells.html" import v933_public_shell, v933_client_shells, v933_admin_shell %}
@@ -134,6 +135,18 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
     {% if not is_admin_area and admin_operational_settings is defined and admin_operational_settings.get('banner_enabled') and admin_operational_settings.get('banner_text') %}
     <aside class="v933-inline-notice" role="status">{{ admin_operational_settings.get('banner_text') }}</aside>
     {% endif %}
+    {% if is_client_area and current_user is defined and current_user and (current_user.membership|default('FREE', true)|upper == 'FREE') and ad_campaign is defined and ad_campaign %}
+    <aside class="ns-ad-slot" aria-label="Publicidad patrocinada" data-ad-campaign="{{ ad_campaign.id }}">
+      <div class="ns-ad-slot-main">
+        <span class="ns-ad-slot-label">PUBLICIDAD · PATROCINADO</span>
+        <h2>{{ ad_campaign.title }}</h2>
+        <p>{{ ad_campaign.body }}</p>
+        <small>{{ ad_campaign.company_name }}</small>
+      </div>
+      <a class="ns-ad-slot-link" href="{{ url_for('admin_productivity.ad_click', campaign_id=ad_campaign.id) }}" target="_blank" rel="sponsored nofollow noopener noreferrer">Visitar patrocinador <span aria-hidden="true">↗</span></a>
+      <img src="{{ url_for('admin_productivity.ad_impression', campaign_id=ad_campaign.id) }}" width="1" height="1" alt="" aria-hidden="true" class="ns-ad-impression-pixel">
+    </aside>
+    {% endif %}
     {% block content %}{% endblock %}
   </main>
   {% block admin_page_navigation %}{% endblock %}
@@ -150,7 +163,7 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
   <footer class="v787-legal-footer v933-legal-footer" aria-label="Aviso legal y responsable">
     <strong>{{ ns_ui("+18 - Información deportiva, no casa de apuestas.") }}</strong>
     <span>{{ ns_ui("NeMeSiS SHARK PRO no acepta apuestas, no custodia saldo de juego, no paga premios y no garantiza beneficios.") }}</span>
-    <nav><a href="/landing">{{ ns_ui("Oficial") }}</a><a href="/precios">{{ ns_ui("Precios") }}</a><a href="/faq">FAQ</a><a href="/service-status">{{ ns_ui("Estado") }}</a><a href="/roadmap">{{ ns_ui("Roadmap") }}</a><a href="/legal">{{ ns_ui("Legal") }}</a><a href="/terminos">{{ ns_ui("Términos") }}</a><a href="/privacidad">{{ ns_ui("Privacidad") }}</a><a href="/cookies">Cookies</a><a href="/juego-responsable">{{ ns_ui("Juego responsable") }}</a><a href="/soporte">{{ ns_ui("Soporte") }}</a><a href="/instalar">Instalar app</a></nav>
+    <nav><a href="/landing">{{ ns_ui("Oficial") }}</a><a href="/precios">{{ ns_ui("Precios") }}</a><a href="/faq">FAQ</a><a href="/service-status">{{ ns_ui("Estado") }}</a><a href="/roadmap">{{ ns_ui("Roadmap") }}</a><a href="/legal">{{ ns_ui("Legal") }}</a><a href="/terminos">{{ ns_ui("Términos") }}</a><a href="/privacidad">{{ ns_ui("Privacidad") }}</a><a href="/cookies">Cookies</a><a href="/juego-responsable">{{ ns_ui("Juego responsable") }}</a><a href="/soporte">{{ ns_ui("Soporte") }}</a><a href="/publicidad">{{ ns_ui("Publicidad") }}</a>{% if show_admin_nav %}<a href="/admin/ads">Publicidad y anunciantes</a>{% endif %}<a href="/instalar">Instalar app</a></nav>
   </footer>
 
   {% if show_mobile_bottom_nav %}{{ v933_mobile_bottom_nav(current_user is not none) }}{% endif %}
