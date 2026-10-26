@@ -80,6 +80,7 @@ def main():
              'templates/home.html','templates/calendar.html','templates/live.html','templates/components/v933_ui.html',
              'static/v934-realtime.js','localization/ui.json','APP_VERSION','VERSION.txt',
              'tests/v991_fixture_identity.json','tests/v991_api_prepare_only_cases.py','tests/v991_live_minimal_cases.py',
+             'tests/v1001_picks_projection_cases.py',
              'tools/v991_app_read_path_worker.py','tools/check_v991_app_read_paths.py')
     def hashes(): return {name:hashlib.sha256((repo/name).read_bytes()).hexdigest() for name in source_paths}
     before = hashes()
@@ -303,6 +304,13 @@ def main():
         facts['live_minimal_contracts'] = live_module.run_live_contracts(test_module.ApiPrepareOnlyContracts.runtime)
         if not facts['live_minimal_contracts']['success']:
             raise AssertionError('Live minimal contracts failed; see live-unittest-output.txt/live-junit.xml and receipt')
+        picks_spec = importlib.util.spec_from_file_location(
+            'v1001_picks_projection_cases', repo/'tests/v1001_picks_projection_cases.py')
+        picks_module = importlib.util.module_from_spec(picks_spec)
+        picks_spec.loader.exec_module(picks_module)
+        facts['picks_projection_contracts'] = picks_module.run_picks_projection_contracts(test_module.ApiPrepareOnlyContracts.runtime)
+        if not facts['picks_projection_contracts']['success']:
+            raise AssertionError('Picks projection contracts failed; see picks-unittest-output.txt/picks-junit.xml and receipt')
     except BaseException as exc:
         facts['errors'].append({'type':type(exc).__name__,'message':str(exc),'traceback':traceback.format_exc()})
     finally:

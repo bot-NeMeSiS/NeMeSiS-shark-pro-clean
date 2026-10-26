@@ -27109,7 +27109,8 @@ def picks_page():
     data["v925_picks"] = get_safe_picks_context(data["picks"])
     data["v925_odds"] = get_safe_odds_context(data["picks"])
     data["v934_realtime"] = get_realtime_safe_picks_context(summary)
-    data["v934_odds"] = get_realtime_safe_odds_context(summary)
+    # Both contexts describe the same request-owned evaluation.
+    data["v934_odds"] = _v934_odds_context_from_snapshot(data["v934_realtime"])
     data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
     data["pick_readiness"], data["pick_watchlist"] = client_pick_readiness(
         summary,
@@ -29938,7 +29939,11 @@ def get_realtime_safe_picks_context(summary=None) -> dict:
 
 
 def get_realtime_safe_odds_context(summary=None) -> dict:
-    snapshot = get_v934_realtime_context(summary)
+    return _v934_odds_context_from_snapshot(get_v934_realtime_context(summary))
+
+
+def _v934_odds_context_from_snapshot(snapshot) -> dict:
+    """Format an evaluated snapshot without another read or projection."""
     return {
         "items": [
             {
@@ -29947,7 +29952,7 @@ def get_realtime_safe_odds_context(summary=None) -> dict:
                 "odds": item.get("odds"),
                 "source": item.get("source"),
                 "recorded_at": item.get("odds_recorded_at"),
-                "freshness": item.get("odds_freshness"),
+                "freshness": copy.deepcopy(item.get("odds_freshness")),
             }
             for item in snapshot.get("picks") or []
         ],

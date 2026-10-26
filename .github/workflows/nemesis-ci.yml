@@ -77,6 +77,8 @@ jobs:
             ${{ runner.temp }}/v991-app-read-paths/receipt.json
             ${{ runner.temp }}/v991-app-read-paths/worker.stdout.txt
             ${{ runner.temp }}/v991-app-read-paths/worker.stderr.txt
+            ${{ runner.temp }}/v991-app-read-paths/picks-junit.xml
+            ${{ runner.temp }}/v991-app-read-paths/picks-unittest-output.txt
             reports/V941_*
             reports/V942_*
             release_output/*_RENDER_READY.zip

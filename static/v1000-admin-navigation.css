@@ -102,5 +102,9 @@ body.ns-admin .founder-os-panel-head > a { display: inline-flex; align-items: ce
   body.ns-admin .founder-os-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   body.ns-admin .founder-os-panel { padding: 12px; }
   body.ns-admin .founder-os > :is(section, #overview) { scroll-margin-top: 160px; }
+  /* Native keyboard scrolling must clear both fixed mobile navigation bars. */
+  body.ns-admin .founder-os :is(a, button, input, select, textarea, summary) {
+    scroll-margin-block: 80px calc(110px + env(safe-area-inset-bottom, 0px));
+  }
   body.ns-admin .founder-os-alert { padding: 10px; }
 }
