@@ -85,7 +85,8 @@ def test_real_login_layout_preserves_password_csrf_session_and_safe_return(auth_
     capture_only = os.environ.get("NEMESIS_AUTH_CAPTURE_BASELINE") == "1"
     with sync_playwright() as pw:
         browser = pw.chromium.launch(executable_path=os.environ["NEMESIS_QA_CHROMIUM"])
-        context = browser.new_context(viewport={"width": width, "height": height}, reduced_motion="reduce")
+        context = browser.new_context(viewport={"width": width, "height": height}, reduced_motion="reduce",
+                                      locale="es-ES", timezone_id="Europe/Madrid")
         external = []
         def boundary(request):
             if request.request.url.startswith(origin + "/"):
@@ -105,6 +106,8 @@ def test_real_login_layout_preserves_password_csrf_session_and_safe_return(auth_
         try:
             response = page.goto(origin + route + "?next=" + destination, wait_until="networkidle")
             assert response.status == 200
+            assert response.headers.get("content-language") == "es"
+            assert page.locator("html").get_attribute("lang") == "es"
             first = _inspect(page)
             first["phase"] = "normal"
             first["native_reduced_transparency"] = native_reduced_transparency
@@ -166,6 +169,7 @@ def test_real_login_layout_preserves_password_csrf_session_and_safe_return(auth_
             # readiness, not an absence of all network traffic, proves return.
             page.wait_for_url(origin + destination, wait_until="domcontentloaded")
             page.locator("main#main-content").wait_for(state="attached")
+            assert page.locator("html").get_attribute("lang") == "es"
             cookies = context.cookies()
             session_cookie = next(row["value"] for row in cookies if row["name"] == a.app.config["SESSION_COOKIE_NAME"])
             session = a.app.session_interface.get_signing_serializer(a.app).loads(session_cookie)

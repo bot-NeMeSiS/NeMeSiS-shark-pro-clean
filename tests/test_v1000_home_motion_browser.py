@@ -37,7 +37,7 @@ def _browser(pw, origin, width, *, reduced=False, blocked_storage=False):
     browser = pw.chromium.launch(executable_path=os.environ['NEMESIS_QA_CHROMIUM'])
     context = browser.new_context(viewport={'width':width,'height':960},
                                   reduced_motion='reduce' if reduced else 'no-preference',
-                                  service_workers='block')
+                                  service_workers='block', locale='es-ES', timezone_id='Europe/Madrid')
     calls, external = [], []
     def boundary(route):
         request = route.request
@@ -71,13 +71,17 @@ def test_actual_client_home_is_compact_personal_and_links_account_without_paid_u
         _preferences(context,page,reduced=True)
         errors=[]; page.on('pageerror', lambda error:errors.append(str(error)))
         try:
-            assert page.goto(origin+'/cliente-login?next=/app').status==200
+            response = page.goto(origin+'/cliente-login?next=/app')
+            assert response.status == 200
+            assert response.headers.get('content-language') == 'es'
+            assert page.locator('html').get_attribute('lang') == 'es'
             form=page.locator('form[action^="/cliente-login"]')
             form.locator('[name="login"]').fill(ident+'@example.invalid')
             form.locator('[name="password"]').fill(password)
             form.locator('[type="submit"]').click()
             page.wait_for_url(origin+'/app')
             page.wait_for_function('document.readyState === \"complete\"')
+            assert page.locator('html').get_attribute('lang') == 'es'
             assert page.locator('[data-v1000-home]').count()==1
             assert page.locator('[data-home-greeting]').inner_text().endswith('María')
             assert page.locator('[data-home-greeting]').evaluate('e=>e.tagName')=='P'
@@ -109,7 +113,10 @@ def test_optional_motion_pauses_and_discovery_never_replays_or_spends_a_question
         _preferences(context,page)
         page.on('pageerror', lambda error:errors.append(str(error)))
         try:
-            assert page.goto(origin+'/').status==200
+            response = page.goto(origin+'/')
+            assert response.status == 200
+            assert response.headers.get('content-language') == 'es'
+            assert page.locator('html').get_attribute('lang') == 'es'
             assert page.locator('[data-motion-preferences]').is_visible()
             # Two finite pulses of the image; the actual native launcher stays put.
             launcher=page.locator('[data-ns-assistant-open]')
@@ -165,7 +172,10 @@ def test_restricted_storage_and_reduced_motion_are_quiet(fixture_server, blocked
         _preferences(context,page,reduced=reduced,transparent=transparent)
         page.on('pageerror',lambda error:errors.append(error.stack))
         try:
-            assert page.goto(origin+'/').status==200
+            response = page.goto(origin+'/')
+            assert response.status == 200
+            assert response.headers.get('content-language') == 'es'
+            assert page.locator('html').get_attribute('lang') == 'es'
             assert page.locator('[data-motion-toggle]').is_enabled()==(transparent and not blocked and not reduced)
             assert not page.locator('[data-marine-toggle]').is_enabled()
             _wait_light(page, False)
@@ -187,7 +197,10 @@ def test_history_return_keeps_manual_pause_without_replaying_discovery(fixture_s
         context.add_init_script("window.__motionPageShows=[];addEventListener('pageshow',e=>window.__motionPageShows.push(e.persisted))")
         page=context.new_page();_preferences(context,page)
         try:
-            assert page.goto(origin+'/').status==200
+            response = page.goto(origin+'/')
+            assert response.status == 200
+            assert response.headers.get('content-language') == 'es'
+            assert page.locator('html').get_attribute('lang') == 'es'
             page.locator('[data-ns-assistant-open]').focus() # Interaction ends discovery.
             page.locator('[data-motion-preferences] summary').click()
             page.locator('[data-marine-toggle]').check()

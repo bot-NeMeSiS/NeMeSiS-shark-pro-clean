@@ -220,7 +220,8 @@ def test_actual_admin_browser_groups_disclosures_keyboard_and_founder_density(ac
         if os.getenv("NEMESIS_QA_CHROMIUM"):
             launch["executable_path"] = os.environ["NEMESIS_QA_CHROMIUM"]
         browser = playwright.chromium.launch(**launch)
-        context = browser.new_context(viewport={"width": width, "height": 900}, reduced_motion="reduce")
+        context = browser.new_context(viewport={"width": width, "height": 900}, reduced_motion="reduce",
+                                      locale="es-ES", timezone_id="Europe/Madrid")
         try:
             context.add_cookies([{"name": cookie_name, "value": cookie, "url": base, "httpOnly": True}])
             page = context.new_page()
@@ -235,6 +236,8 @@ def test_actual_admin_browser_groups_disclosures_keyboard_and_founder_density(ac
             page.on("pageerror", lambda error: errors.append(str(error)))
             result = page.goto(base + "/admin/founder-os", wait_until="networkidle")
             assert result.status == 200
+            assert result.headers.get("content-language") == "es"
+            assert page.locator("html").get_attribute("lang") == "es"
             assert page.locator(".founder-os h1").inner_text() == "Control fundador"
             assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
             assert page.locator("#inbox").bounding_box()["y"] < page.locator("#overview").bounding_box()["y"]
@@ -285,13 +288,16 @@ def test_actual_admin_explore_without_javascript_keeps_every_destination(actual_
         if os.getenv("NEMESIS_QA_CHROMIUM"):
             launch["executable_path"] = os.environ["NEMESIS_QA_CHROMIUM"]
         browser = playwright.chromium.launch(**launch)
-        context = browser.new_context(viewport={"width": 390, "height": 900}, java_script_enabled=False)
+        context = browser.new_context(viewport={"width": 390, "height": 900}, java_script_enabled=False,
+                                      locale="es-ES", timezone_id="Europe/Madrid")
         try:
             context.add_cookies([{"name": cookie_name, "value": cookie, "url": base}])
             page = context.new_page()
             page.route("**/*", lambda route: route.continue_() if route.request.url.startswith(base + "/") else route.abort())
             result = page.goto(base + "/admin/explorar", wait_until="networkidle")
             assert result.status == 200
+            assert result.headers.get("content-language") == "es"
+            assert page.locator("html").get_attribute("lang") == "es"
             links = page.locator("[data-app-explore] [data-explore-item]").evaluate_all("nodes=>nodes.map(n=>n.getAttribute('href'))")
             assert set(DESTINATIONS) <= set(links)
             assert page.locator("[data-app-explore] [data-explore-group]:visible").count() == 4
@@ -318,7 +324,8 @@ def test_actual_admin_appearance_controls_remain_reachable_beside_navigation(act
         if os.getenv("NEMESIS_QA_CHROMIUM"):
             launch["executable_path"] = os.environ["NEMESIS_QA_CHROMIUM"]
         browser = playwright.chromium.launch(**launch)
-        context = browser.new_context(viewport={"width": width, "height": 900}, reduced_motion="no-preference")
+        context = browser.new_context(viewport={"width": width, "height": 900}, reduced_motion="no-preference",
+                                      locale="es-ES", timezone_id="Europe/Madrid")
         try:
             context.add_cookies([{"name": cookie_name, "value": cookie, "url": base, "httpOnly": True}])
             page = context.new_page()
@@ -333,7 +340,10 @@ def test_actual_admin_appearance_controls_remain_reachable_beside_navigation(act
 
             page.route("**/*", boundary)
             page.on("pageerror", lambda error: errors.append(str(error)))
-            assert page.goto(base + "/admin/founder-os", wait_until="networkidle").status == 200
+            result = page.goto(base + "/admin/founder-os", wait_until="networkidle")
+            assert result.status == 200
+            assert result.headers.get("content-language") == "es"
+            assert page.locator("html").get_attribute("lang") == "es"
             preferences = page.locator("[data-motion-preferences]")
             preferences.locator("summary").click()
             toggle = preferences.locator("[data-motion-toggle]")

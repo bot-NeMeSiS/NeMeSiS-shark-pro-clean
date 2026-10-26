@@ -70,7 +70,9 @@ def test_actual_fixture_header_keeps_each_crest_with_its_name_and_score_separate
     _a, database, origin, scenarios = fixture_server
     with sync_playwright() as pw:
         browser = pw.chromium.launch(executable_path=os.environ["NEMESIS_QA_CHROMIUM"])
-        context = browser.new_context(viewport={"width": width, "height": height}, reduced_motion="reduce")
+        # This contract checks Spanish UI text; browser builds differ in their
+        # default Accept-Language header, so declare the intended user locale.
+        context = browser.new_context(viewport={"width": width, "height": height}, reduced_motion="reduce", locale="es-ES")
         external = []
         def boundary(route):
             if route.request.url.startswith(origin + "/"):
@@ -86,6 +88,8 @@ def test_actual_fixture_header_keeps_each_crest_with_its_name_and_score_separate
             for case, home, away, status, _hs, _aws in scenarios:
                 response = page.goto(origin + "/match/v1000-" + case, wait_until="networkidle")
                 assert response.status == 200
+                assert response.headers.get("content-language") == "es"
+                assert page.locator("html").get_attribute("lang") == "es"
                 assert page.locator('[data-match-component="MatchHeader"]').count() == 1
                 page.locator(".v944-match-team").first.wait_for()
                 header = page.locator('[data-match-component="MatchHeader"]')
