@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import pytest
+from werkzeug.datastructures import MultiDict
 
 from test_shark_selected_pick_boundary import shark_probe
 
@@ -20,13 +21,22 @@ class Form(HTMLParser):
         super().__init__()
         self.inside = False
         self.fields = {}
+        self.in_question = False
+        self.question = ""
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
         if tag == "form":
             self.inside = attrs.get("action") == "/shark"
         if self.inside and tag == "input" and attrs.get("name"):
             self.fields[attrs["name"]] = attrs.get("value", "")
+        if self.inside and tag == "textarea" and attrs.get("id") == "shark-question":
+            self.in_question = True
+    def handle_data(self, value):
+        if self.in_question:
+            self.question += value
     def handle_endtag(self, tag):
+        if tag == "textarea":
+            self.in_question = False
         if tag == "form":
             self.inside = False
 
@@ -127,6 +137,46 @@ def test_full_page_invalid_question_does_not_charge(shark_probe):
     response = client.post("/shark", base_url="http://127.0.0.1", data={"q": " ", "csrf_token": csrf})
     assert response.status_code == 400
     assert "No se ha descontado" in response.get_data(as_text=True)
+    assert shark_probe["quota_count"](uid) == before and len(snapshots(shark_probe)) == saved
+
+
+@pytest.mark.parametrize("path", ["/shark", "/shark-ai"])
+@pytest.mark.parametrize("selection", ["missing", "conflicting_pick", "invalid", "duplicate_alias"])
+def test_full_page_context_error_preserves_safe_question_without_charge(shark_probe, path, selection):
+    client, csrf = shark_probe["login"]("ELITE")
+    uid = shark_probe["users"]["ELITE"][0]
+    question = 'Mi pregunta <no es HTML> & sigue aquí'
+    body = MultiDict([("q", question), ("csrf_token", csrf)])
+    if selection == "missing":
+        body.add("match_id", "qa-match-no-longer-available")
+    elif selection == "conflicting_pick":
+        body.add("pick_id", shark_probe["published_pick"])
+        body.add("match_id", shark_probe["draft_match"])
+    elif selection == "invalid":
+        body.add("match_id", "invalid selection")
+    else:
+        body.add("match_id", shark_probe["published_match"])
+        body.add("match", shark_probe["draft_match"])
+    before, saved = shark_probe["quota_count"](uid), len(snapshots(shark_probe))
+    response = client.post(path, base_url="http://127.0.0.1", data=body)
+    assert response.status_code == 400
+    form = Form(); form.feed(response.get_data(as_text=True))
+    assert form.question == question
+    assert "match_id" not in form.fields and "pick_id" not in form.fields
+    assert "No se ha descontado" in response.get_data(as_text=True)
+    assert shark_probe["quota_count"](uid) == before and len(snapshots(shark_probe)) == saved
+
+
+@pytest.mark.parametrize("question_pairs", [[("q", "a" * 1001)], [("q", "one"), ("q", "two")], [("question", "one"), ("q", "two")], [("q", "unsafe\x00question")]])
+def test_full_page_recovery_never_echoes_unvalidated_question(shark_probe, question_pairs):
+    client, csrf = shark_probe["login"]("FREE")
+    uid = shark_probe["users"]["FREE"][0]
+    before, saved = shark_probe["quota_count"](uid), len(snapshots(shark_probe))
+    body = MultiDict(question_pairs + [("csrf_token", csrf), ("match_id", "missing")])
+    response = client.post("/shark", base_url="http://127.0.0.1", data=body)
+    assert response.status_code == 400
+    form = Form(); form.feed(response.get_data(as_text=True))
+    assert form.question == ""
     assert shark_probe["quota_count"](uid) == before and len(snapshots(shark_probe)) == saved
 
 

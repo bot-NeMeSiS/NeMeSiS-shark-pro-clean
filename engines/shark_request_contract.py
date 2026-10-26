@@ -12,12 +12,14 @@ class SharkInputError(ValueError):
         super().__init__(code)
 
 
-def normalize_request(payload, query=None, *, require_question=True):
+def normalize_request(payload, query=None, *, require_question=True, include_selection=True):
     """Normalize both surfaces without trusting identity/plan fields or truncating.
 
     Conflicting aliases, including across query/form, fail before admission. GET
     callers may accept an empty question; arbitrary GET questions are still
-    governed by the route's existing read-only quick-question allowlist.
+    governed by the route's existing read-only quick-question allowlist. A
+    trusted caller may recover only validated question text after rejecting a
+    selection; this never admits that question or keeps the invalid selection.
     """
     if not isinstance(payload, Mapping) or (query is not None and not isinstance(query, Mapping)):
         raise SharkInputError("invalid_body")
@@ -47,8 +49,8 @@ def normalize_request(payload, query=None, *, require_question=True):
         return values[0] if values else ""
 
     result = {"question": field(("question", "q"), 1000, question=True),
-              "match_id": field(("match_id", "match"), 180),
-              "pick_id": field(("pick_id", "pick"), 180)}
+              "match_id": field(("match_id", "match"), 180) if include_selection else "",
+              "pick_id": field(("pick_id", "pick"), 180) if include_selection else ""}
     if require_question and not result["question"]:
         raise SharkInputError("invalid_question")
     return result

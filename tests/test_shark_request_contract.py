@@ -23,6 +23,18 @@ def test_aliases_normalize_without_accepting_identity_or_plan():
     assert normalize_request({}, require_question=False)["question"] == ""
 
 
+@pytest.mark.parametrize("payload", [{"q": " Keep my question ", "match_id": "invalid selection"}, {"q": " Keep my question ", "pick_id": []}, MultiDict([("q", " Keep my question "), ("match_id", "one"), ("match_id", "two")])])
+def test_recovery_only_preserves_validated_question_and_clears_selection(payload):
+    assert normalize_request(payload, require_question=False, include_selection=False) == {
+        "question": "Keep my question", "match_id": "", "pick_id": ""}
+
+
+@pytest.mark.parametrize("payload,query", [({"q": "a" * 1001}, {}), ({"q": []}, {}), ({"q": "unsafe\x00question"}, {}), (MultiDict([("q", "one"), ("q", "two")]), {}), ({"question": "one"}, {"q": "two"})])
+def test_recovery_does_not_hide_invalid_or_conflicting_question_aliases(payload, query):
+    with pytest.raises(SharkInputError):
+        normalize_request(payload, query, require_question=False, include_selection=False)
+
+
 @pytest.mark.parametrize("size", [20, 20000])
 def test_snapshot_is_complete_valid_json_and_explicit_about_reduction(size):
     payload = {"user": {"id": "owner", "membership": "PRO"}, "pick": {"id": "p1", "reasoning": "é" * size}, "match": {"id": "m1"}}

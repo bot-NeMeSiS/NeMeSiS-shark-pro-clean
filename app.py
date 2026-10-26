@@ -27242,6 +27242,13 @@ def shark_page():
     except SharkInputError as exc:
         question_error = exc.code
         normalized_request = {"question": "", "match_id": "", "pick_id": ""}
+        if request.method == "POST":
+            try:
+                normalized_request = normalize_shark_request(
+                    raw_payload, request.args, require_question=False, include_selection=False,
+                )
+            except SharkInputError:
+                pass
         selected_context = {"match": {}, "pick": {}}
 
     def timed_phase(name, callback):
@@ -27307,7 +27314,7 @@ def shark_page():
     )
     data["briefing"] = briefing
     openai_ready = v845_openai_configured()
-    question = requested_question if requested_question and not question_block else "resumen"
+    question = requested_question if requested_question and not (question_block or question_error) else "resumen"
     provider_status = dict(getattr(g, "v932_api_sports_status", {}) or {})
     if not provider_status.get("api_sports_configured"):
         provider_label = "API-SPORTS no configurada"
