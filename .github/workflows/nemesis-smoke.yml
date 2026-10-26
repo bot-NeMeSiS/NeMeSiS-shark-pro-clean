@@ -78,6 +78,7 @@ jobs:
             --ignore=tests/test_admin_master_browser.py
             --ignore=tests/test_telegram_visual_premium.py
             --ignore=tests/test_shark_selected_pick_boundary.py
+            --ignore=tests/test_shark_functional_flow.py
             --ignore=tests/test_project_control_http.py
             --ignore=tests/test_sentinel_jobs_http.py
             --ignore=tests/test_sentinel_operational_browser.py
@@ -93,7 +94,8 @@ jobs:
             tests/test_admin_master_http.py \
             tests/test_admin_master_browser.py \
             tests/test_telegram_visual_premium.py \
-            tests/test_shark_selected_pick_boundary.py
+            tests/test_shark_selected_pick_boundary.py \
+            tests/test_shark_functional_flow.py
           do
             python tools/check_local_candidate.py "$test_file"
           done

@@ -1,6 +1,6 @@
 """Real isolated Flask/HTTP/served JS. Never connects to production/providers."""
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import argparse,hashlib,json,os,secrets,sqlite3,sys,tempfile,threading
 from urllib.parse import urlsplit
@@ -41,6 +41,17 @@ def main():
         other_user=dict(c.execute("SELECT * FROM users WHERE id='qa-client-autonomous-product'").fetchone())
         other_user.update(id='qa-workspace-other',name='Other QA',username='workspace_other',email='workspace-other@example.invalid')
         c.execute('INSERT INTO users('+','.join(other_user)+') VALUES('+','.join('?' for _ in other_user)+')',tuple(other_user.values()))
+        pro_user=dict(other_user)
+        pro_user.update(id='qa-workspace-pro',name='PRO QA',username='workspace_pro',email='workspace-pro@example.invalid',
+            role='PRO',membership='PRO',membership_source='admin_manual',
+            membership_expires_at=(datetime.now(ZoneInfo('Europe/Madrid'))+timedelta(days=365)).isoformat())
+        c.execute('INSERT INTO users('+','.join(pro_user)+') VALUES('+','.join('?' for _ in pro_user)+')',tuple(pro_user.values()))
+        selected_match=dict(c.execute("SELECT * FROM matches WHERE id='m-2'").fetchone())
+        selected_pick=dict(c.execute("SELECT * FROM picks WHERE id='pick-competition-qa-1'").fetchone())
+        selected_pick.update(id='qa-workspace-context-pick',match_id='m-2',status='published',membership_required='PRO',
+            match_date=selected_match['match_date'],
+            reasoning='QA_WORKSPACE_RECORDED_REASON',published_at=datetime.now(ZoneInfo('Europe/Madrid')).isoformat())
+        c.execute('INSERT INTO picks('+','.join(selected_pick)+') VALUES('+','.join('?' for _ in selected_pick)+')',tuple(selected_pick.values()))
     http=[]
     @app.app.after_request
     def record(response):
@@ -52,10 +63,10 @@ def main():
     thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
     results=[];errors=[];external=[];screens=[]
     extra_checks=dict(other_account_isolated=False,late_reply_ignored=False,
-        anonymous_no_request=False,no_broadcast_privacy=False,admin_separated=False,no_js_full_page=False)
-    def used():
+        anonymous_no_request=False,no_broadcast_privacy=False,admin_separated=False,no_js_full_page=False,no_js_contextual_advice=False)
+    def used(user_id='qa-client-autonomous-product'):
         with sqlite3.connect(database) as c:
-            return c.execute("SELECT count(*) FROM shark_memory WHERE user_id='qa-client-autonomous-product' AND event_type='client_question'").fetchone()[0]
+            return c.execute("SELECT count(*) FROM shark_memory WHERE user_id=? AND event_type='client_question'",(user_id,)).fetchone()[0]
     def reset_allowance():
         # Only this run's disposable synthetic account, before each profile.
         with sqlite3.connect(database) as c:c.execute("DELETE FROM shark_memory WHERE user_id='qa-client-autonomous-product'")
@@ -85,12 +96,14 @@ def main():
                 def console_error(message):
                     if message.type!='error':return
                     location=message.location.get('url','')
-                    if urlsplit(location).path=='/api/shark/ask' and any(str(code) in message.text for code in (401,403,429,500)):return
+                    if urlsplit(location).path=='/api/shark/ask' and any(str(code) in message.text for code in (400,401,403,429,500)):return
                     errors.append(message.text)
                 page.on('console',console_error)
-                login(page);page.goto(base+'/mi-cuenta',wait_until='domcontentloaded')
+                login(page);page.goto(base+'/match/m-2',wait_until='domcontentloaded')
                 root=page.locator('[data-ns-assistant]');dialog=page.locator('#ns-assistant-dialog');launcher=root.locator('[data-ns-assistant-open]')
                 assert root.count()==1 and launcher.is_visible() and not dialog.is_visible()
+                assert launcher.get_attribute('href')=='/shark?match_id=m-2'
+                assert page.locator('#ns-assistant-form input[name="match_id"]').input_value()=='m-2'
                 initial=used();start=len([x for x in http if x['path'].startswith('/api/shark/')])
                 launcher.click();assert dialog.is_visible()
                 assert page.locator('#ns-assistant-title').evaluate('e=>e===document.activeElement')
@@ -104,16 +117,21 @@ def main():
                 held=[]
                 def hold(route):held.append(route)
                 context.route('**/api/shark/ask',hold)
-                page.locator('#ns-assistant-question').fill('Resume la información deportiva disponible.')
+                page.locator('#ns-assistant-question').fill('Explica el partido seleccionado')
                 page.locator('#ns-assistant-form').evaluate('e=>{e.requestSubmit();e.requestSubmit();}')
                 page.wait_for_function('document.querySelector("#ns-assistant-form").getAttribute("aria-busy")==="true"')
                 page.wait_for_timeout(100)
                 assert len(held)==1 and used()==initial
-                held[0].continue_();context.unroute('**/api/shark/ask',hold)
+                assert held[0].request.post_data_json['match_id']=='m-2'
+                with page.expect_response('**/api/shark/ask') as selected_response:
+                    held[0].continue_();context.unroute('**/api/shark/ask',hold)
+                selected_payload=selected_response.value.json()
+                assert selected_payload['shark']['context']['match']['id']=='m-2'
                 page.locator('.ns-assistant-message.is-bot').wait_for()
                 assert used()==initial+1
                 transcript=page.locator('[data-assistant-messages]').inner_text()
                 assert transcript and page.locator('.ns-assistant-message.is-user').count()==1
+                assert 'Club Este' in page.locator('.ns-assistant-message.is-bot').inner_text()
                 marker=page.locator('[data-assistant-messages]').evaluate('e=>{e.dataset.qaSameNode="preserved";return true}')
                 page.locator('[data-assistant-expand]').click();assert dialog.evaluate('e=>e.classList.contains("is-expanded")')
                 capture(page,str(width)+'-expanded')
@@ -145,6 +163,18 @@ def main():
                         (out/'focus-failure.json').write_text(json.dumps(dict(step=_,state=focused),indent=2))
                         capture(page,str(width)+'-focus-failure')
                     assert focused['inside'],focused
+                # Real invalid-context response, not a fulfilled UI fault.
+                # Preserve the question and allowance; never auto-resend it.
+                page.locator('#ns-assistant-form input[name="match_id"]').evaluate('e=>e.value="qa-missing-context-match"')
+                page.locator('#ns-assistant-question').fill('Contexto que debe revisarse')
+                before_invalid=used()
+                with page.expect_response('**/api/shark/ask') as invalid_response:
+                    page.locator('#ns-assistant-form button[type="submit"]').click()
+                assert invalid_response.value.status==400 and invalid_response.value.json()['quota_consumed'] is False
+                page.wait_for_function('document.querySelector("#ns-assistant-form").getAttribute("aria-busy")==="false"')
+                assert used()==before_invalid and page.locator('#ns-assistant-question').input_value()=='Contexto que debe revisarse'
+                assert 'No se ha descontado' in page.locator('[data-assistant-status]').inner_text()
+                page.locator('#ns-assistant-form input[name="match_id"]').evaluate('e=>e.value="m-2"')
                 def malicious(route):route.fulfill(status=200,content_type='application/json',body=json.dumps({'ok':True,'shark':{'answer':'<img src=x onerror=alert(1)>'}}))
                 context.route('**/api/shark/ask',malicious)
                 page.locator('#ns-assistant-question').fill('UI fixture escaping')
@@ -234,7 +264,7 @@ def main():
                 assert navigation['result']=='OK' and navigation['final_path']=='/shark'
                 assert navigation.get('interaction')=='shark_workspace_and_full_page'
                 context.close()
-                results.append(dict(width=width,height=height,real_quota_delta=1,double_submit_one_request=True,same_dom_preserved=True,hide_restore=True,session_transition_clears=True,keyboard_trap=True,real_csrf_before_quota=True,full_page_navigation=True,second_account_checked=width==1440,ui_fault_fixtures=['200_markup','429','500','401']))
+                results.append(dict(width=width,height=height,real_quota_delta=1,double_submit_one_request=True,real_selected_match=True,real_400_without_quota=True,same_dom_preserved=True,hide_restore=True,session_transition_clears=True,keyboard_trap=True,real_csrf_before_quota=True,full_page_navigation=True,second_account_checked=width==1440,ui_fault_fixtures=['200_markup','429','500','401']))
             # Anonymous JavaScript opening has no question form or API call.
             context=browser.new_context(service_workers='block');context.route('**/*',routes)
             page=context.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
@@ -267,17 +297,41 @@ def main():
             assert page.locator('[data-ns-assistant]').count()==0
             extra_checks['admin_separated']=True
             context.close()
-            # Progressive GET is still usable with scripts disabled.
+            # The actual form must submit and debit once with scripts disabled,
+            # not merely open a decorative full-page destination.
             context=browser.new_context(java_script_enabled=False,service_workers='block');context.route('**/*',routes)
-            page=context.new_page();page.goto(base+'/faq',wait_until='domcontentloaded')
-            page.locator('[data-ns-assistant-open]').click();page.wait_for_url('**/shark')
+            page=context.new_page();login(page);reset_allowance()
+            page.goto(base+'/match/m-2',wait_until='domcontentloaded')
+            page.locator('[data-ns-assistant-open]').click();page.wait_for_url('**/shark?match_id=m-2')
             assert page.locator('[data-ns-assistant]').count()==0
+            assert page.locator('form[action="/shark"] input[name="match_id"]').input_value()=='m-2'
+            initial=used()
+            page.locator('#shark-question').fill('Mi plan')
+            page.locator('form[action="/shark"] button[type="submit"]').click()
+            assert used()==initial+1
+            assert 'Tu plan efectivo:' in page.locator('.ns-shark-conversation').inner_text()
+            assert '1/3' in page.locator('.ns-shark-conversation').inner_text()
+            assert page.locator('form[action="/shark"] input[name="match_id"]').input_value()=='m-2'
             extra_checks['no_js_full_page']=True
+            context.close()
+            context=browser.new_context(java_script_enabled=False,service_workers='block');context.route('**/*',routes)
+            page=context.new_page();login(page,identifier='workspace-pro@example.invalid')
+            page.goto(base+'/shark?pick_id=qa-workspace-context-pick',wait_until='domcontentloaded')
+            assert page.locator('form[action="/shark"] input[name="match_id"]').input_value()=='m-2'
+            assert page.locator('form[action="/shark"] input[name="pick_id"]').input_value()=='qa-workspace-context-pick'
+            initial=used('qa-workspace-pro');page.locator('#shark-question').fill('Explica el pronóstico')
+            page.locator('form[action="/shark"] button[type="submit"]').click()
+            assert used('qa-workspace-pro')==initial+1
+            assert 'QA_WORKSPACE_RECORDED_REASON' in page.locator('.ns-shark-conversation').inner_text()
+            assert page.locator('form[action="/shark"] input[name="pick_id"]').input_value()=='qa-workspace-context-pick'
+            extra_checks['no_js_contextual_advice']=True
             context.close();browser.close()
     finally:
         server.shutdown();thread.join(timeout=10);server.server_close()
         receipt={'results':results,'extra_checks':extra_checks,'errors':errors,'boundary_events':boundary,'external_requests':external,'http':http,'screenshots':screens,'source_unchanged':before==source_fingerprint() and catalogue_before==hashlib.sha256((ROOT/'localization/ui.json').read_bytes()).hexdigest(),'source_fingerprint':before,'origin':'SIMULATED_QA','real_application':str(app.__file__)==str(ROOT/'app.py'),'limits':'Ephemeral synthetic accounts/store; actual local Flask HTTP/served assets, baseline SHARK and CSRF rejection. UI 200-markup/429/500/401, late-response and missing-BroadcastChannel fixtures injected; backend auth/quota gates checked separately. Real two-account transition checked on desktop. Chromium only, not physical iOS/Android or production certification.'}
-        unexpected_http=[x for x in http if x['status']>=400 and not (x['path']=='/api/shark/ask' and x['status']==403)]
+        expected_invalid=[x for x in http if x['path']=='/api/shark/ask' and x['status']==400]
+        unexpected_http=[x for x in http if x['status']>=400 and not (x['path']=='/api/shark/ask' and x['status'] in (400,403))]
+        if len(expected_invalid)!=4:unexpected_http.append(dict(error='Expected exactly four verified invalid-context responses',count=len(expected_invalid)))
         receipt['unexpected_http']=unexpected_http
         receipt['ok']=len(results)==4 and all(extra_checks.values()) and not errors and not boundary and not external and not unexpected_http and receipt['source_unchanged']
         (out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n')

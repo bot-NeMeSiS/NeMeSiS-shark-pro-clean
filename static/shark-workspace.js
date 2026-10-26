@@ -109,9 +109,14 @@
     status.textContent = copy.pending;
     var timeout = window.setTimeout(function () { ownController.abort(); }, 30000);
     try {
+      var requestPayload = {question:question};
+      ['match_id', 'pick_id'].forEach(function (name) {
+        var field = form.elements.namedItem(name);
+        if (field && typeof field.value === 'string' && field.value) requestPayload[name] = field.value;
+      });
       var response = await fetch('/api/shark/ask', {
         method:'POST', credentials:'same-origin', signal:ownController.signal,
-        headers:window.nemesisJsonHeaders(), body:JSON.stringify({question:question})
+        headers:window.nemesisJsonHeaders(), body:JSON.stringify(requestPayload)
       });
       if (ownGeneration !== generation) return;
       if (response.status === 401 || response.status === 403) { invalidate(); return; }
@@ -121,6 +126,9 @@
         quotaBlocked = true;
         status.textContent = copy.limit;
         upgrade.hidden = false;
+        input.value = question;
+      } else if (response.status === 400 && payload.quota_consumed === false) {
+        status.textContent = copy.invalid;
         input.value = question;
       } else if (response.ok && payload.ok === true && payload.shark && typeof payload.shark.answer === 'string') {
         add(payload.shark.answer, 'bot');

@@ -232,6 +232,7 @@ from engines.sentinel_autopilot_engine import (
 from engines.observability_engine import latest_observability_errors, observability_error_detail, observability_summary
 from engines.scheduler_engine import is_due, is_stale_running, next_run_iso, normalize_result, scheduler_config, task_definition
 from engines.shark_engine import build_shark_context, explain_pick_risk
+from engines.shark_request_contract import SharkInputError, normalize_request as normalize_shark_request, encode_snapshot as encode_shark_snapshot, finite_json as finite_shark_json
 from engines.shark_ai_product_assistant_engine import (
     answer_shark_question as v845_answer_shark_question,
     build_fallback_answer as v845_build_fallback_answer,
@@ -526,7 +527,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V997_CLIENT_ORGANIZATION'
+APP_VERSION = 'V998_SHARK_FUNCTIONAL_FLOW'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -14030,7 +14031,7 @@ def _shark_cached_live_state(sports_summary, sports_metrics):
 
 
 def shark_briefing(sports_summary=None):
-    sports_summary = dict(sports_summary or get_public_home_sports_summary())
+    sports_summary = sports_summary if isinstance(sports_summary, dict) else get_public_home_sports_summary()
     sports_metrics = build_sports_metrics_contract(sports_summary)
     today_matches = list(sports_summary.get("valid_matches_today") or [])
     user = current_session_user() if has_request_context() else None
@@ -14100,13 +14101,14 @@ def shark_briefing(sports_summary=None):
 
 
 def save_shark_context(context_type, target_key, payload):
+    encoded = encode_shark_snapshot(payload)
     snapshot_id = hashlib.md5(f"shark-{context_type}-{target_key}-{now_iso()}-{secrets.token_hex(4)}".encode("utf-8")).hexdigest()[:18]
     conn = db()
     cur = conn.cursor()
     cur.execute(
         """INSERT OR IGNORE INTO shark_context_snapshots(id,context_type,target_key,payload_json,created_at)
            VALUES (?,?,?,?,?)""",
-        (snapshot_id, context_type, target_key, json.dumps(payload, ensure_ascii=False)[:8000], now_iso()),
+        (snapshot_id, context_type, target_key, encoded, now_iso()),
     )
     conn.commit()
     conn.close()
@@ -14164,7 +14166,7 @@ def _shark_recommendation_lines(limit=4):
 
 
 def v845_openai_configured():
-    return env_present("OPENAI_API_KEY")
+    return env_present("OPENAI_API_KEY") and env_present("OPENAI_MODEL")
 
 
 def _v845_pick_for_user(pick, user):
@@ -14177,7 +14179,22 @@ def _v845_pick_for_user(pick, user):
     membership = "ADMIN" if normalize_role(user.get("role")) == "ADMIN" else get_user_membership(user)
     if not _client_pick_membership_allows(membership, pick):
         return None
-    return normalize_pick_row(pick)
+    normalized = normalize_pick_row(pick)
+    result = _serialize_client_pick(normalized)
+    # Normalization supplies presentation defaults. Those are not stored facts.
+    # The assistant must not present confidence50/stake1/default risk as evidence.
+    for key in ("market", "risk_level", "reasoning"):
+        result[key] = pick.get(key) or ""
+    for key in ("confidence", "stake_units"):
+        value = pick.get(key)
+        try:
+            number = float(value) if value is not None and str(value).strip() else None
+        except (TypeError, ValueError, OverflowError):
+            number = None
+        if number is not None and math.isfinite(number):
+            result[key] = number
+    result["recorded_fields"] = [key for key in ("confidence", "stake_units", "risk_level") if result.get(key) not in (None, "")]
+    return result
 
 
 def _v845_pick_by_id(pick_id, user):
@@ -14204,45 +14221,114 @@ def _v845_pick_for_match(match_id, user):
     return _v845_pick_for_user(pick, user)
 
 
+def _v998_shark_selection(payload, user):
+    """Resolve permitted selections together, before admitting a question."""
+    match_id, pick_id = payload.get("match_id", ""), payload.get("pick_id", "")
+    pick = _v845_pick_by_id(pick_id, user) if pick_id else None
+    if pick and match_id and str(pick.get("match_id") or "") != match_id:
+        raise SharkInputError("selection_conflict")
+    match_id = match_id or (str(pick.get("match_id") or "") if pick else "")
+    match = one("SELECT * FROM matches WHERE id=?", (match_id,)) if match_id else None
+    if match_id and not match:
+        raise SharkInputError("selection_unavailable")
+    if not pick and match and not pick_id:
+        pick = _v845_pick_for_match(match_id, user)
+    return {"match": dict(match) if match else {}, "pick": pick or {}}
+
+
+def _v998_shark_match(row):
+    """Small public sports projection; never return provider raw/timelines."""
+    fields = ("id", "match_id", "home_team", "away_team", "competition_name", "league_name",
+              "match_date", "kickoff_iso", "kickoff_time", "status", "score", "source",
+              "client_status_label", "client_full_datetime_label", "client_score_label", "realtime_state")
+    return {key: row[key] for key in fields if key in row}
+
+
+def _v998_shark_collections(summary, user):
+    """Reuse the owned fixture snapshot and this principal's favorite references."""
+    result = {"live": {"state": "UNAVAILABLE", "matches": [], "total": None},
+              "favorites": {"state": "UNAVAILABLE", "matches": [], "total": None, "saved_count": None},
+              "agenda": {"state": "UNAVAILABLE", "matches": [], "total": None}}
+    if summary.get("storage_status") != "ok":
+        return result
+    try:
+        projection = _v991_realtime_projection(summary, lane="live", query="")
+        live = v931_live_context(summary, lane="live", query="", fixture_projection=projection)
+        metrics = get_sports_metrics_contract(summary)
+        established = ((metrics.get("identity_coverage") or {}).get("state") == "PREPARED"
+                       and (projection.get("fixture_identity") or {}).get("state") == "ESTABLISHED_FOR_EMITTED_COHORT")
+        if established:
+            live_rows = live.get("matches") or []
+            live_total = (live.get("counts") or {}).get("live")
+            if type(live_total) is not int or live_total < 0:
+                return result
+            result["live"] = {"state": "AVAILABLE" if live_rows else "EMPTY", "total": live_total,
+                              "matches": [_v998_shark_match(row) for row in live_rows[:6]],
+                              "stale_excluded": (projection.get("counts") or {}).get("stale_live"),
+                              "source_read_state": projection.get("source_read_state"),
+                              "generated_at_madrid": projection.get("generated_at_madrid")}
+            agenda = _v991_selected(summary, summary.get("all_valid_matches") or [], limit=6)
+            result["agenda"] = {"state": "AVAILABLE" if agenda.count else "EMPTY", "total": agenda.count,
+                                "matches": [_v998_shark_match(row) for row in agenda.rows]}
+        saved = get_favorites(user_id=user["id"]) if user.get("id") else []
+        if not saved:
+            result["favorites"] = {"state": "EMPTY", "matches": [], "total": 0, "saved_count": 0}
+        elif established:
+            favorites = _normalized_sports_favorites(favorite_sets(user_id=user["id"], favorites=saved))
+            selected = _v991_selected(summary, summary.get("all_valid_matches") or [],
+                predicate=lambda row: _sports_match_favorite({**row, "is_favorite": False}, favorites), limit=6)
+            result["favorites"] = {"state": "AVAILABLE" if selected.count else "NO_MATCHES",
+                                   "matches": [_v998_shark_match(row) for row in selected.rows],
+                                   "total": selected.count, "saved_count": len(saved)}
+    except Exception:
+        # Unknown is distinct from an empty successful read; no provider retry.
+        app.logger.warning("SHARK local collection context unavailable")
+    return result
+
+
 def v845_build_product_assistant_context(
     question="",
     payload=None,
     page=None,
     prebuilt_briefing=None,
     prebuilt_provider_state=None,
+    prebuilt_summary=None,
+    selection=None,
+    usage=None,
 ):
-    payload = dict(payload or {})
-    args = request.args if has_request_context() else {}
+    payload = normalize_shark_request(payload if payload is not None else {},
+        request.args if payload is None and has_request_context() else {}, require_question=False)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
-    match_id = payload.get("match_id") or payload.get("match") or args.get("match") or args.get("match_id") or ""
-    pick_id = payload.get("pick_id") or payload.get("pick") or args.get("pick") or args.get("pick_id") or ""
-    match = one("SELECT * FROM matches WHERE id=?", (str(match_id),)) if match_id else None
+    selection = selection if selection is not None else _v998_shark_selection(payload, user)
+    match, pick = selection.get("match") or {}, selection.get("pick") or {}
     if match:
-        match = annotate_match(apply_match_localization(dict(match)))
+        match = annotate_match(apply_match_localization(dict(match)), include_timeline=False)
+        match["realtime_state"] = (_v991_normalize_frame(
+            _v991_own_realtime_source(match, match_kickoff_madrid_dt), datetime.now(MADRID_TZ)) or {}).get("realtime_state")
         try:
             match.update(client_match_display_context(match))
         except Exception:
             pass
-    pick = _v845_pick_by_id(pick_id, user) if pick_id else None
-    if not pick and match:
-        pick = _v845_pick_for_match(match.get("id"), user)
     try:
         telegram_quality = explain_telegram_filter_decision(pick or match or {})
     except Exception:
         telegram_quality = {}
     try:
         recent_picks = _shark_visible_picks(user, limit=6, min_score=68)
+        ids = [str(item["id"]) for item in recent_picks if item.get("id")]
+        stored = rows("SELECT * FROM picks WHERE id IN (" + ",".join("?" for _ in ids) + ")", tuple(ids)) if ids else []
+        by_id = {str(item["id"]): item for item in stored}
+        recent_picks = [safe for key in ids if (safe := _v845_pick_for_user(by_id.get(key), user))]
     except Exception:
         recent_picks = []
-    try:
-        recent_matches = filter_telegram_candidates(get_matches(today_iso(), "today"), limit=6)
-    except Exception:
-        recent_matches = []
+    summary = prebuilt_summary if prebuilt_summary is not None else get_public_home_sports_summary()
+    collections = _v998_shark_collections(summary, user)
+    recent_matches = collections["agenda"]["matches"]
     if prebuilt_briefing is not None:
         briefing = prebuilt_briefing
     else:
         try:
-            briefing = shark_briefing()
+            briefing = shark_briefing(summary)
         except Exception:
             briefing = {"summary": {}, "risk": {}, "legal_policy": ""}
     match_intelligence = (
@@ -14255,17 +14341,22 @@ def v845_build_product_assistant_context(
     )
     context = v845_build_shark_context(
         user,
-        match=match,
+        match=_v998_shark_match(match),
         pick=pick,
         match_intelligence=match_intelligence,
         page=page or (request.path if has_request_context() else "shark"),
         recent_picks=recent_picks,
         recent_matches=recent_matches,
         telegram_quality=telegram_quality,
-        briefing=briefing,
+        briefing={"summary": briefing.get("summary") or {}, "time": briefing.get("time")},
         openai_configured=v845_openai_configured(),
         question=question,
+        locale=current_ui_locale(),
+        collections=collections,
+        plan={"membership": get_user_membership(user), "limits": get_membership_limits(get_user_membership(user)),
+              "usage": usage or (shark_question_usage(user) if user.get("id") else {})},
     )
+    context["selection"] = {"match_id": str(match.get("id") or ""), "pick_id": str(pick.get("id") or "")}
     if prebuilt_provider_state is not None:
         context["api_sports_provider"] = prebuilt_provider_state
     else:
@@ -14273,7 +14364,7 @@ def v845_build_product_assistant_context(
             context["api_sports_provider"] = explain_api_sports_provider_state(DB_PATH)
         except Exception:
             context["api_sports_provider"] = {"label": "Proveedor pendiente", "message": "No se pudo leer el estado API-SPORTS."}
-    return context
+    return finite_shark_json(context)
 
 
 def v845_shark_admin_summary():
@@ -14282,7 +14373,10 @@ def v845_shark_admin_summary():
     base["v845"] = {
         "assistant": "SHARK Product Assistant",
         "openai_configured": v845_openai_configured(),
-        "fallback_mode": not v845_openai_configured(),
+        "fallback_mode": True,
+        "execution_source": "LOCAL",
+        "generation_enabled": False,
+        "external_verification": "NOT_RUN",
         "no_hallucination_policy": True,
         "telegram_v844_connected": True,
         "safe_answers": True,
@@ -14301,10 +14395,13 @@ def shark_answer(question):
     q = str(question or "").strip() or "resumen"
     payload = {}
     if has_request_context():
-        payload = request.get_json(silent=True) or dict(request.form or request.args or {})
-    context = v845_build_product_assistant_context(q, payload=payload, page="api")
+        payload = getattr(g, "v998_shark_request", None)
+        if payload is None:
+            payload = request.get_json(silent=True) if request.is_json else request.form
+    context = v845_build_product_assistant_context(q, payload=payload, page="api",
+        selection=getattr(g, "v998_shark_selection", None) if has_request_context() else None,
+        usage=getattr(g, "v998_shark_usage", None) if has_request_context() else None)
     answer = v845_answer_shark_question(q, context)
-    save_shark_context("v845_ask", answer.get("focus"), answer.get("context") or {})
     return answer
 def telegram_config():
     token = os.getenv("TELEGRAM_BOT_TOKEN", "")
@@ -17832,7 +17929,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V997_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V998_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -27135,6 +27232,17 @@ def membership_page():
 @app.route("/shark", methods=["GET", "POST"])
 def shark_page():
     phase_metrics = {}
+    session_user = current_session_user()
+    user = session_user or {"membership": "FREE", "role": "FREE"}
+    question_error = ""
+    try:
+        raw_payload = (request.get_json(silent=True) if request.is_json else request.form) if request.method == "POST" else {}
+        normalized_request = normalize_shark_request(raw_payload, request.args, require_question=request.method == "POST")
+        selected_context = _v998_shark_selection(normalized_request, user)
+    except SharkInputError as exc:
+        question_error = exc.code
+        normalized_request = {"question": "", "match_id": "", "pick_id": ""}
+        selected_context = {"match": {}, "pick": {}}
 
     def timed_phase(name, callback):
         started = time.perf_counter()
@@ -27148,11 +27256,9 @@ def shark_page():
         "sports_context",
         lambda: v932_safe_dashboard_data(request.path, compact=True),
     )
-    session_user = current_session_user()
-    user = session_user or {"membership": "FREE", "role": "FREE"}
     data["membership"] = v566_membership_ui(user)
 
-    submitted_question = str(request.form.get("q") or "").strip()[:1000] if request.method == "POST" else ""
+    submitted_question = normalized_request["question"] if request.method == "POST" else ""
     quick_raw = str(request.args.get("q") or "").strip()[:120] if request.method == "GET" else ""
     quick_ascii = unicodedata.normalize("NFKD", quick_raw).encode("ascii", "ignore").decode().lower()
     quick_key = re.sub(r"[^a-z0-9]+", " ", quick_ascii).strip()
@@ -27180,7 +27286,7 @@ def shark_page():
         "limit_reached": False,
     }
     question_block = ""
-    if requested_question:
+    if requested_question and not question_error:
         if not session_user:
             question_block = "LOGIN_REQUIRED"
         elif submitted_question:
@@ -27189,9 +27295,10 @@ def shark_page():
                 question_block = "LIMIT_REACHED"
 
     data["shark_usage"] = usage
+    data["shark_question_error"] = question_error
     data["shark_submitted_question"] = submitted_question
     data["shark_quick_question"] = bool(quick_question)
-    data["shark_question_active"] = bool(requested_question or question_block)
+    data["shark_question_active"] = bool(requested_question or question_block or question_error)
     data["shark_legacy_get_ignored"] = bool(quick_raw and not quick_question)
 
     briefing = timed_phase(
@@ -27222,9 +27329,13 @@ def shark_page():
             "shark_context",
             lambda: v845_build_product_assistant_context(
                 question,
+                payload=normalized_request,
                 page="/shark",
                 prebuilt_briefing=briefing,
                 prebuilt_provider_state=provider_state,
+                prebuilt_summary=summary,
+                selection=selected_context,
+                usage=usage,
             ),
             {"data_state": {}},
         ),
@@ -27238,7 +27349,9 @@ def shark_page():
             {},
         ),
     )
-    if question_block == "LOGIN_REQUIRED":
+    if question_error:
+        answer = {"answer": ui_text("Revisa la pregunta y el partido seleccionado. No se ha descontado ninguna consulta."), "focus": "summary"}
+    elif question_block == "LOGIN_REQUIRED":
         answer = {"answer": "Inicia sesión para hacer consultas personalizadas a SHARK. Puedes seguir viendo el resumen y los datos públicos.", "focus": "membership"}
     elif question_block == "LIMIT_REACHED":
         answer = {"answer": "Has alcanzado el límite de consultas SHARK de hoy para tu plan. El resumen deportivo sigue disponible.", "focus": "membership"}
@@ -27246,14 +27359,20 @@ def shark_page():
         "context": context,
         "answer": answer,
         "openai_configured": openai_ready,
-        "fallback_mode": not openai_ready,
+        "fallback_mode": True,
+        "execution_source": "LOCAL",
+        "generation_enabled": False,
+        "external_verification": "NOT_RUN",
     }
+    if request.method == "POST" and submitted_question and not question_block and not question_error:
+        save_shark_context("ask", answer.get("focus"), answer.get("context") or {})
     data["v925_calendar"] = _v931_provider_context(summary)
     data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
     data["v925_odds"] = get_safe_odds_context(data.get("picks") or [])
     data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
     g.v937_shark_cache_status = str(summary.get("summary_cache_status") or "request_cache")
-    return timed_phase("template", lambda: render_template("shark.html", data=data))
+    rendered = timed_phase("template", lambda: render_template("shark.html", data=data))
+    return (rendered, 400) if question_error else rendered
 
 
 def _shark_intelligence_anchor_match(summary):
@@ -32433,12 +32552,21 @@ def api_shark_ask():
     user = current_session_user()
     if not user:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Inicia sesión para preguntar a SHARK.", "login_required": True, "login_url": "/cliente-login?next=/shark"}), 401
+    try:
+        raw_payload = request.get_json(silent=True) if request.is_json else request.form
+        payload = normalize_shark_request(raw_payload, request.args)
+        selection = _v998_shark_selection(payload, user)
+    except SharkInputError as exc:
+        return jsonify({"ok": False, "version": APP_VERSION, "error": ui_text("Revisa la pregunta y el partido seleccionado. No se ha descontado ninguna consulta."),
+                        "code": exc.code, "quota_consumed": False}), 400
     usage = consume_shark_question(user)
     if not usage.get("allowed"):
         target = "ELITE" if usage.get("membership") == "PRO" else "PRO"
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Has alcanzado el límite de consultas SHARK de hoy.", "usage": usage, "upgrade_url": f"/membresias?plan={target}"}), 429
-    payload = request.get_json(silent=True) or dict(request.form or request.args or {})
-    answer = shark_answer(payload.get("question") or payload.get("q") or "")
+    g.v998_shark_request = payload
+    g.v998_shark_selection = selection
+    g.v998_shark_usage = usage
+    answer = shark_answer(payload["question"])
     save_shark_context("ask", answer.get("focus"), answer.get("context") or {})
     return jsonify({"ok": True, "version": APP_VERSION, "shark": answer, "usage": usage})
 
