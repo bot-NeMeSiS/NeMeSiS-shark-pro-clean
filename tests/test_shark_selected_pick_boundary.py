@@ -284,4 +284,3 @@ def test_expired_paid_membership_does_not_expose_selected_advice(shark_probe):
     assert response.status_code == 200
     assert payload["usage"]["membership"] == "FREE"
     assert shark_probe["published_canary"] not in response.get_data(as_text=True)
-
