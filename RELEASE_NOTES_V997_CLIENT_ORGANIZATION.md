@@ -12,6 +12,8 @@ El resto permite apertura múltiple y cierre con controles nativos, también sin
 JavaScript. Los enlaces a ligas abren su destino. Volver conserva los grupos
 abiertos y la posición usando referencias de presentación, sin guardar datos
 deportivos, cuentas, sesiones o conversaciones.
+El desplazamiento nativo se detiene inmediatamente al navegar por la agenda y
+respeta la barra inferior móvil. Los controles de liga conservan clic y teclado.
 
 Inicio presenta como máximo cinco identidades entre todas sus secciones. En la
 portada pública el destacado consume uno de esos cinco lugares. Se priorizan

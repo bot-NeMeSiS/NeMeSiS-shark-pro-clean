@@ -168,6 +168,15 @@ def test_more_today_grouped_with_logos_and_native_league_navigation(browser, app
         assert leagues.count()==6
         for league in leagues.all():
             league.locator('summary').click()
+            assert league.locator('summary').evaluate('''el => {
+                const r=el.getBoundingClientRect();
+                const hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);
+                return el===hit||el.contains(hit);
+            }'''), 'A fixed header or bottom bar obscures the native fold target'
+            league.locator('summary').press('Enter')
+            assert league.get_attribute('open') is None
+            league.locator('summary').press('Enter')
+            assert league.get_attribute('open') is not None
         assert page.locator('details.v940-calendar-league[open]').count()==6
         assert not errors
         assert all(method=='GET' and not path.startswith('/api/') for method,path in calls)

@@ -337,7 +337,7 @@ def test_single_competition_uses_full_desktop_lane_and_mobile_layout_stays_respo
              'status_info':{'key':'UPCOMING','is_live':False},'source':'SIMULATED_QA'}
     page,requests,errors=mount(browser,app_module,width=width,day_groups=groups_for([fixture]),run_script=False)
     try:
-        assert page.locator('link[href*="calendar-discovery.css?v=calendar-discovery-11"]').count()==1
+        assert page.locator('link[href*="calendar-discovery.css?v=calendar-discovery-12"]').count()==1
         league=page.locator('details.v940-calendar-league')
         assert league.get_attribute('open') is None
         league.locator(':scope > summary').click()
