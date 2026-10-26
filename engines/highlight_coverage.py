@@ -233,17 +233,42 @@ class Coverage:
                 return None
             expr = self.projection(conn)
             cutoff = datetime.fromtimestamp(self.now - 7 * 86400, ZoneInfo('Europe/Madrid')).date().isoformat()
-            row = conn.execute(f'SELECT c.*,{expr} AS payload FROM highlight_coverage c JOIN matches m ON m.id=c.match_id '
-                f'WHERE coverage_eligible({expr}) AND c.identity=coverage_identity({expr}) '
-                "AND c.state NOT IN ('LINKED','VIDEO_FOUND','AMBIGUOUS') AND c.due_at<=? AND c.lease_until<=? "
+            # Sort cheap IDs first. A WHERE UDF otherwise parses every raw
+            # payload before LIMIT 1 while holding the global writer lock.
+            # The cursor traverses the entire ordered queue when necessary;
+            # a batch boundary never means that no eligible job exists.
+            candidates = conn.execute('SELECT c.match_id FROM highlight_coverage c JOIN matches m ON m.id=c.match_id '
+                "WHERE c.state NOT IN ('LINKED','VIDEO_FOUND','AMBIGUOUS') AND c.due_at<=? AND c.lease_until<=? "
                 + ('AND substr(m.match_date,1,10)<? ' if historical else '') +
-                'ORDER BY CASE WHEN c.checked_at IS NULL THEN 0 ELSE 1 END,c.priority DESC,c.due_at,m.match_date DESC,c.match_id LIMIT 1',
-                (self.now, self.now, cutoff) if historical else (self.now, self.now)).fetchone()
-            if not row:
+                'ORDER BY CASE WHEN c.checked_at IS NULL THEN 0 ELSE 1 END,c.priority DESC,c.due_at,m.match_date DESC,c.match_id',
+                (self.now, self.now, cutoff) if historical else (self.now, self.now))
+            job = None
+            try:
+                while True:
+                    keys = [row[0] for row in candidates.fetchmany(64)]
+                    if not keys:
+                        break
+                    rows = conn.execute(f'SELECT c.*,{expr} AS payload FROM highlight_coverage c '
+                        'JOIN matches m ON m.id=c.match_id WHERE c.match_id IN (' +
+                        ','.join('?' for _ in keys) + ')', keys).fetchall()
+                    indexed = {row['match_id']: row for row in rows}
+                    if set(indexed) != set(keys):
+                        raise sqlite3.DatabaseError('Candidate set changed inside claim')
+                    for key in keys:
+                        row = indexed[key]
+                        match = json.loads(row['payload'])
+                        if eligible(match, self.now) and row['identity'] == identity(match):
+                            job = dict(row)
+                            job.pop('payload')
+                            job['match'] = match
+                            break
+                    if job is not None:
+                        break
+            finally:
+                candidates.close()
+            if job is None:
                 return None
-            job = dict(row)
             job['historical'] = historical
-            job['match'] = json.loads(job.pop('payload'))
             job['lease'] = secrets.token_hex(16)
             conn.execute("UPDATE highlight_coverage SET state='CHECK_PENDING',lease=?,lease_until=?,updated_at=? WHERE match_id=?",
                          (job['lease'], self.now + 90, self.now, job['match_id']))
