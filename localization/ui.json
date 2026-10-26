@@ -1,4 +1,30 @@
 {
+  "shark_functional_flow": {
+    "Pregunta a SHARK": {
+      "en": "Ask SHARK",
+      "fr": "Interroger SHARK"
+    },
+    "Partidos, resultados, contexto y ayuda sobre la plataforma.": {
+      "en": "Matches, results, context and platform help.",
+      "fr": "Matchs, résultats, contexte et aide sur la plateforme."
+    },
+    "¿Qué quieres consultar?": {
+      "en": "What would you like to ask?",
+      "fr": "Que souhaitez-vous consulter ?"
+    },
+    "SHARK utiliza información registrada": {
+      "en": "SHARK uses recorded information",
+      "fr": "SHARK utilise les informations enregistrées"
+    },
+    "La generación externa todavía no está activada. SHARK responde con el contexto disponible y marca los datos que faltan; no inventará partidos, cuotas ni resultados.": {
+      "en": "External generation is not activated yet. SHARK answers with the available context and identifies missing data; it will not invent matches, odds or results.",
+      "fr": "La génération externe n’est pas encore activée. SHARK répond avec le contexte disponible et signale les données manquantes ; il n’inventera pas de matchs, de cotes ni de résultats."
+    },
+    "Revisa la pregunta y el partido seleccionado. No se ha descontado ninguna consulta.": {
+      "en": "Check the question and selected match. No question allowance has been deducted.",
+      "fr": "Vérifiez la question et le match sélectionné. Aucune question n’a été décomptée."
+    }
+  },
   "shark_workspace": {
     "Ampliar SHARK": {"en": "Expand SHARK", "fr": "Agrandir SHARK"},
     "Reducir SHARK": {"en": "Reduce SHARK", "fr": "Réduire SHARK"},

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from typing import Any, Dict, Iterable, List
+from engines.shark_local_answers import intent as local_intent, render as render_local_answer
 
 
 FORBIDDEN_CLAIMS = (
@@ -105,7 +106,15 @@ def build_shark_context(user: Dict[str, Any] | None, match: Dict[str, Any] | Non
         "telegram_quality": extra.get("telegram_quality") or {},
         "briefing": extra.get("briefing") or {},
         "openai_configured": bool(extra.get("openai_configured")),
-        "fallback_mode": not bool(extra.get("openai_configured")),
+        "fallback_mode": True,
+        "execution_source": "LOCAL",
+        "capability_scope": "CLIENT_PRODUCT_ASSISTANT",
+        "external_calls": 0,
+        "generation_enabled": False,
+        "external_verification": "NOT_RUN",
+        "locale": extra.get("locale") if extra.get("locale") in ("es", "en", "fr") else "es",
+        "collections": extra.get("collections") or {},
+        "plan": extra.get("plan") or {},
     }
     context["data_state"] = build_shark_empty_state(context)
     return context
@@ -136,12 +145,23 @@ def explain_match(match: Dict[str, Any] | None) -> str:
 
 def explain_match_intelligence(
     intelligence: Dict[str, Any] | None,
+    locale: str = "es",
 ) -> str:
     snapshot = intelligence or {}
     if snapshot.get("contract") != "MATCH-INTELLIGENCE-EVIDENCE-V1":
         return ""
     conclusions = snapshot.get("conclusions") or {}
-    lines = ["Contexto Match Intelligence:"]
+    column = {"en": 1, "fr": 2}.get(locale, 0)
+    labels = {
+        "heading": ("Contexto Match Intelligence:", "Match Intelligence context:", "Contexte Match Intelligence :"),
+        "fase": ("Fase", "Phase", "Phase"),
+        "presion": ("Presion", "Pressure", "Pression"),
+        "dominador": ("Dominio observado", "Observed dominance", "Domination observée"),
+        "cambios_recientes": ("Cambios recientes", "Recent changes", "Changements récents"),
+        "empty": ("Contexto Match Intelligence: evidencia insuficiente.", "Match Intelligence context: insufficient evidence.", "Contexte Match Intelligence : preuves insuffisantes."),
+        "note": ("Cada lectura conserva evidencia y limitaciones; no es una prediccion.", "Each reading retains evidence and limitations; it is not a prediction. Recorded values retain their source language.", "Chaque lecture conserve ses preuves et ses limites ; ce n’est pas un pronostic. Les valeurs enregistrées conservent leur langue source."),
+    }
+    lines = [labels["heading"][column]]
     for key, label in (
         ("fase", "Fase"),
         ("presion", "Presion"),
@@ -165,12 +185,10 @@ def explain_match_intelligence(
                 else ""
             )
         if rendered:
-            lines.append(f"{label}: {rendered}")
+            lines.append(f"{labels[key][column]}: {rendered}")
     if len(lines) == 1:
-        return "Contexto Match Intelligence: evidencia insuficiente."
-    lines.append(
-        "Cada lectura conserva evidencia y limitaciones; no es una prediccion."
-    )
+        return labels["empty"][column]
+    lines.append(labels["note"][column])
     return "\n".join(lines)
 
 
@@ -295,75 +313,17 @@ def _membership_note(membership: str) -> str:
 
 
 def _intent(question: str) -> str:
-    q = _text(question).lower()
-    if any(x in q for x in ("pick", "apuesta", "pronóstico", "pronostico", "selección", "seleccion")):
-        return "pick"
-    if any(x in q for x in ("riesgo", "peligro", "no tocar", "evitar")):
-        return "risk"
-    if any(x in q for x in ("telegram", "canal", "mensaje")):
-        return "telegram"
-    if any(x in q for x in ("partido", "match", "equipo", "directo", "live")):
-        return "match"
-    if any(x in q for x in ("plan", "free", "pro", "elite", "membres")):
-        return "membership"
-    return "summary"
+    return local_intent(question)
 
 
 def answer_shark_question(question: str, context: Dict[str, Any]) -> Dict[str, Any]:
     question = _text(question, "resumen")
-    intent = _intent(question)
-    match = context.get("match") or {}
-    match_intelligence = context.get("match_intelligence") or {}
-    pick = context.get("pick") or {}
-    membership = (context.get("user") or {}).get("membership", "FREE")
-    body_parts: List[str] = ["🦈 SHARK responde con datos reales."]
-    focus = intent
-    if intent == "pick":
-        body_parts.append(explain_pick(pick))
-        if not pick:
-            body_parts.append(explain_no_bet_reason(match))
-    elif intent == "risk":
-        body_parts.append(explain_risk(pick or match))
-        body_parts.append(explain_no_bet_reason(pick or match))
-    elif intent == "telegram":
-        tq = context.get("telegram_quality") or {}
-        if tq:
-            status = "apto" if tq.get("allowed") else "bloqueado"
-            body_parts.append(f"Telegram V844 lo marcaría como {status}: {_first(tq.get('reason'), tq.get('code'), default='sin motivo técnico visible')}.")
-        else:
-            body_parts.append("Telegram solo debe enviar contenido top: fútbol relevante, pronósticos reales y sin relleno.")
-    elif intent == "match":
-        body_parts.append(explain_match(match))
-        intelligence_reading = explain_match_intelligence(match_intelligence)
-        if intelligence_reading:
-            body_parts.append(intelligence_reading)
-        if pick:
-            body_parts.append("Pronóstico relacionado:\n" + explain_pick(pick))
-        else:
-            body_parts.append(explain_no_bet_reason(match))
-    elif intent == "membership":
-        body_parts.append(_membership_note(membership))
-    else:
-        briefing = context.get("briefing") or {}
-        summary = briefing.get("summary") or {}
-        body_parts.append(
-            "Resumen del producto: partidos reales, directo, pronósticos publicados, Telegram y soporte están conectados para ayudarte a decidir con calma."
-        )
-        if summary:
-            body_parts.append(
-                f"Hoy: {summary.get('matches_today', 0)} partidos, {summary.get('live_now', 0)} en directo y {summary.get('picks_ready', 0)} picks listos."
-            )
-        if pick:
-            body_parts.append("Pronóstico principal:\n" + explain_pick(pick))
-        elif match:
-            body_parts.append("Partido seleccionado:\n" + explain_match(match))
-            intelligence_reading = explain_match_intelligence(match_intelligence)
-            if intelligence_reading:
-                body_parts.append(intelligence_reading)
-        else:
-            body_parts.append("No hay contexto específico seleccionado. Puedes abrir un partido o un pronóstico y pedirme una lectura concreta.")
-    body_parts.append(_membership_note(membership))
-    answer = enforce_no_invented_data("\n\n".join(body_parts), context)
+    reading = render_local_answer(question, context)
+    focus, answer = reading["focus"], reading["answer"]
+    if focus in ("match", "summary"):
+        intelligence = explain_match_intelligence(context.get("match_intelligence"), context.get("locale", "es"))
+        if intelligence:
+            answer += "\n\n" + intelligence
     return {
         "question": question,
         "focus": focus,
@@ -374,7 +334,11 @@ def answer_shark_question(question: str, context: Dict[str, Any]) -> Dict[str, A
         "next_action": "Revisa el partido, el pronóstico o Telegram antes de decidir. Si faltan datos, espera.",
         "next_url": (suggest_next_actions(context)[0] or {}).get("url", "/app"),
         "legal_policy": "NeMeSiS ofrece análisis deportivo responsable. No hay resultados asegurados.",
-        "fallback_mode": bool(context.get("fallback_mode")),
+        "fallback_mode": True,
+        "execution_source": "LOCAL",
+        "external_calls": 0,
+        "generation_enabled": False,
+        "external_verification": "NOT_RUN",
     }
 
 

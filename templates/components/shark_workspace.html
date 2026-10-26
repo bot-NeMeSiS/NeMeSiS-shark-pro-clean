@@ -1,6 +1,9 @@
 {% if not is_admin_surface and request.path not in ['/shark','/shark-ai','/shark-core','/shark-intelligence'] %}
+{% set assistant_detail = (data|default({}, true)).get('match_detail') or {} %}
+{% set assistant_match_id = (assistant_detail.get('match') or {}).get('id') or '' %}
+{% set assistant_page_url = '/shark' ~ ('?match_id=' ~ (assistant_match_id|urlencode) if assistant_match_id else '') %}
 <section class="ns-assistant" data-ns-assistant data-authenticated="{{ 'true' if current_user else 'false' }}" data-state="closed">
-  <a class="ns-assistant-launcher" href="/shark" data-ns-assistant-open aria-label="{{ ui('Abrir SHARK') }}" aria-controls="ns-assistant-dialog" aria-expanded="false">
+  <a class="ns-assistant-launcher" href="{{ assistant_page_url }}" data-ns-assistant-open aria-label="{{ ui('Abrir SHARK') }}" aria-controls="ns-assistant-dialog" aria-expanded="false">
     <img src="{{ url_for('static', filename='img/approved-identity/nemesis-approved-mark-128.webp', v='a100911afd54') }}" srcset="{{ url_for('static', filename='img/approved-identity/nemesis-approved-mark-256.webp', v='0bc771212eb6') }} 2x" alt="" width="54" height="40">
   </a>
   <dialog class="ns-assistant-dialog" id="ns-assistant-dialog" aria-labelledby="ns-assistant-title" aria-describedby="ns-assistant-note">
@@ -19,6 +22,7 @@
     {% if current_user %}
     <form id="ns-assistant-form" class="ns-assistant-form" method="post" action="/shark" data-ns-no-loading="true">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% if assistant_match_id %}<input type="hidden" name="match_id" value="{{ assistant_match_id }}">{% endif %}
       <label for="ns-assistant-question">{{ ui('Tu pregunta') }}</label>
       <textarea id="ns-assistant-question" name="q" rows="2" maxlength="1000" required placeholder="{{ ui('Pregunta por partidos, pronósticos o tus favoritos.') }}"></textarea>
       <button type="submit">{{ ui('Enviar') }}</button>
@@ -28,7 +32,7 @@
       {{ ui('Inicia sesión para preguntar a SHARK.') }} <a href="/cliente-login?next=/shark">{{ ui('Entrar') }}</a>
     </p>
     <p data-assistant-upgrade hidden><a href="/membresias">{{ ui('Consultar planes') }}</a></p>
-    <footer><a href="/shark">{{ ui('Abrir página SHARK') }}</a><small>{{ ui('Oculto: puedes recuperarlo desde Explorar → SHARK.') }}</small></footer>
+    <footer><a href="{{ assistant_page_url }}">{{ ui('Abrir página SHARK') }}</a><small>{{ ui('Oculto: puedes recuperarlo desde Explorar → SHARK.') }}</small></footer>
   </dialog>
   <script type="application/json" data-assistant-copy>{{ {
     'expand': ui('Ampliar SHARK'), 'reduce': ui('Reducir SHARK'),
@@ -37,7 +41,8 @@
     'limit': ui('Has alcanzado el límite de consultas de tu plan.'),
     'uncertain': ui('No se ha podido confirmar la respuesta. La consulta puede haber consumido tu límite; no se reenviará automáticamente.'),
     'remaining': ui('Consultas restantes: {count}'), 'you': ui('Tú'),
-    'empty': ui('Escribe una pregunta para continuar.')
+    'empty': ui('Escribe una pregunta para continuar.'),
+    'invalid': ui('Revisa la pregunta y el partido seleccionado. No se ha descontado ninguna consulta.')
   }|tojson }}</script>
 </section>
 {% endif %}
