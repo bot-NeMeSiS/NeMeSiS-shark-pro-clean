@@ -116,13 +116,15 @@ def test_mobile_primary_navigation_keeps_results_and_shark_discovery(app_module,
         client_header = str(module.v933_client_navigation('PRO')) if authenticated else ''
     dom = Structure(html)
     links = [n['attrs']['href'] for n in dom.nodes if n['tag'] == 'a']
-    assert links == (['/app', '/calendario?lane=today', '/picks', '/mi-cuenta'] if authenticated else ['/', '/calendario?lane=finished', '/directo', '/picks', '/cliente-login'])
-    assert ('<span>Partidos</span>' if authenticated else '<span>Resultados</span>') in html
+    assert links == (['/directo', '/calendario?lane=today', '/picks', '/mi-cuenta'] if authenticated else ['/', '/calendario?lane=finished', '/directo', '/picks', '/cliente-login'])
+    assert ('<span>Calendario</span>' if authenticated else '<span>Resultados</span>') in html
     if authenticated:
         assert 'href="/mi-cuenta"' in client_header
         with app_module.app.test_request_context('/app'):
             contract = app_module.app.jinja_env.get_template('components/navigation_contracts.html').make_module()
         assert ('SHARK', '/shark', 'shark') in contract.DISCOVERY_ANALYSIS
+        from test_app_navigation import render_directory
+        assert 'href="/app"' in render_directory(app_module, scope='client')
     else:
         assert '/shark' not in links
 

@@ -26,8 +26,17 @@ def test_icon_is_opaque_sized_and_contains_visible_shark(size):
         assert image.mode == 'RGB'
         assert image.getpixel((0, 0)) != (255, 255, 255)
         # A background-only render must fail, even when the file is a valid PNG.
-        bright_cyan = sum(g > 145 and b > 170 and b > r * 1.15 for r, g, b in image.getdata())
-        assert bright_cyan >= max(3, size // 2)
+        pixels = list(image.getdata())
+        if size <= 32:
+            # Approved artwork has a light body, rather than the former neon
+            # contour. Require visible foreground; the dark gradient alone has
+            # no neutral pixels above this threshold. Provenance/hash tests
+            # separately pin the approved source and generated outputs.
+            foreground = sum(min(r, g, b) > 95 for r, g, b in pixels)
+            assert foreground >= size // 2
+        else:
+            bright_cyan = sum(g > 145 and b > 170 and b > r * 1.15 for r, g, b in pixels)
+            assert bright_cyan >= max(3, size // 2)
     assert (ICONS / f'app-icon-{size}.png').stat().st_size < (4096 if size <= 32 else 130000)
 
 
@@ -44,14 +53,14 @@ def test_master_reuses_current_shark_and_mask_safe_circle():
     images = svg.findall('.//s:image', ns)
     assert len(images) == 1
     source = images[0]
-    assert source.attrib['{http://www.w3.org/1999/xlink}href'] == '../nemesis-shark-atmosphere-v2.webp'
+    assert source.attrib['{http://www.w3.org/1999/xlink}href'] == '../approved-identity/nemesis-approved-mark-1024.webp'
     assert not svg.findall('.//s:text', ns)
     assert not svg.findall('.//s:script', ns)
     x, y, w, h = (float(source.attrib[k]) for k in ('x', 'y', 'width', 'height'))
     scale = metadata()['maskable_scale']
-    with Image.open(ICONS / '../nemesis-shark-atmosphere-v2.webp') as image:
+    with Image.open(ICONS / metadata()['source']) as image:
         alpha = image.getchannel('A')
-        # Rotation around the center does not change radial distance.
+        # Preserve every nontransparent pixel inside the installation safe circle.
         radius_squared = max(((x + (i % image.width) * w / image.width - 512) ** 2
                               + (y + (i // image.width) * h / image.height - 512) ** 2) * scale ** 2
                              for i, value in enumerate(alpha.getdata()) if value > 0)

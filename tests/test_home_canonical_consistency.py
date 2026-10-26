@@ -66,6 +66,8 @@ def component_env(path='/'):
         nemesis_data_confidence=lambda *a:{'tone':'neutral','score':0,'label':'SIMULATED_QA','disclaimer':'SIMULATED_QA'},
         nemesis_attention_priority=lambda *a:{'level':0,'label':'SIMULATED_QA','disclaimer':'SIMULATED_QA'})
     env.filters['sync_madrid_label'] = lambda value: value
+    from engines.home_preview import home_preview
+    env.filters['home_preview'] = home_preview
     return env
 
 

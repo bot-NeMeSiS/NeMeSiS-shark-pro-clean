@@ -526,7 +526,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V996_SHARK_WORKSPACE'
+APP_VERSION = 'V997_CLIENT_ORGANIZATION'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -12528,6 +12528,12 @@ def current_user_id():
     return str(user.get("id") or "") if user else ""
 
 
+@app.template_filter("home_preview")
+def jinja_home_preview(value, with_hero=True):
+    from engines.home_preview import home_preview
+    return home_preview(value, with_hero=with_hero)
+
+
 @app.template_filter("competition_es")
 def jinja_competition_es(value):
     return spanish_competition_name(value) or "Competición"
@@ -14161,23 +14167,41 @@ def v845_openai_configured():
     return env_present("OPENAI_API_KEY")
 
 
-def _v845_pick_by_id(pick_id):
+def _v845_pick_for_user(pick, user):
+    """Authorize the stored row before normalization can coerce its tier."""
+    if not pick:
+        return None
+    pick = dict(pick)
+    if normalize_pick_status(pick.get("status")) not in {"published", "won", "lost", "void"}:
+        return None
+    membership = "ADMIN" if normalize_role(user.get("role")) == "ADMIN" else get_user_membership(user)
+    if not _client_pick_membership_allows(membership, pick):
+        return None
+    return normalize_pick_row(pick)
+
+
+def _v845_pick_by_id(pick_id, user):
     if not pick_id:
         return None
     pick = one("SELECT * FROM picks WHERE id=?", (str(pick_id),))
-    return normalize_pick_row(pick) if pick else None
+    return _v845_pick_for_user(pick, user)
 
 
-def _v845_pick_for_match(match_id):
+def _v845_pick_for_match(match_id, user):
     if not match_id:
         return None
+    membership = "ADMIN" if normalize_role(user.get("role")) == "ADMIN" else get_user_membership(user)
+    scope = _prediction_membership_sql("p", membership)
+    if membership == "ADMIN":
+        scope = "upper(trim(COALESCE(p.membership_required,'FREE'))) IN ('FREE','PRO','ELITE','ADMIN')"
     pick = one(
-        """SELECT * FROM picks
-           WHERE match_id=? AND lower(status) IN ('published','won','lost','void')
-           ORDER BY COALESCE(published_at, updated_at, created_at) DESC LIMIT 1""",
+        f"""SELECT p.* FROM picks AS p
+           WHERE p.match_id=? AND lower(p.status) IN ('published','won','lost','void')
+             AND {scope}
+           ORDER BY COALESCE(p.published_at, p.updated_at, p.created_at) DESC LIMIT 1""",
         (str(match_id),),
     )
-    return normalize_pick_row(pick) if pick else None
+    return _v845_pick_for_user(pick, user)
 
 
 def v845_build_product_assistant_context(
@@ -14189,6 +14213,7 @@ def v845_build_product_assistant_context(
 ):
     payload = dict(payload or {})
     args = request.args if has_request_context() else {}
+    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     match_id = payload.get("match_id") or payload.get("match") or args.get("match") or args.get("match_id") or ""
     pick_id = payload.get("pick_id") or payload.get("pick") or args.get("pick") or args.get("pick_id") or ""
     match = one("SELECT * FROM matches WHERE id=?", (str(match_id),)) if match_id else None
@@ -14198,14 +14223,13 @@ def v845_build_product_assistant_context(
             match.update(client_match_display_context(match))
         except Exception:
             pass
-    pick = _v845_pick_by_id(pick_id) if pick_id else None
+    pick = _v845_pick_by_id(pick_id, user) if pick_id else None
     if not pick and match:
-        pick = _v845_pick_for_match(match.get("id"))
+        pick = _v845_pick_for_match(match.get("id"), user)
     try:
         telegram_quality = explain_telegram_filter_decision(pick or match or {})
     except Exception:
         telegram_quality = {}
-    user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     try:
         recent_picks = _shark_visible_picks(user, limit=6, min_score=68)
     except Exception:
@@ -17808,7 +17832,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V996_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V997_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"

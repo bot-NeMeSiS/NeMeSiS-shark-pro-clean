@@ -146,12 +146,15 @@ def test_desktop_marks_same_section_without_extra_primary_items(app_module,path,
         assert len(current) == 1 and current[0].attrs['href'] == '/picks'
 
 
-@pytest.mark.parametrize('path,href',[('/picks','/picks'),('/calendar','/calendario?lane=today'),('/app','/app'),('/historico','/picks'),('/telegram','/mi-cuenta'),('/directo','/calendario?lane=today')])
+@pytest.mark.parametrize('path,href',[('/picks','/picks'),('/calendar','/calendario?lane=today'),('/app',None),('/historico','/picks'),('/telegram','/mi-cuenta'),('/directo','/directo')])
 def test_other_primary_destinations_keep_their_current_page(app_module,path,href):
     with app_module.app.test_request_context(path):
         macro = app_module.app.jinja_env.get_template('components/v933_navigation.html').module
         elements = Elements(macro.v933_mobile_bottom_nav(True))
-        assert elements.find('a',**{'aria-current':'page'})[0].attrs['href'] == href
+        active=elements.find('a',**{'aria-current':'page'})
+        assert [node.attrs['href'] for node in active] == ([href] if href else [])
+        if path=='/app':
+            assert Elements(macro.v933_client_navigation('PRO')).find('a',href='/app')
 
 
 def test_mobile_header_and_bottom_nav_keep_account_and_shark_access(app_module):

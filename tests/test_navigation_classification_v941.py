@@ -139,9 +139,9 @@ def test_navigation_renderers_share_canonical_contract_source():
     from jinja2 import Environment
     model = Environment().from_string(contract).make_module()
     assert model.CLIENT_MOBILE_LINKS == model.CLIENT_LINKS
-    assert [item[0] for item in model.CLIENT_LINKS] == ['Inicio','Partidos','Picks','Cuenta']
+    assert [item[0] for item in model.CLIENT_LINKS] == ['En directo','Calendario','Pronósticos','Mi cuenta']
     assert ('SHARK','/shark','shark') in model.DISCOVERY_ANALYSIS
-    assert "('Cuenta','/mi-cuenta','user')" in contract
+    assert "('Mi cuenta','/mi-cuenta','user')" in contract
     assert "('Resultados','/calendario?lane=finished','history')" in contract
     assert "('Resultados y calendario','/admin/matches','matches')" in contract
     assert "('Directo','/directo','live')" in contract

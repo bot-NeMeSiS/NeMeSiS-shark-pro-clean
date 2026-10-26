@@ -1,0 +1,90 @@
+{
+  "family": "owner-approved-20261023",
+  "status": "OWNER_APPROVED_ARTWORK",
+  "assets": [
+    {
+      "file": "nemesis-approved-mark-128.webp",
+      "bytes": 15184,
+      "sha256": "a100911afd544d08ad3082da9c14925d6aa20b2fdb25222e8500171680deb435",
+      "size": [
+        128,
+        128
+      ],
+      "source_sha256": "88835ff956434f73ba9e012d930ca5bc4e43e7dcde0ccd75a573d3b358fc3d2e",
+      "source_reference": "nemesis-logo-shark-football-approved.png",
+      "operation": "Proportional resize and encoding; original approved art unchanged"
+    },
+    {
+      "file": "nemesis-approved-mark-256.webp",
+      "bytes": 43506,
+      "sha256": "0bc771212eb69a2d07a6b86203b2961240d68dad6f085a85668171484d970b09",
+      "size": [
+        256,
+        256
+      ],
+      "source_sha256": "88835ff956434f73ba9e012d930ca5bc4e43e7dcde0ccd75a573d3b358fc3d2e",
+      "source_reference": "nemesis-logo-shark-football-approved.png",
+      "operation": "Proportional resize and encoding; original approved art unchanged"
+    },
+    {
+      "file": "nemesis-approved-wireframe-960.webp",
+      "bytes": 111188,
+      "sha256": "450705f95bd24dd2738917d810d073f7ea8711f55f3cdeb52b75dd6f940697d0",
+      "size": [
+        960,
+        520
+      ],
+      "source_sha256": "1e7a60f8dd65fd36108e7e8e4d8c17d48c8803cc2b5791f02036b3fde1321e56",
+      "source_reference": "nemesis-shark-wireframe-football-preview.png",
+      "operation": "Proportional resize and encoding; original approved art unchanged"
+    },
+    {
+      "file": "nemesis-approved-ocean-1600.webp",
+      "bytes": 215536,
+      "sha256": "2ed30406c2ec7eb756fdbb763963512c3c4cda6fb31164be143f2c1d354b71b4",
+      "size": [
+        1536,
+        1024
+      ],
+      "source_sha256": "a5abb63e0ae766e28da94b560750fef1d16f22d6067055970ec588a7d7d32a15",
+      "source_reference": "nemesis-ocean-lines-background-v2.png",
+      "operation": "Proportional resize and encoding; original approved art unchanged"
+    },
+    {
+      "file": "nemesis-approved-mark-1024.webp",
+      "bytes": 426264,
+      "sha256": "32b0d10e343b69e220ec414658f0760b0805f8fd06e6c5491101e271f146a15b",
+      "size": [
+        1024,
+        1024
+      ],
+      "source_sha256": "88835ff956434f73ba9e012d930ca5bc4e43e7dcde0ccd75a573d3b358fc3d2e",
+      "source_reference": "nemesis-logo-shark-football-approved.png",
+      "operation": "Proportional resize and encoding; original approved art unchanged"
+    },
+    {
+      "file": "nemesis-approved-wireframe-480.webp",
+      "bytes": 35142,
+      "sha256": "71f916315adf6f28497e95a6e009c70fae55594eb612d264ccc40aa16e969886",
+      "size": [
+        480,
+        260
+      ],
+      "source_sha256": "1e7a60f8dd65fd36108e7e8e4d8c17d48c8803cc2b5791f02036b3fde1321e56",
+      "source_reference": "nemesis-shark-wireframe-football-preview.png",
+      "operation": "Proportional resize and encoding; original approved art unchanged"
+    },
+    {
+      "file": "nemesis-approved-ocean-768.webp",
+      "bytes": 70400,
+      "sha256": "75d7e7023da1a6ae0e9f23f94c6eb0788a24b6c48f403b094c124d24a696114c",
+      "size": [
+        768,
+        512
+      ],
+      "source_sha256": "a5abb63e0ae766e28da94b560750fef1d16f22d6067055970ec588a7d7d32a15",
+      "source_reference": "nemesis-ocean-lines-background-v2.png",
+      "operation": "Proportional resize and encoding; original approved art unchanged"
+    }
+  ]
+}

@@ -91,5 +91,5 @@
 </div>
 {%- endmacro %}
 {% macro remaining(lane, href) -%}
-{% if lane and lane.has_more %}<p class="home-agenda-more">{{ ui('Mostrando {shown} de {total} partidos disponibles.', shown=lane.shown, total=lane.total) }} <a href="{{ href }}">{{ ui('Ver todos') }} →</a></p>{% endif %}
+{% if lane and (lane.has_more or (lane.preview_displayed is defined and not lane.shown and lane.total)) %}<p class="home-agenda-more">{{ ui('Mostrando {shown} de {total} partidos disponibles.', shown=lane.preview_displayed if lane.preview_displayed is defined else lane.shown, total=lane.total) }} <a href="{{ href }}">{{ ui('Ver todos') }} →</a></p>{% endif %}
 {%- endmacro %}

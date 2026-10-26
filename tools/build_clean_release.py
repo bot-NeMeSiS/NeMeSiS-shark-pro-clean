@@ -20,17 +20,8 @@ MANIFEST_NAME = f"RELEASE_MANIFEST_{VERSION_PREFIX}.json"
 
 
 def release_output_dir() -> Path:
-    preferred = ROOT / "release_output"
-    try:
-        preferred.mkdir(parents=True, exist_ok=True)
-        probe = preferred / ".codex_release_probe"
-        probe.write_text("ok", encoding="utf-8")
-        probe.unlink(missing_ok=True)
-        return preferred
-    except OSError:
-        fallback = ROOT / "release_output"
-        fallback.mkdir(exist_ok=True)
-        return fallback
+    # Policy inspection imports this module. Only an explicit build may write.
+    return ROOT / "release_output"
 
 
 OUT_DIR = release_output_dir()
@@ -299,6 +290,7 @@ def build_manifest(files: list[Path]) -> dict:
 
 
 def main() -> int:
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
     files = collect_files()
     manifest = build_manifest(files)
     manifest["files"] = len(files) + 1

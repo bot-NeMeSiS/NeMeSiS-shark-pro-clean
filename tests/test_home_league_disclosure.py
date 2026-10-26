@@ -256,7 +256,11 @@ def test_real_flask_home_loads_disclosure_once_on_every_home_alias(app_module,pa
     dom=Structure(html)
     primary=[n for n in dom.nodes if n['attrs'].get('data-home-importance')=='primary']
     secondary=[n for n in dom.nodes if n['attrs'].get('data-home-importance')=='secondary']
-    assert len(primary)==6 and len(secondary)==30
+    assert len(primary)==(4 if path=='/' else 5) and len(secondary)==0
+    cards=[n['attrs']['data-v934-match-id'] for n in dom.nodes if 'data-v934-match-id' in n['attrs']]
+    assert len(cards)==len(set(cards))==5
+    assert day['today']['total']==42
+    assert any(n['tag']=='a' and n['attrs'].get('href')=='/calendario?date='+day['date'] for n in dom.nodes)
     assert html.count('home-league-disclosure.css')==1
     assert html.count('home-league-disclosure.js')==1
     assert all(any('data-home-more-leagues' in p['attrs'] for p in n['parents']) for n in secondary)

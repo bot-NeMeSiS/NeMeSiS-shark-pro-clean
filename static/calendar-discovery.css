@@ -1,4 +1,15 @@
 /* Calendar-only delivery. The existing sports cards and shell remain authoritative. */
+/* Native fold/focus navigation must settle immediately and keep targets above
+   fixed mobile chrome. Padding affects scrolling, not content height. */
+html:has([data-v940-calendar-experience]) { scroll-behavior: auto; }
+@media (max-width: 980px) {
+  html:has([data-v940-calendar-experience]) {
+    scroll-padding-bottom: calc(var(--v933-mobile-nav,68px) + env(safe-area-inset-bottom,0px) + 12px);
+  }
+  [data-v940-calendar-experience] details.v940-calendar-league > summary {
+    scroll-margin-block: 12px;
+  }
+}
 body.ns-app[data-v928-shell="true"] .v933-page[data-calendar-discovery="v1"] .v940-calendar-command {
   grid-template-columns: minmax(0,1fr); gap: 8px 16px;
 }
@@ -226,4 +237,34 @@ body.ns-app[data-v928-shell="true"] .v933-page[data-calendar-discovery="v1"] .v9
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
+/* League rows disclose their existing cards; heading, search and totals stay visible. */
+[data-calendar-discovery="v1"] details.v940-calendar-league > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 12px;
+}
+[data-calendar-discovery="v1"] details.v940-calendar-league > summary > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+[data-calendar-discovery="v1"] details.v940-calendar-league > summary > span {
+  flex-shrink: 0;
+}
+[data-calendar-discovery="v1"] details.v940-calendar-league > summary::after {
+  content: "+";
+  margin-inline-start: auto;
+}
+[data-calendar-discovery="v1"] details.v940-calendar-league[open] > summary::after { content: "−"; }
+[data-calendar-discovery="v1"] details.v940-calendar-league > summary:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
 }

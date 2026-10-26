@@ -82,7 +82,7 @@ def test_r5_catalogue_and_single_master_contract():
     assert catalogue_issues() == []
     root = Path(__file__).resolve().parents[1]
     master = (root/'static/img/app-icons/official_app_icon_master.svg').read_text(encoding='utf-8')
-    assert 'nemesis-shark-atmosphere-v2.webp' in master
+    assert 'approved-identity/nemesis-approved-mark-1024.webp' in master
     css = (root/'static/design-system.css').read_text(encoding='utf-8')
     assert 'nemesis-ocean-depth-r5.png' not in css
     assert '.v933-match-center [hidden] { display: none !important; }' in css

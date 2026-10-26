@@ -5,14 +5,15 @@ const crypto = require('node:crypto');
 const ROOT = path.resolve(__dirname, '..');
 const DIR = path.join(ROOT, 'static/img/app-icons');
 const SIZES = [16, 32, 48, 64, 96, 128, 152, 167, 180, 192, 256, 512];
+const SOURCE = '../approved-identity/nemesis-approved-mark-1024.webp';
 
 async function build(sharp) {
   const master = fs.readFileSync(path.join(DIR, 'official_app_icon_master.svg'), 'utf8').replace(/\r\n/g, '\n');
-  const sourcePath = path.join(DIR, '../nemesis-shark-atmosphere-v2.webp');
+  const sourcePath = path.join(DIR, SOURCE);
   const source = fs.readFileSync(sourcePath);
   // librsvg may not decode embedded WebP; convert losslessly in memory for SVG rendering.
   const sourcePng = await sharp(source).png().toBuffer();
-  const embedded = master.replace('../nemesis-shark-atmosphere-v2.webp',
+  const embedded = master.replace(SOURCE,
     'data:image/png;base64,' + sourcePng.toString('base64'));
   const fingerprint = crypto.createHash('sha256').update(master).update(source)
     .update(fs.readFileSync(__filename, 'utf8').replace(/\r\n/g, '\n')).digest('hex').slice(0, 12);
@@ -21,9 +22,8 @@ async function build(sharp) {
   const output = [];
   for (const size of SIZES) {
     const name = `app-icon-${size}.png`;
-    // Small favicons retain the exact source silhouette instead of unreadable texture.
-    const variant = size <= 48 ? embedded.replace('filter="url(#icon-light)"', 'filter="url(#icon-silhouette)"') : embedded;
-    await render(variant, size).toFile(path.join(DIR, name));
+    // Every size is a proportional rendering of the same approved artwork.
+    await render(embedded, size).toFile(path.join(DIR, name));
     output.push(name);
   }
   // The same artwork scales into the central 80% diameter safe circle.
@@ -53,7 +53,7 @@ async function build(sharp) {
   fs.writeFileSync(path.join(DIR, 'app-icon.ico'), Buffer.concat([header, ...frames.map(x => x.data)]));
   output.push('app-icon.ico');
   const metadata = {
-    master: 'official_app_icon_master.svg', source: '../nemesis-shark-atmosphere-v2.webp',
+    master: 'official_app_icon_master.svg', source: SOURCE,
     source_sha256: crypto.createHash('sha256').update(source).digest('hex'),
     fingerprint, sizes: SIZES, maskable_scale: .80,
     files: Object.fromEntries(output.map(name => {

@@ -1,7 +1,7 @@
 {% if not is_admin_surface and request.path not in ['/shark','/shark-ai','/shark-core','/shark-intelligence'] %}
 <section class="ns-assistant" data-ns-assistant data-authenticated="{{ 'true' if current_user else 'false' }}" data-state="closed">
   <a class="ns-assistant-launcher" href="/shark" data-ns-assistant-open aria-label="{{ ui('Abrir SHARK') }}" aria-controls="ns-assistant-dialog" aria-expanded="false">
-    <img src="{{ url_for('static', filename='img/nemesis-shark-mark.svg') }}" alt="" width="54" height="40">
+    <img src="{{ url_for('static', filename='img/approved-identity/nemesis-approved-mark-128.webp', v='a100911afd54') }}" srcset="{{ url_for('static', filename='img/approved-identity/nemesis-approved-mark-256.webp', v='0bc771212eb6') }} 2x" alt="" width="54" height="40">
   </a>
   <dialog class="ns-assistant-dialog" id="ns-assistant-dialog" aria-labelledby="ns-assistant-title" aria-describedby="ns-assistant-note">
     <header class="ns-assistant-header">

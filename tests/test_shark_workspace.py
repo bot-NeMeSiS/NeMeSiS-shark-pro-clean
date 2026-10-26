@@ -57,7 +57,8 @@ def test_shark_removed_only_from_primary_client_navigation(app_module):
         root,=[n for n in dom.nodes if n['attrs'].get('data-nav-zone')==zone]
         links=[n['attrs']['href'] for n in dom.nodes if n['tag']=='a' and root in n['parents']]
         assert '/shark' not in links
-        assert '/app' in links and '/picks' in links and '/mi-cuenta' in links
+        assert '/directo' in links and '/picks' in links and '/mi-cuenta' in links
+    assert any(n['attrs'].get('href')=='/app' for n in dom.nodes if n['tag']=='a')
     assert any('data-ns-assistant-restore' in n['attrs'] and n['attrs'].get('href')=='/shark' for n in dom.nodes)
 
 

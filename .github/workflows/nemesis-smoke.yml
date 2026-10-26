@@ -56,6 +56,10 @@ jobs:
           PY
       - name: Prepare isolated QA workspace
         run: mkdir -p data/local_dev
+      - name: Replay lifecycle through native league controls
+        run: python tools/check_local_candidate.py tests/test_final_replay.py
+      - name: SHARK selected advice authorization on real HTTP
+        run: python tools/check_local_candidate.py tests/test_shark_selected_pick_boundary.py
       - name: Run standard full suite
         env:
           SECRET_KEY: test-secret-key-for-ci
@@ -73,6 +77,7 @@ jobs:
             --ignore=tests/test_admin_master_http.py
             --ignore=tests/test_admin_master_browser.py
             --ignore=tests/test_telegram_visual_premium.py
+            --ignore=tests/test_shark_selected_pick_boundary.py
             --ignore=tests/test_project_control_http.py
             --ignore=tests/test_sentinel_jobs_http.py
             --ignore=tests/test_sentinel_operational_browser.py
@@ -87,7 +92,8 @@ jobs:
             tests/test_local_membership_preservation.py \
             tests/test_admin_master_http.py \
             tests/test_admin_master_browser.py \
-            tests/test_telegram_visual_premium.py
+            tests/test_telegram_visual_premium.py \
+            tests/test_shark_selected_pick_boundary.py
           do
             python tools/check_local_candidate.py "$test_file"
           done

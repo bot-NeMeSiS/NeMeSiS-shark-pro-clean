@@ -22,10 +22,10 @@
     {"role": "VISUAL_REGRESSION_QA", "executor": "visual_experience_inspector", "reviewer": "mobile_qa", "responsibility": "Comparar referencia y captura del mismo candidato; rechazos del fundador prevalecen.", "execution": "EXISTING_QA_CADENCE_ONLY"}
   ],
   "brand_kit": [
-    {"role": "ATMOSPHERIC_SHARK", "source": "static/img/nemesis-shark-atmosphere-v2.webp", "usage": "Oceano y superficies SHARK", "status": "FOUNDER_SUBJECTIVE_REVIEW"},
-    {"role": "PRIMARY_BRAND_MARK", "source": "static/img/nemesis-shark-mark.svg", "usage": "Emblema vectorial compartido en la cabecera, junto al wordmark textual; separado del icono instalable", "status": "FOUNDER_SUBJECTIVE_REVIEW"},
+    {"role": "ATMOSPHERIC_SHARK", "source": "static/img/approved-identity/nemesis-approved-wireframe-960.webp", "usage": "Una escena estática inferior con balón; océano aprobado separado, detrás del contenido", "status": "OWNER_APPROVED", "provenance": "static/img/approved-identity/manifest.json"},
+    {"role": "PRIMARY_BRAND_MARK", "source": "static/img/approved-identity/nemesis-approved-mark-128.webp", "usage": "Familia aprobada del tiburón con balón; cabecera y derivados instalables coherentes", "status": "OWNER_APPROVED", "provenance": "static/img/approved-identity/manifest.json"},
     {"role": "BRAND_SHARK", "source": "static/img/nemesis-shark-brand.svg", "usage": "Silueta complementaria para superficies SHARK que la referencian directamente; no es el emblema primario de cabecera", "status": "FOUNDER_SUBJECTIVE_REVIEW"},
-    {"role": "APP_ICON", "source": "static/img/app-icons/official_app_icon_master.svg", "derived_from": "ATMOSPHERIC_SHARK", "usage": "Un maestro; build_app_icons.cjs genera variantes", "status": "FOUNDER_SUBJECTIVE_REVIEW"},
+    {"role": "APP_ICON", "source": "static/img/app-icons/official_app_icon_master.svg", "derived_from": "PRIMARY_BRAND_MARK", "usage": "Un maestro de la familia aprobada; build_app_icons.cjs genera variantes", "status": "OWNER_APPROVED"},
     {"role": "WORDMARK", "source": "templates/partials/brand_logo.html", "usage": "NeMeSiS / SHARK PRO en texto; no otro logotipo raster", "status": "FOUNDER_SUBJECTIVE_REVIEW"},
     {"role": "FAVICON", "source": "static/img/app-icons/app-icon.ico", "derived_from": "APP_ICON", "usage": "ICO multiresolucion y PNG 16/32 del maestro", "status": "FOUNDER_SUBJECTIVE_REVIEW"},
     {"role": "PWA_ICONS", "source": "static/img/app-icons/icons.json", "derived_from": "APP_ICON", "usage": "PNG 192/512 y maskable; fingerprint del generador", "status": "FOUNDER_SUBJECTIVE_REVIEW"},

@@ -353,15 +353,16 @@ def test_visual_inspector_rejects_mesh_shark_and_accepts_anatomical_contract():
     assert accepted["classification"] == "FOUNDER_REVIEW_REQUIRED"
 
 
-def test_active_atmospheric_shark_is_optimized_transparent_original_recreation():
+def test_active_atmospheric_shark_is_approved_intact_transparent_derivative():
     contract = _shark_asset_contract()
 
     assert contract["status"] == "PASS"
     assert contract["classification"] == "FOUNDER_REVIEW_REQUIRED"
-    assert contract["asset"] == "static/img/nemesis-shark-atmosphere-v2.webp"
-    assert contract["provenance"] == "ORIGINAL_RECREATION_FOR_NEMESIS"
-    assert contract["dimensions"] == [1400, 758]
-    assert contract["size_bytes"] < 350_000
+    assert contract["asset"] == "static/img/approved-identity/nemesis-approved-wireframe-960.webp"
+    assert contract["provenance"] == "OWNER_APPROVED_ARTWORK"
+    assert contract["dimensions"] == [960, 520]
+    assert contract["size_bytes"] < 150_000
+    assert contract['asset_hashes_valid'] is True
     assert contract["alpha_extrema"] == [0, 255]
 
 

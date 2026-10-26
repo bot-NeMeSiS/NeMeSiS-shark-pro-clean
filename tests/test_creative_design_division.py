@@ -76,7 +76,7 @@ def test_brand_kit_has_one_app_icon_master_and_all_sources_exist():
         "WORDMARK", "FAVICON", "PWA_ICONS", "APPLE_TOUCH_ICON",
     } <= set(kit)
     assert all(b["available"] for b in kit.values())
-    assert kit["APP_ICON"]["derived_from"] == "ATMOSPHERIC_SHARK"
+    assert kit["APP_ICON"]["derived_from"] == "PRIMARY_BRAND_MARK"
     for role in ("FAVICON", "PWA_ICONS", "APPLE_TOUCH_ICON"):
         assert kit[role]["derived_from"] == "APP_ICON"
     assert kit["BRAND_SHARK"]["status"] == "FOUNDER_SUBJECTIVE_REVIEW"
