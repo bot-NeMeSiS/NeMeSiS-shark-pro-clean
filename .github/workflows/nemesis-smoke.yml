@@ -56,6 +56,8 @@ jobs:
           PY
       - name: Prepare isolated QA workspace
         run: mkdir -p data/local_dev
+      - name: Replay lifecycle through native league controls
+        run: python tools/check_local_candidate.py tests/test_final_replay.py
       - name: Run standard full suite
         env:
           SECRET_KEY: test-secret-key-for-ci

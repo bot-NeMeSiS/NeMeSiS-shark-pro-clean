@@ -169,6 +169,13 @@ def test_real_flask_browser_final_replay_all_surfaces(replay, tmp_path, width):
                     assert page.locator('[data-match-component="ScoreWidget"] > small:visible').count() == 0
                 else:
                     target = page.locator(f'[data-v934-match-id="{MATCH_ID}"]')
+                    league = page.locator('details.v940-calendar-league').filter(
+                        has=page.locator(f'[data-v934-match-id="{MATCH_ID}"]'))
+                    if league.count():
+                        expect(league).to_have_count(1)
+                        if league.get_attribute('open') is None:
+                            league.locator(':scope > summary').click()
+                        expect(league).to_have_attribute('open', '')
                     expect(target.first).to_be_visible()
                     for item in target.all():
                         expect(item.locator('[data-v934-score]')).to_have_text('5 - 0')
