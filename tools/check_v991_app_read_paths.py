@@ -86,8 +86,16 @@ class AppReadPathContract(unittest.TestCase):
             with self.subTest(role=fact['role'], scope=fact['scope']):
                 self.assertEqual(fact['http'], [200,200])
                 self.assertEqual(fact['modern'], fact['legacy'])
-                if fact['role'] in {'pro','elite'}:
-                    self.assertEqual(len(fact['legacy']), 2)
+                # The worker stores pick1 as PRO and pick2 as ELITE. Retain
+                # evidence within the current principal's entitlement; legacy
+                # parity must never require exposing ELITE advice to PRO.
+                expected = {
+                    'anonymous': [], 'free': [],
+                    'pro': [('v991-ci-pick-1', 1.83)],
+                    'elite': [('v991-ci-pick-1', 1.83), ('v991-ci-pick-2', 2.14)],
+                    'admin': [('v991-ci-pick-1', 1.83), ('v991-ci-pick-2', 2.14)],
+                }
+                self.assertEqual([(row['id'], row['odds']) for row in fact['legacy']], expected[fact['role']])
 
     def test_06_unavailable_is_not_an_observed_zero(self):
         for consumer, fact in self.evidence['missing'].items():

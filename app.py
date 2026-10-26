@@ -527,7 +527,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V998_SHARK_FUNCTIONAL_FLOW'
+APP_VERSION = 'V999_ADVICE_ACCESS_AND_SHARK_READ_PATH'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -14030,18 +14030,53 @@ def _shark_cached_live_state(sports_summary, sports_metrics):
     }
 
 
+def _v999_snapshot_pick_permissions(items, user=None):
+    """Recheck stored advice before exposing a shared, enriched sports snapshot.
+
+    The public sports cache is principal-independent. Its normalized tier is
+    presentation data, never permission. This result is not stored in that cache.
+    """
+    user = user if user is not None else current_session_user()
+    user = user or {"membership": "FREE", "role": "FREE"}
+    membership = "ADMIN" if normalize_role(user.get("role")) == "ADMIN" else get_user_membership(user)
+    if not prediction_visible_tiers(membership):
+        return {}
+    candidates = [item for item in (items or []) if isinstance(item, dict) and item.get("id")]
+    identifiers = list(dict.fromkeys(str(item["id"]) for item in candidates))
+    allowed = {}
+    try:
+        for start in range(0, len(identifiers), 200):
+            chunk = identifiers[start:start + 200]
+            stored = rows("SELECT id,status,membership_required FROM picks WHERE id IN ("
+                          + ",".join("?" for _ in chunk) + ")", tuple(chunk))
+            allowed.update({str(item["id"]): normalize_pick_status(item.get("status")) for item in stored
+                            if normalize_pick_status(item.get("status")) in {"published", "won", "lost", "void"}
+                            and _client_pick_membership_allows(membership, item)})
+    except Exception:
+        app.logger.warning("Advice permissions unavailable")
+        return {}
+    return allowed
+
+
+def _v999_authorized_snapshot_picks(items, user=None, *, active_only=False):
+    candidates = [item for item in (items or []) if isinstance(item, dict)]
+    allowed = _v999_snapshot_pick_permissions(candidates, user)
+    return [item for item in candidates if str(item.get("id")) in allowed
+            and (not active_only or allowed[str(item.get("id"))] == "published")]
+
+
 def shark_briefing(sports_summary=None):
     sports_summary = sports_summary if isinstance(sports_summary, dict) else get_public_home_sports_summary()
     sports_metrics = build_sports_metrics_contract(sports_summary)
     today_matches = list(sports_summary.get("valid_matches_today") or [])
     user = current_session_user() if has_request_context() else None
     profile = client_profile_view(user)
-    def permitted(pick):
-        return (normalize_pick_status(pick.get("status")) in {"published", "won", "lost", "void"}
-                and prediction_membership_allows(profile["membership_plan"], pick.get("membership_required")))
-    all_picks = [p for p in (sports_summary.get("all_picks") or []) if permitted(p)]
+    all_candidates = list(sports_summary.get("all_picks") or [])
+    active_candidates = list(sports_summary.get("valid_active_picks") or [])
+    permitted = _v999_snapshot_pick_permissions(all_candidates + active_candidates, user)
+    all_picks = [p for p in all_candidates if str(p.get("id")) in permitted]
     quality_groups = split_picks_by_quality(all_picks)
-    picks = [p for p in (sports_summary.get("valid_active_picks") or []) if permitted(p)][:8]
+    picks = [p for p in active_candidates if permitted.get(str(p.get("id"))) == "published"][:8]
     imported_real = [m for m in today_matches if "seed" not in str(m.get("source") or "").lower()]
     explained = []
     for pick in picks:
@@ -14254,7 +14289,9 @@ def _v998_shark_collections(summary, user):
     try:
         projection = _v991_realtime_projection(summary, lane="live", query="")
         live = v931_live_context(summary, lane="live", query="", fixture_projection=projection)
-        metrics = get_sports_metrics_contract(summary)
+        # This exact call has just checked ownership and produced current metrics.
+        # Reuse only within this operation; copied summaries still fail its proof.
+        metrics = live.get("sports_metrics") or {}
         established = ((metrics.get("identity_coverage") or {}).get("state") == "PREPARED"
                        and (projection.get("fixture_identity") or {}).get("state") == "ESTABLISHED_FOR_EMITTED_COHORT")
         if established:
@@ -14286,6 +14323,32 @@ def _v998_shark_collections(summary, user):
     return result
 
 
+_V999_SHARK_PHASES = frozenset({
+    "input", "sports_context", "admission", "briefing", "provider_state",
+    "assistant_context", "assistant_answer", "template", "view_total",
+    "nested_selection", "nested_telegram", "nested_recent_picks", "nested_summary",
+    "nested_collections", "nested_briefing", "nested_intelligence", "nested_compose",
+    "nested_provider", "nested_json",
+})
+
+
+def _v999_shark_record_phase(name, started):
+    """Closed, request-local durations only; nested phases are not additive."""
+    if has_request_context() and name in _V999_SHARK_PHASES:
+        metrics = getattr(g, "v937_shark_phase_metrics", None)
+        if metrics is None:
+            metrics = g.v937_shark_phase_metrics = {}
+        metrics[name] = round(max(0.0, (time.perf_counter() - started) * 1000.0), 1)
+
+
+def _v999_shark_timed(name, callback):
+    started = time.perf_counter()
+    try:
+        return callback()
+    finally:
+        _v999_shark_record_phase(name, started)
+
+
 def v845_build_product_assistant_context(
     question="",
     payload=None,
@@ -14296,6 +14359,7 @@ def v845_build_product_assistant_context(
     selection=None,
     usage=None,
 ):
+    started = time.perf_counter()
     payload = normalize_shark_request(payload if payload is not None else {},
         request.args if payload is None and has_request_context() else {}, require_question=False)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
@@ -14309,10 +14373,14 @@ def v845_build_product_assistant_context(
             match.update(client_match_display_context(match))
         except Exception:
             pass
+    _v999_shark_record_phase("nested_selection", started)
+    started = time.perf_counter()
     try:
         telegram_quality = explain_telegram_filter_decision(pick or match or {})
     except Exception:
         telegram_quality = {}
+    _v999_shark_record_phase("nested_telegram", started)
+    started = time.perf_counter()
     try:
         recent_picks = _shark_visible_picks(user, limit=6, min_score=68)
         ids = [str(item["id"]) for item in recent_picks if item.get("id")]
@@ -14321,9 +14389,13 @@ def v845_build_product_assistant_context(
         recent_picks = [safe for key in ids if (safe := _v845_pick_for_user(by_id.get(key), user))]
     except Exception:
         recent_picks = []
+    _v999_shark_record_phase("nested_recent_picks", started)
+    started = time.perf_counter()
     summary = prebuilt_summary if prebuilt_summary is not None else get_public_home_sports_summary()
-    collections = _v998_shark_collections(summary, user)
+    _v999_shark_record_phase("nested_summary", started)
+    collections = _v999_shark_timed("nested_collections", lambda: _v998_shark_collections(summary, user))
     recent_matches = collections["agenda"]["matches"]
+    started = time.perf_counter()
     if prebuilt_briefing is not None:
         briefing = prebuilt_briefing
     else:
@@ -14331,6 +14403,8 @@ def v845_build_product_assistant_context(
             briefing = shark_briefing(summary)
         except Exception:
             briefing = {"summary": {}, "risk": {}, "legal_policy": ""}
+    _v999_shark_record_phase("nested_briefing", started)
+    started = time.perf_counter()
     match_intelligence = (
         cached_match_intelligence_for_consumer(
             match,
@@ -14339,6 +14413,8 @@ def v845_build_product_assistant_context(
         if match
         else {}
     )
+    _v999_shark_record_phase("nested_intelligence", started)
+    started = time.perf_counter()
     context = v845_build_shark_context(
         user,
         match=_v998_shark_match(match),
@@ -14357,6 +14433,8 @@ def v845_build_product_assistant_context(
               "usage": usage or (shark_question_usage(user) if user.get("id") else {})},
     )
     context["selection"] = {"match_id": str(match.get("id") or ""), "pick_id": str(pick.get("id") or "")}
+    _v999_shark_record_phase("nested_compose", started)
+    started = time.perf_counter()
     if prebuilt_provider_state is not None:
         context["api_sports_provider"] = prebuilt_provider_state
     else:
@@ -14364,7 +14442,8 @@ def v845_build_product_assistant_context(
             context["api_sports_provider"] = explain_api_sports_provider_state(DB_PATH)
         except Exception:
             context["api_sports_provider"] = {"label": "Proveedor pendiente", "message": "No se pudo leer el estado API-SPORTS."}
-    return finite_shark_json(context)
+    _v999_shark_record_phase("nested_provider", started)
+    return _v999_shark_timed("nested_json", lambda: finite_shark_json(context))
 
 
 def v845_shark_admin_summary():
@@ -17929,7 +18008,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V998_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V999_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -20340,7 +20419,7 @@ def _v931_legacy_home_summary(summary):
     )
     recent_results = sports_home.get("recent_results") or []
     favorites = sports_home.get("favorites") or []
-    picks = summary.get("valid_active_picks") or []
+    picks = _v999_authorized_snapshot_picks(summary.get("valid_active_picks") or [], active_only=True)
     has_real_data = bool(valid_today or upcoming or live or recent_results or picks)
     sports_metrics = get_sports_metrics_contract(summary)
     return {
@@ -20469,12 +20548,13 @@ def _v931_provider_context(summary):
     }
 
 
-def _v931_minimal_client_data(summary, lane="today", date_value=""):
+def _v931_minimal_client_data(summary, lane="today", date_value="", *, _shark_view=False):
     today_matches = list(summary.get("valid_matches_today") or [])
     upcoming = list(summary.get("valid_upcoming_matches") or [])
     live = list(summary.get("valid_live_events") or [])
-    picks = list(summary.get("valid_active_picks") or [])
-    legacy_home = _v931_legacy_home_summary(summary)
+    picks = _v999_authorized_snapshot_picks(summary.get("valid_active_picks") or [], active_only=True)
+    # SHARK/base have no home-summary or second live-provider consumer.
+    legacy_home = {} if _shark_view else _v931_legacy_home_summary(summary)
     sports_metrics = get_sports_metrics_contract(summary)
     return {
         "app_name": APP_NAME,
@@ -20530,7 +20610,7 @@ def _v931_minimal_client_data(summary, lane="today", date_value=""):
         "home_summary": legacy_home,
         "sports_metrics": sports_metrics,
         "v925_calendar": _v931_provider_context(summary),
-        "v925_live": _v931_provider_context(summary),
+        "v925_live": {} if _shark_view else _v931_provider_context(summary),
         "v925_picks": get_safe_picks_context(picks),
         "v925_odds": get_safe_odds_context(picks),
         "v932_sports_value": get_v932_real_sports_value_context(summary),
@@ -20542,7 +20622,7 @@ def _v931_minimal_client_data(summary, lane="today", date_value=""):
     }
 
 
-def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None, _directo_minimal=False):
+def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None, _directo_minimal=False, _shark_view=False):
     summary = (
         _v932_locked_sports_summary()
         if has_request_context() and request.environ.get("nemesis.v932.database_locked")
@@ -20580,12 +20660,12 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
             v932_record_authenticated_issue(route, error, "admin" if is_admin_session() else "client", "sqlite_read_timeout_guard")
         if compact and _directo_minimal is True:
             return _directo_client_data(), summary
-        return _v931_minimal_client_data(summary, lane, date_value or today_iso()), summary
+        return _v931_minimal_client_data(summary, lane, date_value or today_iso(), _shark_view=_shark_view), summary
     if compact:
         if _directo_minimal is True:
             data = _directo_client_data()
         else:
-            data = _v931_minimal_client_data(summary, lane, date_value or today_iso())
+            data = _v931_minimal_client_data(summary, lane, date_value or today_iso(), _shark_view=_shark_view)
         data["available_matches"] = list(summary.get("valid_matches_available") or _dedupe_sports_matches(data["matches"] + data["upcoming_matches"]))
         data["v931_route_guard"] = {
             "status": "compact_read_only_context",
@@ -20603,7 +20683,7 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
         v931_record_client_route_issue(route, exc, "dashboard_data_schema_guard")
         if current_session_user():
             v932_record_authenticated_issue(route, exc, "admin" if is_admin_session() else "client", "dashboard_data_schema_guard")
-        return _v931_minimal_client_data(summary, lane, date_value or today_iso()), summary
+        return _v931_minimal_client_data(summary, lane, date_value or today_iso(), _shark_view=_shark_view), summary
     if has_request_context():
         request.environ["nemesis.v931.degraded"] = False
     data["home_summary"] = _v931_legacy_home_summary(summary)
@@ -20611,7 +20691,7 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
     data["matches"] = list(data["home_summary"].get("valid_matches_today") or [])
     data["upcoming_matches"] = list(data["home_summary"].get("upcoming_matches") or [])
     data["available_matches"] = list(data["home_summary"].get("valid_matches_available") or _dedupe_sports_matches(data["matches"] + data["upcoming_matches"]))
-    data["picks"] = list(summary.get("valid_active_picks") or [])
+    data["picks"] = _v999_authorized_snapshot_picks(summary.get("valid_active_picks") or [], active_only=True)
     hub = dict(data.get("match_hub") or {})
     hub.update({
         "today": sports_home.get("important_today") or data["matches"],
@@ -20662,9 +20742,13 @@ def v932_safe_dashboard_data(
     compact=False,
     sports_summary=None,
     _directo_minimal=False,
+    _shark_view=False,
 ):
     if compact and _directo_minimal is True:
         data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary, _directo_minimal=True)
+    elif _shark_view is True:
+        data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact,
+                                               sports_summary=sports_summary, _shark_view=True)
     else:
         data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary)
     data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
@@ -27010,10 +27094,7 @@ def picks_page():
     membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
     all_current_picks = list(summary.get("valid_active_picks") or [])
     safe_current_picks = get_safe_picks_context(all_current_picks).get("picks") or []
-    data["picks"] = [
-        item for item in safe_current_picks
-        if _client_pick_membership_allows(membership, item)
-    ]
+    data["picks"] = _v999_authorized_snapshot_picks(safe_current_picks, user, active_only=True)
     data["locked_pick_count"] = sum(
         1 for item in safe_current_picks
         if not _client_pick_membership_allows(membership, item)
@@ -27231,7 +27312,8 @@ def membership_page():
 @app.route("/shark-ai", methods=["GET", "POST"])
 @app.route("/shark", methods=["GET", "POST"])
 def shark_page():
-    phase_metrics = {}
+    view_started = time.perf_counter()
+    g.v937_shark_phase_metrics = {}
     session_user = current_session_user()
     user = session_user or {"membership": "FREE", "role": "FREE"}
     question_error = ""
@@ -27251,18 +27333,13 @@ def shark_page():
                 pass
         selected_context = {"match": {}, "pick": {}}
 
-    def timed_phase(name, callback):
-        started = time.perf_counter()
-        try:
-            return callback()
-        finally:
-            phase_metrics[name] = round((time.perf_counter() - started) * 1000.0, 1)
-            g.v937_shark_phase_metrics = dict(phase_metrics)
-
+    _v999_shark_record_phase("input", view_started)
+    timed_phase = _v999_shark_timed
     data, summary = timed_phase(
         "sports_context",
-        lambda: v932_safe_dashboard_data(request.path, compact=True),
+        lambda: v932_safe_dashboard_data(request.path, compact=True, _shark_view=True),
     )
+    started = time.perf_counter()
     data["membership"] = v566_membership_ui(user)
 
     submitted_question = normalized_request["question"] if request.method == "POST" else ""
@@ -27308,11 +27385,13 @@ def shark_page():
     data["shark_question_active"] = bool(requested_question or question_block or question_error)
     data["shark_legacy_get_ignored"] = bool(quick_raw and not quick_question)
 
+    _v999_shark_record_phase("admission", started)
     briefing = timed_phase(
         "briefing",
         lambda: v931_safe_context(request.path, "briefing", lambda: shark_briefing(summary), {}),
     )
     data["briefing"] = briefing
+    started = time.perf_counter()
     openai_ready = v845_openai_configured()
     question = requested_question if requested_question and not (question_block or question_error) else "resumen"
     provider_status = dict(getattr(g, "v932_api_sports_status", {}) or {})
@@ -27329,6 +27408,7 @@ def shark_page():
         provider_label = "Proveedor configurado sin caché visible"
         provider_message = "La clave está configurada, pero aún no hay fixtures/live cacheados en las tablas detectadas."
     provider_state = {"label": provider_label, "message": provider_message, "status": provider_status}
+    _v999_shark_record_phase("provider_state", started)
     context = timed_phase(
         "assistant_context",
         lambda: v931_safe_context(
@@ -27373,12 +27453,11 @@ def shark_page():
     }
     if request.method == "POST" and submitted_question and not question_block and not question_error:
         save_shark_context("ask", answer.get("focus"), answer.get("context") or {})
-    data["v925_calendar"] = _v931_provider_context(summary)
-    data["v925_picks"] = get_safe_picks_context(data.get("picks") or [])
-    data["v925_odds"] = get_safe_odds_context(data.get("picks") or [])
-    data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
+    # Compact context already prepared these presentation values. The SHARK
+    # templates do not consume the full customer-trust/home presentation scan.
     g.v937_shark_cache_status = str(summary.get("summary_cache_status") or "request_cache")
     rendered = timed_phase("template", lambda: render_template("shark.html", data=data))
+    _v999_shark_record_phase("view_total", view_started)
     return (rendered, 400) if question_error else rendered
 
 
@@ -29978,7 +30057,7 @@ def api_v934_realtime_sports():
     if scope in {"all", "live"}:
         payload["live"] = snapshot.get("live") or []
     if scope in {"all", "picks", "odds"}:
-        payload["picks"] = snapshot.get("picks") or []
+        payload["picks"] = _v999_authorized_snapshot_picks(snapshot.get("picks") or [], active_only=True)
     if snapshot.get("fixture_identity") is not None:
         payload["fixture_identity"] = snapshot["fixture_identity"]
     if snapshot.get("fixture_metrics") is not None:
@@ -30000,7 +30079,7 @@ def api_v934_realtime_sports():
         response = jsonify(payload)
     response.set_etag(etag_value, weak=weak_identity_validator)
     response.headers["Cache-Control"] = "private, max-age=15, stale-while-revalidate=45"
-    response.headers["Vary"] = "Accept, Cookie" if weak_identity_validator else "Accept"
+    response.headers["Vary"] = "Accept, Cookie"
     modified_raw = str(snapshot.get("last_safe_sync") or snapshot.get("generated_at_madrid") or "").strip()
     if modified_raw:
         try:
@@ -32382,13 +32461,8 @@ def _client_pick_membership_allows(user_membership, pick):
 
 def _current_client_picks(user=None, summary=None):
     user = user or current_session_user() or {"membership": "FREE", "role": "FREE"}
-    membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
     summary = summary if isinstance(summary, dict) else get_public_home_sports_summary()
-    eligible = [
-        item for item in (summary.get("valid_active_picks") or [])
-        if isinstance(item, dict)
-        and _client_pick_membership_allows(membership, item)
-    ]
+    eligible = _v999_authorized_snapshot_picks(summary.get("valid_active_picks") or [], user, active_only=True)
     return get_safe_picks_context(eligible).get("picks") or []
 
 
