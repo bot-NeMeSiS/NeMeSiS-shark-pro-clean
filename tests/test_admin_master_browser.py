@@ -150,10 +150,10 @@ def test_admin_shell_navigation_at_window_boundaries(browser, app_module, width)
             edge = side_box["x"] + side_box["width"]
             assert main_box["x"] == pytest.approx(edge, abs=1)
             assert top_box["x"] == pytest.approx(edge, abs=1)
-            labels = sidebar.locator("nav > a > span:last-child")
-            assert labels.count() == sidebar.locator("nav > a").count()
+            labels = sidebar.locator("nav a[data-v1000-admin-destination] > span:last-child")
+            assert labels.count() == sidebar.locator("nav a[data-v1000-admin-destination]").count()
             assert all(label.is_visible() and label.inner_text().strip() for label in labels.all())
-            current = sidebar.locator('nav > a[aria-current="page"]')
+            current = sidebar.locator('nav a[data-v1000-admin-destination][aria-current="page"]')
             assert current.count() == 1
             assert current.inner_text().strip() == "Centro de mando"
             assert current.get_attribute("href") == "/admin/dashboard"
@@ -227,7 +227,7 @@ def test_admin_sidebar_wheel_in_gap_and_keyboard_reach_last_destinations(browser
     )
     try:
         nav = page.locator(".v933-admin-sidebar nav")
-        links = nav.locator(":scope > a")
+        links = nav.locator("a[data-v1000-admin-destination]")
         metrics = nav.evaluate("el => ({height:el.clientHeight, total:el.scrollHeight, top:el.scrollTop})")
         assert metrics["total"] > metrics["height"]
         assert page.evaluate("document.documentElement.scrollHeight > innerHeight")
@@ -246,13 +246,20 @@ def test_admin_sidebar_wheel_in_gap_and_keyboard_reach_last_destinations(browser
         )
         assert page.evaluate("window.scrollY") == pytest.approx(page_y, abs=1)
 
-        # Start at the brand, then use actual keyboard traversal through the menu.
-        page.locator(".v933-admin-brand a").focus()
+        # Native disclosures and every destination must be reachable by keyboard.
+        page.locator(".v1000-admin-shortcuts a").last.focus()
         destinations = links.evaluate_all("nodes => nodes.map(el => el.getAttribute('href'))")
         assert destinations[-2:] == ["/admin/final-release", "/admin/dashboard#master-audit-title"]
-        for index, href in enumerate(destinations):
+        visited = []
+        for _ in range(len(destinations) + nav.locator("summary").count()):
             page.keyboard.press("Tab")
-            assert links.nth(index).evaluate("el => el === document.activeElement"), href
+            target = page.evaluate("""() => ({summary:document.activeElement.tagName === 'SUMMARY',
+                destination:document.activeElement.hasAttribute('data-v1000-admin-destination'),
+                href:document.activeElement.getAttribute('href')})""")
+            assert target["summary"] or target["destination"]
+            if target["destination"]:
+                visited.append(target["href"])
+        assert visited == destinations
         last = links.last.bounding_box()
         assert last is not None
         assert nav_box["y"] - 1 <= last["y"]

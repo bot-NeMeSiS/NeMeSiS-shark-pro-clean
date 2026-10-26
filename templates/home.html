@@ -86,15 +86,16 @@
   {% set hero_board_title = 'Estado de la jornada' %}
 {% endif %}
 
-<div class="v933-page v933-home v937-home sports-priority-home" data-v933-template="home" data-v933-reference="canonical-public-home" data-v937-product-sprint="home-decision-center" data-top100-improvement="2,3,19" data-growth-stage="LANDING" data-growth-target="public-home" {{ sports_contract_attributes(sports_metrics) }}>
+<div class="v933-page v933-home v937-home sports-priority-home" data-v1000-home data-v933-template="home" data-v933-reference="canonical-public-home" data-v937-product-sprint="home-decision-center" data-top100-improvement="2,3,19" data-growth-stage="LANDING" data-growth-target="public-home" {{ sports_contract_attributes(sports_metrics) }}>
   <section class="v933-public-hero sports-priority-hero">
     <div>
       <span class="v933-eyebrow">NeMeSiS SHARK PRO · Hora Madrid</span>
       {% if current_user %}
-      <h1 data-madrid-greeting>{{ greeting.label }}{% if greeting.name %}, <span>{{ greeting.name }}</span>{% endif %}</h1>
+      <p data-home-greeting data-madrid-greeting>{{ greeting.label }}{% if greeting.name %}, <span class="ns16-user-name" dir="auto">{{ greeting.name }}</span>{% endif %}</p>
+      <h1>{{ hero_title }}</h1>
       <p>Directo, partidos importantes, favoritos y SHARK en el orden correcto.</p>
       <div class="v933-hero-actions" data-home-primary-action>
-        {{ action_button('Abrir directo', '/directo', true, 'cyan', false, 'live') }}
+        {% if live_count and not agenda_unavailable %}{{ action_button('Abrir directo', '/directo', true, 'cyan', false, 'live') }}{% else %}{{ action_button('Calendario', agenda_href, true, 'blue', false, 'calendar') }}{% endif %}
       </div>
       {% else %}
       <h1>{{ hero_title }}<span>.</span></h1>
@@ -111,7 +112,7 @@
         <span>{{ icon('shark') }} {{ '—' if agenda_unavailable else pick_count }} pronósticos SHARK</span>
       </div>
       <nav class="v933-launch-start-strip sports-priority-start" aria-label="Accesos deportivos principales" data-launch-excellence="home-start" data-home-secondary-actions>
-        {% if not current_user %}<a href="/directo">{{ icon('live') }}<span>{{ ui('Directo') }}</span></a>{% endif %}
+        {% if not current_user and live_count and not agenda_unavailable %}<a href="/directo">{{ icon('live') }}<span>{{ ui('Directo') }}</span></a>{% endif %}
         <a href="/calendario">{{ icon('calendar') }}<span>{{ ui("Calendario") }}</span></a>
         <a href="/favoritos">{{ icon('star') }}<span>{{ ui("Favoritos") }}</span></a>
         <a href="/picks">{{ icon('target') }}<span>{{ ui("Pronósticos") }}</span></a>
@@ -210,7 +211,7 @@
           {{ quick_action('Pronósticos', 'Capa SHARK', '/picks', 'target') }}
           {{ quick_action('Historial', 'Resultados reales', '/historico', 'history') }}
           {{ quick_action('Telegram', 'Alertas controladas', '/telegram', 'telegram', 'cyan') }}
-          {{ quick_action('Planes', 'FREE / PRO / ELITE', '/membresias', 'star', 'gold') }}
+          {% if current_user %}{{ quick_action('Mi cuenta', 'Plan y preferencias', '/mi-cuenta', 'user') }}{% else %}{{ quick_action('Soporte', 'Ayuda', '/soporte', 'support') }}{% endif %}
         </div>
       </section>
 
@@ -238,7 +239,7 @@
       <a class="v933-launch-step" href="{{ '/match/' ~ hero_match.get('id') if hero_match and hero_match.get('id') else '/calendario' }}" data-launch-step="match-center">{{ icon('shield') }}<span>Partido</span><strong>Detalle</strong><small>Contexto real.</small></a>
       <a class="v933-launch-step" href="/shark" data-launch-step="shark">{{ icon('shark') }}<span>SHARK</span><strong>{{ ui("Evidencia") }}</strong><small>Sin promesas.</small></a>
       <a class="v933-launch-step" href="/favoritos" data-launch-step="favorites">{{ icon('star') }}<span>{{ ui("Favoritos") }}</span><strong>Personal</strong><small>Tu radar.</small></a>
-      <a class="v933-launch-step" href="/membresias" data-launch-step="pro">{{ icon('star') }}<span>PRO</span><strong>{{ ui("Planes") }}</strong><small>Sin letra pequeña.</small></a>
+      <a class="v933-launch-step" href="/soporte" data-launch-step="support">{{ icon('support') }}<span>{{ ui("Ayuda") }}</span><strong>{{ ui("Soporte") }}</strong><small>{{ ui("Cuando lo necesites") }}</small></a>
     </div>
   </section>
 
@@ -254,10 +255,10 @@
 
   {{ decision_radar(today_count, live_count, pick_count, incomplete_count) }}
 
-  <section class="v933-panel">
+  {% if not current_user or current_user.membership|upper == 'FREE' %}<section class="v933-panel">
     {{ section_header('Planes', '', 'Comparar', '/membresias') }}
     {{ value_ladder(current_user.membership if current_user else 'FREE') }}
-  </section>
+  </section>{% endif %}
 
   <section class="v933-panel v933-responsible-band">
     <div class="v933-three-col">

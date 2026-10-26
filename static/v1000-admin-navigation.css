@@ -1,0 +1,106 @@
+/* Admin-only presentation. Routes, permissions, actions and sessions are unchanged. */
+body.ns-admin .v1000-admin-sidebar {
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  gap: 8px;
+}
+body.ns-admin .v1000-admin-shortcuts {
+  display: grid;
+  gap: 3px;
+  padding-block: 2px 8px;
+  border-bottom: 1px solid var(--v933-border);
+}
+body.ns-admin .v1000-admin-caption {
+  color: var(--v933-text-soft);
+  padding: 3px 9px;
+  font-size: .66rem;
+  font-weight: 750;
+}
+body.ns-admin .v1000-admin-shortcuts a {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  color: var(--v933-text);
+  font-size: .72rem;
+  text-decoration: none;
+}
+body.ns-admin .v1000-admin-shortcuts a:hover {
+  background: rgba(25, 213, 255, .09);
+}
+body.ns-admin .v1000-admin-directory {
+  display: block;
+  overscroll-behavior: contain;
+}
+body.ns-admin .v1000-admin-group {
+  margin: 0 0 7px;
+  padding: 0;
+  border: 0;
+}
+body.ns-admin .v1000-admin-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 7px 8px;
+  color: var(--v933-text-soft);
+  cursor: pointer;
+  font-size: .69rem;
+  font-weight: 800;
+  list-style: none;
+}
+body.ns-admin .v1000-admin-group > summary::-webkit-details-marker { display: none; }
+body.ns-admin .v1000-admin-group > summary::before {
+  content: "›";
+  color: var(--v933-cyan);
+  font-size: 1rem;
+}
+body.ns-admin .v1000-admin-group[open] > summary::before { transform: rotate(90deg); }
+body.ns-admin .v1000-admin-group > summary > span { flex: 1; min-width: 0; }
+body.ns-admin .v1000-admin-group > summary > small {
+  font-size: .62rem;
+  font-variant-numeric: tabular-nums;
+}
+body.ns-admin .v1000-admin-group-links { display: grid; gap: 4px; }
+body.ns-admin .v1000-admin-sidebar .v1000-admin-directory a {
+  min-height: 38px !important;
+  padding: 7px 8px !important;
+  overflow-wrap: anywhere;
+}
+body.ns-admin .v1000-admin-sidebar :is(a, summary):focus-visible {
+  outline: 2px solid var(--v933-cyan);
+  outline-offset: -2px;
+}
+body.ns-admin .founder-os { padding: 10px 0 70px; }
+body.ns-admin .founder-os-hero { padding: 18px; gap: 16px; }
+body.ns-admin .founder-os-hero h1 { font-size: clamp(1.35rem, 2.2vw, 1.8rem); }
+body.ns-admin .v1000-founder-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+body.ns-admin .v1000-founder-actions .btn { margin-top: 0; padding: 8px 11px; min-height: 42px; font-size: .78rem; }
+body.ns-admin .founder-os-reading { margin-block: 10px; }
+body.ns-admin .founder-os-reading time { color: var(--v933-text); font-weight: 700; }
+body.ns-admin .founder-os > :is(section, #overview) { scroll-margin-top: 100px; }
+body.ns-admin .founder-os-kpis { grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px; }
+body.ns-admin .founder-os-kpis article { padding: 11px; border-radius: 12px; }
+body.ns-admin .founder-os-panel { padding: 15px; }
+body.ns-admin .founder-os-panel-head { flex-wrap: wrap; gap: 8px 14px; }
+body.ns-admin .founder-os-panel-head > div { flex: 1 1 250px; min-width: 0; }
+body.ns-admin .founder-os-panel-head > a { display: inline-flex; align-items: center; min-height: 40px; }
+@media (min-width: 981px) {
+  body.ns-admin .v1000-admin-sidebar .v1000-admin-directory a { grid-template-columns: 22px minmax(0, 1fr); justify-items: stretch; gap: 7px; }
+  body.ns-admin .v1000-admin-sidebar .v1000-admin-directory a > span:last-child { display: block !important; }
+}
+@media (max-width: 720px) {
+  body.ns-admin .founder-os { padding: 5px 0 80px; }
+  body.ns-admin .founder-os-hero { padding: 14px; }
+  body.ns-admin .v1000-founder-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  body.ns-admin .v1000-founder-actions .btn { justify-content: center; padding: 7px; font-size: .72rem; line-height: 1.25; white-space: normal; text-align: center; }
+  body.ns-admin .v1000-founder-actions .btn:last-child { grid-column: 1 / -1; }
+  body.ns-admin .founder-os-health { padding: 8px 10px; }
+  body.ns-admin .founder-os-health strong { font-size: 1.08rem; }
+  body.ns-admin .founder-os-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body.ns-admin .founder-os-panel { padding: 12px; }
+  body.ns-admin .founder-os > :is(section, #overview) { scroll-margin-top: 160px; }
+  body.ns-admin .founder-os-alert { padding: 10px; }
+}

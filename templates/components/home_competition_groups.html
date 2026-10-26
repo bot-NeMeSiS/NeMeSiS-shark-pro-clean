@@ -32,7 +32,7 @@
 {% if secondary %}
 {% if not primary %}<p class="home-league-empty-primary">{{ ui('Sin ligas principales en esta selección. Consulta las otras competiciones.') }}</p>{% endif %}
 <details class="home-leagues-more" data-home-more-leagues>
-  <summary class="home-more-summary"><span><strong>{{ ui('Más competiciones') }}</strong><small>{{ ui('Elige una liga para ver sus partidos') }}</small></span><span class="home-more-count">{{ ui('{count} partidos', count=secondary|sum(attribute='shown')) }}</span><span class="home-disclosure-chevron" aria-hidden="true">⌄</span></summary>
+  <summary class="home-more-summary"><span><strong>{{ ui('Más competiciones') }}</strong><small>{{ ui('Elige una liga para ver sus partidos') }}</small></span><span class="home-more-count">{{ ui('{count} partido' if secondary|sum(attribute='shown') == 1 else '{count} partidos', count=secondary|sum(attribute='shown')) }}</span><span class="home-disclosure-chevron" aria-hidden="true">⌄</span></summary>
   <div class="home-more-content">
     <div class="home-league-filter" data-home-league-filter hidden>
       <label for="home-league-search-{{ section }}">{{ ui('Buscar competición o país') }}</label>

@@ -1,4 +1,42 @@
 {
+  "platform_refinement": {
+    "Apariencia": {
+      "en": "Appearance",
+      "fr": "Apparence"
+    },
+    "Pausar movimiento": {
+      "en": "Pause motion",
+      "fr": "Suspendre les animations"
+    },
+    "Activar movimiento": {
+      "en": "Enable motion",
+      "fr": "Activer les animations"
+    },
+    "Movimiento reducido del dispositivo": {
+      "en": "Device reduced motion",
+      "fr": "Animations réduites sur cet appareil"
+    },
+    "Movimiento desactivado en este navegador": {
+      "en": "Motion disabled in this browser",
+      "fr": "Animations désactivées dans ce navigateur"
+    },
+    "Luz marina suave": {
+      "en": "Subtle ocean light",
+      "fr": "Lumière marine douce"
+    },
+    "Partidos y resultados": {
+      "en": "Matches and results",
+      "fr": "Matchs et résultats"
+    },
+    "Plan y preferencias": {
+      "en": "Plan and preferences",
+      "fr": "Offre et préférences"
+    },
+    "Cuando lo necesites": {
+      "en": "Whenever you need it",
+      "fr": "Quand vous en avez besoin"
+    }
+  },
   "shark_functional_flow": {
     "Pregunta a SHARK": {
       "en": "Ask SHARK",

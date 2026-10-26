@@ -35,6 +35,28 @@
   ('Auditoría','/admin/dashboard#master-audit-title','history')
 ] %}
 
+{# Presentation groups only: the original destinations/permissions stay owned
+   by ADMIN_LINKS and their routes. Desktop and mobile Explore share this order. #}
+{% set ADMIN_GROUPS = [
+  ('Deporte y contenido', [ADMIN_LINKS[1], ADMIN_LINKS[2], ADMIN_LINKS[3], ADMIN_LINKS[8], ADMIN_LINKS[12]]),
+  ('Clientes y planes', [ADMIN_LINKS[5], ADMIN_LINKS[6], ADMIN_LINKS[7]]),
+  ('Operación y seguridad', [ADMIN_LINKS[4], ADMIN_LINKS[9], ADMIN_LINKS[10], ADMIN_LINKS[11]]),
+  ('Sistema', [ADMIN_LINKS[0], ADMIN_LINKS[13], ADMIN_LINKS[14], ADMIN_LINKS[15]])
+] %}
+
+{# Search aliases are navigation vocabulary only, never authorization. #}
+{% set ADMIN_SEARCH = {
+  '/admin/users': 'clientes usuarios empleados customers clients accounts',
+  '/admin/memberships': 'membresias suscripciones planes subscriptions abonnements',
+  '/admin/payments': 'pagos cobros stripe finanzas facturacion payments paiements',
+  '/admin/sentinel-issues': 'incidencias alertas errores fallos issues alerts incidents',
+  '/admin/data-center': 'apis proveedores sincronizacion consumo cuota providers donnees',
+  '/admin/final-release': 'version produccion despliegue render release deployment',
+  '/admin/backups': 'respaldo copia recuperacion restauracion recovery sauvegarde',
+  '/admin/operations-center': 'operaciones jornada tareas pendientes operations',
+  '/admin/founder-os': 'fundador propietario owner empresa founder'
+} %}
+
 {% set ADMIN_MOBILE_LINKS = [
   ('Panel','/admin/dashboard','dashboard'),
   ('Telegram','/admin/telegram/command-center','telegram'),
