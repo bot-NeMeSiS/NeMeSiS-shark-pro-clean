@@ -1,7 +1,8 @@
 """Read-only tipster KPIs from the latest auditable pick results.
 
 The sample is refused when any decided pick lacks a complete, consistent
-settlement. Pending and void picks are excluded from the ROI denominator.
+settlement, including terminal picks with no grading row. Pending picks and
+confirmed voids are excluded from the ROI denominator.
 """
 from __future__ import annotations
 
@@ -10,30 +11,42 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from engines.pick_grading_engine import LATEST_ELIGIBLE_GRADING_CTE
+from engines.pick_grading_engine import LATEST_GRADING_CTE
 
 CONTRACT = "TIPSTER_AUDITED_METRICS_V1"
 _MONEY_VALID = """
-    auto_validated=1
-    AND typeof(odds) IN ('integer','real') AND odds>1 AND odds<1000000
-    AND typeof(stake) IN ('integer','real') AND stake>0 AND stake<100000000
-    AND typeof(profit) IN ('integer','real') AND abs(profit)<10000000000
+    g.auto_validated=1
+    AND NULLIF(TRIM(COALESCE(g.graded_at,'')), '') IS NOT NULL
+    AND typeof(g.odds) IN ('integer','real') AND g.odds>1 AND g.odds<1000000
+    AND typeof(g.stake) IN ('integer','real') AND g.stake>0 AND g.stake<100000000
+    AND typeof(g.profit) IN ('integer','real') AND abs(g.profit)<10000000000
     AND (
-        (result_status='won' AND abs(profit-ROUND((odds-1)*stake,2))<=0.015)
-        OR (result_status='lost' AND abs(profit+stake)<=0.015)
+        (g.result_status='won' AND abs(g.profit-ROUND((g.odds-1)*g.stake,2))<=0.015)
+        OR (g.result_status='lost' AND abs(g.profit+g.stake)<=0.015)
+    )
+    AND (
+        lower(trim(COALESCE(p.status,''))) IN ('published','pending','publicado','pendiente')
+        OR (lower(trim(COALESCE(p.status,''))) IN ('won','ganado') AND g.result_status='won')
+        OR (lower(trim(COALESCE(p.status,''))) IN ('lost','perdido') AND g.result_status='lost')
     )
 """
-_QUERY = LATEST_ELIGIBLE_GRADING_CTE + f"""
+_QUERY = LATEST_GRADING_CTE + f"""
 SELECT
     COUNT(*) AS decided_count,
     COALESCE(SUM(CASE WHEN {_MONEY_VALID} THEN 1 ELSE 0 END),0) AS certified_count,
-    COALESCE(SUM(CASE WHEN {_MONEY_VALID} THEN stake ELSE 0 END),0) AS settled_stake,
-    COALESCE(SUM(CASE WHEN {_MONEY_VALID} THEN profit ELSE 0 END),0) AS settled_profit,
-    COALESCE(SUM(CASE WHEN result_status='won' THEN 1 ELSE 0 END),0) AS won_count
-FROM eligible_grades
-WHERE result_status IN ('won','lost')
+    COALESCE(SUM(CASE WHEN {_MONEY_VALID} THEN g.stake ELSE 0 END),0) AS settled_stake,
+    COALESCE(SUM(CASE WHEN {_MONEY_VALID} THEN g.profit ELSE 0 END),0) AS settled_profit,
+    COALESCE(SUM(CASE WHEN g.result_status='won' THEN 1 ELSE 0 END),0) AS won_count
+FROM picks p
+LEFT JOIN latest_grades g ON g.pick_id=p.id
+WHERE lower(trim(COALESCE(p.status,''))) IN (
+    'published','pending','won','lost','void','publicado','pendiente','ganado','perdido','nulo'
+)
+AND (
+    g.result_status IN ('won','lost')
+    OR lower(trim(COALESCE(p.status,''))) IN ('won','lost','ganado','perdido')
+)
 """
-
 
 def _unknown(state: str) -> dict[str, Any]:
     return {
@@ -50,7 +63,7 @@ def _unknown(state: str) -> dict[str, Any]:
 
 
 def audited_tipster_kpis(db_path: str) -> dict[str, Any]:
-    """Return metrics only when the full decided cohort is certified."""
+    """Return internally consistent metrics without dropping ungraded terminal picks."""
     try:
         path = Path(db_path).expanduser().resolve()
         if not path.is_file():

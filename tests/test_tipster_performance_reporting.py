@@ -33,3 +33,9 @@ def test_recorded_zero_is_distinct_from_missing():
 def test_recorded_negative_roi_remains_visible():
     html = _render({"published": 10, "winrate": 40, "roi": -8.75})
     assert "ROI</span><strong>-8.75%" in html
+
+def test_tipster_roi_copy_does_not_claim_real_wagers():
+    html = _render({"published": 2, "winrate": 50, "roi": 0})
+    assert "no acredita apuestas efectivamente realizadas" in html
+    assert "no garantiza rentabilidad futura" in html
+    assert "realmente arriesgadas" not in html

@@ -14,10 +14,11 @@
 </section>
 {% if data.tipster_kpis is defined %}
 <p class="muted" data-tipster-evidence="{{ data.tipster_kpis.state }}">
-  Liquidaciones verificadas: {{ data.tipster_kpis.certified_count }} / {{ data.tipster_kpis.decided_count }} decisiones.
-  {% if data.tipster_kpis.roi is none %}No se publica ROI con datos incompletos.{% else %}ROI sobre {{ data.tipster_kpis.stake_units }} unidades realmente arriesgadas, sin pendientes ni anulados.{% endif %}
+  Evaluaciones automáticas coherentes: {{ data.tipster_kpis.certified_count }} / {{ data.tipster_kpis.decided_count }} decisiones.
+  {% if data.tipster_kpis.roi is none %}No se publica ROI con datos incompletos.{% else %}ROI calculado sobre {{ data.tipster_kpis.stake_units }} unidades de stake registradas, sin pendientes ni anulados.{% endif %}
 </p>
 {% endif %}
+<p class="muted tipster-kpi-disclaimer">El ROI es un cálculo interno sobre las cuotas y los stakes registrados; no acredita apuestas efectivamente realizadas ni garantiza rentabilidad futura.</p>
 
 <section class="card">
   <h2>Picks más seguidos</h2>

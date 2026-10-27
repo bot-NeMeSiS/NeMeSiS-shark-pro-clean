@@ -98,3 +98,58 @@ def test_corrupt_numeric_fields_are_not_silently_coerced(tmp_path):
     result = audited_tipster_kpis(str(path))
     assert result["roi"] is None
     assert result["state"] == "INCOMPLETE_SETTLEMENT_EVIDENCE"
+
+def test_decided_pick_without_grade_blocks_the_roi_cohort(tmp_path):
+    path = tmp_path / "ungraded-loss.sqlite"
+    _db(path, [("win", "won"), ("lost", "lost")], [
+        _grade("w", "win", "won", 2.0, 1.0, 1.0),
+    ])
+    result = audited_tipster_kpis(str(path))
+    assert result["state"] == "INCOMPLETE_SETTLEMENT_EVIDENCE"
+    assert result["decided_count"] == 2
+    assert result["certified_count"] == 1
+    assert result["roi"] is None
+    assert result["winrate"] is None
+
+
+def test_terminal_status_disagreement_is_not_automatically_certified(tmp_path):
+    path = tmp_path / "contradictory.sqlite"
+    _db(path, [("pick", "perdido")], [
+        _grade("graded", "pick", "won", 2.0, 1.0, 1.0),
+    ])
+    result = audited_tipster_kpis(str(path))
+    assert result["decided_count"] == 1
+    assert result["certified_count"] == 0
+    assert result["roi"] is None
+
+
+def test_voided_pick_with_stale_win_grade_does_not_inflate_roi(tmp_path):
+    path = tmp_path / "voided.sqlite"
+    _db(path, [("pick", "void")], [
+        _grade("outdated", "pick", "won", 2.0, 1.0, 1.0),
+    ])
+    result = audited_tipster_kpis(str(path))
+    assert result["state"] == "INCOMPLETE_SETTLEMENT_EVIDENCE"
+    assert result["roi"] is None
+
+
+def test_grade_without_timestamp_cannot_certify_history(tmp_path):
+    path = tmp_path / "undated.sqlite"
+    _db(path, [("pick", "won")], [
+        _grade("undated", "pick", "won", 2.0, 1.0, 1.0, when=None),
+    ])
+    result = audited_tipster_kpis(str(path))
+    assert result["decided_count"] == 1
+    assert result["certified_count"] == 0
+    assert result["roi"] is None
+
+
+def test_pending_pick_without_grade_does_not_block_settled_cohort(tmp_path):
+    path = tmp_path / "pending.sqlite"
+    _db(path, [("pick", "won"), ("other", "pending")], [
+        _grade("settled", "pick", "won", 2.0, 1.0, 1.0),
+    ])
+    result = audited_tipster_kpis(str(path))
+    assert result["state"] == "CERTIFIED_SETTLEMENT_SAMPLE"
+    assert result["decided_count"] == result["certified_count"] == 1
+    assert result["roi"] == 100.0
