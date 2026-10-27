@@ -25,7 +25,7 @@ from functools import lru_cache, wraps
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
-from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for, before_render_template
+from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for, before_render_template, flash
 from werkzeug.security import check_password_hash, generate_password_hash
 from contextvars import ContextVar as _V991ContextVar
 from engines.closed_operation_timing import operation as timed_operation, phase as timed_phase
@@ -38974,6 +38974,23 @@ def go_to_market_office_snapshot():
     }
 
 
+def _founder_obligation_response(*, snapshot=None, obligation_form=None,
+                                 obligation_error=None, billing_error=None,
+                                 new_obligation=False, status=200):
+    # Failed drafts stay in this response, never in the redirect or session.
+    response = render_template(
+        "admin_founder_os.html",
+        data={"session_user": current_session_user()},
+        founder_os=snapshot if snapshot is not None else founder_os_snapshot(DB_PATH, read_only=True),
+        obligation_form=obligation_form or {},
+        obligation_error=obligation_error,
+        billing_error=billing_error,
+        new_obligation=new_obligation,
+        title="NeMeSiS Founder OS",
+    )
+    return response if status == 200 else (response, status)
+
+
 @app.route("/admin/founder-os")
 @app.route("/admin/founder-control")
 @app.route("/admin/company-control-center")
@@ -38981,12 +38998,20 @@ def go_to_market_office_snapshot():
 def admin_founder_os_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/founder-os")
-    return render_template(
-        "admin_founder_os.html",
-        data={"session_user": current_session_user()},
-        founder_os=founder_os_snapshot(DB_PATH, read_only=True),
-        title="NeMeSiS Founder OS",
-    )
+    snapshot = founder_os_snapshot(DB_PATH, read_only=True)
+    new_obligation = request.args.get("new") == "1"
+    edit_id = str(request.args.get("edit") or "").strip()
+    obligation_form = None
+    if edit_id and not new_obligation:
+        if not snapshot.get("available", False):
+            return _founder_obligation_response(snapshot=snapshot, status=503)
+        obligation_form = next((item for item in (snapshot.get("obligations", {}).get("items") or [])
+                                if item.get("id") == edit_id), None)
+        if obligation_form is None:
+            return _founder_obligation_response(snapshot=snapshot,
+                billing_error="Obligación no encontrada. Actualiza la lista antes de editar.", status=404)
+    return _founder_obligation_response(snapshot=snapshot, obligation_form=obligation_form,
+                                       new_obligation=new_obligation)
 
 
 @app.route("/api/admin/founder-os")
@@ -39002,31 +39027,39 @@ def api_admin_founder_os():
 def admin_founder_os_save_obligation():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/founder-os")
+    payload = request.form.to_dict(flat=True)
+    fields = ("id", "provider_key", "label", "plan", "amount", "currency", "cadence",
+              "due_date", "payment_status", "notes")
+    draft = {name: payload.get(name, "") for name in fields}
+    draft["auto_renew"] = str(payload.get("auto_renew") or "").lower() in {"1", "true", "yes", "on"}
     try:
-        founder_save_obligation(
-            DB_PATH,
-            request.form.to_dict(flat=True),
-            actor=session.get("user_name") or "admin",
-        )
-        return redirect("/admin/founder-os?billing=saved#billing")
+        result = founder_save_obligation(DB_PATH, payload, actor=session.get("user_name") or "admin")
     except ValueError as exc:
-        return redirect(
-            "/admin/founder-os?billing=error&reason="
-            + urllib.parse.quote(str(exc))
-            + "#billing"
-        )
+        message = str(exc)
+        if message not in {"La obligación necesita un nombre.", "La fecha de vencimiento no es válida."}:
+            message = "No se pudo guardar la obligación. Revisa los campos e inténtalo de nuevo."
+        return _founder_obligation_response(obligation_form=draft, obligation_error=message, status=422)
+    if not result.get("ok"):
+        return _founder_obligation_response(obligation_form=draft,
+            obligation_error="No se confirmó el guardado. Revisa la lista antes de repetir.", status=409)
+    flash("Obligación guardada.", "founder-billing")
+    return redirect("/admin/founder-os#billing")
 
 
 @app.route("/admin/founder-os/obligations/<obligation_id>/paid", methods=["POST"])
 def admin_founder_os_mark_paid(obligation_id):
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/founder-os")
-    founder_mark_obligation_paid(
+    result = founder_mark_obligation_paid(
         DB_PATH,
         obligation_id,
         actor=session.get("user_name") or "admin",
     )
-    return redirect("/admin/founder-os?billing=paid#billing")
+    if not result.get("ok"):
+        return _founder_obligation_response(
+            billing_error="No se confirmó el cambio. La obligación no existe o ya no está activa.", status=409)
+    flash("Obligación marcada como pagada.", "founder-billing")
+    return redirect("/admin/founder-os#billing")
 
 
 @app.route("/admin/founder-os/alerts/<alert_id>/ack", methods=["POST"])

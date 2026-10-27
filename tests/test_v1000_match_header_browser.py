@@ -9,13 +9,12 @@ import os
 from pathlib import Path
 import sqlite3
 import sys
-import threading
 from urllib.parse import quote
 
 import pytest
 from playwright.sync_api import sync_playwright
-from werkzeug.serving import make_server
 
+from browser_http_server import owned_http_server
 from browser_surface_readability import assert_surface_legible
 
 
@@ -56,15 +55,8 @@ def fixture_server(monkeypatch, tmp_path):
                 "match_date": kickoff.date().isoformat(), "kickoff_iso": kickoff.isoformat(), "kickoff_time": "20:00",
                 "status": status, "home_score": hs, "away_score": aws, "score": "2-1" if status == "FT" else "",
                 "source": "SIMULATED_QA", "updated_at": now.isoformat(), "raw_json": json.dumps({"evidence_origin": "SIMULATED_QA"})})
-    server = make_server("127.0.0.1", 0, a.app, threaded=True)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
+    with owned_http_server(a.app) as server:
         yield a, database, f"http://127.0.0.1:{server.server_port}", scenarios
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=5)
 
 
 @pytest.mark.parametrize("width,height", [(320, 720), (390, 844), (834, 1112), (1440, 960)])

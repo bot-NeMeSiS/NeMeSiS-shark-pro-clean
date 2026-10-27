@@ -94,3 +94,6 @@
 .founder-os-mobile-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));z-index:80;border:1px solid var(--fo-line);border-radius:var(--v933-radius);background:var(--ns-surface-glass);backdrop-filter:var(--ns-chrome-blur);-webkit-backdrop-filter:var(--ns-chrome-blur);overflow:hidden}
 .founder-os-mobile-nav a{min-height:48px;display:flex;flex-direction:column;align-items:center;padding:9px 3px;color:var(--fo-muted);text-decoration:none;font-size:.65rem}
 .founder-os-mobile-nav span{color:var(--fo-cyan);font-weight:900}}
+
+/* Native hidden state takes priority over shared button display styles. */
+.founder-os [data-obligation-reset][hidden]{display:none!important}

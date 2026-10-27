@@ -10,10 +10,11 @@ from html.parser import HTMLParser
 import os
 from pathlib import Path
 import sqlite3
-import threading
 from urllib.parse import urlsplit
 
 import pytest
+
+from browser_http_server import owned_http_server
 
 ROOT = Path(__file__).resolve().parents[1]
 DESTINATIONS = (
@@ -274,17 +275,9 @@ def test_actual_account_combi_entry_localizes_without_changing_client_access(
 
 @pytest.fixture
 def actual_http(actual_admin):
-    from werkzeug.serving import make_server
     module, client, path, cookie_name, cookie = actual_admin
-    server = make_server("127.0.0.1", 0, module.app, threaded=True)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
+    with owned_http_server(module.app) as server:
         yield f"http://127.0.0.1:{server.server_port}", cookie_name, cookie, path
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=5)
 
 
 @pytest.mark.parametrize("width", [320, 390, 1440])

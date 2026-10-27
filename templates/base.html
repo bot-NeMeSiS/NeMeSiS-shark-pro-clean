@@ -59,13 +59,11 @@
   {% endif %}
   <script defer src="{{ url_for('static', filename='app-navigation.js') }}?v=3-intent"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='sports-search.css') }}?v=1-surfaces-1">
-  <script defer src="{{ url_for('static', filename='sports-search.js') }}?v=2"></script>
+  <script defer src="{{ url_for('static', filename='sports-search.js') }}?v=3-pointer-activation"></script>
   <script defer src="{{ url_for('static', filename='v934-realtime.js') }}?v={{ app_version }}-client-core-2-directo-inplace-1-feedback-2" data-v934-realtime-version="{{ app_version }}"></script>
   {% if _founder_page %}
-  {% if request.path in ['/admin/founder-os','/admin/founder-control','/admin/company-control-center','/admin/founder-mobile'] %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='founder-os.css') }}?v={{ app_version }}-core-founder-2-surfaces-1">
-  {% endif %}
-  <script defer src="{{ url_for('static', filename='founder-os.js') }}?v={{ app_version }}"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='founder-os.css') }}?v={{ app_version }}-core-founder-2-surfaces-1-obligations-1">
+  <script defer src="{{ url_for('static', filename='founder-os.js') }}?v={{ app_version }}-obligations-1"></script>
   {% endif %}
   <link rel="stylesheet" href="{{ url_for('static', filename='v1000-client-refinement.css') }}?v={{ app_version }}">
   {% if request.path.startswith('/admin') and request.path != '/admin-login' %}<link rel="stylesheet" href="{{ url_for('static', filename='v1000-admin-navigation.css') }}?v={{ app_version }}-keyboard-scroll-1">{% endif %}
@@ -203,27 +201,42 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
   </script>
   <script>
   (function(){
+    const pendingFavorites=new Set();
+    function relatedButtons(payload){
+      return [...document.querySelectorAll('.fav-star')].filter(button=>
+        (button.dataset.kind||'match')===payload.kind && (button.dataset.value||'')===payload.value);
+    }
     async function toggle(btn){
       const active=btn.classList.contains('active');
       const payload={kind:btn.dataset.kind||'match',value:btn.dataset.value||'',label:btn.dataset.label||''};
-      if(!payload.value) return;
-      btn.disabled=true;
+      const key=JSON.stringify([payload.kind,payload.value]);
+      if(!payload.value || btn.disabled || pendingFavorites.has(key)) return;
+      pendingFavorites.add(key);
+      const disabledBefore=new Map(relatedButtons(payload).map(button=>[button,button.disabled]));
+      disabledBefore.forEach((_disabled,button)=>{button.disabled=true;});
       try{
         const res=await fetch('/api/favorites',{method: active ? 'DELETE' : 'POST',headers:window.nemesisJsonHeaders(),body:JSON.stringify(payload)});
         const data=await res.json().catch(()=>({ok:false}));
         if(res.ok && data.ok===true){
           const nextActive=!active;
-          btn.classList.toggle('active',nextActive);
-          btn.setAttribute('aria-pressed',nextActive.toString());
-          const nextLabel=nextActive ? btn.dataset.labelRemove : btn.dataset.labelAdd;
-          if(nextLabel) btn.title=nextLabel;
+          // A match can appear in the highlight and in several collections.
+          // Re-read the DOM so copies inserted during the request also agree.
+          relatedButtons(payload).forEach(btn=>{
+            btn.classList.toggle('active',nextActive);
+            btn.setAttribute('aria-pressed',nextActive.toString());
+            const nextLabel=nextActive ? btn.dataset.labelRemove : btn.dataset.labelAdd;
+            if(nextLabel) btn.title=nextLabel;
+          });
           if(window.nsToast) window.nsToast(nextActive ? btn.dataset.messageAdded : btn.dataset.messageRemoved,'success');
         }else if(window.nsToast){
           window.nsToast(btn.dataset.messageError,'error');
         }
       }catch(e){
         if(window.nsToast) window.nsToast(btn.dataset.messageError,'error');
-      }finally{btn.disabled=false;}
+      }finally{
+        disabledBefore.forEach((disabled,button)=>{button.disabled=disabled;});
+        pendingFavorites.delete(key);
+      }
     }
     document.addEventListener('click',function(e){
       const btn=e.target.closest&&e.target.closest('.fav-star');

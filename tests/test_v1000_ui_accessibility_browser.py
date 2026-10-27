@@ -10,13 +10,13 @@ import os
 import secrets
 import sqlite3
 import sys
-import threading
 from urllib.parse import urlsplit
 
 import pytest
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 from werkzeug.security import generate_password_hash
 
+from browser_http_server import owned_http_server
 from browser_surface_readability import assert_surface_legible, observe_surface
 
 from test_v1000_actual_admin_navigation import (
@@ -60,7 +60,6 @@ def actual_client(actual_admin, expected_identity):
 
 @pytest.fixture
 def actual_http(actual_admin, expected_identity):
-    from werkzeug.serving import make_server
     module, _client, path, cookie_name, cookie = actual_admin
     documents = []
 
@@ -78,15 +77,8 @@ def actual_http(actual_admin, expected_identity):
             return start_response(status, headers, exc_info)
         return module.app(environ, capture_language)
 
-    server = make_server("127.0.0.1", 0, observe_document, threaded=True)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
+    with owned_http_server(observe_document) as server:
         yield f"http://127.0.0.1:{server.server_port}", cookie_name, cookie, path, documents
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=5)
 
 
 def _context(playwright, base, width, cookie_name, cookie):
@@ -181,6 +173,114 @@ def test_founder_keyboard_focus_is_unobstructed(actual_http, tmp_path, width):
             browser.close()
 
 
+def _observe_navigation_events(context):
+    """Passive geometry/events only; never capture text, input values or tokens."""
+    context.add_init_script("""(() => {
+      const events = window.__ownedNavigationEvents = [];
+      const rectangle = element => {
+        if (!element) return null;
+        const r = element.getBoundingClientRect();
+        return {x:r.x,y:r.y,width:r.width,height:r.height};
+      };
+      const identify = node => {
+        const element = node?.nodeType === 1 ? node : node?.parentElement;
+        if (!element) return null;
+        const anchor = element.closest('a[href]');
+        return {tag:element.tagName.toLowerCase(),id:element.id,
+          classes:(element.getAttribute('class') || '').slice(0,180),
+          href:anchor ? new URL(anchor.href,location.href).pathname : null};
+      };
+      const state = () => {
+        const dialog = document.getElementById('app-navigation-dialog');
+        const panel = document.getElementById('explore-dialog-sports');
+        return {explorerOpen:Boolean(dialog?.open),
+          assistantOpen:Boolean(document.getElementById('ns-assistant-dialog')?.open),
+          suggestionsHidden:panel ? panel.hidden : null,
+          sharkLink:rectangle(dialog?.querySelector('[data-ns-assistant-restore]')),
+          suggestions:rectangle(panel),focused:identify(document.activeElement)};
+      };
+      const record = value => {
+        events.push({at:performance.now(),...value,...state()});
+        if (events.length > 500) events.shift();
+      };
+      for (const type of ['pointerdown','mousedown','pointerup','mouseup','click','auxclick',
+                          'focusin','focusout','close','cancel']) {
+        for (const capture of [true,false]) {
+          window.addEventListener(type,event => {
+            record({type,phase:capture ? 'capture' : 'bubble',target:identify(event.target),
+              button:event.button,ctrl:event.ctrlKey,meta:event.metaKey,shift:event.shiftKey,
+              alt:event.altKey,defaultPrevented:event.defaultPrevented,trusted:event.isTrusted,
+              x:event.clientX,y:event.clientY,
+              hit:typeof event.clientX === 'number' ? identify(document.elementFromPoint(event.clientX,event.clientY)) : null});
+          },{capture,passive:true});
+        }
+      }
+      document.addEventListener('DOMContentLoaded',() => {
+        const dialog = document.getElementById('app-navigation-dialog');
+        if (!dialog) return;
+        new MutationObserver(changes => record({type:'explorer-dom-change',changes:changes.slice(0,12).map(change =>
+          ({type:change.type,attribute:change.attributeName,target:identify(change.target)}))
+        })).observe(dialog,{subtree:true,childList:true,attributes:true,attributeFilter:['hidden','open']});
+      },{once:true});
+    })();""")
+
+
+def test_visible_explorer_suggestions_preserve_native_pointer_activation(actual_http, actual_client, tmp_path):
+    base, _name, _cookie, _path, documents = actual_http
+    name, cookie = actual_client
+    with sync_playwright() as pw:
+        browser, context, requests, external, errors = _context(pw, base, 1440, name, cookie)
+        _observe_navigation_events(context)
+        page = context.new_page()
+        try:
+            response = page.goto(base + "/mi-cuenta", wait_until="domcontentloaded")
+            page.wait_for_function("Boolean(window.NemesisNavigation)")
+            assert response.status == 200
+            page.keyboard.press("Control+k")
+            page.locator("#explore-dialog-query").fill("SHARK")
+            panel = page.locator("#explore-dialog-sports")
+            expect(panel).to_be_visible()
+            expect(panel).to_contain_text("Sin coincidencias")
+            link = page.locator("#app-navigation-dialog [data-ns-assistant-restore]")
+            assert link.get_attribute("href") == "/shark"
+            box = link.bounding_box()
+            page.evaluate("window.__ownedNavigationEvents.length = 0")
+            with context.expect_page(timeout=10000) as opened:
+                page.keyboard.down("Control")
+                page.mouse.move(box["x"] + box["width"]/2, box["y"] + box["height"]/2)
+                page.mouse.down()
+                # Run the queued blur callback during a held native gesture,
+                # without replacing the clock or sleeping for an arbitrary time.
+                page.evaluate("() => new Promise(resolve => setTimeout(resolve,0))")
+                page.mouse.up()
+                page.keyboard.up("Control")
+                events = page.evaluate("window.__ownedNavigationEvents")
+                captures = [event for event in events if event.get("phase") == "capture"]
+                assert [event["target"]["href"] for event in captures if event["type"] in {
+                    "pointerdown", "pointerup", "click"}] == ["/shark"]*3, events
+                assert [event["sharkLink"] for event in captures if event["type"] in {
+                    "pointerdown", "pointerup"}] == [box, box], events
+            popup = opened.value
+            popup.wait_for_url(base + "/shark", wait_until="domcontentloaded")
+            assert popup.url == base + "/shark"
+            assert page.url == base + "/mi-cuenta"
+            assert popup.locator("html").get_attribute("lang") == "es"
+            expect(popup.locator('[data-v933-template="shark"]')).to_be_visible()
+            _assert_spanish_documents(documents, ["/mi-cuenta", "/shark"])
+            assert not page.locator("#ns-assistant-dialog").is_visible()
+            assert not external and not errors, (external, errors)
+            assert not any(path == "/api/shark/ask" for _method, path in requests), requests
+            assert all(method == "GET" or path == "/api/growth/funnel-event" for method, path in requests), requests
+        finally:
+            diagnostic = {"events": page.evaluate("window.__ownedNavigationEvents || []"),
+                "pages": [{"scheme": urlsplit(item.url).scheme, "host": urlsplit(item.url).netloc,
+                    "path": urlsplit(item.url).path} for item in context.pages],
+                "requests": requests, "page_errors": errors, "external": external, "documents": documents}
+            (tmp_path / "explorer-pointer-activation.json").write_text(json.dumps(diagnostic, indent=2), encoding="utf-8")
+            context.close()
+            browser.close()
+
+
 @pytest.mark.parametrize("source", ["launcher", "explorer"])
 @pytest.mark.parametrize("modifier", ["Control", "Meta", "Shift"])
 def test_shark_modified_click_preserves_native_navigation(actual_http, actual_client, tmp_path, source, modifier):
@@ -188,6 +288,7 @@ def test_shark_modified_click_preserves_native_navigation(actual_http, actual_cl
     name, cookie = actual_client
     with sync_playwright() as pw:
         browser, context, requests, external, errors = _context(pw, base, 1440, name, cookie)
+        _observe_navigation_events(context)
         try:
             page = context.new_page()
             response = page.goto(base + "/mi-cuenta", wait_until="domcontentloaded")
@@ -236,6 +337,11 @@ def test_shark_modified_click_preserves_native_navigation(actual_http, actual_cl
                 state = {"source": source, "modifier": modifier, "pages": [p.url for p in context.pages],
                          "assistant_open": page.locator("#ns-assistant-dialog").is_visible()}
                 (tmp_path / f"shark-modified-{source}-{modifier}.json").write_text(json.dumps(state, indent=2), encoding="utf-8")
+                diagnostic = {"source": source, "modifier": modifier,
+                    "events": page.evaluate("window.__ownedNavigationEvents || []"),
+                    "requests": requests, "page_errors": errors, "external": external,
+                    "documents": documents}
+                (tmp_path / f"shark-events-{source}-{modifier}.json").write_text(json.dumps(diagnostic, indent=2), encoding="utf-8")
                 page.screenshot(path=str(tmp_path / f"shark-modified-{source}-{modifier}.png"))
             assert not external and not errors, (external, errors)
             assert not any(path == "/api/shark/ask" for _method, path in requests), requests

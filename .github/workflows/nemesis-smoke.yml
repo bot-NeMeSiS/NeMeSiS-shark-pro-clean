@@ -119,6 +119,7 @@ jobs:
             --ignore=tests/test_v1000_actual_admin_navigation.py
             --ignore=tests/test_v1000_home_motion_browser.py
             --ignore=tests/test_v1000_ui_accessibility_browser.py
+            --ignore=tests/test_founder_obligation_journey.py
             --ignore=tests/test_project_control_http.py
             --ignore=tests/test_sentinel_jobs_http.py
             --ignore=tests/test_sentinel_operational_browser.py
@@ -175,7 +176,8 @@ jobs:
             tests/test_v1000_auth_layout_browser.py \
             tests/test_v1000_actual_admin_navigation.py \
             tests/test_v1000_home_motion_browser.py \
-            tests/test_v1000_ui_accessibility_browser.py
+            tests/test_v1000_ui_accessibility_browser.py \
+            tests/test_founder_obligation_journey.py
           do
             python tools/check_local_candidate.py "$test_file"
           done

@@ -11,13 +11,13 @@ from pathlib import Path
 import secrets
 import sqlite3
 import sys
-import threading
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from playwright.sync_api import sync_playwright
 from werkzeug.security import generate_password_hash
-from werkzeug.serving import make_server
+
+from browser_http_server import owned_http_server
 
 
 @pytest.fixture
@@ -44,15 +44,23 @@ def auth_server(monkeypatch, tmp_path):
                 (id,name,username,email,password_hash,role,membership,membership_source,created_at)
                 VALUES(?,?,?,?,?,?,?,?,?)""", (ident, "Owned synthetic " + mode, ident, email,
                 generate_password_hash(password), role, role, "LOCAL_SAFE_QA", datetime.now(timezone.utc).isoformat()))
-    server = make_server("127.0.0.1", 0, a.app, threaded=True)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    try:
-        yield a, database, f"http://127.0.0.1:{server.server_port}", users, password
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=5)
+    auth_responses = []
+
+    def observe_auth_response(environ, start_response):
+        def capture(status, headers, exc_info=None):
+            if environ.get("REQUEST_METHOD") == "POST" and environ.get("PATH_INFO") in {
+                    "/cliente-login", "/admin-login"}:
+                location = next((value for name, value in headers if name.lower() == "location"), "")
+                auth_responses.append({
+                    "method": "POST", "route": environ["PATH_INFO"],
+                    "status": int(status.split(" ", 1)[0]),
+                    "location": urlsplit(location).path,
+                })
+            return start_response(status, headers, exc_info)
+        return a.app(environ, capture)
+
+    with owned_http_server(observe_auth_response) as server:
+        yield a, database, f"http://127.0.0.1:{server.server_port}", users, password, auth_responses
 
 
 def _inspect(page):
@@ -79,7 +87,7 @@ def _inspect(page):
 @pytest.mark.parametrize("mode", ["client", "admin"])
 @pytest.mark.parametrize("width,height", [(320, 800), (390, 844), (834, 1112), (1440, 1000)])
 def test_real_login_layout_preserves_password_csrf_session_and_safe_return(auth_server, tmp_path, mode, width, height):
-    a, _database, origin, users, password = auth_server
+    a, _database, origin, users, password, auth_responses = auth_server
     route = "/cliente-login" if mode == "client" else "/admin-login"
     destination = "/favoritos" if mode == "client" else "/admin/control-center"
     capture_only = os.environ.get("NEMESIS_AUTH_CAPTURE_BASELINE") == "1"
@@ -164,7 +172,17 @@ def test_real_login_layout_preserves_password_csrf_session_and_safe_return(auth_
             page.locator('.auth-card input[name="password"]').fill(password)
             page.locator('.auth-card input[name="password"]').focus()
             assert page.locator('.auth-card input[name="password"]').evaluate("e=>document.activeElement===e")
-            page.locator('.auth-card button[type="submit"]').click()
+            before_submit = len(auth_responses)
+            with page.expect_response(lambda reply: reply.request.method == "POST"
+                                      and reply.url.split("?", 1)[0] == origin + route):
+                page.locator('.auth-card button[type="submit"]').click()
+            # Observe the original WSGI response before browser redirect
+            # handling; do not record form bodies, cookies or query strings.
+            submitted = auth_responses[before_submit:]
+            assert len(submitted) == 1, submitted
+            login_response = {"phase": "valid-password-response", **submitted[0]}
+            observations.append(login_response)
+            assert login_response["status"] == 302, login_response
             # Authenticated sports views can keep polling. Their native HTML
             # readiness, not an absence of all network traffic, proves return.
             page.wait_for_url(origin + destination, wait_until="domcontentloaded")
@@ -178,15 +196,17 @@ def test_real_login_layout_preserves_password_csrf_session_and_safe_return(auth_
             assert not external, external
             assert not page_errors, page_errors
             assert not http_errors, http_errors
-            (tmp_path / f"auth-{mode}-{width}.json").write_text(json.dumps(observations, ensure_ascii=False, indent=2), encoding="utf-8")
         finally:
-            cdp.detach()
-            context.close()
-            browser.close()
+            try:
+                (tmp_path / f"auth-{mode}-{width}.json").write_text(json.dumps(observations, ensure_ascii=False, indent=2), encoding="utf-8")
+            finally:
+                cdp.detach()
+                context.close()
+                browser.close()
 
 
 def test_real_selected_plan_keeps_existing_registration_and_return_fields(auth_server):
-    a, _database, _origin, _users, _password = auth_server
+    a, _database, _origin, _users, _password, _auth_responses = auth_server
     client = a.app.test_client()
     response = client.get("/cliente-login?plan=ELITE&next=/favoritos", base_url="http://127.0.0.1")
     assert response.status_code == 200

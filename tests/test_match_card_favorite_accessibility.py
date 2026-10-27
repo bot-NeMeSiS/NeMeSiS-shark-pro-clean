@@ -61,4 +61,4 @@ def test_favorite_toggle_updates_state_and_feedback_only_after_success():
     assert "if(nextLabel) btn.title=nextLabel;" in source
     assert "window.nsToast(nextActive ? btn.dataset.messageAdded : btn.dataset.messageRemoved,'success');" in source
     assert "window.nsToast(btn.dataset.messageError,'error');" in source
-    assert "finally{btn.disabled=false;}" in source
+    assert "disabledBefore.forEach((disabled,button)=>{button.disabled=disabled;});" in source
