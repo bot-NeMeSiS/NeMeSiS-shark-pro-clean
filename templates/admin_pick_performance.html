@@ -12,6 +12,12 @@
   <article class="card stat-card"><span>Winrate</span><strong>{% if stats.winrate is defined and stats.winrate is not none %}{{ stats.winrate }}%{% else %}Sin muestra evaluable{% endif %}</strong><small>solo si hay una tasa de acierto registrada</small></article>
   <article class="card stat-card"><span>ROI</span><strong>{% if stats.roi is defined and stats.roi is not none %}{{ stats.roi }}%{% else %}Sin muestra evaluable{% endif %}</strong><small>no se sustituye la ausencia de resultados por un 0 %</small></article>
 </section>
+{% if data.tipster_kpis is defined %}
+<p class="muted" data-tipster-evidence="{{ data.tipster_kpis.state }}">
+  Liquidaciones verificadas: {{ data.tipster_kpis.certified_count }} / {{ data.tipster_kpis.decided_count }} decisiones.
+  {% if data.tipster_kpis.roi is none %}No se publica ROI con datos incompletos.{% else %}ROI sobre {{ data.tipster_kpis.stake_units }} unidades realmente arriesgadas, sin pendientes ni anulados.{% endif %}
+</p>
+{% endif %}
 
 <section class="card">
   <h2>Picks más seguidos</h2>
