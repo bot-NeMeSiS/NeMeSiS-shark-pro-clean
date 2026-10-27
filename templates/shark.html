@@ -2,8 +2,8 @@
 {% from "components/v933_ui.html" import page_header, kpi_card, section_header, quick_action, empty_state, status_chip, action_button, icon, pick_card, sports_contract_attributes %}
 {% from 'components/combi_advice.html' import advice_card %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static',filename='platform-help.css') }}?v=customer-core-2">
-<link rel="stylesheet" href="{{ url_for('static', filename='combinadas.css') }}?v=core-constructor-2">
+<link rel="stylesheet" href="{{ url_for('static',filename='platform-help.css') }}?v=customer-core-2-surfaces-1">
+<link rel="stylesheet" href="{{ url_for('static', filename='combinadas.css') }}?v=core-constructor-2-surfaces-1">
 {% set assistant = data.get('shark_assistant') or {} %}
 {% set answer = assistant.get('answer') or {} %}
 {% set context = assistant.get('context') or {} %}

@@ -16,6 +16,8 @@ import pytest
 from playwright.sync_api import sync_playwright
 from werkzeug.serving import make_server
 
+from browser_surface_readability import assert_surface_legible
+
 
 @pytest.fixture
 def fixture_server(monkeypatch, tmp_path):
@@ -117,7 +119,13 @@ def test_actual_fixture_header_keeps_each_crest_with_its_name_and_score_separate
                 (tmp_path / f"geometry-{width}.json").write_text(json.dumps(observations, ensure_ascii=False, indent=2), encoding="utf-8")
                 assert [team["name"] for team in observation["teams"]] == [home, away]
                 assert observation["scoreLabel"] == ("2-1" if status == "FT" else "VS")
-                assert observation["surface"]["background"] == "rgb(20, 28, 41)", observation["surface"]
+                # The shared marine palette may evolve; the rendered data surface
+                # must stay opaque and its actual names/status remain readable.
+                assert_surface_legible(header, (
+                    '[data-match-side="home"] strong', '[data-match-side="home"] small',
+                    '[data-match-side="away"] strong', '[data-match-side="away"] small',
+                    '.v944-score-widget strong',
+                ))
                 assert observation["surface"]["opacity"] == "1"
                 assert not observation["overflow"]
                 assert all(not team["nameClipped"] for team in observation["teams"])

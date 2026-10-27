@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "components/v933_ui.html" import match_card with context %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='competition-directory.css') }}?v={{ app_version }}-1">
+<link rel="stylesheet" href="{{ url_for('static', filename='competition-directory.css') }}?v={{ app_version }}-1-surfaces-1">
 {% set detail = detail or {} %}
 {% set center = detail.competition_center or {} %}
 {% set competition = center.competition or {} %}

@@ -1,5 +1,29 @@
-/* Canonical brand and compatibility tokens. */
-:root {--bg:var(--v933-bg);--panel:var(--v933-surface);--panel2:var(--v933-surface-2);--line:var(--v933-border);--txt:var(--v933-text);--muted:var(--v933-text-soft);--cyan:var(--v933-cyan);--green:var(--v933-green);--gold:var(--v933-gold);--bad:var(--v933-red);
+/* Canonical brand and compatibility tokens. Surface alpha belongs to chrome
+   and decoration; reading surfaces and their content remain fully opaque. */
+:root {
+  --ns-canvas: #020c18;
+  --ns-surface-panel: #0b1d30;
+  --ns-surface-raised: #112a40;
+  --ns-surface-inset: #061321;
+  --ns-surface-overlay: #0b2034;
+  --ns-surface-chrome: #071523;
+  --ns-surface-glass: rgba(7, 21, 35, .97);
+  --ns-surface-hover: #17364f;
+  --ns-surface-input: #061321;
+  --ns-surface-auth: #071525;
+  --ns-control-border: #5b7c96;
+  --ns-text-muted: #b5c8dc;
+  --ns-text-subtle: #95acc2;
+  --ns-overlay-scrim: rgba(0, 7, 17, .72);
+  --ns-chrome-blur: blur(12px);
+  --ns-scene-ocean-opacity: .58;
+  --ns-scene-mark-opacity: .085;
+  --ns-scene-ocean-admin-opacity: .28;
+  --ns-scene-mark-admin-opacity: .06;
+  --ns-scene-ocean-mobile-opacity: .48;
+  --ns-scene-mark-mobile-opacity: .065;
+  --ns-scene-mark-auth-opacity: .24;
+  --bg:var(--v933-bg);--panel:var(--v933-surface);--panel2:var(--v933-surface-2);--line:var(--v933-border);--txt:var(--v933-text);--muted:var(--v933-text-soft);--cyan:var(--v933-cyan);--green:var(--v933-green);--gold:var(--v933-gold);--bad:var(--v933-red);
   --v724-surface:var(--v933-surface);
   --v724-surface-2:var(--v933-surface-2);
   --v724-border:var(--v933-border);
@@ -72,11 +96,11 @@
   --v796-orange:#ffb84d;
   --v796-gold:var(--v933-gold);
   --v796-panel:var(--v933-surface);
-  --v796-panel-2:rgba(3,10,22,.96);
+  --v796-panel-2:var(--ns-surface-raised);
   --v796-shadow:var(--v933-shadow);--v800-bg:var(--v933-bg);--v800-panel:var(--v933-surface);--v800-panel2:var(--v933-surface-2);--v800-border:var(--v933-border);--v800-cyan:var(--v933-cyan);--v800-blue:#0b75ff;--v800-green:var(--v933-green);--v800-gold:var(--v933-gold);--v800-red:#ff5b7a;--v800-text:var(--v933-text);--v800-muted:var(--v933-text-soft);--v800-shadow:var(--v933-shadow);
   --v806-bg:var(--v933-bg);
   --v806-panel:var(--v933-surface);
-  --v806-panel-2:rgba(9,24,47,.86);
+  --v806-panel-2:var(--ns-surface-raised);
   --v806-line:var(--v933-border);
   --v806-line-strong:rgba(88,196,255,.24);
   --v806-cyan:var(--v933-cyan);
@@ -90,12 +114,12 @@
   --v839-line:var(--v933-border);
   --v839-line-strong:rgba(100,226,255,.36);
   --v839-panel:var(--v933-surface);
-  --v839-panel-strong:rgba(7,22,42,.92);
+  --v839-panel-strong:var(--ns-surface-raised);
   --v839-cyan:var(--v933-cyan);
   --v839-gold:var(--v933-gold);
   --v848-bg:var(--v933-bg);
   --v848-panel:var(--v933-surface);
-  --v848-panel-strong:rgba(7,27,48,.9);
+  --v848-panel-strong:var(--ns-surface-raised);
   --v848-line:var(--v933-border);
   --v848-cyan:var(--v933-cyan);
   --v848-blue:#1d79ff;
@@ -150,11 +174,11 @@
   --v930-topbar: 68px;
   --v930-radius: var(--v933-radius);
   --v930-shadow: var(--v933-shadow);
-  --v933-bg: #080b12;
-  --v933-bg-raised: #101622;
-  --v933-surface: #141c29;
-  --v933-surface-2: #1b2636;
-  --v933-surface-3: #1b2d43;
+  --v933-bg: var(--ns-canvas);
+  --v933-bg-raised: var(--ns-surface-inset);
+  --v933-surface: var(--ns-surface-panel);
+  --v933-surface-2: var(--ns-surface-raised);
+  --v933-surface-3: var(--ns-surface-hover);
   --v933-border: rgba(153, 180, 210, 0.18);
   --v933-border-strong: rgba(31, 168, 255, 0.5);
   --v933-text: #f5f9ff;
@@ -206,16 +230,16 @@
   --product-panel: var(--v933-surface);
   --product-panel-raised: var(--v933-surface-2);
   --v933-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --ns-bg: #031120;
-  --ns-bg-deep: #020c18;
-  --ns-bg-elevated: #10283d;
-  --ns-panel: #0a1b2d;
-  --ns-panel-glass: rgba(5, 22, 42, 0.94);
+  --ns-bg: var(--ns-canvas);
+  --ns-bg-deep: var(--ns-canvas);
+  --ns-bg-elevated: var(--ns-surface-raised);
+  --ns-panel: var(--ns-surface-panel);
+  --ns-panel-glass: var(--ns-surface-glass);
   --ns-border: rgba(105, 176, 221, 0.22);
   --ns-cyan: #69c8ff;
   --ns-blue: #2266df;
   --ns-text: #f3f8ff;
-  --ns-muted: rgba(203, 220, 238, 0.72);
+  --ns-muted: var(--ns-text-muted);
   --ns-positive: #30d48a;
   --ns-warning: #f0c04a;
   --ns-danger: #ff6262;
@@ -232,7 +256,7 @@
   --nsx-bg-1: var(--ns-bg);
   --nsx-bg-2: var(--ns-bg-elevated);
   --nsx-panel: var(--ns-panel);
-  --nsx-panel-strong: rgba(5, 22, 43, .92);
+  --nsx-panel-strong: var(--ns-surface-raised);
   --nsx-line: var(--ns-border);
   --nsx-line-strong: rgba(36, 207, 255, .46);
   --nsx-cyan: var(--ns-cyan);
@@ -244,7 +268,7 @@
   --nsx-gold: var(--ns-elite);
   --nsx-text: var(--ns-text);
   --nsx-muted: var(--ns-muted);
-  --nsx-faint: rgba(165, 185, 210, .58);
+  --nsx-faint: var(--ns-text-subtle);
   --nsx-radius: var(--ns-radius);
   --nsx-radius-sm: 6px;
   --nsx-shadow: var(--ns-shadow);
@@ -262,4 +286,48 @@
   --v937-cyan: var(--v933-cyan); --v937-green: var(--v933-green);
   --v937-shadow: var(--v933-shadow); --v937-radius: var(--v933-radius);
   --v937-content: var(--v933-content)
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :root {
+    --ns-surface-glass: var(--ns-surface-chrome);
+    --ns-chrome-blur: none;
+    --ns-overlay-scrim: rgba(0, 7, 17, .92);
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --ns-border: #7b9cb6;
+    --v933-border: #7b9cb6;
+    --ns-control-border: #b5c8dc;
+    --ns-text-muted: #f3f8ff;
+    --ns-text-subtle: #e2efff;
+    --v933-muted: #e2efff;
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --ns-canvas: Canvas;
+    --ns-surface-panel: Canvas;
+    --ns-surface-raised: Canvas;
+    --ns-surface-inset: Canvas;
+    --ns-surface-overlay: Canvas;
+    --ns-surface-chrome: Canvas;
+    --ns-surface-glass: Canvas;
+    --ns-surface-hover: Canvas;
+    --ns-surface-input: Canvas;
+    --ns-surface-auth: Canvas;
+    --ns-control-border: CanvasText;
+    --ns-border: CanvasText;
+    --v933-border: CanvasText;
+    --ns-text: CanvasText;
+    --ns-text-muted: CanvasText;
+    --ns-text-subtle: CanvasText;
+    --v933-text: CanvasText;
+    --v933-text-soft: CanvasText;
+    --v933-muted: CanvasText;
+    --ns-chrome-blur: none;
+  }
 }
