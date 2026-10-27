@@ -35,6 +35,42 @@
     "Cuando lo necesites": {
       "en": "Whenever you need it",
       "fr": "Quand vous en avez besoin"
+    },
+    "Deporte y contenido": {
+      "en": "Sport and content",
+      "fr": "Sport et contenu"
+    },
+    "Clientes y planes": {
+      "en": "Customers and plans",
+      "fr": "Clients et offres"
+    },
+    "Operación y seguridad": {
+      "en": "Operations and security",
+      "fr": "Opérations et sécurité"
+    },
+    "Sistema": {
+      "en": "System",
+      "fr": "Système"
+    },
+    "Accesos frecuentes": {
+      "en": "Frequently used shortcuts",
+      "fr": "Raccourcis fréquents"
+    },
+    "Frecuentes": {
+      "en": "Frequently used",
+      "fr": "Accès fréquents"
+    },
+    "Explorar todas las secciones": {
+      "en": "Explore all sections",
+      "fr": "Explorer toutes les sections"
+    },
+    "Mis combinadas": {
+      "en": "My accumulators",
+      "fr": "Mes paris combinés"
+    },
+    "Borradores privados y revisión": {
+      "en": "Private drafts and review",
+      "fr": "Brouillons privés et vérification"
     }
   },
   "shark_functional_flow": {

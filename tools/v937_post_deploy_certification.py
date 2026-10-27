@@ -155,6 +155,37 @@ def _sports_probe_evidence(response: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _sports_schema_issues(payload: dict[str, Any]) -> list[str]:
+    """Validate observed field types before counting or coercing remote data.
+
+    This endpoint's full snapshot requires both arrays and both live counters.
+    Missing or malformed evidence cannot become an observed zero or abort QA.
+    Only fixed field names enter the report; remote values are never echoed.
+    """
+    issues: list[str] = []
+    for field in ("matches", "live"):
+        if field not in payload or (
+            not isinstance(payload[field], list)
+            or any(not isinstance(item, dict) for item in payload[field])
+        ):
+            issues.append(field)
+    counts = payload.get("counts")
+    if not isinstance(counts, dict):
+        issues.append("counts")
+    else:
+        for field in ("live", "stale_live"):
+            if field not in counts or type(counts[field]) is not int or counts[field] < 0:
+                issues.append("counts." + field)
+    if "poll_after_seconds" in payload:
+        poll = payload["poll_after_seconds"]
+        if type(poll) is not int or poll < 0:
+            issues.append("poll_after_seconds")
+    for field in ("last_safe_sync", "provider_status"):
+        if field in payload and payload[field] is not None and not isinstance(payload[field], str):
+            issues.append(field)
+    return issues
+
+
 def _parse_offsets(value: str) -> list[int]:
     try:
         offsets = sorted({int(part.strip()) for part in value.split(",") if part.strip()})
@@ -171,11 +202,11 @@ def _parse_timestamp(value: Any) -> datetime | None:
         return None
     try:
         parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
-    except ValueError:
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=MADRID)
+        return parsed.astimezone(MADRID)
+    except (ValueError, OverflowError):
         return None
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=MADRID)
-    return parsed.astimezone(MADRID)
 
 
 def _secret_found(text: str) -> bool:
@@ -233,6 +264,7 @@ def _probe(
     runtime, runtime_response = _json_response(base_url, "/api/runtime-version?compact=1")
     sports, sports_response = _json_response(base_url, "/api/realtime/sports")
     sports_probe = _sports_probe_evidence(sports_response)
+    schema_issues = _sports_schema_issues(sports) if sports_probe["payload_evaluable"] else []
 
     if runtime_response["status"] != 200:
         errors.append("runtime_http_failure")
@@ -256,6 +288,12 @@ def _probe(
         errors.append("sports_api_json_invalid")
     elif sports_probe["failure_kind"] == "json_shape":
         errors.append("sports_api_payload_not_object")
+    elif schema_issues:
+        errors.extend("sports_api_schema_invalid:" + field for field in schema_issues)
+        sports_probe.update({
+            "failure_kind": "json_schema", "error_type": "JSONContractShape",
+            "payload_evaluable": False, "contract_status": "FAIL",
+        })
     else:
         sports_error_start = len(errors)
         matches = [item for item in sports.get("matches") or [] if isinstance(item, dict)]

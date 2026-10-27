@@ -194,6 +194,84 @@ def test_actual_unavailable_founder_read_does_not_turn_into_zero_incidents(actua
     assert document.first("a", {"href": "/admin/backups"}) is not None
 
 
+@pytest.mark.parametrize("language,groups,frequent,caption,explore", [
+    ("es", GROUPS, "Accesos frecuentes", "Frecuentes", "Explorar todas las secciones"),
+    ("en", ("Sport and content", "Customers and plans", "Operations and security", "System"),
+     "Frequently used shortcuts", "Frequently used", "Explore all sections"),
+    ("fr", ("Sport et contenu", "Clients et offres", "Opérations et sécurité", "Système"),
+     "Raccourcis fréquents", "Accès fréquents", "Explorer toutes les sections"),
+])
+def test_actual_admin_navigation_localizes_new_groups_and_keeps_destinations(
+        actual_admin, language, groups, frequent, caption, explore):
+    _module, client, _path, _name, _cookie = actual_admin
+    response = client.get("/admin/explorar", base_url=TOKEN_BASE,
+        headers={"Accept-Language": language}, environ_overrides={"REMOTE_ADDR": "127.0.0.1"})
+    assert response.status_code == 200
+    assert response.headers.get("Content-Language") == language
+    document = _Document(response.get_data(as_text=True)).root
+    assert document.first("html").attrs["lang"] == language
+    directory = document.first(attrs={"data-v1000-admin-directory": None})
+    assert [summary.first("span").text().strip() for summary in directory.all("summary")] == list(groups)
+    assert {link.attrs["href"] for link in directory.all("a")} == set(DESTINATIONS)
+    shortcuts = document.first(attrs={"class": "v1000-admin-shortcuts"})
+    assert shortcuts.attrs["aria-label"] == frequent
+    assert shortcuts.first("span", {"class": "v1000-admin-caption"}).text().strip() == caption
+    assert shortcuts.first("a", {"href": "/admin/explorar"}).text().strip() == explore
+    # The inline page and dialog share translated headings and unchanged links.
+    panels = document.all(attrs={"data-app-explore": None})
+    assert len(panels) == 2
+    for panel in panels:
+        assert [section.first("h3").text().strip()
+                for section in panel.all("section", {"data-explore-group": None})] == list(groups)
+        assert set(DESTINATIONS) <= {link.attrs["href"]
+                                   for link in panel.all("a", {"data-explore-item": None})}
+
+
+@pytest.mark.parametrize("language,title,detail", [
+    ("es", "Mis combinadas", "Borradores privados y revisión"),
+    ("en", "My accumulators", "Private drafts and review"),
+    ("fr", "Mes paris combinés", "Brouillons privés et vérification"),
+])
+def test_actual_account_combi_entry_localizes_without_changing_client_access(
+        actual_admin, language, title, detail):
+    from datetime import datetime, timezone
+    import secrets
+    from werkzeug.security import generate_password_hash
+
+    module, _admin, path, _name, _cookie = actual_admin
+    ident = "v1000-locale-" + secrets.token_hex(6)
+    password = secrets.token_urlsafe(24)
+    with sqlite3.connect(path) as connection:
+        connection.execute("""INSERT INTO users
+            (id,name,username,email,password_hash,role,membership,membership_source,created_at)
+            VALUES (?,?,?,?,?,?,?,?,?)""", (ident, "Locale QA", ident, ident + "@example.invalid",
+            generate_password_hash(password), "FREE", "FREE", "LOCAL_SAFE_QA",
+            datetime.now(timezone.utc).isoformat()))
+    client = module.app.test_client()
+    login = _get(client, "/cliente-login")
+    token = _Document(login.get_data(as_text=True)).root.first("meta", {"name": "csrf-token"}).attrs["content"]
+    signed_in = _post(client, "/cliente-login", {
+        "login": ident + "@example.invalid", "password": password,
+        "csrf_token": token, "next": "/mi-cuenta",
+    })
+    assert signed_in.status_code == 302 and urlsplit(signed_in.location).path == "/mi-cuenta"
+    response = client.get("/mi-cuenta", base_url=TOKEN_BASE,
+        headers={"Accept-Language": language}, environ_overrides={"REMOTE_ADDR": "127.0.0.1"})
+    assert response.status_code == 200 and response.headers.get("Content-Language") == language
+    document = _Document(response.get_data(as_text=True)).root
+    assert document.first("html").attrs["lang"] == language
+    link = document.first("a", {"href": "/combinadas#combinadas-guardadas"})
+    assert link.first("strong").text().strip() == title
+    assert link.first("small").text().strip() == detail
+    assert document.first(attrs={"data-v1000-admin-directory": None}) is None
+    with client.session_transaction(base_url=TOKEN_BASE) as session:
+        assert session["user_id"] == ident and session["user_role"] == "FREE"
+    denied = _get(client, "/admin/explorar")
+    assert denied.status_code in {302, 403}
+    if denied.status_code == 302:
+        assert urlsplit(denied.location).path == "/admin-login"
+
+
 @pytest.fixture
 def actual_http(actual_admin):
     from werkzeug.serving import make_server
