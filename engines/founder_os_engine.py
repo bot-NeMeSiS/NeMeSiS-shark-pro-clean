@@ -158,14 +158,19 @@ def obligations_snapshot(db_path, *, read_only=False):
     conn=_snapshot_connection(db_path, read_only)
     items=[_public_obligation(r) for r in _rows(conn,"SELECT * FROM founder_obligations WHERE active=1 ORDER BY COALESCE(due_date,'9999-12-31'),label")]
     conn.close(); counts={k:0 for k in ("OVERDUE","DUE_NOW","DUE_SOON","UPCOMING","PENDING","PAID","UNKNOWN","WAIVED")}
-    monthly=0.0
+    monthly_by_currency={}
     for item in items:
         counts[item["effective_state"]]=counts.get(item["effective_state"],0)+1
         if item.get("amount") is None: continue
-        if item.get("cadence")=="monthly": monthly+=float(item["amount"])
-        elif item.get("cadence")=="quarterly": monthly+=float(item["amount"])/3
-        elif item.get("cadence")=="yearly": monthly+=float(item["amount"])/12
-    return {"items":items,"counts":counts,"known_monthly_cost":round(monthly,2),"currency":"EUR",
+        divisor={"monthly":1,"quarterly":3,"yearly":12}.get(item.get("cadence"))
+        if divisor is None: continue  # One-off/manual charges are not recurring.
+        currency=(_safe(item.get("currency"),8) or "EUR").upper()
+        if len(currency)!=3 or not currency.isalpha():
+            continue  # Never add unknown currency to an EUR total.
+        monthly_by_currency[currency]=monthly_by_currency.get(currency,0.0)+float(item["amount"])/divisor
+    monthly_by_currency={key:round(value,2) for key,value in sorted(monthly_by_currency.items())}
+    return {"items":items,"counts":counts,"known_monthly_cost":monthly_by_currency.get("EUR",0.0),
+            "monthly_costs_by_currency":monthly_by_currency,"currency":"EUR",
             "billing_complete":bool(items) and all(i.get("amount") is not None and i.get("due_date") for i in items)}
 
 def _automation_state(conn,key):

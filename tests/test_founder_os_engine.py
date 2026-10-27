@@ -126,3 +126,29 @@ def test_integrations_center_enriches_providers_without_external_calls(tmp_path,
     rendered=str(snap)
     for secret in ('odds-secret','sports-secret','telegram-secret','stripe-secret'):
         assert secret not in rendered
+
+def test_monthly_obligations_keep_currency_and_exclude_one_off_costs(tmp_path):
+    db=str(tmp_path/'founder-currency.db')
+    obligations=[
+        ('ChatGPT', '100', 'EUR', 'monthly'),
+        ('Datos anuales', '120', 'EUR', 'yearly'),
+        ('Infraestructura', '8.25', 'USD', 'monthly'),
+        ('Dominio único', '49', 'EUR', 'one_time'),
+    ]
+    for label,amount,currency,cadence in obligations:
+        founder.save_obligation(db,{'label':label,'provider_key':'other','amount':amount,
+            'currency':currency,'cadence':cadence,'payment_status':'UNKNOWN'})
+    snapshot=founder.obligations_snapshot(db)
+    assert snapshot['known_monthly_cost']==110.0
+    assert snapshot['monthly_costs_by_currency']=={'EUR':110.0,'USD':8.25}
+    assert len(snapshot['items'])==4
+    assert snapshot['billing_complete'] is False
+
+
+def test_only_usd_obligation_does_not_become_euros(tmp_path):
+    db=str(tmp_path/'founder-usd-only.db')
+    founder.save_obligation(db,{'label':'Render','provider_key':'render',
+        'amount':'8.25','currency':'USD','cadence':'monthly'})
+    snapshot=founder.obligations_snapshot(db)
+    assert snapshot['known_monthly_cost']==0.0
+    assert snapshot['monthly_costs_by_currency']=={'USD':8.25}

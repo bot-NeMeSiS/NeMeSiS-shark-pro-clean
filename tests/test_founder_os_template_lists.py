@@ -91,3 +91,26 @@ def test_integrations_center_renders_contribution_evidence_and_management_link()
     assert 'Créditos restantes' in html and '>123<' in html
     assert '/admin/matches-sync' in html
     assert 'abrir Founder OS no llama a proveedores externos' in html
+
+def test_founder_monthly_cost_displays_currency_without_mixing_eur_and_usd():
+    data=snapshot()
+    data['obligations']['items']=[
+        {'id':'1','label':'Servicio EUR','effective_state':'UNKNOWN','amount':10,'currency':'EUR'},
+        {'id':'2','label':'Servicio USD','effective_state':'UNKNOWN','amount':8.25,'currency':'USD'},
+    ]
+    data['obligations']['monthly_costs_by_currency']={'EUR':10.0,'USD':8.25}
+    data['obligations']['known_monthly_cost']=10.0
+    html=render_founder(data)
+    assert '10.00 EUR' in html
+    assert '8.25 USD' in html
+    assert '18.25 €' not in html
+    assert 'no acredita cargos reales ni convierte divisas' in html
+
+
+def test_founder_unknown_currency_total_is_not_fictional_zero_euros():
+    data=snapshot()
+    data['obligations']['items']=[
+        {'id':'1','label':'Factura sin dato','effective_state':'UNKNOWN','amount':None,'currency':'EUR'}
+    ]
+    html=render_founder(data)
+    assert 'No registrado' in html
