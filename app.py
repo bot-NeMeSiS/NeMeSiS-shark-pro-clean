@@ -528,7 +528,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V1000_2_FIXTURE_LABEL_READ_PATH'
+APP_VERSION = 'V1000_3_CALENDAR_MINIMAL_READ_CONTEXT'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -20578,6 +20578,32 @@ def _v931_provider_context(summary):
     }
 
 
+def _v1000_3_calendar_client_data(summary, lane="today", date_value=""):
+    """Only the request-owned input needed before the Calendar projection.
+
+    Calendar builds its own current metrics, filters and favorite presentation.
+    Home, paid-advice and the second live-provider projection have no consumer
+    in this page. Keep original rows; this helper never prepares their identity.
+    """
+    today_matches = list(summary.get("valid_matches_today") or [])
+    upcoming = list(summary.get("valid_upcoming_matches") or [])
+    return {
+        "app_name": APP_NAME,
+        "version": APP_VERSION,
+        "date": date_value or today_iso(),
+        "lane": lane,
+        "matches": today_matches,
+        "upcoming_matches": upcoming,
+        "available_matches": list(summary.get("valid_matches_available") or _dedupe_sports_matches(today_matches + upcoming)),
+        "session_user": current_session_user(),
+        "v931_route_guard": {
+            "status": "safe_fallback",
+            "provider_status": summary.get("provider_status"),
+            "no_render_api_call": True,
+        },
+    }
+
+
 def _v931_minimal_client_data(summary, lane="today", date_value="", *, _shark_view=False):
     today_matches = list(summary.get("valid_matches_today") or [])
     upcoming = list(summary.get("valid_upcoming_matches") or [])
@@ -20652,14 +20678,19 @@ def _v931_minimal_client_data(summary, lane="today", date_value="", *, _shark_vi
     }
 
 
-def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None, _directo_minimal=False, _shark_view=False):
+def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None, _directo_minimal=False, _shark_view=False, _calendar_view=False):
+    calendar_view = compact and _calendar_view is True and _directo_minimal is not True and _shark_view is not True
     summary = (
         _v932_locked_sports_summary()
         if has_request_context() and request.environ.get("nemesis.v932.database_locked")
         else (
             sports_summary
             if isinstance(sports_summary, dict)
-            else get_public_home_sports_summary()
+            else (
+                get_public_home_sports_summary(
+                    selected_date=_v940_calendar_filters(lane, date_value)["date"], _prepare_only=True,
+                ) if calendar_view else get_public_home_sports_summary()
+            )
         )
     )
     if compact and _directo_minimal is True:
@@ -20688,11 +20719,15 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
         v931_record_client_route_issue(route, error, "sqlite_read_timeout_guard")
         if current_session_user():
             v932_record_authenticated_issue(route, error, "admin" if is_admin_session() else "client", "sqlite_read_timeout_guard")
+        if calendar_view:
+            return _v1000_3_calendar_client_data(summary, lane, date_value or today_iso()), summary
         if compact and _directo_minimal is True:
             return _directo_client_data(), summary
         return _v931_minimal_client_data(summary, lane, date_value or today_iso(), _shark_view=_shark_view), summary
     if compact:
-        if _directo_minimal is True:
+        if calendar_view:
+            data = _v1000_3_calendar_client_data(summary, lane, date_value or today_iso())
+        elif _directo_minimal is True:
             data = _directo_client_data()
         else:
             data = _v931_minimal_client_data(summary, lane, date_value or today_iso(), _shark_view=_shark_view)
@@ -20773,16 +20808,22 @@ def v932_safe_dashboard_data(
     sports_summary=None,
     _directo_minimal=False,
     _shark_view=False,
+    _calendar_view=False,
 ):
+    calendar_view = compact and _calendar_view is True and _directo_minimal is not True and _shark_view is not True
     if compact and _directo_minimal is True:
         data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary, _directo_minimal=True)
     elif _shark_view is True:
         data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact,
                                                sports_summary=sports_summary, _shark_view=True)
+    elif calendar_view:
+        data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact,
+                                               sports_summary=sports_summary, _calendar_view=True)
     else:
         data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary)
-    data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
-    data["sports_metrics"] = get_sports_metrics_contract(summary)
+    if not calendar_view:
+        data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
+        data["sports_metrics"] = get_sports_metrics_contract(summary)
     data["v932_authenticated_scope"] = "admin" if scope == "admin" else "client"
     return data, summary
 
@@ -23579,7 +23620,7 @@ def calendar_page():
     date_value = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
     data, summary = timed_phase(
         "sports_context",
-        lambda: v932_safe_dashboard_data(request.path, "today", date_value, compact=True),
+        lambda: v932_safe_dashboard_data(request.path, lane, date_value, compact=True, _calendar_view=True),
     )
     summary = timed_phase(
         "historical_results",
@@ -23592,6 +23633,7 @@ def calendar_page():
     data["matches"] = data["calendar"].get("matches", [])
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
+    data["sports_metrics"] = data["calendar"].get("sports_metrics")
     data["v925_calendar"] = _v940_calendar_provider_context(summary)
     return timed_phase("template_render", lambda: render_template("calendar.html", data=data))
 
