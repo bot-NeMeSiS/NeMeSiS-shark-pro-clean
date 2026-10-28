@@ -198,13 +198,18 @@ def test_actual_admin_directory_distinguishes_costs_payments_and_news_without_js
     panels = document.all(attrs={"data-app-explore": None})
     assert len(panels) == 2  # Desktop/dialog and native inline/mobile share it.
     for panel in panels:
-        visible = {link.attrs["href"] for link in panel.all("a", {"data-explore-item": None})
-                   if "hidden" not in link.attrs}
-        assert destination in visible
-        if destination == "/admin/finanzas":
-            assert "/admin/payments" not in visible
-        if destination == "/admin/payments":
-            assert "/admin/finanzas" not in visible
+        assert panel.first("a", {"href": destination}) is not None
+    # The GET query belongs to the inline page. The unopened dialog starts
+    # with its own empty query and filters when its user types.
+    inline = next(panel for panel in panels
+                  if panel.first("input", {"id": "explore-page-query"}))
+    visible = {link.attrs["href"] for link in inline.all("a", {"data-explore-item": None})
+               if "hidden" not in link.attrs}
+    assert destination in visible
+    if destination == "/admin/finanzas":
+        assert "/admin/payments" not in visible
+    if destination == "/admin/payments":
+        assert "/admin/finanzas" not in visible
 
 
 def test_actual_unavailable_founder_read_does_not_turn_into_zero_incidents(actual_admin):
@@ -372,6 +377,13 @@ def test_actual_admin_browser_groups_disclosures_keyboard_and_founder_density(ac
             dialog.locator("[data-explore-query]").fill("incidencias")
             assert dialog.locator("[data-explore-item]:visible").count() == 1
             assert dialog.locator("[data-explore-item]:visible").get_attribute("href") == "/admin/sentinel-issues"
+            for query, destination in (("finanzas", "/admin/finanzas"),
+                                       ("costes", "/admin/finanzas"),
+                                       ("stripe", "/admin/payments"),
+                                       ("redaccion", "/admin/newsroom")):
+                dialog.locator("[data-explore-query]").fill(query)
+                assert set(dialog.locator("[data-explore-item]:visible").evaluate_all(
+                    "nodes=>nodes.map(n=>n.getAttribute('href'))")) == {destination}
             page.keyboard.press("Escape")
             assert not dialog.is_visible()
             page.screenshot(path=str(tmp_path / f"actual-admin-{width}.png"))
@@ -405,7 +417,14 @@ def test_actual_admin_explore_without_javascript_keeps_every_destination(actual_
             links = page.locator("[data-app-explore] [data-explore-item]").evaluate_all("nodes=>nodes.map(n=>n.getAttribute('href'))")
             assert set(DESTINATIONS) <= set(links)
             assert page.locator("[data-app-explore] [data-explore-group]:visible").count() == 4
-            for query, expected in (("clientes", {"/admin/users", "/admin/memberships", "/admin/payments"}), ("incidencias", {"/admin/sentinel-issues"})):
+            for query, expected in (
+                ("clientes", {"/admin/users", "/admin/memberships", "/admin/payments"}),
+                ("incidencias", {"/admin/sentinel-issues"}),
+                ("finanzas", {"/admin/finanzas"}),
+                ("costes", {"/admin/finanzas"}),
+                ("stripe", {"/admin/payments"}),
+                ("redaccion", {"/admin/newsroom"}),
+            ):
                 result = page.goto(base + "/admin/explorar?q=" + query, wait_until="networkidle")
                 assert result.status == 200
                 assert set(page.locator("[data-explore-item]:visible").evaluate_all("nodes=>nodes.map(n=>n.getAttribute('href'))")) == expected
