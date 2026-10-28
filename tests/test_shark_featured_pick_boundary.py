@@ -10,12 +10,31 @@ import sys
 
 import pytest
 
-from test_shark_selected_pick_boundary import shark_probe
+from engines.madrid_time_engine import MADRID_TZ
+from test_shark_selected_pick_boundary import fixture_match_times, shark_probe
 
 
 # The shared fixture isolates unrelated collections for selected-pick tests.
 # These tests restore the actual read model instead of supplying cached picks.
 REAL_PUBLIC_SUMMARY = getattr(sys.modules.get("app"), "get_public_home_sports_summary", None)
+
+
+@pytest.mark.parametrize("reference,date_label,time_label", [
+    ("2026-01-15T19:30:00+00:00", "2026-01-15", "23:30"),
+    ("2026-01-15T20:30:00+00:00", "2026-01-16", "00:30"),
+    ("2026-01-15T22:30:00+00:00", "2026-01-16", "02:30"),
+    ("2026-10-26T23:06:00+00:00", "2026-10-27", "03:06"),
+    ("2026-07-15T19:30:00+00:00", "2026-07-16", "00:30"),
+    ("2026-07-15T21:30:00+00:00", "2026-07-16", "02:30"),
+    ("2026-03-28T23:30:00+00:00", "2026-03-29", "04:30"),
+    ("2026-10-24T23:30:00+00:00", "2026-10-25", "03:30"),
+])
+def test_fixture_clock_keeps_upcoming_madrid_date_across_midnight_and_dst(reference, date_label, time_label):
+    now = datetime.fromisoformat(reference)
+    match_date, kickoff_iso, kickoff_time = fixture_match_times(now)
+    assert match_date == date_label
+    assert kickoff_time == time_label
+    assert datetime.fromisoformat(kickoff_iso) - now == timedelta(hours=3)
 
 
 @pytest.fixture
@@ -32,6 +51,23 @@ def featured_probe(shark_probe, monkeypatch):
     monkeypatch.setattr(a, "get_public_home_sports_summary", actual_summary)
     shark_probe["summary_observations"] = observed
     return shark_probe
+
+
+def test_actual_owned_rows_share_the_upcoming_madrid_kickoff(featured_probe):
+    # Inspect the real fixture rows, without replacing the application clock,
+    # read model, lifecycle or current-principal authorization.
+    with sqlite3.connect(featured_probe["path"]) as conn:
+        records = conn.execute("""SELECT p.match_date, p.created_at,
+            m.match_date, m.kickoff_iso, m.kickoff_time
+            FROM picks p JOIN matches m ON m.id=p.match_id ORDER BY p.id""").fetchall()
+    assert len(records) == 2
+    for pick_date, created_at, match_date, kickoff_iso, kickoff_time in records:
+        kickoff = datetime.fromisoformat(kickoff_iso)
+        local = kickoff.astimezone(MADRID_TZ)
+        assert pick_date == match_date == local.date().isoformat()
+        assert kickoff_time == local.strftime("%H:%M")
+        assert kickoff - datetime.fromisoformat(created_at) == timedelta(hours=3)
+        assert kickoff > datetime.now(timezone.utc)
 
 
 def _client(probe, plan):

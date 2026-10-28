@@ -207,7 +207,7 @@ details.v933-home-more[data-home-extras] > summary {
   border: 1px solid var(--v933-border, #24384d);
   border-radius: 12px;
   color: var(--v933-text, #e7f0fa);
-  background: rgba(7, 21, 37, .72);
+  background: var(--ns-surface-raised,#112a40);
   cursor: pointer;
   list-style: none;
 }

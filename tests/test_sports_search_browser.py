@@ -188,6 +188,42 @@ def test_queued_blur_cannot_cancel_a_new_query_after_selection(browser,app_modul
         context.close()
 
 
+@pytest.mark.parametrize('completion',['new-query','cancel'])
+def test_pointer_departure_does_not_close_new_query_and_cancel_cleans_up(browser, app_module, monkeypatch, sports_catalogue, completion):
+    context,page,errors,calls = mount(browser,app_module,monkeypatch,sports_catalogue,width=1440)
+    held = False
+    try:
+        search = page.locator('#favorite-find')
+        search.fill('granada fem')
+        panel = page.locator('#favorite-discovery')
+        expect(panel.locator('[role=option]')).to_have_count(1)
+        page.evaluate("document.addEventListener('pointerdown',event=>window.ownedPointerId=event.pointerId,{once:true})")
+        page.locator('h1').first.scroll_into_view_if_needed()
+        heading = page.locator('h1').first.bounding_box()
+        page.mouse.move(heading['x']+heading['width']/2,heading['y']+heading['height']/2)
+        page.mouse.down(); held = True
+        page.evaluate('() => new Promise(resolve => setTimeout(resolve,0))')
+        expect(panel).to_be_visible()
+        if completion == 'cancel':
+            page.evaluate("document.dispatchEvent(new PointerEvent('pointercancel',{bubbles:true,pointerId:window.ownedPointerId}))")
+            expect(panel).to_be_hidden()
+        else:
+            page.evaluate('''() => {
+              const input=document.getElementById('favorite-find');
+              input.focus();input.value='zzmissing';input.dispatchEvent(new Event('input',{bubbles:true}));
+            }''')
+            expect(panel).to_contain_text('Sin coincidencias')
+        page.mouse.up(); held = False
+        if completion == 'new-query':
+            expect(panel).to_be_visible()
+            expect(panel).to_contain_text('Sin coincidencias')
+        assert not errors and all(method=='GET' for method,_,_ in calls)
+    finally:
+        if held:
+            page.mouse.up()
+        context.close()
+
+
 def test_stale_response_and_composition_do_not_replace_current_results(browser,app_module,monkeypatch,sports_catalogue):
     context,page,errors,calls = mount(browser,app_module,monkeypatch,sports_catalogue)
     try:

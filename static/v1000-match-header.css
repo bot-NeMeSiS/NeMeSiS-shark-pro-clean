@@ -1,0 +1,67 @@
+/* Match detail only: each crest/name is a single compact identity. */
+body.ns-app .v944-match-center .v944-match-header__identity {
+  grid-template-columns: minmax(0, 1fr) 170px minmax(0, 1fr);
+  direction: ltr;
+}
+
+body.ns-app .v944-match-center .v944-match-team,
+body.ns-app .v944-match-center .v944-match-team.is-away {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-self: center;
+  gap: 5px;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  text-align: center;
+}
+
+body.ns-app .v944-match-center .v1000-match-team__identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+body.ns-app .v944-match-center .is-away .v1000-match-team__identity {
+  flex-direction: row-reverse;
+}
+
+body.ns-app .v944-match-center .v1000-match-team__identity .v933-team-logo {
+  flex: 0 0 auto;
+  grid-area: auto;
+}
+
+body.ns-app .v944-match-center .v1000-match-team__identity strong {
+  grid-area: auto;
+  min-width: 0;
+  max-width: 20ch;
+  overflow-wrap: anywhere;
+  unicode-bidi: isolate;
+}
+
+body.ns-app .v944-match-center .v944-match-team small {
+  grid-area: auto;
+}
+
+@media (max-width: 767px) {
+  body.ns-app .v944-match-center .v944-match-header__identity {
+    grid-template-columns: minmax(0, 1fr) 82px minmax(0, 1fr);
+    gap: 8px;
+  }
+
+  body.ns-app .v944-match-center .v1000-match-team__identity,
+  body.ns-app .v944-match-center .is-away .v1000-match-team__identity {
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 360px) {
+  body.ns-app .v944-match-center .v944-match-header__identity {
+    grid-template-columns: minmax(0, 1fr) 78px minmax(0, 1fr);
+    gap: 5px;
+  }
+}

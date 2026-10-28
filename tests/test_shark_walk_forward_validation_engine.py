@@ -77,7 +77,14 @@ def test_walk_forward_uses_only_prior_days_and_is_read_only(tmp_path):
     # and becomes eligible only on d3.
     assert result["eligible_model_evaluations"] == 2
     assert result["model_reference"]["sample_size"] == 2
-    assert result["competition_frequency_baseline"]["sample_size"] == 5
+    assert result["competition_frequency_baseline"]["sample_size"] == 2
+    assert result["competition_baseline_evaluations"] == result["eligible_model_evaluations"]
+    assert result["comparison_basis"] == "SAME_ELIGIBLE_FIXTURES"
+    # D2: 0.20 for an away win; D3: 3/7 for a home win.
+    # The warmup days must not be scored in the benchmark.
+    import math
+    expected_log_loss = round((-math.log(0.2) - math.log(3.0 / 7.0)) / 2, 6)
+    assert result["competition_frequency_baseline"]["log_loss"] == expected_log_loss
     assert result["model_reference"]["brier_score"] >= 0
     assert "not a calibrated SHARK forecast" in result["limitations"][0]
 
@@ -95,7 +102,9 @@ def test_duplicate_provider_rows_do_not_inflate_evaluation_sample(tmp_path):
     assert result["dated_unique_matches"] == 1
     assert result["duplicate_rows_collapsed"] == 1
     assert result["incomplete_or_conflicting_rows_excluded"] == 0
-    assert result["competition_baseline_evaluations"] == 1
+    assert result["competition_baseline_evaluations"] == 0
+    assert result["competition_frequency_baseline"] is None
+    assert result["comparison_basis"] == "SAME_ELIGIBLE_FIXTURES"
     assert result["eligible_model_evaluations"] == 0
     assert result["state"] == "INSUFFICIENT_EVALUATION_SAMPLE"
 

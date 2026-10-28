@@ -25,7 +25,7 @@ from functools import lru_cache, wraps
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
-from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for, before_render_template
+from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for, before_render_template, flash
 from werkzeug.security import check_password_hash, generate_password_hash
 from contextvars import ContextVar as _V991ContextVar
 from engines.closed_operation_timing import operation as timed_operation, phase as timed_phase
@@ -383,6 +383,7 @@ from engines.stripe_payments_engine import (
     stripe_runtime_status,
 )
 from engines.pick_grading_engine import LATEST_ELIGIBLE_GRADING_CTE, pick_grading_summary, run_pick_grading
+from engines.tipster_evidence_engine import audited_tipster_kpis
 from engines.subscription_control_engine import subscription_summary, apply_subscription_rules
 from engines.team_identity_engine import (
     flag_or_emoji as team_flag_or_emoji,
@@ -527,7 +528,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V999_ADVICE_ACCESS_AND_SHARK_READ_PATH'
+APP_VERSION = 'V1000_CLIENT_ADMIN_REFINEMENT'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -18008,7 +18009,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V999_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V1000_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -27109,7 +27110,8 @@ def picks_page():
     data["v925_picks"] = get_safe_picks_context(data["picks"])
     data["v925_odds"] = get_safe_odds_context(data["picks"])
     data["v934_realtime"] = get_realtime_safe_picks_context(summary)
-    data["v934_odds"] = get_realtime_safe_odds_context(summary)
+    # Both contexts describe the same request-owned evaluation.
+    data["v934_odds"] = _v934_odds_context_from_snapshot(data["v934_realtime"])
     data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
     data["pick_readiness"], data["pick_watchlist"] = client_pick_readiness(
         summary,
@@ -29938,7 +29940,11 @@ def get_realtime_safe_picks_context(summary=None) -> dict:
 
 
 def get_realtime_safe_odds_context(summary=None) -> dict:
-    snapshot = get_v934_realtime_context(summary)
+    return _v934_odds_context_from_snapshot(get_v934_realtime_context(summary))
+
+
+def _v934_odds_context_from_snapshot(snapshot) -> dict:
+    """Format an evaluated snapshot without another read or projection."""
     return {
         "items": [
             {
@@ -29947,7 +29953,7 @@ def get_realtime_safe_odds_context(summary=None) -> dict:
                 "odds": item.get("odds"),
                 "source": item.get("source"),
                 "recorded_at": item.get("odds_recorded_at"),
-                "freshness": item.get("odds_freshness"),
+                "freshness": copy.deepcopy(item.get("odds_freshness")),
             }
             for item in snapshot.get("picks") or []
         ],
@@ -37099,6 +37105,10 @@ def v808_support_center_context():
 def v808_pick_performance_context():
     data = dashboard_data()
     data["pick_stats"] = pick_stats()
+    # Only closed, fully certified grades can produce these metrics.
+    data["tipster_kpis"] = audited_tipster_kpis(DB_PATH)
+    data["pick_stats"]["roi"] = data["tipster_kpis"]["roi"]
+    data["pick_stats"]["winrate"] = data["tipster_kpis"]["winrate"]
     data["global_tracking"] = []
     data["bankroll_users"] = []
     try:
@@ -38969,6 +38979,23 @@ def go_to_market_office_snapshot():
     }
 
 
+def _founder_obligation_response(*, snapshot=None, obligation_form=None,
+                                 obligation_error=None, billing_error=None,
+                                 new_obligation=False, status=200):
+    # Failed drafts stay in this response, never in the redirect or session.
+    response = render_template(
+        "admin_founder_os.html",
+        data={"session_user": current_session_user()},
+        founder_os=snapshot if snapshot is not None else founder_os_snapshot(DB_PATH, read_only=True),
+        obligation_form=obligation_form or {},
+        obligation_error=obligation_error,
+        billing_error=billing_error,
+        new_obligation=new_obligation,
+        title="NeMeSiS Founder OS",
+    )
+    return response if status == 200 else (response, status)
+
+
 @app.route("/admin/founder-os")
 @app.route("/admin/founder-control")
 @app.route("/admin/company-control-center")
@@ -38976,12 +39003,20 @@ def go_to_market_office_snapshot():
 def admin_founder_os_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/founder-os")
-    return render_template(
-        "admin_founder_os.html",
-        data={"session_user": current_session_user()},
-        founder_os=founder_os_snapshot(DB_PATH, read_only=True),
-        title="NeMeSiS Founder OS",
-    )
+    snapshot = founder_os_snapshot(DB_PATH, read_only=True)
+    new_obligation = request.args.get("new") == "1"
+    edit_id = str(request.args.get("edit") or "").strip()
+    obligation_form = None
+    if edit_id and not new_obligation:
+        if not snapshot.get("available", False):
+            return _founder_obligation_response(snapshot=snapshot, status=503)
+        obligation_form = next((item for item in (snapshot.get("obligations", {}).get("items") or [])
+                                if item.get("id") == edit_id), None)
+        if obligation_form is None:
+            return _founder_obligation_response(snapshot=snapshot,
+                billing_error="Obligación no encontrada. Actualiza la lista antes de editar.", status=404)
+    return _founder_obligation_response(snapshot=snapshot, obligation_form=obligation_form,
+                                       new_obligation=new_obligation)
 
 
 @app.route("/api/admin/founder-os")
@@ -38997,31 +39032,39 @@ def api_admin_founder_os():
 def admin_founder_os_save_obligation():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/founder-os")
+    payload = request.form.to_dict(flat=True)
+    fields = ("id", "provider_key", "label", "plan", "amount", "currency", "cadence",
+              "due_date", "payment_status", "notes")
+    draft = {name: payload.get(name, "") for name in fields}
+    draft["auto_renew"] = str(payload.get("auto_renew") or "").lower() in {"1", "true", "yes", "on"}
     try:
-        founder_save_obligation(
-            DB_PATH,
-            request.form.to_dict(flat=True),
-            actor=session.get("user_name") or "admin",
-        )
-        return redirect("/admin/founder-os?billing=saved#billing")
+        result = founder_save_obligation(DB_PATH, payload, actor=session.get("user_name") or "admin")
     except ValueError as exc:
-        return redirect(
-            "/admin/founder-os?billing=error&reason="
-            + urllib.parse.quote(str(exc))
-            + "#billing"
-        )
+        message = str(exc)
+        if message not in {"La obligación necesita un nombre.", "La fecha de vencimiento no es válida."}:
+            message = "No se pudo guardar la obligación. Revisa los campos e inténtalo de nuevo."
+        return _founder_obligation_response(obligation_form=draft, obligation_error=message, status=422)
+    if not result.get("ok"):
+        return _founder_obligation_response(obligation_form=draft,
+            obligation_error="No se confirmó el guardado. Revisa la lista antes de repetir.", status=409)
+    flash("Obligación guardada.", "founder-billing")
+    return redirect("/admin/founder-os#billing")
 
 
 @app.route("/admin/founder-os/obligations/<obligation_id>/paid", methods=["POST"])
 def admin_founder_os_mark_paid(obligation_id):
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/founder-os")
-    founder_mark_obligation_paid(
+    result = founder_mark_obligation_paid(
         DB_PATH,
         obligation_id,
         actor=session.get("user_name") or "admin",
     )
-    return redirect("/admin/founder-os?billing=paid#billing")
+    if not result.get("ok"):
+        return _founder_obligation_response(
+            billing_error="No se confirmó el cambio. La obligación no existe o ya no está activa.", status=409)
+    flash("Obligación marcada como pagada.", "founder-billing")
+    return redirect("/admin/founder-os#billing")
 
 
 @app.route("/admin/founder-os/alerts/<alert_id>/ack", methods=["POST"])

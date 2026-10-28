@@ -122,7 +122,7 @@ def test_core_client_templates_use_canonical_spanish_routes():
     telegram=(root/"templates/telegram.html").read_text(encoding="utf-8")
     membership=(root/"templates/membership.html").read_text(encoding="utf-8")
     assert "'/memberships'" not in home and "'/support'" not in home
-    assert "'/membresias'" in home and "'/soporte'" in home
+    assert "'/mi-cuenta'" in home and "'/soporte'" in home
     assert "'/profile'" not in telegram and "'/memberships'" not in telegram
     assert "'/mi-cuenta'" in telegram and "'/membresias'" in telegram
     assert "'/profile'" not in membership and "'/memberships?plan='" not in membership

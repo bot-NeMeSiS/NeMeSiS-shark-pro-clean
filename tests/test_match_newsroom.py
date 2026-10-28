@@ -114,7 +114,10 @@ def test_admin_newsroom_routes_require_role_and_csrf(app_module, tmp_path, monke
     a.app.config.update(TESTING=True)
     anon = a.app.test_client()
     assert anon.get("/noticias").status_code == 200
+    head = anon.head("/noticias")
+    assert head.status_code == 200 and head.data == b""
     assert anon.get("/admin/newsroom").status_code == 403
+    assert anon.head("/admin/newsroom").status_code == 403
     assert anon.get("/api/admin/postmatch/status").status_code == 403
     assert anon.post("/admin/newsroom/link", data=link()).status_code == 403
     admin = a.app.test_client()

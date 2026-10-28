@@ -57,10 +57,10 @@ jobs:
       AUTO_GENERATE_PICKS: 'false'
       AUTO_SEND_TELEGRAM_PICKS: 'false'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
       - name: Install isolated dependencies
@@ -102,7 +102,7 @@ jobs:
         run: python -m playwright install --with-deps chromium
       - name: Verify real HTTP result screen on desktop and mobile
         run: python tools/run_postmatch_delivery_browser_qa.py --output postmatch-evidence/browser
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: postmatch-delivery-${{ github.run_id }}

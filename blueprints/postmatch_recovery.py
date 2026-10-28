@@ -16,7 +16,7 @@ def create_postmatch_blueprint(db_path, is_admin_callback, priority=None):
     def protect():
         # Exact public read-only news route. All existing admin and Cron routes
         # retain the original authentication and CSRF gates below.
-        if request.method == 'GET' and request.path == '/noticias':
+        if request.method in {'GET', 'HEAD'} and request.path == '/noticias':
             return None
         if request.path == '/api/automation/postmatch/tick':
             expected = (os.getenv('AUTOMATION_SECRET') or '').strip()

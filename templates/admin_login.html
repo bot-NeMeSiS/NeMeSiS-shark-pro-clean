@@ -1,13 +1,16 @@
 {% extends "base.html" %}
+{% from "partials/brand_logo.html" import nemesis_brand %}
+{% block head_extra %}{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='v1000-auth-layout.css') }}?v=1" data-auth-layout-styles="1">
+{% endblock %}
 {% block content %}
-<section class="hero auth-hero ns-admin-login-hero">
-  <div class="kicker">Acceso privado</div>
-  <h1>Admin SHARK</h1>
-  <p class="lead">Entrada privada para gestionar Sentinel, Telegram, datos autorizados y operación del producto.</p>
-</section>
-<section class="band auth-grid">
-  <form class="card auth-card ns-admin-login-card" method="post" action="/admin-login{% if request.args.get('next') %}?next={{ request.args.get('next')|urlencode }}{% endif %}" autocomplete="on">
-    <h2>Acceso admin</h2>
+<section class="v1000-auth-layout" data-auth-layout="v1000" data-auth-mode="admin">
+  <aside class="v1000-auth-identity" aria-label="NeMeSiS SHARK PRO">
+    {{ nemesis_brand('/', 'auth') }}
+    <p>Entrada privada para gestionar Sentinel, Telegram, datos autorizados y operación del producto.</p>
+  </aside>
+  <form class="card auth-card ns-admin-login-card v1000-auth-card" method="post" action="/admin-login{% if request.args.get('next') %}?next={{ request.args.get('next')|urlencode }}{% endif %}" autocomplete="on">
+    <header class="v1000-auth-heading"><div class="kicker">Acceso privado</div><h1>Admin SHARK</h1></header>
     {% if error %}<p class="notice danger">{{ error }}</p>{% endif %}
     {% if not configured %}<p class="notice">Configura ADMIN_EMAIL y ADMIN_PASSWORD en Render, o entra con un usuario ADMIN existente.</p>{% endif %}
     <div class="field"><label for="admin-login-user">Email o usuario admin</label><input id="admin-login-user" name="login" autocomplete="username" required></div>
@@ -17,11 +20,7 @@
     <button type="submit">Entrar como admin</button>
     <a class="small" href="/admin-forgot-password">Recuperar acceso admin</a>
     <a class="small" href="/">Volver al inicio</a>
+    <aside class="v1000-auth-note"><strong>Operación segura</strong><p class="small">Esta zona no muestra secretos, no ejecuta pagos reales y no envía Telegram real sin autorización.</p></aside>
   </form>
-  <aside class="card auth-side">
-    <h2>Operación segura</h2>
-    <p class="small">Está zona no muestra secretos, no ejecuta pagos reales y no envía Telegram real sin autorización.</p>
-    <a class="btn" href="/">Inicio público</a>
-  </aside>
 </section>
 {% endblock %}

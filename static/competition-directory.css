@@ -1,13 +1,13 @@
-.competition-directory{--competition-line:rgba(151,185,215,.18);--competition-soft:#a9bbcf;box-sizing:border-box;color:#edf4fc;margin-inline:auto;max-width:1480px;padding:clamp(20px,3vw,44px) clamp(14px,2.6vw,36px) 56px;width:100%}
+.competition-directory{--competition-line:rgba(151,185,215,.18);--competition-soft:var(--ns-text-muted,#b5c8dc);box-sizing:border-box;color:var(--ns-text,#edf4fc);margin-inline:auto;max-width:1480px;padding:clamp(20px,3vw,44px) clamp(14px,2.6vw,36px) 56px;width:100%}
 .competition-directory *{box-sizing:border-box}
 .competition-directory-heading{align-items:end;display:flex;gap:24px;justify-content:space-between;margin:0 auto 24px;max-width:940px;width:100%}
 .competition-directory-heading>div,.competition-directory-heading>p{min-width:0}
 .competition-directory-eyebrow{color:#77dfde;font-size:.76rem;font-weight:800;letter-spacing:.14em;margin:0 0 8px;text-transform:uppercase}
 .competition-directory h1{font-size:clamp(1.8rem,3vw,2.7rem);letter-spacing:-.035em;line-height:1.08;margin:0}
 .competition-directory-heading>p:last-child{color:var(--competition-soft);line-height:1.55;margin:0;max-width:390px}
-.competition-directory-filters{align-items:end;background:linear-gradient(135deg,rgba(20,40,60,.96),rgba(10,25,41,.96));border:1px solid var(--competition-line);border-radius:18px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr) minmax(220px,.42fr) auto;max-width:1160px;margin:0 auto;padding:16px;width:100%}
+.competition-directory-filters{align-items:end;background:linear-gradient(135deg,var(--ns-surface-raised,#112a40),var(--ns-surface-panel,#0b1d30)),var(--ns-surface-panel,#0b1d30);border:1px solid var(--competition-line);border-radius:18px;display:grid;gap:12px;grid-template-columns:minmax(0,1fr) minmax(220px,.42fr) auto;max-width:1160px;margin:0 auto;padding:16px;width:100%}
 .competition-directory-filters label{color:#dce9f5;display:grid;font-size:.79rem;font-weight:700;gap:6px;min-width:0}
-.competition-directory-filters input,.competition-directory-filters select,.competition-season-form select{background:#081421;border:1px solid #435a72;border-radius:10px;color:#f0f6fc;font:inherit;max-width:100%;min-height:46px;padding:10px 12px;width:100%}
+.competition-directory-filters input,.competition-directory-filters select,.competition-season-form select{background:var(--ns-surface-input,#061321);border:1px solid var(--ns-control-border,#5b7c96);border-radius:10px;color:var(--ns-text,#f0f6fc);font:inherit;max-width:100%;min-height:46px;padding:10px 12px;width:100%}
 .competition-directory-filters button,.competition-season-form button{background:linear-gradient(135deg,#9af0df,#63d6d3);border:0;border-radius:10px;color:#09202a;font:inherit;font-weight:800;min-height:46px;padding:10px 20px;white-space:nowrap}
 .competition-directory-filters button{cursor:pointer}
 .competition-directory-filters>a{align-items:center;color:#91e8ee;display:inline-flex;grid-column:1/-1;min-height:36px;text-decoration:none;width:max-content}
@@ -23,9 +23,9 @@
 .competition-directory-section-heading>span{background:rgba(133,190,216,.1);border:1px solid var(--competition-line);border-radius:999px;color:#c5d5e5;font-size:.72rem;font-weight:700;padding:6px 10px;white-space:nowrap}
 .competition-directory-section--international .competition-directory-section-heading{border-bottom-color:rgba(119,223,222,.3)}
 .competition-directory-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));min-width:0}
-.competition-directory-card,.competition-directory-empty{background:linear-gradient(145deg,rgba(16,31,48,.96),rgba(9,23,39,.96));border:1px solid var(--competition-line);border-radius:14px;min-width:0}
+.competition-directory-card,.competition-directory-empty{background:var(--ns-surface-panel,#0b1d30);border:1px solid var(--competition-line);border-radius:14px;min-width:0}
 .competition-directory-card{display:flex;flex-direction:column;min-height:154px;padding:14px 15px;transition:border-color .16s ease,transform .16s ease,background .16s ease}
-.competition-directory-card:hover{background:linear-gradient(145deg,rgba(20,43,61,.98),rgba(10,29,45,.98));border-color:rgba(119,223,222,.45);transform:translateY(-1px)}
+.competition-directory-card:hover{background:var(--ns-surface-hover,#17364f);border-color:rgba(119,223,222,.45);transform:translateY(-1px)}
 .competition-directory-card h3{font-size:1rem;line-height:1.3;margin:2px 0 6px;overflow-wrap:anywhere}
 .competition-directory-card h3 a{color:#edf4fc;text-decoration:none}
 .competition-directory-card>p:not(.competition-directory-country){font-size:.76rem;margin:0 0 10px}
@@ -35,7 +35,7 @@
 .competition-season-form{align-items:end;display:flex;flex-wrap:wrap;gap:12px;margin:18px 0}
 .competition-season-form label{display:grid;gap:6px;min-width:160px}
 .competition-coverage-note{color:var(--competition-soft);line-height:1.6;margin:14px 0}
-.competition-pending{border:1px solid #41546a;border-radius:12px;margin-top:22px;padding:16px}
+.competition-pending{border:1px solid #41546a;border-radius:12px;background:var(--ns-surface-panel,#0b1d30);margin-top:22px;padding:16px}
 .competition-pending summary{cursor:pointer;font-weight:600;min-height:44px;padding:6px}
 .competition-directory-empty{margin:auto;max-width:700px;padding:22px}
 @media(max-width:900px){.competition-directory-heading{align-items:start;flex-direction:column;gap:8px}.competition-directory-heading>p:last-child{max-width:620px}.competition-directory-filters{grid-template-columns:minmax(0,1fr) minmax(180px,.65fr)}.competition-directory-filters button{grid-column:1/-1;justify-self:start}}

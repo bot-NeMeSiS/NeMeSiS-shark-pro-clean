@@ -63,7 +63,7 @@ def test_postdeploy_probe_compares_served_css_bytes_to_checkout(monkeypatch, cor
     css = (cert.ROOT/'static/product-system.css').read_bytes().decode('utf-8')
     runtime = {'version':version, 'git_commit_hint':'a'*40, 'version_files_match':True,
         'deployment_alignment_status':'aligned_local_files', 'compact':True}
-    sports = {'matches':[], 'live':[], 'counts':{'live':0}, 'no_external_calls':True,
+    sports = {'matches':[], 'live':[], 'counts':{'live':0, 'stale_live':0}, 'no_external_calls':True,
         'poll_after_seconds':180, 'last_safe_sync':cert.datetime.now(cert.MADRID).isoformat()}
     def request(base, path, timeout=30):
         requests.append(path)

@@ -14,24 +14,39 @@ class GreetingParser(HTMLParser):
     def __init__(self):
         super().__init__()
         self.headings = []
+        self.greetings = []
         self.active = False
         self.parts = []
+        self.heading_active = False
+        self.heading_parts = []
 
     def handle_starttag(self, tag, attrs):
-        if tag == "h1" and "data-madrid-greeting" in dict(attrs):
+        if "data-madrid-greeting" in dict(attrs):
+            # V1000 keeps the same safe, request-local greeting as secondary
+            # copy. The page heading is reserved for the sports content.
+            assert tag == "p" and "data-home-greeting" in dict(attrs)
+            assert not self.active
             self.active = True
             self.parts = []
+        if tag == "h1":
+            self.heading_active = True
+            self.heading_parts = []
         if self.active:
             assert tag not in {"script", "img"}
 
     def handle_data(self, data):
         if self.active:
             self.parts.append(data)
+        if self.heading_active:
+            self.heading_parts.append(data)
 
     def handle_endtag(self, tag):
-        if self.active and tag == "h1":
-            self.headings.append(" ".join("".join(self.parts).split()))
+        if self.active and tag == "p":
+            self.greetings.append(" ".join("".join(self.parts).split()))
             self.active = False
+        if self.heading_active and tag == "h1":
+            self.headings.append(" ".join("".join(self.heading_parts).split()))
+            self.heading_active = False
 
 
 @pytest.mark.parametrize("day", ["2026-01-15", "2026-07-15", "2026-03-29", "2026-10-25"])
@@ -102,7 +117,8 @@ def test_real_templates_share_request_greeting_and_escape_names(app_module, monk
         html = render_template(template, data={})
     parser = GreetingParser()
     parser.feed(html)
-    assert parser.headings == [expected]
+    assert parser.greetings == [expected]
+    assert parser.headings == (["Tu jornada deportiva"] if template == "home.html" else ["Partidos y resultados"])
     if name == "O'Connor":
         assert "O&#39;Connor" in html
 

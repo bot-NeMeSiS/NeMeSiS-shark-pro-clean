@@ -8,10 +8,10 @@
 .ns-highlights-review summary { cursor: pointer; width: 100%; }
 .ns-highlights-review form { display: grid; gap: 12px; }
 .ns-highlights-review label { display: grid; gap: 6px; min-width: 0; }
-.ns-highlights-review :is(input:not([type=checkbox]),select,textarea) { width: 100%; min-height: 44px; min-width: 0; max-width: 100%; font: inherit; font-size: 16px; color: var(--ns-text,#edf4fc); background: #0b1523; border: 1px solid #52667b; border-radius: 8px; padding: 8px; box-sizing: border-box; }
+.ns-highlights-review :is(input:not([type=checkbox]),select,textarea) { width: 100%; min-height: 44px; min-width: 0; max-width: 100%; font: inherit; font-size: 16px; color: var(--ns-text,#edf4fc); background: var(--ns-surface-input,#061321); border: 1px solid var(--ns-control-border,#5b7c96); border-radius: 8px; padding: 8px; box-sizing: border-box; }
 .ns-highlights-review .ns-media-check { display: flex; align-items: flex-start; }
 .ns-media-check input { flex: 0 0 22px; width: 22px; height: 22px; }
-.ns-highlights-review button,.ns-highlight-player button { border: 1px solid #527b93; border-radius: 10px; background: #13283b; cursor: pointer; font: inherit; }
+.ns-highlights-review button,.ns-highlight-player button { border: 1px solid var(--ns-control-border,#5b7c96); border-radius: 10px; background: var(--ns-surface-raised,#112a40); cursor: pointer; font: inherit; }
 .ns-highlights-review :focus-visible,.ns-highlight-player :focus-visible { outline: 2px solid #8bdfff; outline-offset: 3px; }
 .ns-media-alert { border-left: 4px solid #f2bb63; padding: 12px; }
 .ns-highlight-player [hidden] { display: none !important; }

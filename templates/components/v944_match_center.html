@@ -88,9 +88,11 @@
     {% if context.get('favorite') %}{{ status_chip('Favorito', 'gold') }}{% endif %}
   </div>
   <div class="v944-match-header__identity">
-    <a class="v944-match-team v944-entity-link" href="{{ home.get('href') or '/calendar' }}" data-entity-contract="team">
-      {{ team_logo(home.get('name'), home.get('logo'), 'lg') }}
-      <strong>{{ home.get('name') or ui('No disponible') }}</strong>
+    <a class="v944-match-team v944-entity-link" href="{{ home.get('href') or '/calendar' }}" data-entity-contract="team" data-match-side="home">
+      <span class="v1000-match-team__identity">
+        {{ team_logo(home.get('name'), home.get('logo'), 'lg') }}
+        <strong dir="auto">{{ home.get('name') or ui('No disponible') }}</strong>
+      </span>
       <small>{% if home.get('flag') %}<span aria-hidden="true">{{ home.get('flag') }}</span>{% endif %} {{ ui("Local") }}</small>
     </a>
     <div class="v944-match-header__status">
@@ -100,9 +102,11 @@
         {{ ui_match_datetime(context.get('match') or {}, true) }}
       </time>
     </div>
-    <a class="v944-match-team v944-match-team--away is-away v944-entity-link" href="{{ away.get('href') or '/calendar' }}" data-entity-contract="team">
-      {{ team_logo(away.get('name'), away.get('logo'), 'lg') }}
-      <strong>{{ away.get('name') or ui('No disponible') }}</strong>
+    <a class="v944-match-team v944-match-team--away is-away v944-entity-link" href="{{ away.get('href') or '/calendar' }}" data-entity-contract="team" data-match-side="away">
+      <span class="v1000-match-team__identity">
+        {{ team_logo(away.get('name'), away.get('logo'), 'lg') }}
+        <strong dir="auto">{{ away.get('name') or ui('No disponible') }}</strong>
+      </span>
       <small>{% if away.get('flag') %}<span aria-hidden="true">{{ away.get('flag') }}</span>{% endif %} {{ ui("Visitante") }}</small>
     </a>
   </div>

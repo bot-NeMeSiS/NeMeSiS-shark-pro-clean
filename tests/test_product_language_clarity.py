@@ -342,15 +342,43 @@ def test_legacy_membership_catalog_matches_current_product_truth():
 
 
 def test_visible_surfaces_use_canonical_spanish_routes():
+    from jinja2 import Environment, nodes
+
     hub=read("templates/unified_intelligence_hub.html")
     home=read("templates/home.html")
+    account=read("templates/account_center.html")
     base=read("templates/base.html")
     error_500=read("templates/500.html")
     company=read("templates/company_platform.html")
     assert 'href="/menu"' not in hub
     assert 'href="/app"' in hub
     assert 'href="/memberships"' not in home
-    assert 'href="/membresias"' in home
+    # Follow the actual macro consumers: Home keeps its plan comparison and
+    # account entry; authenticated users manage membership from their account.
+    # A literal href in Home would miss these rendered canonical links.
+    env=Environment(autoescape=True)
+    env.globals["ui"]=lambda value: value
+    ui_tree=env.parse(read("templates/components/v933_ui.html"))
+    # Compile the real link macros and their icon dependency without importing
+    # unrelated App-only filters or rendering the whole application shell.
+    macro_tree=nodes.Template([node for node in ui_tree.body
+                              if isinstance(node,nodes.Macro)
+                              and node.name in {"icon","action_button","section_header","quick_action"}])
+    macros=env.from_string(macro_tree).module
+    def rendered_call(source, macro, label):
+        calls=[call for call in env.parse(source).find_all(nodes.Call)
+               if isinstance(call.node,nodes.Name) and call.node.name==macro
+               and call.args and isinstance(call.args[0],nodes.Const)
+               and call.args[0].value==label]
+        assert len(calls)==1, (macro,label)
+        return str(getattr(macros,macro)(*[arg.as_const() for arg in calls[0].args]))
+    for rendered,canonical in (
+        (rendered_call(home,"section_header","Planes"),"/membresias"),
+        (rendered_call(home,"quick_action","Mi cuenta"),"/mi-cuenta"),
+        (rendered_call(account,"action_button","Ver prestaciones"),"/membresias"),
+    ):
+        assert 'href="'+canonical+'"' in rendered
+        assert 'href="/memberships"' not in rendered
     for text in (base,error_500,company):
         assert 'href="/support"' not in text
         assert 'href="/soporte"' in text

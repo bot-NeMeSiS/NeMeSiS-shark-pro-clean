@@ -5,6 +5,9 @@ from dataclasses import dataclass, field
 from itertools import islice
 from types import MappingProxyType
 from engines.competition_read_model import normalized
+from engines.competition_reference_registry import (
+    explicit_competition_reference, observation_reference_issues, catalog_reference_issues,
+)
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS
 from engines.spanish_localization_engine import provider_competition_facts, spanish_country_name
 
@@ -75,6 +78,7 @@ class _Spec:
     namespace: str
     native_ids: tuple
     explicit_key: str
+    curated_reference: object = None
 
 def _registry_indexes(registry):
     mappings, countries = {}, {}
@@ -85,7 +89,8 @@ def _registry_indexes(registry):
         value = _country(record.get("country"))
         if value:
             countries.setdefault(key, set()).add(value)
-        for namespace, field_name in (("sportsdb", "sportsdb_id"), ("odds", "odds_key")):
+        for namespace, field_name in (("sportsdb", "sportsdb_id"), ("odds", "odds_key"),
+                                     ("api-football", "api_football_id")):
             identifier = _text(record.get(field_name))
             if identifier:
                 mappings.setdefault((namespace, identifier), set()).add(key)
@@ -114,8 +119,17 @@ def _spec(row, mappings):
     ids.discard("")
     if len(ids) > 1:
         issues.add("CONFLICT_LEAGUE_ID")
+    reference = explicit_competition_reference(namespace, tuple(sorted(ids)), explicit)
+    if reference is not None:
+        issues.update(observation_reference_issues(reference, row))
     for identifier in sorted(ids):
         keys = mappings.get((namespace, identifier), ()) if namespace else ()
+        if reference is not None:
+            if any(key != reference.canonical_key for key in keys):
+                issues.add("CONFLICT_CURATED_MAPPING")
+            # Keep every declared PK in the one bounded read, including a
+            # conflicting registry target. The curated relation never wins it.
+            keys = tuple(sorted(set(keys) | {reference.canonical_key}))
         if not namespace:
             issues.add("UNKNOWN_NAMESPACE")
         elif not keys:
@@ -124,7 +138,7 @@ def _spec(row, mappings):
             required.update(keys)
             if len(keys) > 1:
                 issues.add("AMBIGUOUS_MAPPING")
-            if explicit and any(key != explicit for key in keys):
+            if explicit and reference is None and any(key != explicit for key in keys):
                 issues.add("CONFLICT_PK_MAPPING")
     try:
         facts = provider_competition_facts(dict(row))
@@ -137,7 +151,7 @@ def _spec(row, mappings):
         issues.add("CONFLICT_COUNTRY")
     # safe_country, display labels, match IDs and fixture tables are never reference evidence.
     return _Spec(tuple(sorted(required)), tuple(sorted(countries)), tuple(sorted(issues)),
-                 namespace, tuple(sorted(ids)), explicit)
+                 namespace, tuple(sorted(ids)), explicit, reference)
 
 def _select_sets(required_sets, max_keys):
     selected = set()
@@ -155,7 +169,9 @@ def prepare_context(cohorts, read_competitions, *, max_keys=500, registry=IMPORT
     when ambiguous; never manufacture missing rows. No callback is retained.
     Context resolution is not permission to fuse fixtures or replace their rows.
     A supplied real PK can verify a native league ID only through a matching
-    known catalog source/external_id. Otherwise unmapped IDs remain UNKNOWN.
+    known catalog source/external_id. The closed reviewed-reference registry can
+    additionally verify one exact provider/ID/observed-key relation after reading
+    both PKs and checking its documented scope. Otherwise IDs remain UNKNOWN.
     """
     if not isinstance(cohorts, Mapping) or any(not isinstance(name, str) for name in cohorts):
         raise ValueError("cohorts must map string names to observations")
@@ -186,8 +202,10 @@ def prepare_context(cohorts, read_competitions, *, max_keys=500, registry=IMPORT
                         read_state = "CONTRACT_INVALID"
                         break
                     key = _pk(record["key"])
+                    scope = tuple((field_name, _text(record.get(field_name))) for field_name in
+                                  ("name", "sport", "sport_name", "sport_key", "gender", "category", "age_group"))
                     snapshot = (_text(record.get("name")), _country(record.get("country")),
-                                _namespace(record.get("source")), _text(record.get("external_id")))
+                                _namespace(record.get("source")), _text(record.get("external_id")), scope)
                     records.setdefault(key, []).append(snapshot)
         except Exception:
             read_state = "UNAVAILABLE"
@@ -196,15 +214,22 @@ def prepare_context(cohorts, read_competitions, *, max_keys=500, registry=IMPORT
         values = []
         for row, spec in zip(rows, specs[name]):
             issues = set(spec.issues)
+            reference_keys = ((spec.curated_reference.canonical_key,)
+                              if spec.curated_reference is not None else spec.required)
+            if spec.curated_reference is not None and read_state == "OK":
+                for ref in spec.required:
+                    for _label, country, source, identifier, scope in records.get(ref, ()):
+                        issues.update(catalog_reference_issues(
+                            spec.curated_reference, ref, country, source, identifier, scope))
             # Read native reference evidence only after a successful exact-PK read.
             # Static mappings may explain cross-provider references; IDs themselves
             # remain namespace-scoped. Never turn labels into a PK or native proof.
-            if (read_state == "OK" and len(spec.required) == 1
+            if (read_state == "OK" and len(reference_keys) == 1
                     and set(spec.required) <= queried_set):
-                ref = spec.required[0]
+                ref = reference_keys[0]
                 references = records.get(ref, ())
                 if len(references) == 1:
-                    _label, _country_key, ref_namespace, ref_native_id = references[0]
+                    _label, _country_key, ref_namespace, ref_native_id, _scope = references[0]
                     if (spec.native_ids and ref_native_id
                             and spec.namespace == ref_namespace):
                         if any(identifier != ref_native_id for identifier in spec.native_ids):
@@ -229,14 +254,14 @@ def prepare_context(cohorts, read_competitions, *, max_keys=500, registry=IMPORT
             elif any(len(records.get(ref, ())) > 1 for ref in spec.required):
                 state = "AMBIGUOUS"
                 issues.add("AMBIGUOUS_REFERENCE")
-            elif any(ref not in records for ref in spec.required):
+            elif any(ref not in records for ref in reference_keys):
                 state = "UNKNOWN_REFERENCE_ABSENT"
-            elif len(spec.required) != 1:
+            elif len(reference_keys) != 1:
                 state = "CONFLICT"
                 issues.add("CONFLICT_REFERENCE")
             else:
-                ref = spec.required[0]
-                label, canonical_country, _reference_namespace, _reference_native_id = records[ref][0]
+                ref = reference_keys[0]
+                label, canonical_country, _reference_namespace, _reference_native_id, _scope = records[ref][0]
                 country_keys.update(registry_countries.get(ref, ()))
                 if canonical_country:
                     country_keys.add(canonical_country)

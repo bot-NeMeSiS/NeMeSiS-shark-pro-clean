@@ -176,19 +176,19 @@ class RealSourceExactAliasContracts(unittest.TestCase):
         self.assertEqual(snapshot.context_for(row).state, "CONFLICT")
         self.assertIn("CONFLICT_REFERENCE_NATIVE_ID", snapshot.context_for(row).issues)
 
-    def test_producer_own_slug_is_queried_literally_and_never_equated_to_laliga(self):
+    def test_reviewed_producer_slug_and_canonical_pk_are_both_queried_literally(self):
         row = api_observation()
         row["competition_key"] = PRODUCER_SLUG_EXAMPLE
         snapshot, calls = prepare([row], [catalogue_record()])
         context = snapshot.context_for(row)
-        self.assertEqual(calls, [(PRODUCER_SLUG_EXAMPLE,)])
-        self.assertEqual(context.required_keys, (PRODUCER_SLUG_EXAMPLE,))
-        self.assertNotEqual(context.state, "RESOLVED")
-        self.assertEqual(context.canonical_key, "")
+        self.assertEqual(calls, [(PRODUCER_SLUG_EXAMPLE, "laliga")])
+        self.assertEqual(context.required_keys, (PRODUCER_SLUG_EXAMPLE, "laliga"))
+        self.assertEqual(context.state, "RESOLVED")
+        self.assertEqual(context.canonical_key, "laliga")
 
     def test_country_and_same_labels_do_not_bridge_unknown_api_slug_to_sportsdb_pk(self):
         api = api_observation()
-        api["competition_key"] = PRODUCER_SLUG_EXAMPLE
+        api["competition_key"] = PRODUCER_SLUG_EXAMPLE + "-unreviewed"
         sports = sportsdb_observation()
         rows = [api, sports]
         before = deepcopy(rows)
@@ -198,7 +198,7 @@ class RealSourceExactAliasContracts(unittest.TestCase):
         self.assertEqual(snapshot.select("actual").count, 2)
         self.assertEqual(snapshot.select("actual").groups, tuple((row,) for row in rows))
         self.assertEqual(snapshot.select("actual").native_fixture_groups, 1)
-        self.assertEqual(calls, [(PRODUCER_SLUG_EXAMPLE, "laliga")])
+        self.assertEqual(calls, [(PRODUCER_SLUG_EXAMPLE + "-unreviewed", "laliga")])
         self.assertEqual(rows, before)
 
     def test_missing_row_or_raw_native_ids_does_not_claim_same_provider_native_guarantee(self):

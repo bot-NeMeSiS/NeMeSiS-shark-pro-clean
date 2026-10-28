@@ -27,11 +27,11 @@
 {% endif %}
 
 
-<div class="v933-page v933-client-dashboard ns16-home home-agenda-focus" data-v933-template="client_app_center" data-v933-reference="official-ref-08" {{ sports_contract_attributes(sports_metrics) }}>
+<div class="v933-page v933-client-dashboard ns16-home home-agenda-focus" data-v1000-home data-v933-template="client_app_center" data-v933-reference="official-ref-08" {{ sports_contract_attributes(sports_metrics) }}>
   <section class="v933-client-hero ns16-home-hero">
     <div>
-      <span class="v933-eyebrow">NeMeSiS SHARK PRO</span>
-      <h1 data-madrid-greeting><span>{{ greeting.label }}{% if greeting.name %},{% endif %}</span>{% if greeting.name %} <strong class="ns16-user-name">{{ greeting.name }}</strong>{% endif %}</h1>
+      <p data-home-greeting data-madrid-greeting><span>{{ greeting.label }}{% if greeting.name %},{% endif %}</span>{% if greeting.name %} <strong class="ns16-user-name" dir="auto">{{ greeting.name }}</strong>{% endif %}</p>
+      <h1>{{ ui('Partidos y resultados') }}</h1>
       <p>{{ ui('Partidos, directos y resultados') }}{% if day %} · {{ ui_calendar_date(day.date, detail=true) }}{% endif %}</p>
     </div>
   </section>
@@ -97,7 +97,7 @@
     </section>
     <nav class="ns16-home-actions" aria-label="{{ ui('Accesos rápidos') }}">
       {{ quick_action('Favoritos', 'Tu selección', '/favoritos', 'star') }}
-      {{ quick_action('Membresías', 'Planes', '/membresias', 'plan', 'gold') }}
+      {{ quick_action('Mi cuenta', 'Plan y preferencias', '/mi-cuenta', 'user') }}
       {{ quick_action('Soporte', 'Ayuda', '/soporte', 'support') }}
     </nav>
   </section>

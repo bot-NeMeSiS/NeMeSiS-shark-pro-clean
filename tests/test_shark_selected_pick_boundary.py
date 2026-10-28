@@ -19,6 +19,15 @@ import sys
 import pytest
 from werkzeug.security import generate_password_hash
 
+from engines.madrid_time_engine import MADRID_TZ
+
+
+def fixture_match_times(now):
+    """Keep fixture dates and display time aligned with the future kickoff."""
+    kickoff = now.astimezone(timezone.utc) + timedelta(hours=3)
+    local = kickoff.astimezone(MADRID_TZ)
+    return local.date().isoformat(), kickoff.isoformat(), local.strftime("%H:%M")
+
 
 @pytest.fixture
 def shark_probe(monkeypatch, tmp_path):
@@ -41,6 +50,7 @@ def shark_probe(monkeypatch, tmp_path):
     password = secrets.token_urlsafe(30)
     now = datetime.now(timezone.utc)
     stamp = now.isoformat()
+    match_date, kickoff_iso, kickoff_time = fixture_match_times(now)
     published_match = "qa-shark-public-match-" + token
     draft_match = "qa-shark-draft-match-" + token
     published_pick = "qa-shark-elite-pick-" + token
@@ -69,8 +79,7 @@ def shark_probe(monkeypatch, tmp_path):
                     match_date,kickoff_iso,kickoff_time,status,source)
                    VALUES(?,?,?,?,?,?,?,?,?,?)""",
                 (mid, "soccer", "QA Norte", "QA Sur", "Liga synthetic QA",
-                 now.date().isoformat(), (now + timedelta(hours=3)).isoformat(),
-                 "20:00", "NS", "SIMULATED_QA"),
+                 match_date, kickoff_iso, kickoff_time, "NS", "SIMULATED_QA"),
             )
         for pid, mid, state, canary in (
             (published_pick, published_match, "published", published_canary),
@@ -84,7 +93,7 @@ def shark_probe(monkeypatch, tmp_path):
                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (pid, mid, "QA Norte", "QA Sur", "1x2", "1", canary,
                  state, "ELITE", 1.8, "Synthetic QA bookmaker", "SIMULATED_QA",
-                 now.date().isoformat(), stamp, stamp,
+                 match_date, stamp, stamp,
                  stamp if state == "published" else None,
                  json.dumps({"qa_private_marker": canary})),
             )
