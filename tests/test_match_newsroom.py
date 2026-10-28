@@ -84,6 +84,7 @@ def test_withdraw_keeps_internal_record_but_hides_public_link(db):
     {"url": "https://uefa.com.evil.com/sport"},
     {"url": "https://user:secret@www.uefa.com/news"},
     {"url": "https://www.uefa.com:8443/news"},
+    {"url": r"https://www.uefa.com\@attacker.invalid/news"},
     {"url": "https://www.uefa.com/news#fragment"},
     {"publisher": "Unapproved media"},
     {"label": "<script>alert(1)</script>"},
@@ -124,3 +125,28 @@ def test_admin_newsroom_routes_require_role_and_csrf(app_module, tmp_path, monke
     assert admin.post("/admin/newsroom/link", data=link()).status_code == 403
     failure = admin.post("/admin/newsroom/link", data={**link(), "csrf_token": token})
     assert failure.status_code == 400   # Fixture not in main application's synthetic DB.
+
+
+
+def test_dense_future_matches_do_not_displace_real_postmatch(db):
+    with sqlite3.connect(db) as conn:
+        conn.executemany(
+            "INSERT INTO matches VALUES(?,?,?,?,?,?,?,?)",
+            ((f"upcoming-{i}", f"Local {i}", f"Visita {i}", "2026-10-29",
+              "NS", None, None, "TheSportsDB") for i in range(240)),
+        )
+    state = news.board(db, stamp())
+    assert state["state"] == "AVAILABLE"
+    assert state["recaps"] and state["recaps"][0]["match_id"] == "post-fixture"
+    assert state["recaps"][0]["score"] == "2-1"
+    assert len(state["previews"]) <= 12 and len(state["recaps"]) <= 12
+
+
+def test_batched_news_links_need_no_per_card_sql_open(db, monkeypatch):
+    news.add_link(db, link(), "admin")
+    def fail(*_args, **_kwargs):
+        raise AssertionError("N+1 per-card link query attempted")
+    monkeypatch.setattr(news, "match_links", fail)
+    data = news.board(db, stamp())
+    assert data["previews"][0]["links"][0]["kind"] == "EXTERNAL_LINK_ONLY"
+    assert data["external_calls"] == 0
