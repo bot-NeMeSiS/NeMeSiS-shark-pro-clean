@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="v933-page v933-admin-ledger" data-company-costs="private-v1">
+  <header class="hero compact-hero">
+    <span class="eyebrow">Administración · Economía</span>
+    <h1>Control económico de NeMeSiS</h1>
+    <p>Gastos por mes con su evidencia. Una estimación no es una factura, una factura no es un pago, y una suscripción no demuestra acceso a la API.</p>
+    <div class="actions">
+      <a class="btn" href="/admin/founder-os#billing">Renovaciones y vencimientos</a>
+      <a class="btn" href="/admin/payments">Cobros Stripe / clientes</a>
+      <a class="btn" href="/admin/company-os">Company OS</a>
+    </div>
+  </header>
+  {% if request.args.get('saved') == '1' %}<p role="status" class="card">Gasto registrado en la base privada. No se ha efectuado ningún pago.</p>{% endif %}
+  {% if request.args.get('voided') == '1' %}<p role="status" class="card">Apunte anulado y conservado en la auditoría.</p>{% endif %}
+  {% if error %}<p role="alert" class="card">{{ error }}</p>{% endif %}
+  {% if ledger.state == 'READ_UNAVAILABLE' %}
+    <p class="card" role="alert">No se ha podido consultar el libro económico. No significa que los gastos sean cero.</p>
+  {% else %}
+  <section class="card" aria-label="Mes y cobertura contable">
+    <form action="/admin/finanzas" method="get">
+      <label for="ledger-month">Mes contable</label>
+      <input id="ledger-month" type="month" name="month" value="{{ ledger.month }}" required>
+      <button class="btn" type="submit">Ver mes</button>
+    </form>
+    <p>Los importes se separan por moneda y nivel de evidencia. No se mezclan USD con EUR. Los cobros de clientes requieren conciliación separada con Stripe.</p>
+  </section>
+  <section class="grid cards-4" aria-label="Totales">
+    {% for currency, statuses in ledger.totals.items() %}
+      {% for status, data in statuses.items() %}
+      <article class="card stat-card">
+        <span>{{ {'ESTIMATED':'Estimación','DECLARED':'Declarado','INVOICED':'Factura registrada','PAID':'Pago declarado'}.get(status,status) }} · {{ currency }}</span>
+        <strong>{{ data.amount }} {{ currency }}</strong>
+        <small>{{ data.entries }} apunte(s), sin conversión de moneda</small>
+      </article>
+      {% endfor %}
+    {% else %}
+      <article class="card stat-card"><span>Sin gastos acreditados en el mes</span><strong>—</strong><small>No se interpreta como coste cero.</small></article>
+    {% endfor %}
+  </section>
+  <section class="card" aria-label="Registrar gasto">
+    <h2>Registrar gasto o estimación</h2>
+    <p>Solo un administrador puede guardar un apunte. El registro no contrata, renueva ni paga nada. No incluyas claves, tarjetas ni facturas completas.</p>
+    <form action="/admin/finanzas" method="post" data-ns-no-loading="true">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="request_id" value="{{ request_id }}">
+      <div class="grid cards-4">
+        <label>Proveedor
+          <select name="provider" required>
+            {% for key,label in provider_labels.items() %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+          </select>
+        </label>
+        <label>Importe
+          <input type="text" name="amount" inputmode="decimal" pattern="[0-9]+([.,][0-9]{1,2})?" maxlength="12" placeholder="10,00" required>
+        </label>
+        <label>Moneda
+          <select name="currency"><option value="EUR">EUR</option><option value="USD">USD</option></select>
+        </label>
+        <label>Mes
+          <input type="month" name="month" value="{{ ledger.month }}" required>
+        </label>
+        <label>Tipo de evidencia
+          <select name="status" required>
+            <option value="ESTIMATED">Estimación</option>
+            <option value="DECLARED">Declarado, no verificado</option>
+            <option value="INVOICED">Factura registrada por Admin</option>
+            <option value="PAID">Pago declarado por Admin</option>
+          </select>
+        </label>
+        <label>Referencia breve, sin datos sensibles
+          <input name="reference_note" maxlength="120" placeholder="Ej. factura del proveedor revisada">
+        </label>
+      </div>
+      <button type="submit" class="btn primary">Guardar apunte sin efectuar pagos</button>
+    </form>
+  </section>
+  <section class="card" aria-label="Apuntes del mes">
+    <h2>Historial mensual</h2>
+    {% if ledger.rows %}
+      <div class="table-wrap"><table>
+        <thead><tr><th>Proveedor</th><th>Importe</th><th>Evidencia</th><th>Referencia</th><th>Registro</th><th>Corrección</th></tr></thead>
+        <tbody>
+        {% for item in ledger.rows %}
+        <tr>
+          <td>{{ item.provider_label }}</td>
+          <td>{{ item.amount }} {{ item.currency }}</td>
+          <td>{{ item.status_label }}{% if item.voided_at %} · ANULADO{% endif %}</td>
+          <td>{{ item.reference_note or 'Sin referencia' }}</td>
+          <td>{{ item.created_at }}</td>
+          <td>
+            {% if not item.voided_at %}
+            <form method="post" action="/admin/finanzas/void/{{ item.id }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <label>Motivo de corrección <input name="reason" maxlength="120" required minlength="4" placeholder="Registro duplicado"></label>
+              <button type="submit">Anular (deja auditoría)</button>
+            </form>
+            {% else %}Registro conservado{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table></div>
+    {% else %}
+      <p>No hay apuntes en este mes. Las suscripciones existentes en Founder OS no se copian automáticamente: primero debemos comprobar las facturas.</p>
+    {% endif %}
+  </section>
+  {% endif %}
+  <footer class="card">
+    <strong>Alcance contable</strong>
+    <p>No representa fiscalidad oficial ni calcula beneficio hasta verificar gastos e ingresos. ChatGPT y OpenAI API son conceptos distintos; los importes indicados por el fundador todavía requieren comprobante y reparto de uso personal.</p>
+  </footer>
+</section>
+{% endblock %}
