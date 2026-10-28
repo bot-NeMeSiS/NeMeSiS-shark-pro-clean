@@ -129,7 +129,7 @@ def test_admin_cost_routes_protected_and_csrf(admin_browser):
     anon = a.app.test_client()
     assert anon.get("/admin/finanzas").status_code == 302
     assert anon.get("/api/admin/company-costs").status_code == 403
-    assert anon.post("/admin/finanzas", data=row()).status_code == 302
+    assert anon.post("/admin/finanzas", data=row()).status_code == 403
     assert client.get("/api/admin/company-costs").status_code == 200
     assert client.get("/admin/finanzas").status_code == 200
     assert client.get("/admin/costes").status_code == 200
