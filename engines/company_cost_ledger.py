@@ -114,8 +114,8 @@ def record_cost(path, payload, actor):
         raise ValueError("Se requiere identidad administrativa.")
     entry = _validated(payload)
     with _connection(path, write=True) as conn:
-        conn.execute("BEGIN IMMEDIATE")
         conn.executescript(SCHEMA)
+        conn.execute("BEGIN IMMEDIATE")
         previous = conn.execute("SELECT * FROM company_cost_entries WHERE request_id=?",
                                 (entry["request_id"],)).fetchone()
         if previous:
