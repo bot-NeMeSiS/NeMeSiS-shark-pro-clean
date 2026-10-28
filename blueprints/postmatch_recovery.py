@@ -111,8 +111,9 @@ def create_postmatch_blueprint(db_path, is_admin_callback, priority=None):
 
     @bp.get('/admin/newsroom')
     def admin_newsroom():
-        from engines.match_newsroom_engine import board, PUBLISHERS
+        from engines.match_newsroom_engine import board, editor_links, PUBLISHERS
         return render_template('admin_newsroom.html', newsroom=board(db_path),
+                               reviewed_links=editor_links(db_path),
                                publishers=PUBLISHERS, error=None)
 
     @bp.post('/admin/newsroom/link')
