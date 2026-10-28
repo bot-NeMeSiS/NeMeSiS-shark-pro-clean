@@ -56,7 +56,7 @@ def _safe_url(url, publisher):
         parts = urlsplit(url)
         host = (parts.hostname or "").lower().rstrip(".")
         if (parts.scheme != "https" or parts.username or parts.password or parts.port
-            or not host or parts.fragment or not parts.path or "\\\\" in url):
+            or not host or parts.fragment or not parts.path or chr(92) in url):
             raise ValueError("Solo se admiten enlaces HTTPS directos del medio.")
         if publisher not in PUBLISHERS or not any(
             host == allowed or host.endswith("." + allowed)
@@ -168,10 +168,21 @@ def board(db_path, now=None):
              "previews": [], "recaps": [], "external_calls": 0, "copied_articles": 0}
     try:
         with _connection(db_path) as conn:
-            rows = conn.execute(
+            # Independent bounded lanes: a dense upcoming calendar must never
+            # displace recent confirmed results from the newsroom.
+            today = now.date().isoformat()
+            tomorrow = (now.date() + timedelta(days=1)).isoformat()
+            selection = (
                 "SELECT id,home_team,away_team,match_date,status,home_score,away_score,source "
                 "FROM matches WHERE match_date>=? AND match_date<? "
-                "ORDER BY match_date DESC,id LIMIT 220", (start, end)).fetchall()
+                "AND upper(status) IN ({statuses}) ORDER BY match_date {order},id LIMIT 140"
+            )
+            upcoming_sql = selection.format(
+                statuses="'NS','NOT_STARTED','SCHEDULED','TIMED','TBD'", order="ASC")
+            finished_sql = selection.format(
+                statuses="'FT','FINISHED','FINAL','AET','PEN','FINALIZADO'", order="DESC")
+            rows = list(conn.execute(upcoming_sql, (today, end)).fetchall())
+            rows.extend(conn.execute(finished_sql, (start, tomorrow)).fetchall())
             links_by_id = {}
             has_links = conn.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' "
@@ -221,7 +232,7 @@ def board(db_path, now=None):
                     previews.append({**common, "phase": "PRE",
                                      "summary": f"Partido programado: {home} frente a {away}. "
                                      "Alineaciones y novedades: pendientes de confirmar.",
-                                     "links": match_links(db_path, mid, 3)})
+                                     "links": links_by_id.get(mid, [])})
         return {**empty, "state": "AVAILABLE" if previews or recaps else "NO_DATA",
                 "previews": sorted(previews, key=lambda x:x["date"]),
                 "recaps": recaps}
