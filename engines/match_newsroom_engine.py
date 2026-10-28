@@ -172,6 +172,32 @@ def board(db_path, now=None):
                 "SELECT id,home_team,away_team,match_date,status,home_score,away_score,source "
                 "FROM matches WHERE match_date>=? AND match_date<? "
                 "ORDER BY match_date DESC,id LIMIT 220", (start, end)).fetchall()
+            links_by_id = {}
+            has_links = conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='match_external_news_links'").fetchone()
+            if rows and has_links:
+                # Fixed-size bounded link lookup. Never open another connection per
+                # card, trigger media downloads, or join stale match identities.
+                mids = list(dict.fromkeys(str(item["id"]) for item in rows))
+                marks = ",".join("?" for _ in mids)
+                links = conn.execute(
+                    "SELECT match_id,match_identity,phase,publisher,label,"
+                    "external_url,reviewed_at FROM match_external_news_links "
+                    "WHERE visible=1 AND match_id IN (" + marks + ") "
+                    "ORDER BY reviewed_at DESC,id DESC LIMIT 120", mids).fetchall()
+                linked_ids = list(dict.fromkeys(item["match_id"] for item in links))
+                if linked_ids:
+                    marks = ",".join("?" for _ in linked_ids)
+                    original = conn.execute(
+                        "SELECT * FROM matches WHERE id IN (" + marks + ")", linked_ids).fetchall()
+                    proof = {item["id"]: identity(dict(item)) for item in original}
+                    for link in links:
+                        if proof.get(link["match_id"]) != link["match_identity"]:
+                            continue
+                        grouped = links_by_id.setdefault(link["match_id"], [])
+                        if len(grouped) < 3:
+                            grouped.append(_public_link(link))
         previews, recaps = [], []
         for row in rows:
             match = dict(row)
@@ -189,7 +215,7 @@ def board(db_path, now=None):
                     recaps.append({**common, "phase": "POST", "score": f"{h}-{a}",
                                    "summary": f"Resultado registrado: {home} {h}-{a} {away}. "
                                    "La crónica de incidencias depende de eventos verificados.",
-                                   "links": match_links(db_path, mid, 3)})
+                                   "links": links_by_id.get(mid, [])})
             elif state in {"NS", "NOT_STARTED", "SCHEDULED", "TIMED", "TBD"} and day >= now.date().isoformat():
                 if len(previews) < 12:
                     previews.append({**common, "phase": "PRE",
