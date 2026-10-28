@@ -251,9 +251,20 @@ def test_canonical_client_gets_do_not_mutate_business_tables(app_module,monkeypa
     with sqlite3.connect(db) as conn:
         conn.execute("UPDATE users SET role=?,membership=?,membership_expires_at=? WHERE id=?",
                      (plan,plan,"2030-01-01T00:00:00+00:00","qa-read-client"))
-    monkeypatch.setattr(a,"get_public_home_sports_summary",lambda:{
-        "storage_status":"ok","valid_matches_today_count":0,"valid_matches_today":[],
-        "valid_live_events":[],"valid_upcoming_matches":[],"valid_active_picks":[],"all_picks":[]})
+    calendar_reads=[]
+    def read_summary(*, selected_date=None, _prepare_only=False):
+        # Calendar explicitly prepares its selected date without the unused Home view.
+        # Preserve this suite's snapshots and SQLite DML observer unchanged.
+        if _prepare_only:
+            assert a.request.endpoint == "calendar_page"
+            assert selected_date == a.today_iso()
+            calendar_reads.append(selected_date)
+        else:
+            assert selected_date is None
+        return {
+            "storage_status":"ok","valid_matches_today_count":0,"valid_matches_today":[],
+            "valid_live_events":[],"valid_upcoming_matches":[],"valid_active_picks":[],"all_picks":[]}
+    monkeypatch.setattr(a,"get_public_home_sports_summary",read_summary)
     c=a.app.test_client()
     with c.session_transaction() as state:
         state.update(user_id="qa-read-client",user_role=plan,membership=plan,user_membership=plan,
@@ -265,6 +276,7 @@ def test_canonical_client_gets_do_not_mutate_business_tables(app_module,monkeypa
         assert response.status_code == 200,(route,response.status_code)
         assert snapshot(db)==before, (plan,route)
         assert not writes, (plan,route,writes)
+    assert calendar_reads == [a.today_iso()]
 
 def test_canonical_admin_gets_do_not_mutate_business_tables(app_module,monkeypatch,tmp_path):
     a,db=isolated(app_module,monkeypatch,tmp_path)
