@@ -197,6 +197,9 @@ def build_company_workers(runtime: dict[str, Any] | None = None) -> list[dict[st
 def build_company_os_summary(version: str = "", runtime: dict[str, Any] | None = None) -> dict[str, Any]:
     workers = build_company_workers(runtime)
     from engines.game_ui_review_lab import build_game_ui_lab
+    from engines.company_workforce_receipts_engine import master_cron_receipt
+    import os
+    db_path = (runtime or {}).get("db_path") or os.getenv("DB_PATH", "")
     return {
         "version": version,
         "global_status": "responsabilidades_configuradas",
@@ -209,6 +212,7 @@ def build_company_os_summary(version: str = "", runtime: dict[str, Any] | None =
         "safe_states": SAFE_STATES,
         "workers": workers,
         "game_ui_lab": build_game_ui_lab(),
+        "workforce_receipt": master_cron_receipt(db_path),
         "areas": sorted({worker["area"] for worker in workers}),
         "findings": [finding for worker in workers for finding in worker["findings"]],
         "recommendations": [worker["safe_next_step"] for worker in workers],
