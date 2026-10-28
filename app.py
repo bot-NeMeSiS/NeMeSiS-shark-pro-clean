@@ -528,7 +528,10 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V1000_4_CALENDAR_COHORT_COUNTS_PHASE_TIMING'
+# Public product identity is independent of the monotonic build and commit.
+PUBLIC_PRODUCT_VERSION = "v1"
+PUBLIC_PRODUCT_REVISION = "001"
+APP_VERSION = 'V1000_5_PUBLIC_V1_RELEASE_IDENTITY'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -13165,6 +13168,8 @@ def get_v937_pick_learning(pick):
 
 
 app.jinja_env.globals.update(
+    public_product_version=PUBLIC_PRODUCT_VERSION,
+    public_product_revision=PUBLIC_PRODUCT_REVISION,
     nemesis_data_confidence=get_v937_nemesis_data_confidence,
     nemesis_attention_priority=get_v937_attention_priority,
     nemesis_pick_learning=get_v937_pick_learning,
@@ -17578,7 +17583,7 @@ def telegram_daily_message():
     summary = briefing["summary"]
     return (
         "<b>NeMeSiS SHARK PRO</b>\n"
-        f"Versión: {APP_VERSION}\n"
+        f"Versión: {PUBLIC_PRODUCT_VERSION}\n"
         f"Partidos hoy: {summary['matches_today']} | Live: {summary['live_now']} | Picks: {summary['picks_ready']}\n"
         "Cobertura: mundial, competiciones top, directo, resultados y picks con hora Madrid.\n"
         "Legal: solo APIs permitidas, importaciones autorizadas y cache propio."

@@ -3,7 +3,7 @@
 {% set tr = data.top_app_readiness or {} %}
 <section class="scoreboard-hero v701-scoreboard">
   <div>
-    <div class="kicker">Admin · V745</div>
+    <div class="kicker">Admin · {{ public_product_version }}</div>
     <h1>Top App Readiness</h1>
     <p class="lead">Vista ejecutiva de Data Vault, Render, Telegram, Inteligencia del partido, highlights seguros, alertas y pagos.</p>
     <div class="admin-menu">
@@ -23,7 +23,7 @@
 </section>
 
 <section class="band compact-band">
-  <div class="section-head"><h2>Bloques de producto</h2><span class="pill">V745</span></div>
+  <div class="section-head"><h2>Bloques de producto</h2><span class="pill">{{ public_product_version }}</span></div>
   <div class="grid compact-grid">
     <article class="card"><h3>Data Vault</h3><p class="small">{{ tr.data_vault.data_vault.risk|length if tr.data_vault.data_vault.risk else 0 }} riesgos abiertos.</p></article>
     <article class="card"><h3>Render</h3><p class="small">Runtime y cron visibles sin procesos pesados.</p></article>
