@@ -14,6 +14,10 @@ def create_postmatch_blueprint(db_path, is_admin_callback, priority=None):
 
     @bp.before_request
     def protect():
+        # Exact public read-only news route. All existing admin and Cron routes
+        # retain the original authentication and CSRF gates below.
+        if request.method == 'GET' and request.path == '/noticias':
+            return None
         if request.path == '/api/automation/postmatch/tick':
             expected = (os.getenv('AUTOMATION_SECRET') or '').strip()
             supplied = request.headers.get('X-Automation-Secret') or ''
@@ -97,5 +101,45 @@ def create_postmatch_blueprint(db_path, is_admin_callback, priority=None):
         except (sqlite3.Error, OSError):
             return jsonify(ok=False, result='STORAGE_UNAVAILABLE'), 503
         return redirect('/admin/highlights-review#postmatch-workers', code=303)
+
+
+    @bp.get('/noticias')
+    def public_newsroom():
+        from engines.match_newsroom_engine import board
+        result = board(db_path)
+        return render_template('newsroom.html', newsroom=result)
+
+    @bp.get('/admin/newsroom')
+    def admin_newsroom():
+        from engines.match_newsroom_engine import board, editor_links, PUBLISHERS
+        return render_template('admin_newsroom.html', newsroom=board(db_path),
+                               reviewed_links=editor_links(db_path),
+                               publishers=PUBLISHERS, error=None)
+
+    @bp.post('/admin/newsroom/link')
+    def admin_newsroom_link():
+        from engines.match_newsroom_engine import add_link
+        if request.content_length and request.content_length > 2048:
+            return jsonify(ok=False, reason='INVALID_LENGTH'), 413
+        fields = {key: request.form.get(key) for key in
+                  ('match_id', 'phase', 'publisher', 'label', 'url', 'link_only_confirmed')}
+        try:
+            add_link(db_path, fields, session.get('user_id') or '')
+        except ValueError as exc:
+            return jsonify(ok=False, reason='INVALID_REVIEW', message=str(exc)), 400
+        except (sqlite3.Error, OSError):
+            return jsonify(ok=False, reason='STORAGE_UNAVAILABLE'), 503
+        return redirect('/admin/newsroom?added=1', code=303)
+
+    @bp.post('/admin/newsroom/link/<link_id>/withdraw')
+    def admin_newsroom_withdraw(link_id):
+        from engines.match_newsroom_engine import withdraw_link
+        try:
+            withdraw_link(db_path, link_id)
+        except ValueError:
+            return jsonify(ok=False, reason='MISSING_OR_WITHDRAWN'), 409
+        except (sqlite3.Error, OSError):
+            return jsonify(ok=False, reason='STORAGE_UNAVAILABLE'), 503
+        return redirect('/admin/newsroom?withdrawn=1', code=303)
 
     return bp

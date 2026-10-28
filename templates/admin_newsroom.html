@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="v933-page v933-news-editor" data-newsroom-admin="manual-review-v1">
+  <header class="hero compact-hero">
+    <span class="eyebrow">Admin · Contenido deportivo</span>
+    <h1>Redacción NeMeSiS</h1>
+    <p>Gestión de enlaces externos para previas y pospartidos. Solo se guardan etiquetas originales y enlaces HTTPS autorizados a sitios públicos de medios; no se importan artículos, imágenes ni feeds sin licencia.</p>
+    <div class="actions"><a class="btn" href="/noticias">Ver portal de noticias</a><a class="btn" href="/admin/highlights-review">Vídeos y permisos</a><a class="btn" href="/admin/company-os">Company OS</a></div>
+  </header>
+  {% if request.args.get('added') == '1' %}<p role="status" class="card">Enlace añadido con revisión manual. No se ha descargado ningún artículo.</p>{% endif %}
+  {% if request.args.get('withdrawn') == '1' %}<p role="status" class="card">Enlace retirado de la vista pública.</p>{% endif %}
+  <section class="card">
+    <h2>Relacionar una noticia con un partido real</h2>
+    <p>Utiliza el identificador de un partido existente de la base deportiva. Escribe una descripción tuya, no el contenido copiado del medio. El enlace debe llevar a la noticia original y coincidir con la fase del encuentro.</p>
+    <form method="post" action="/admin/newsroom/link">
+      <input name="csrf_token" type="hidden" value="{{ csrf_token() }}">
+      <div class="grid cards-3">
+        <label>ID de partido <input type="text" name="match_id" maxlength="120" required placeholder="Identificador de partido real"></label>
+        <label>Fase <select name="phase"><option value="PRE">Antes del partido</option><option value="POST">Después del partido</option></select></label>
+        <label>Medio <select name="publisher">{% for name in publishers %}<option value="{{ name }}">{{ name }}</option>{% endfor %}</select></label>
+        <label>Descripción propia <input type="text" name="label" maxlength="140" minlength="8" required placeholder="Ej. Reacciones oficiales al encuentro"></label>
+        <label>URL HTTPS al artículo original <input type="url" name="url" maxlength="700" required placeholder="https://..."></label>
+      </div>
+      <label><input type="checkbox" name="link_only_confirmed" value="1" required> He comprobado la relación con el partido y confirmo que solo publicaré el enlace y una descripción propia.</label>
+      <button type="submit" class="btn primary">Añadir enlace revisado</button>
+    </form>
+  </section>
+  <section class="card" aria-label="Últimos artículos enlazados">
+    <h2>Enlaces revisados</h2>
+    {% for item in reviewed_links %}
+    <article class="card" style="margin-top:0.7rem">
+      <h3>{{ item.label }}</h3>
+      <p><small>{{ item.match_id }} · {{ item.phase }} · {{ item.publisher }} · {{ item.reviewed_at }}</small></p>
+      <p><a href="{{ item.external_url }}" target="_blank" rel="noopener noreferrer nofollow">Ver artículo original</a></p>
+      {% if item.visible %}
+      <form method="post" action="/admin/newsroom/link/{{ item.id }}/withdraw">
+        <input name="csrf_token" type="hidden" value="{{ csrf_token() }}">
+        <button type="submit">Retirar enlace público</button>
+      </form>
+      {% else %}<small>Retirado</small>{% endif %}
+    </article>
+    {% else %}
+    <p>No hay enlaces revisados registrados. El portal seguirá mostrando únicamente información factual de los partidos.</p>
+    {% endfor %}
+  </section>
+</section>
+{% endblock %}
