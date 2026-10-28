@@ -528,7 +528,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V1000_3_CALENDAR_MINIMAL_READ_CONTEXT'
+APP_VERSION = 'V1000_4_CALENDAR_COHORT_COUNTS_PHASE_TIMING'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -19190,7 +19190,7 @@ def _v991_count_cohorts(summary, cohorts, *, fixture_operation=None):
 
     Ownership is checked at this batch's entry and exit, rather than rebuilding
     the full summary's membership/generation for every label. The snapshot stays
-    bound to this batch; each subset still gets select_rows' fresh identity
+    bound to this batch; each subset still gets count_rows' fresh identity
     projection. There are no caller predicates, ranking callbacks or cached
     selections. A persistent ownership change invalidates the entire batch.
     This boundary does not promise atomicity or detect mutation and reversion.
@@ -19199,7 +19199,7 @@ def _v991_count_cohorts(summary, cohorts, *, fixture_operation=None):
     operation = _v991_operation_for(summary, fixture_operation)
     if operation is not None:
         snapshot = operation.snapshot
-        counts = {key: snapshot.select_rows(rows).count for key, rows in originals.items()}
+        counts = {key: snapshot.count_rows(rows) for key, rows in originals.items()}
         if (operation.snapshot is snapshot
                 and _v991_operation_for(summary, operation) is operation):
             return _V991CohortCounts(counts, "PREPARED")
@@ -23411,15 +23411,32 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
     day_groups=_calendar_group(sorted_matches,filters.get('sort'),match_dates_prepared=True)
     day_navigation=_v940_calendar_group_navigation(day_groups)
     today=today_iso();tomorrow=today_iso(1);week_end=today_iso(7)
-    date_counts={day:select([row for row in raw_all if str(row.get('match_date') or '')==day]).count
-                 for day in sorted({str(row.get('match_date') or '') for row in raw_all}) if day}
-    counts={'all':source_selection.count,'visible':selection.count,'days':len(day_groups),
-        'leagues':len({canonical_competition_surface_contract(row)['group_key'] for row in sorted_matches}),
-        'today':select(member_rows('valid_matches_today')).count,
-        'tomorrow':date_counts.get(tomorrow,0),'week':select([row for row in raw_all if today<=str(row.get('match_date') or '')<=week_end]).count,
-        'live':select(lane_rows('live')).count,'picks':select(lane_rows('with_pick')).count,
-        'favorites':select(lane_rows('favorites')).count,'finished':select(lane_rows('finished')).count,
-        'incidents':select(lane_rows('incidents')).count}
+    # Count the original date/lane cohorts as one owned batch. Ranked source
+    # and filtered representatives above remain separate presentation decisions.
+    # Every subset still performs its own fresh identity projection.
+    calendar_dates = [day for day in sorted({str(row.get('match_date') or '') for row in raw_all}) if day]
+    count_cohorts = {
+        ('date', day): [row for row in raw_all if str(row.get('match_date') or '') == day]
+        for day in calendar_dates
+    }
+    count_cohorts.update({
+        ('lane', 'today'): member_rows('valid_matches_today'),
+        ('lane', 'week'): [row for row in raw_all if today <= str(row.get('match_date') or '') <= week_end],
+        ('lane', 'live'): lane_rows('live'),
+        ('lane', 'picks'): lane_rows('with_pick'),
+        ('lane', 'favorites'): lane_rows('favorites'),
+        ('lane', 'finished'): lane_rows('finished'),
+        ('lane', 'incidents'): lane_rows('incidents'),
+    })
+    count_batch = _v991_count_cohorts(summary, count_cohorts, fixture_operation=operation)
+    date_counts = {day: count_batch.counts[('date', day)] for day in calendar_dates}
+    counts = {
+        'all': source_selection.count, 'visible': selection.count, 'days': len(day_groups),
+        'leagues': len({canonical_competition_surface_contract(row)['group_key'] for row in sorted_matches}),
+        'today': count_batch.counts[('lane', 'today')], 'tomorrow': date_counts.get(tomorrow, 0),
+        **{name: count_batch.counts[('lane', name)]
+           for name in ('week', 'live', 'picks', 'favorites', 'finished', 'incidents')},
+    }
     active=_v940_calendar_active_filters(filters)
     selected_label=CALENDAR_LANE_LABELS.get(filters['lane'],'Calendario')
     title=date_display_label(filters['date']) if filters['lane'] in {'today','tomorrow'} else selected_label
@@ -23471,7 +23488,8 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
         'source_summary':source_summary,'historical_results_read_state':summary.get('historical_results_read_state'),
         'no_render_api_call':True,"database_written": False,"external_calls": 0,
         'identity_state':'PREPARED' if operation else 'UNPREPARED',
-        'facet_identity_state':facet_batch.identity_state}
+        'facet_identity_state':facet_batch.identity_state,
+        'count_identity_state':count_batch.identity_state}
 
 
 def calendar_experience_data():
@@ -23604,29 +23622,31 @@ def _v940_calendar_provider_context(summary):
 @app.route("/calendario-global")
 @app.route("/partidos")
 @app.route("/partidos/calendario")
+@timed_operation('calendar_read')
 def calendar_page():
     phase_metrics = {}
 
-    def timed_phase(name, callback):
-        started = time.perf_counter()
-        try:
-            return callback()
-        finally:
-            phase_metrics[name] = round((time.perf_counter() - started) * 1000.0, 1)
-            g.v935_route_phase_namespace = "calendar"
-            g.v935_route_phase_metrics = dict(phase_metrics)
+    def calendar_timed_phase(name, callback):
+        with timed_phase('calendar_read', name):
+            started = time.perf_counter()
+            try:
+                return callback()
+            finally:
+                phase_metrics[name] = round((time.perf_counter() - started) * 1000.0, 1)
+                g.v935_route_phase_namespace = "calendar"
+                g.v935_route_phase_metrics = dict(phase_metrics)
 
     lane = request.args.get("lane") or "today"
     date_value = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
-    data, summary = timed_phase(
+    data, summary = calendar_timed_phase(
         "sports_context",
         lambda: v932_safe_dashboard_data(request.path, lane, date_value, compact=True, _calendar_view=True),
     )
-    summary = timed_phase(
+    summary = calendar_timed_phase(
         "historical_results",
         lambda: _v940_hydrate_selected_date_results(summary, date_value),
     )
-    data["calendar"] = timed_phase(
+    data["calendar"] = calendar_timed_phase(
         "calendar_context",
         lambda: v940_calendar_context(summary, lane, date_value),
     )
@@ -23634,8 +23654,10 @@ def calendar_page():
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
     data["sports_metrics"] = data["calendar"].get("sports_metrics")
-    data["v925_calendar"] = _v940_calendar_provider_context(summary)
-    return timed_phase("template_render", lambda: render_template("calendar.html", data=data))
+    data["v925_calendar"] = calendar_timed_phase(
+        "provider_context", lambda: _v940_calendar_provider_context(summary),
+    )
+    return calendar_timed_phase("template_render", lambda: render_template("calendar.html", data=data))
 
 
 @app.route("/sports-hub")

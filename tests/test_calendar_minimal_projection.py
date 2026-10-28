@@ -412,5 +412,5 @@ def test_calendar_route_uses_flag_and_preserves_complete_context_provider_and_ti
     assert data["lane"] == "tomorrow" and data["date"] == "2026-10-29"
     assert data["v925_calendar"] is provider
     assert data["sports_metrics"] is calendar_metrics
-    assert set(phases) == {"sports_context", "historical_results", "calendar_context", "template_render"}
+    assert set(phases) == {"sports_context", "historical_results", "calendar_context", "provider_context", "template_render"}
     assert all(isinstance(elapsed, (int, float)) and elapsed >= 0 for elapsed in phases.values())
