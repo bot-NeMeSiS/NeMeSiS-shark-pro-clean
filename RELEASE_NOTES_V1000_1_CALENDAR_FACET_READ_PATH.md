@@ -1,0 +1,11 @@
+# V1000.1 · recuentos de filtros de Calendario
+
+Calendario calculaba cada etiqueta de equipo, país y competición como una operación independiente. Cada recuento volvía a comprobar la pertenencia y generación del conjunto completo antes de seleccionar los originales de esa etiqueta. Con muchos partidos y etiquetas, ese trabajo crecía de forma cuadrática.
+
+Las facetas pasan a constituir un único lote explícito de consumo. Se materializan sus originales antes de agrupar; se comprueba la propiedad al entrar y salir y se mantiene el mismo snapshot durante todo el lote. Cada selección conserva la reproyección actual de identidad. No se memorizan identidades, grupos ni representantes. Si persiste un cambio de propiedad, se descarta todo el resultado agrupado y se cuentan las observaciones independientes, con estado `UNPREPARED` explícito. No se ofrece una fotografía atómica ni detección de una mutación y reversión intermedias.
+
+Los recuentos siguen incluyendo todas las etiquetas, también los alias de observaciones secundarias, antes del orden y límite visible de opciones. No se derivan de los ganadores globales. La selección por favoritos, pronósticos, fecha y proveedor conserva sus reglas. Los conjuntos de pertenencia de las pestañas se construyen una vez por lectura, en lugar de una vez por partido.
+
+La medición aislada inicial de 3.200 fixtures sintéticos pasó de unas 6.419 comprobaciones globales a 19, conservando 28.800 comprobaciones actuales de identidad. Es evidencia de trabajo eliminado en esa muestra local, no una certificación de rendimiento productivo, frío o global. El motor de agrupación sigue teniendo costes que requieren mediciones posteriores. Los dos timeouts productivos observados antes de esta corrección se conservan como incidencias abiertas hasta verificar el resultado publicado.
+
+La publicación requiere las pruebas y revisión del HEAD final, CI aplicable, integración autorizada, despliegues web/Cron alineados y comprobaciones posteriores. No se aumentan plazos, recursos, cuotas ni disco. No hay cambios de esquema, datos reales, permisos, secretos, pagos, envíos, proveedores ni jobs. La copia real y su recuperación aislada siguen pendientes y no se certifican con esta mejora.

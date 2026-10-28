@@ -528,7 +528,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V1000_CLIENT_ADMIN_REFINEMENT'
+APP_VERSION = 'V1000_1_CALENDAR_FACET_READ_PATH'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -19179,6 +19179,35 @@ def _v991_selected(summary, rows, *, fixture_operation=None, predicate=None, ran
                           identity_basis=tuple("UNPREPARED" for _ in chosen), native_fixture_groups=0)
 
 
+@_v991_dataclass(frozen=True)
+class _V991CohortCounts:
+    counts: object
+    identity_state: str
+
+
+def _v991_count_cohorts(summary, cohorts, *, fixture_operation=None):
+    """Count one materialized facet batch, retaining each label's own originals.
+
+    Ownership is checked at this batch's entry and exit, rather than rebuilding
+    the full summary's membership/generation for every label. The snapshot stays
+    bound to this batch; each subset still gets select_rows' fresh identity
+    projection. There are no caller predicates, ranking callbacks or cached
+    selections. A persistent ownership change invalidates the entire batch.
+    This boundary does not promise atomicity or detect mutation and reversion.
+    """
+    originals = {key: _v991_unique_objects(rows) for key, rows in cohorts.items()}
+    operation = _v991_operation_for(summary, fixture_operation)
+    if operation is not None:
+        snapshot = operation.snapshot
+        counts = {key: snapshot.select_rows(rows).count for key, rows in originals.items()}
+        if (operation.snapshot is snapshot
+                and _v991_operation_for(summary, operation) is operation):
+            return _V991CohortCounts(counts, "PREPARED")
+    # As with an unprepared single selection, unknown ownership never grants
+    # canonical grouping. Keep all supplied original observations independently.
+    return _V991CohortCounts({key: len(rows) for key, rows in originals.items()}, "UNPREPARED")
+
+
 def _v991_validated_base_summary():
     # Preserve both original private derivations and their cache-acceptance
     # failure boundary. This wrapper changes no builder code or data.
@@ -23308,18 +23337,20 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
     approved_live_objects={id(row) for row in summary.get('valid_live_events') or ()}
     raw_all=[row for row in raw_all if id(row) in approved_live_objects or not prepared[id(row)]['status_info'].get('is_live')]
     original_for_projection={id(value):row for row in raw_all for value in (prepared[id(row)],)}
+    def member_rows(key):
+        members={id(row) for row in summary.get(key) or ()}
+        return [row for row in raw_all if id(row) in members]
     def lane_rows(lane_key):
         day=filters['date'];today=today_iso();week_end=today_iso(7)
-        members=lambda key:{id(row) for row in summary.get(key) or ()}
         if lane_key=='week':return [row for row in raw_all if today<=str(row.get('match_date') or '')<=week_end]
-        if lane_key=='upcoming':return [row for row in raw_all if id(row) in members('valid_upcoming_matches')]
-        if lane_key=='live':return [row for row in raw_all if id(row) in members('valid_live_events') and prepared[id(row)]['status_info'].get('is_live')]
+        if lane_key=='upcoming':return member_rows('valid_upcoming_matches')
+        if lane_key=='live':return [row for row in member_rows('valid_live_events') if prepared[id(row)]['status_info'].get('is_live')]
         if lane_key in {'with_pick','picks'}:return [row for row in raw_all if prepared[id(row)].get('has_pick')]
         if lane_key=='favorites':return [row for row in raw_all if prepared[id(row)].get('is_favorite')]
         if lane_key in {'finished','results'}:
             return [row for row in raw_all if str(row.get('match_date') or '')==day and
                 (prepared[id(row)]['status_info'].get('is_finished') or (lane_key=='results' and prepared[id(row)]['status_info'].get('is_result_pending')))]
-        if lane_key=='incidents':return [row for row in raw_all if id(row) in members('incident_matches')]
+        if lane_key=='incidents':return member_rows('incident_matches')
         if lane_key in {'top','spain','andalucia','international','uefa','national','world'}:
             return [row for row in raw_all if match_lane_filter(prepared[id(row)],lane_key)]
         return [row for row in raw_all if str(row.get('match_date') or '')==day]
@@ -23343,7 +23374,7 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
                  for day in sorted({str(row.get('match_date') or '') for row in raw_all}) if day}
     counts={'all':source_selection.count,'visible':selection.count,'days':len(day_groups),
         'leagues':len({canonical_competition_surface_contract(row)['group_key'] for row in sorted_matches}),
-        'today':select([row for row in raw_all if id(row) in {id(item) for item in summary.get('valid_matches_today') or ()}]).count,
+        'today':select(member_rows('valid_matches_today')).count,
         'tomorrow':date_counts.get(tomorrow,0),'week':select([row for row in raw_all if today<=str(row.get('match_date') or '')<=week_end]).count,
         'live':select(lane_rows('live')).count,'picks':select(lane_rows('with_pick')).count,
         'favorites':select(lane_rows('favorites')).count,'finished':select(lane_rows('finished')).count,
@@ -23366,11 +23397,14 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
             for label in dict.fromkeys(str(label or '').strip() for label in labels):
                 if label:
                     facet_rows[family].setdefault(label, []).append(row)
+    facet_batch = _v991_count_cohorts(summary,
+        {(family,label):rows for family,values in facet_rows.items() for label,rows in values.items()},
+        fixture_operation=operation)
     facets = {}
     for family, values in facet_rows.items():
         options = []
         for label, values_for_label in values.items():
-            option = {'label':label,'value':label,'count':select(values_for_label).count}
+            option = {'label':label,'value':label,'count':facet_batch.counts[(family,label)]}
             if family == 'leagues':
                 option['rank'] = min(int(prepared[id(row)].get('calendar_rank') or 80) for row in values_for_label)
             options.append(option)
@@ -23395,7 +23429,8 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
         'selected_summary':selected_summary,'default_context':title,
         'source_summary':source_summary,'historical_results_read_state':summary.get('historical_results_read_state'),
         'no_render_api_call':True,"database_written": False,"external_calls": 0,
-        'identity_state':'PREPARED' if operation else 'UNPREPARED'}
+        'identity_state':'PREPARED' if operation else 'UNPREPARED',
+        'facet_identity_state':facet_batch.identity_state}
 
 
 def calendar_experience_data():
