@@ -304,14 +304,20 @@ def spanish_team_name(value: object) -> str:
     raw = str(value or "").strip()
     if not raw:
         return ""
-    return SPANISH_TEAM_OVERRIDES.get(_norm(raw), _title_preserving_acronyms(raw))
+    key = _norm(raw)
+    if key in SPANISH_TEAM_OVERRIDES:
+        return SPANISH_TEAM_OVERRIDES[key]
+    return _title_preserving_acronyms(raw)
 
 
 def spanish_country_name(value: object) -> str:
     raw = str(value or "").strip()
     if not raw:
         return ""
-    return SPANISH_COUNTRY_OVERRIDES.get(_norm(raw), _title_preserving_acronyms(raw))
+    key = _norm(raw)
+    if key in SPANISH_COUNTRY_OVERRIDES:
+        return SPANISH_COUNTRY_OVERRIDES[key]
+    return _title_preserving_acronyms(raw)
 
 
 def _humanize_competition_key(raw: str) -> str:
