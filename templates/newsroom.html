@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="v933-page v933-newsroom" data-newsroom-contract="NEMESIS-MATCH-NEWSROOM-V1">
+  <header class="hero compact-hero">
+    <span class="eyebrow">NeMeSiS · Información deportiva</span>
+    <h1>Noticias, previas y pospartidos</h1>
+    <p>Contexto original construido solo a partir de partidos guardados y resultados confirmados. Los enlaces a medios externos se revisan antes de mostrarlos: no copiamos artículos, imágenes ni vídeos de terceros.</p>
+    <div class="actions"><a class="btn" href="/calendario">Calendario</a><a class="btn" href="/directo">En directo</a><a class="btn" href="/resumenes">Resúmenes autorizados</a></div>
+  </header>
+  {% if newsroom.state == 'READ_UNAVAILABLE' %}
+    <article class="card" role="status"><h2>Datos temporalmente no disponibles</h2><p>Este estado no significa que no haya partidos, solo que no se ha podido comprobar su información.</p></article>
+  {% else %}
+  <section aria-label="Antes del partido">
+    <h2>Antes del partido</h2>
+    <p>Agenda de encuentros programados. Alineaciones, bajas, declaraciones y otros acontecimientos no se dan por confirmados sin fuente verificable.</p>
+    <div class="grid cards-3">
+    {% for match in newsroom.previews %}
+      <article class="card" data-news-phase="PRE">
+        <small>{{ match.date }} · Previa</small>
+        <h3>{{ match.home }} — {{ match.away }}</h3>
+        <p>{{ match.summary }}</p>
+        <small>Fuente del partido: {{ match.source }}</small>
+        <p><a href="/match/{{ match.match_id|urlencode }}">Abrir partido</a></p>
+        {% for source in match.links if source.phase == 'PRE' %}
+        <p><a href="{{ source.url }}" target="_blank" rel="noopener noreferrer nofollow">{{ source.label }}</a><small> · {{ source.publisher }} · enlace externo</small></p>
+        {% endfor %}
+      </article>
+    {% else %}
+      <article class="card"><h3>Sin previas verificables</h3><p>Estamos esperando partidos programados con identidad suficiente; no se han creado encuentros ficticios.</p></article>
+    {% endfor %}
+    </div>
+  </section>
+  <section aria-label="Después del partido">
+    <h2>Después del partido</h2>
+    <p>Marcadores registrados como finales por la fuente deportiva. Los comentarios tácticos o declaraciones requieren evidencia adicional.</p>
+    <div class="grid cards-3">
+    {% for match in newsroom.recaps %}
+      <article class="card" data-news-phase="POST">
+        <small>{{ match.date }} · Resultado final registrado</small>
+        <h3>{{ match.home }} {{ match.score }} {{ match.away }}</h3>
+        <p>{{ match.summary }}</p>
+        <small>Fuente del partido: {{ match.source }}</small>
+        <p><a href="/match/{{ match.match_id|urlencode }}">Ver ficha, eventos y estadísticas</a></p>
+        {% for source in match.links if source.phase == 'POST' %}
+        <p><a href="{{ source.url }}" target="_blank" rel="noopener noreferrer nofollow">{{ source.label }}</a><small> · {{ source.publisher }} · enlace externo</small></p>
+        {% endfor %}
+      </article>
+    {% else %}
+      <article class="card"><h3>Sin resultados finales contrastables</h3><p>La plataforma no completará crónicas con marcadores o estadísticas inventadas.</p></article>
+    {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  <footer class="card"><p>La información deportiva puede llegar con retraso. NeMeSiS no reproduce noticias ni material protegido sin permiso. Los enlaces salen al sitio original del medio.</p></footer>
+</section>
+{% endblock %}

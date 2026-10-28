@@ -496,6 +496,48 @@ def register_admin_master(a):
         response.headers["Cache-Control"]="private, no-store"
         response.headers["Content-Security-Policy"]="default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; script-src 'none'; connect-src 'none'; form-action 'none'; frame-ancestors 'self'; sandbox allow-same-origin"
         return response
+
+    @bp.route("/admin/finanzas", methods=["GET", "POST"])
+    @bp.get("/admin/costes")
+    @protected
+    def private_finances():
+        """Bookkeeping only, never Stripe API or a subscription modification."""
+        import secrets
+        from engines import company_cost_ledger as ledger
+        if request.method == "POST":
+            if request.content_length and request.content_length > 4096:
+                return jsonify(ok=False, error="Formulario demasiado grande."), 413
+            values = {key: request.form.get(key, "") for key in
+                      ("provider", "month", "amount", "currency", "status", "request_id", "reference_note")}
+            try:
+                ledger.record_cost(a.DB_PATH, values, owner())
+            except ValueError as exc:
+                data = ledger.snapshot(a.DB_PATH, values.get("month"))
+                return render_template("admin_cost_ledger.html", ledger=data,
+                                       provider_labels=ledger.PROVIDERS,
+                                       request_id=secrets.token_hex(16), error=str(exc)), 400
+            return redirect("/admin/finanzas?month=" + values["month"] + "&saved=1", code=303)
+        data = ledger.snapshot(a.DB_PATH, request.args.get("month"))
+        return render_template("admin_cost_ledger.html", ledger=data,
+                               provider_labels=ledger.PROVIDERS,
+                               request_id=secrets.token_hex(16), error="")
+
+    @bp.post("/admin/finanzas/void/<entry_id>")
+    @protected
+    def void_private_cost(entry_id):
+        from engines import company_cost_ledger as ledger
+        try:
+            ledger.void_cost(a.DB_PATH, entry_id, owner(), request.form.get("reason", ""))
+        except ValueError:
+            return jsonify(ok=False, error="Corrección no válida o repetida."), 400
+        return redirect("/admin/finanzas?voided=1", code=303)
+
+    @bp.get("/api/admin/company-costs")
+    @protected
+    def private_costs_api():
+        from engines import company_cost_ledger as ledger
+        return jsonify(ok=True, ledger=ledger.snapshot(a.DB_PATH, request.args.get("month")))
+
     @bp.after_request
     def private(response):
         response.headers["Cache-Control"]="private, no-store"

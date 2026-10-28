@@ -48,7 +48,8 @@
 {% set ADMIN_SEARCH = {
   '/admin/users': 'clientes usuarios empleados customers clients accounts',
   '/admin/memberships': 'membresias suscripciones planes subscriptions abonnements',
-  '/admin/payments': 'pagos cobros stripe finanzas facturacion payments paiements',
+  '/admin/payments': 'pagos cobros stripe facturacion payments paiements',
+  '/admin/finanzas': 'finanzas economia costes costos gastos proveedores contabilidad ledger expenses costs finance',
   '/admin/sentinel-issues': 'incidencias alertas errores fallos issues alerts incidents',
   '/admin/data-center': 'apis proveedores sincronizacion consumo cuota providers donnees',
   '/admin/final-release': 'version produccion despliegue render release deployment',
@@ -80,7 +81,8 @@
   ('Directo','/directo','live'),
   ('Resultados','/calendario?lane=finished','history'),
   ('Competiciones','/competiciones','trophy'),
-  ('Ver resumen en vídeo','/resumenes','play')
+  ('Ver resumen en vídeo','/resumenes','play'),
+  ('Noticias y crónicas','/noticias','newspaper')
 ] %}
 {% set DISCOVERY_ANALYSIS = [
   ('Pronósticos','/picks','target'),
@@ -91,6 +93,7 @@
 {# Search aliases are app-owned terms only; provider names are never rewritten. #}
 {% set DISCOVERY_SEARCH = {
   '/resumenes': 'resúmenes resumen vídeo vídeos video videos highlights goles mejores jugadas',
+  '/noticias': 'noticias previa crónica previas pospartido postpartido información periodismo deportivo',
   '/picks': 'picks pick pronósticos pronóstico',
   '/historico': 'historial pronósticos rendimiento acierto rentabilidad ROI track record'
 } %}
@@ -104,9 +107,11 @@
 ] %}
 {% set DISCOVERY_HELP = [('Ayuda y preguntas','/faq','help'),('Soporte','/soporte','help'),('Estado del servicio','/service-status','shield')] %}
 {% set DISCOVERY_ADMIN_EXTRA = [
+  ('Economía / costes','/admin/finanzas','payments'),
   ('Copias de seguridad','/admin/backups','database'),
   ('Jornada operativa','/admin/operations-center','calendar'),
-  ('Control general','/admin/founder-os','home')
+  ('Control general','/admin/founder-os','home'),
+  ('Redacción / noticias','/admin/newsroom','newspaper')
 ] %}
 
 {% macro is_active(href, path, scope='client') -%}

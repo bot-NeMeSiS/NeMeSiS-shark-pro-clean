@@ -1,5 +1,9 @@
 {
   "platform_refinement": {
+    "Economía / costes": {
+      "en": "Finance / costs",
+      "fr": "Finances / coûts"
+    },
     "Apariencia": {
       "en": "Appearance",
       "fr": "Apparence"

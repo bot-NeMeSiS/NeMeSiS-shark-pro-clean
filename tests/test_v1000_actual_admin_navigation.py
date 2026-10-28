@@ -179,6 +179,34 @@ def test_anonymous_session_does_not_gain_admin_from_grouped_links(actual_admin):
             assert urlsplit(response.location).path == "/admin-login"
 
 
+@pytest.mark.parametrize("query,destination", [
+    ("finanzas", "/admin/finanzas"),
+    ("costes", "/admin/finanzas"),
+    ("gastos", "/admin/finanzas"),
+    ("pagos", "/admin/payments"),
+    ("stripe", "/admin/payments"),
+    ("noticias", "/admin/newsroom"),
+    ("redaccion", "/admin/newsroom"),
+])
+def test_actual_admin_directory_distinguishes_costs_payments_and_news_without_js(
+    actual_admin, query, destination
+):
+    _module, client, _path, _name, _cookie = actual_admin
+    response = _get(client, "/admin/explorar?q=" + query)
+    assert response.status_code == 200
+    document = _Document(response.get_data(as_text=True)).root
+    panels = document.all(attrs={"data-app-explore": None})
+    assert len(panels) == 2  # Desktop/dialog and native inline/mobile share it.
+    for panel in panels:
+        visible = {link.attrs["href"] for link in panel.all("a", {"data-explore-item": None})
+                   if "hidden" not in link.attrs}
+        assert destination in visible
+        if destination == "/admin/finanzas":
+            assert "/admin/payments" not in visible
+        if destination == "/admin/payments":
+            assert "/admin/finanzas" not in visible
+
+
 def test_actual_unavailable_founder_read_does_not_turn_into_zero_incidents(actual_admin):
     _module, client, path, _name, _value = actual_admin
     with sqlite3.connect(path) as conn:
@@ -265,6 +293,11 @@ def test_actual_account_combi_entry_localizes_without_changing_client_access(
     assert link.first("strong").text().strip() == title
     assert link.first("small").text().strip() == detail
     assert document.first(attrs={"data-v1000-admin-directory": None}) is None
+    explorer = _get(client, "/explorar")
+    assert explorer.status_code == 200
+    client_directory = _Document(explorer.get_data(as_text=True)).root
+    assert client_directory.first("a", {"href": "/admin/finanzas"}) is None
+    assert client_directory.first("a", {"href": "/admin/newsroom"}) is None
     with client.session_transaction(base_url=TOKEN_BASE) as session:
         assert session["user_id"] == ident and session["user_role"] == "FREE"
     denied = _get(client, "/admin/explorar")

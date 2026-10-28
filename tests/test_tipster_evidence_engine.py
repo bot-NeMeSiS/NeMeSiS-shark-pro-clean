@@ -2,6 +2,8 @@
 import hashlib
 import sqlite3
 
+import pytest
+
 from engines.tipster_evidence_engine import audited_tipster_kpis
 
 
@@ -33,7 +35,7 @@ def test_missing_database_does_not_create_it(tmp_path):
 def test_win_loss_only_excludes_pending_void_and_draft(tmp_path):
     path = tmp_path / "settled.sqlite"
     _db(path, [
-        ("a", "published"), ("b", "won"), ("v", "void"),
+        ("a", "published"), ("b", "lost"), ("v", "void"),
         ("p", "pending"), ("draft", "draft")
     ], [
         _grade("w", "a", "won", 2.0, 2.0, 2.0),
@@ -112,15 +114,27 @@ def test_decided_pick_without_grade_blocks_the_roi_cohort(tmp_path):
     assert result["winrate"] is None
 
 
-def test_terminal_status_disagreement_is_not_automatically_certified(tmp_path):
+@pytest.mark.parametrize("pick_status,grade_status,profit", [
+    ("lost", "won", 1.0),
+    ("perdido", "won", 1.0),
+    ("won", "lost", -1.0),
+    ("ganado", "lost", -1.0),
+])
+def test_terminal_status_disagreement_is_not_automatically_certified(
+    tmp_path, pick_status, grade_status, profit
+):
     path = tmp_path / "contradictory.sqlite"
-    _db(path, [("pick", "perdido")], [
-        _grade("graded", "pick", "won", 2.0, 1.0, 1.0),
+    _db(path, [("pick", pick_status)], [
+        _grade("graded", "pick", grade_status, 2.0, 1.0, profit),
     ])
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
     result = audited_tipster_kpis(str(path))
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+    assert result["state"] == "INCOMPLETE_SETTLEMENT_EVIDENCE"
     assert result["decided_count"] == 1
     assert result["certified_count"] == 0
     assert result["roi"] is None
+    assert result["winrate"] is None
 
 
 def test_voided_pick_with_stale_win_grade_does_not_inflate_roi(tmp_path):
