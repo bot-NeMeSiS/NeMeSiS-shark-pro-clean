@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from itertools import combinations, product
 import json
@@ -82,7 +82,13 @@ def _words(value):
 
 def _category(value):
     """Return category evidence plus the name without those same markers."""
+    # These exact primitive values normalize to the empty string. Do not call
+    # bool on arbitrary objects here: the original normalizer owns that behavior.
+    if value is None or (type(value) in (str, int, float, bool) and not value):
+        return frozenset(), ""
     text = _words(value)
+    if not text:
+        return frozenset(), ""
     markers = set()
     for age in _AGE.findall(text):
         markers.add("age:" + str(int(age)))
@@ -143,6 +149,11 @@ class _Team:
     category: frozenset
     ids: dict
     canonical: str
+    # One fresh _team derivation may reuse its own exact immutable source label
+    # when checking that same label inside the original provider payload. These
+    # are not identities, comparison fields, or a cache across rows/consumers.
+    source_label: str | None = field(default=None, repr=False, compare=False)
+    source_label_forms: tuple | None = field(default=None, repr=False, compare=False)
 
 
 def _team(row, side, provider):
@@ -192,7 +203,9 @@ def _team(row, side, provider):
         if not add(canonical, provider):
             return None
         canonical = ""  # A provider namespace alone is not a cross-provider mapping.
-    return _Team(tuple(names), frozenset(category), ids, canonical)
+    return _Team(tuple(names), frozenset(category), ids, canonical,
+                 source_label=label if type(label) is str else None,
+                 source_label_forms=initial if type(label) is str else None)
 
 
 def _explicit_kickoff(row):
@@ -304,7 +317,10 @@ def _payload_fixture_ids(row, provider, home, away, kickoff, native_id):
         return {}
     # Ordered IDs alone do not justify a row whose labels have been inverted.
     for value, team in zip(names, (home, away)):
-        forms = _name_forms(value)
+        forms = (team.source_label_forms
+                 if (type(value) is str and value == team.source_label
+                     and team.source_label_forms is not None)
+                 else _name_forms(value))
         if forms is None:
             return {}
         if forms[0] != team.category or not _same_names((forms[1:],), team.names):
