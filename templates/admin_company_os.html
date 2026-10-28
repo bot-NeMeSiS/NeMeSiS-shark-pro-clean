@@ -25,6 +25,21 @@
     {{ stat_card('Seguridad', 'Sin secretos' if not summary.secrets_exposed else 'Revisar', 'Diagnóstico administrativo protegido', 'success') }}
   </section>
 
+  {% set receipt = summary.workforce_receipt or {} %}
+  <section class="v857-company-panels" id="cron-evidence" data-workforce-receipt="{{ receipt.contract or 'NONE' }}">
+    <article>
+      <h2>Recibo real de automatización</h2>
+      <p>Última ejecución guardada del Cron maestro en la base de datos; no significa que todos los trabajadores estén operativos 24 horas al día.</p>
+      <p><strong>Estado de evidencia: {{ receipt.state or 'NO_EVIDENCE' }}</strong></p>
+      {% if receipt.last_observed_madrid %}
+      <p>Última marca persistida: <time datetime="{{ receipt.last_observed_madrid }}">{{ receipt.last_observed_madrid }}</time> · {{ receipt.age_minutes if receipt.age_minutes is not none else '—' }} min de antigüedad.</p>
+      {% else %}
+      <p>No hay un recibo temporal verificable. Debemos revisar Cron y sus fuentes antes de certificar funcionamiento continuo.</p>
+      {% endif %}
+      <p><small>Procedencia: automation_state · {{ receipt.source or 'Sin origen' }}. Abrir Company OS no consulta APIs ni inicia trabajadores.</small></p>
+      <a href="/admin/automation-center">Revisar automatizaciones</a>
+    </article>
+  </section>
   <section class="v857-workers-grid" aria-label="{{ ui('Responsabilidades configuradas') }}">
     {% for worker in summary.workers %}
     <article class="v857-worker-card v860-board-card risk-{{ worker.risk_level }}">
