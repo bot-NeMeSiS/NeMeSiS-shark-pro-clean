@@ -201,3 +201,19 @@ def board(db_path, now=None):
                 "recaps": recaps}
     except (OSError, ValueError, sqlite3.Error):
         return {**empty, "state": "READ_UNAVAILABLE"}
+
+
+def editor_links(db_path):
+    """Admin-only caller: full audit rows (never offered by public newsroom)."""
+    try:
+        with _connection(db_path) as conn:
+            if not conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' "
+                "AND name='match_external_news_links'").fetchone():
+                return []
+            return [dict(row) for row in conn.execute(
+                "SELECT id,match_id,phase,publisher,label,external_url,reviewed_at,visible "
+                "FROM match_external_news_links "
+                "ORDER BY reviewed_at DESC,id DESC LIMIT 60")]
+    except (ValueError, OSError, sqlite3.Error):
+        return []
