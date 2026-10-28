@@ -144,7 +144,6 @@ def test_csrf_required_for_void_and_finance_link_visible(admin_browser):
     _, client, token = admin_browser
     payload = row()
     client.post("/admin/finanzas", data={**payload, "csrf_token": token})
-    ident = ledger.snapshot(client.application.view_functions["admin_master.private_finances"].__globals__["a"].DB_PATH, "2026-10") if False else None
     # Access the client DB from the test fixture; no raw session data is persisted.
     # The API is admin-only; it contains safe non-sensitive cost fields.
     costs = client.get("/api/admin/company-costs?month=2026-10").get_json()["ledger"]
