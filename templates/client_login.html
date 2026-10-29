@@ -1,16 +1,23 @@
 {% extends "base.html" %}
+{% from "partials/brand_logo.html" import nemesis_brand %}
+{% block head_extra %}{{ super() }}
+<link rel="stylesheet" href="{{ url_for('static', filename='v1000-auth-layout.css') }}?v=1" data-auth-layout-styles="1">
+{% endblock %}
 {% block content %}
 {% set selected = (data.selected_plan or request.args.get('plan') or '')|upper %}
 {% set next_url = data.next_url or request.args.get('next') or '/app' %}
-{% include 'partials/language_selector.html' %}
-<section class="hero auth-hero v785-auth-hero v816-certified-screen v816-login-screen v817-certified-screen v817-login-screen v819-certified-screen v819-login-screen v820-certified-screen v820-login-screen v826-certified-screen v827-certified-screen v828-certified-screen v829-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v830-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen v832-certified-screen v833-certified-screen v836-certified-screen v837-certified-screen" data-v827-template="client_login" data-v828-template="client_login" data-v829-template="client_login" data-v830-template="client_login" data-v832-template="client_login" data-v833-template="client_login" data-v836-template="client_login" data-v837-template="client_login" data-v826-template="client_login" data-v816-template="client_login" data-v817-template="client_login" data-v819-template="client_login" data-v820-template="client_login">
-  <div class="kicker">{{ ui('Entrar') }}{% if selected %} {{ selected }} {{ ui('seleccionado') }}{% endif %}</div>
-  <h1>{{ ui('Entra para activar {plan}', plan=selected) if selected in ['PRO','ELITE'] else ui('Entrar') }}</h1>
-  <p class="lead">{{ ui('Guardamos tu plan elegido. Al entrar volverás a membresías para continuar con Stripe.' if selected in ['PRO','ELITE'] else 'Accede a tu cuenta NeMeSiS.') }}</p>
-</section>
-<section class="band auth-grid v785-auth-grid v826-certified-screen" data-v826-template="client_login">
-  <form class="card auth-card" method="post" action="/cliente-login" autocomplete="on">
-    <h2>{{ ui("Acceso") }}</h2>
+<section class="v1000-auth-layout" data-auth-layout="v1000" data-auth-mode="client" data-v827-template="client_login" data-v828-template="client_login" data-v829-template="client_login" data-v830-template="client_login" data-v832-template="client_login" data-v833-template="client_login" data-v836-template="client_login" data-v837-template="client_login" data-v826-template="client_login" data-v816-template="client_login" data-v817-template="client_login" data-v819-template="client_login" data-v820-template="client_login">
+  <div class="v1000-auth-language">{% include 'partials/language_selector.html' %}</div>
+  <aside class="v1000-auth-identity" aria-label="NeMeSiS SHARK PRO">
+    {{ nemesis_brand('/', 'auth') }}
+    <p>{{ ui('Accede a tu cuenta NeMeSiS.') }}</p>
+  </aside>
+  <form class="card auth-card v1000-auth-card" method="post" action="/cliente-login" autocomplete="on">
+    <header class="v1000-auth-heading">
+      {% if selected %}<div class="kicker">{{ selected }} {{ ui('seleccionado') }}</div>{% endif %}
+      <h1>{{ ui('Entra para activar {plan}', plan=selected) if selected in ['PRO','ELITE'] else ui('Entrar') }}</h1>
+      {% if selected in ['PRO','ELITE'] %}<p>{{ ui('Guardamos tu plan elegido. Al entrar volverás a membresías para continuar con Stripe.') }}</p>{% endif %}
+    </header>
     {% if selected in ['PRO','ELITE'] %}<div class="v785-selected-mini"><strong>{{ selected }}</strong><span>{{ ui("Vuelves al pago tras entrar.") }}</span></div>{% endif %}
     {% if error %}<p class="notice danger">{{ ui(error) }}</p>{% endif %}
     <input type="hidden" name="next" value="{{ next_url }}">
@@ -21,12 +28,12 @@
     <p class="small" id="client-session-help">{{ ui('Se conserva durante el plazo de seguridad. Puedes salir en cualquier momento; desmárcalo en un equipo compartido.') }}</p>
     <button class="v933-action is-primary" type="submit">{{ ui('Entrar y seguir con {plan}', plan=selected) if selected in ['PRO','ELITE'] else ui('Entrar') }}</button>
     <a class="small" href="/forgot-password">{{ ui("He olvidado mi contraseña") }}</a>
+    <footer class="v1000-auth-secondary">
+      <h2>{{ ui("Nuevo cliente") }}</h2>
+      <p class="small">{{ ui('Crea tu cuenta y volverás al plan {plan} para continuar.', plan=selected) if selected in ['PRO','ELITE'] else ui('Crea tu cuenta gratuita y empieza a seguir tus partidos favoritos.') }}</p>
+      <a class="btn" href="/registro{% if selected in ['PRO','ELITE'] %}?plan={{ selected }}&next={{ next_url|urlencode }}{% endif %}">{{ ui('Crear cuenta y seguir' if selected in ['PRO','ELITE'] else 'Crear cuenta') }}</a>
+      <a class="small" href="/membresias">{{ ui("Ver planes y precios") }}</a>
+    </footer>
   </form>
-  <aside class="card auth-side">
-    <h2>{{ ui("Nuevo cliente") }}</h2>
-    <p class="small">{{ ui('Crea tu cuenta y volverás al plan {plan} para continuar.', plan=selected) if selected in ['PRO','ELITE'] else ui('Crea tu cuenta gratuita y empieza a seguir tus partidos favoritos.') }}</p>
-    <a class="btn" href="/registro{% if selected in ['PRO','ELITE'] %}?plan={{ selected }}&next={{ next_url|urlencode }}{% endif %}">{{ ui('Crear cuenta y seguir' if selected in ['PRO','ELITE'] else 'Crear cuenta') }}</a>
-    <a class="small" href="/membresias">{{ ui("Ver planes y precios") }}</a>
-  </aside>
 </section>
 {% endblock %}

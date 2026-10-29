@@ -29,6 +29,7 @@
           {{ quick_action('Tu plan', plan, '/membresias', 'plan', 'gold') }}
           {{ quick_action('Telegram', ('Vinculado a @' ~ telegram.get('username')) if telegram.get('linked') and telegram.get('username') else ('Vinculado' if telegram.get('linked') else 'Vincula tus avisos'), '/telegram', 'telegram') }}
           {{ quick_action('Favoritos', 'Equipos, competiciones y partidos', '/favoritos', 'star') }}
+          {{ quick_action('Mis combinadas', 'Borradores privados y revisión', '/combinadas#combinadas-guardadas', 'target', 'cyan') }}
           {{ quick_action('Notificaciones', 'Elige qué quieres recibir', '/notificaciones', 'bell') }}
         </div>
       </section>

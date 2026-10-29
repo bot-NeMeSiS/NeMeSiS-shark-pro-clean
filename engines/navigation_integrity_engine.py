@@ -116,10 +116,13 @@ class _NavigationHTMLParser(HTMLParser):
         self.entries: list[dict[str, Any]] = []
         self.form_depth = 0
         self._capture: list[dict[str, Any]] = []
+        self._motion_preference_scopes: list[bool] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         attr = {str(k).lower(): str(v or "") for k, v in attrs}
         line = self.getpos()[0]
+        if tag == "details":
+            self._motion_preference_scopes.append("data-motion-preferences" in attr)
         if tag == "form":
             self.form_depth += 1
             action = attr.get("action", "")
@@ -145,6 +148,9 @@ class _NavigationHTMLParser(HTMLParser):
             self.entries.append(record)
             self._capture.append({"tag": "a", "index": len(self.entries) - 1, "parts": []})
         elif tag == "button":
+            # platform-motion.js binds this exact button inside its preferences
+            # container. Other data attributes do not establish an action.
+            motion_toggle = "data-motion-toggle" in attr and any(self._motion_preference_scopes)
             has_action = any(
                 key in attr
                 for key in (
@@ -158,10 +164,11 @@ class _NavigationHTMLParser(HTMLParser):
                     "kind": "button",
                     "target": "",
                     "text": attr.get("aria-label") or attr.get("title") or "",
-                    "selector": "button" + (f"#{attr['id']}" if attr.get("id") else ""),
+                    "selector": "button" + (f"#{attr['id']}" if attr.get("id") else "[data-motion-toggle]" if motion_toggle else ""),
                     "method": "POST" if button_type == "submit" else "GET",
                     "line": line,
-                    "has_identifier": bool(attr.get("id") or attr.get("class")),
+                    "has_identifier": bool(attr.get("id") or attr.get("class")) or motion_toggle,
+                    "javascript_action": "platform-motion.toggle" if motion_toggle else "",
                 }
                 self.entries.append(record)
                 self._capture.append({"tag": "button", "index": len(self.entries) - 1, "parts": []})
@@ -171,6 +178,8 @@ class _NavigationHTMLParser(HTMLParser):
             self._capture[-1]["parts"].append(data)
 
     def handle_endtag(self, tag: str) -> None:
+        if tag == "details" and self._motion_preference_scopes:
+            self._motion_preference_scopes.pop()
         if tag == "form":
             self.form_depth = max(0, self.form_depth - 1)
         if self._capture and self._capture[-1]["tag"] == tag:
@@ -376,7 +385,10 @@ def _entry_payload(app: Any, item: dict[str, Any], aliases: dict[str, str]) -> d
         result = "RUTA_INTERNA_NO_DEBE_SER_VISIBLE"
         detail = "Elemento de metrica no interactivo; no genera navegacion."
     if item.get("kind") == "button" and not target:
-        if item.get("has_identifier"):
+        if item.get("javascript_action") == "platform-motion.toggle":
+            result = "WARNING"
+            detail = "Control data-motion-toggle enlazado al click de platform-motion.js; requiere Browser QA."
+        elif item.get("has_identifier"):
             result = "WARNING"
             detail = "Botón sin URL literal; tiene identificador para acción JavaScript y requiere Browser QA."
         else:

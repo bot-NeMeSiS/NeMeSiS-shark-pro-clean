@@ -11,13 +11,17 @@
     const selection = document.querySelector(`[data-sports-selection="${panel.id}"]`);
     const kindSelect = input.dataset.sportsKind ? document.getElementById(input.dataset.sportsKind) : null;
     let controller, timer, sequence = 0, active = -1, items = [], composing = false;
+    let pointerDeparture = null;
     input.setAttribute('role', 'combobox');
     input.setAttribute('aria-autocomplete', 'list');
     input.setAttribute('aria-controls', list.id);
     input.setAttribute('aria-expanded', 'false');
     input.setAttribute('autocomplete', 'off');
-    function close() {
+    function cancelSearch() {
       clearTimeout(timer); controller?.abort(); sequence++;
+    }
+    function close() {
+      cancelSearch(); pointerDeparture = null;
       panel.hidden = true; active = -1; items = [];
       list.replaceChildren(); input.removeAttribute('aria-activedescendant');
       input.setAttribute('aria-expanded', 'false');
@@ -116,10 +120,25 @@
       const blurredSequence = sequence;
       setTimeout(() => {
         // Returning to edit invalidates a queued departure from the old query.
-        if (blurredSequence === sequence && document.activeElement !== input) close();
+        if (blurredSequence === sequence && document.activeElement !== input && !pointerDeparture) close();
       }, 0);
     });
     input.closest('dialog')?.addEventListener('close', close);
-    document.addEventListener('pointerdown', event => { if (event.target !== input && !panel.contains(event.target)) close(); });
+    document.addEventListener('pointerdown', event => {
+      if (event.target === input || panel.contains(event.target)) { pointerDeparture = null; return; }
+      // Cancel delayed results now, but keep in-flow suggestions in place until
+      // the browser has dispatched the native click to its original target.
+      cancelSearch();
+      pointerDeparture = {id:event.pointerId,sequence};
+    });
+    function finishPointerDeparture() {
+      if (pointerDeparture?.sequence === sequence) close();
+    }
+    document.addEventListener('click', finishPointerDeparture);
+    document.addEventListener('auxclick', finishPointerDeparture);
+    document.addEventListener('pointercancel', event => {
+      if (pointerDeparture?.id === event.pointerId) finishPointerDeparture();
+    });
+    window.addEventListener('blur', finishPointerDeparture);
   });
 })();

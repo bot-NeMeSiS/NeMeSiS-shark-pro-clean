@@ -1,4 +1,4 @@
-.market-forecast-card{background:linear-gradient(145deg,rgba(7,25,43,.96),rgba(4,14,25,.96));border:1px solid rgba(76,189,255,.24);border-radius:16px;margin:14px 0;padding:16px;min-width:0}
+.market-forecast-card{background:var(--ns-surface-panel,#0b1d30);border:1px solid rgba(76,189,255,.24);border-radius:16px;margin:14px 0;padding:16px;min-width:0}
 .market-forecast-card>header{display:grid;gap:4px;margin-bottom:14px}
 .market-forecast-card>header span,.market-forecast-source,.market-forecast-note,.market-forecast-outcome small{color:var(--v933-text-soft,#a9bdcc);font-size:.82rem;line-height:1.5}
 .market-forecast-outcomes{display:grid;gap:10px;grid-template-columns:repeat(3,minmax(0,1fr))}

@@ -25,7 +25,7 @@ from functools import lru_cache, wraps
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
-from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for, before_render_template
+from flask import Flask, Response, abort, g, has_request_context, jsonify, redirect, render_template, request, send_file, session, url_for, before_render_template, flash
 from werkzeug.security import check_password_hash, generate_password_hash
 from contextvars import ContextVar as _V991ContextVar
 from engines.closed_operation_timing import operation as timed_operation, phase as timed_phase
@@ -383,6 +383,7 @@ from engines.stripe_payments_engine import (
     stripe_runtime_status,
 )
 from engines.pick_grading_engine import LATEST_ELIGIBLE_GRADING_CTE, pick_grading_summary, run_pick_grading
+from engines.tipster_evidence_engine import audited_tipster_kpis
 from engines.subscription_control_engine import subscription_summary, apply_subscription_rules
 from engines.team_identity_engine import (
     flag_or_emoji as team_flag_or_emoji,
@@ -527,7 +528,7 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V999_ADVICE_ACCESS_AND_SHARK_READ_PATH'
+APP_VERSION = 'V1000_4_CALENDAR_COHORT_COUNTS_PHASE_TIMING'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -1310,7 +1311,7 @@ def continuous_evolution_endpoint_preflight():
     }
 
 
-def continuous_evolution_tick_response(result, preflight):
+def continuous_evolution_tick_response(result, preflight, workforce_result=None):
     job = result.get("job") or {}
     cycle = result.get("cycle") or {}
     snapshot = cycle.get("snapshot") or {}
@@ -1372,6 +1373,34 @@ def continuous_evolution_tick_response(result, preflight):
     }
     if result.get("error_safe"):
         response["error_safe"] = sanitize_runtime_value(result.get("error_safe"))
+    if workforce_result is not None:
+        native_job = workforce_result.get("job") or {}
+        native_receipt = workforce_result.get("receipt") or {}
+        native_status = workforce_result.get("result") or "UNKNOWN"
+        response["daily_result"] = response["result"]
+        response["native_workforce"] = {
+            "task_name": "platform_workforce_review",
+            "result": native_status,
+            "receipt_id": native_receipt.get("receipt_id") or native_receipt.get("run_id"),
+            "run_id": native_job.get("run_id"),
+            "review_kind": native_receipt.get("review_kind") or "STATIC_PARTIAL",
+            "outcome": native_receipt.get("outcome"),
+            "executed_count": native_receipt.get("executed_count", 0),
+            "expected_count": native_receipt.get("expected_count", 22),
+            "duration_ms": native_job.get("duration_ms", 0),
+            "next_expected_run": native_job.get("next_expected_run"),
+            "business_execution_certified": False,
+            "production_certified": False,
+        }
+        accepted = {"PASS", "SKIPPED_NOT_DUE", "SKIPPED_ALREADY_RUNNING", "SKIPPED_PAUSED"}
+        if workforce_result.get("ok") is False or native_status not in accepted:
+            response.update({"ok": False, "result": "PARTIAL", "status": "PARTIAL"})
+        elif native_status == "PASS" and response["result"] == "SKIPPED_NOT_DUE":
+            response.update({"result": "PASS", "status": "PASS"})
+        response["dangerous_actions_executed"] = bool(
+            response["dangerous_actions_executed"]
+            or workforce_result.get("dangerous_actions_executed")
+        )
     return response
 
 
@@ -18008,7 +18037,7 @@ def dashboard_data(lane="today", date=None):
 @app.route("/service-worker.js")
 def service_worker():
     body = (
-        f"const NEMESIS_CACHE='NEMESIS_CACHE_V999_ICON_{APP_ICON_VERSION}';\n"
+        f"const NEMESIS_CACHE='NEMESIS_CACHE_V1000_ICON_{APP_ICON_VERSION}';\n"
         "self.addEventListener('install',event=>{self.skipWaiting();});\n"
         "self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});\n"
         "self.addEventListener('fetch',event=>{const req=event.request;if(req.method!=='GET'){return;}const url=new URL(req.url);if(url.origin===self.location.origin&&(url.pathname==='/manifest.json'||url.pathname==='/founder-manifest.json'||url.pathname==='/favicon.ico'||url.pathname==='/apple-touch-icon.png'||url.pathname.startsWith('/static/img/app-icons/'))){event.respondWith(fetch(req,{cache:'reload'}));return;}if(req.mode==='navigate'){event.respondWith(fetch(req,{cache:'no-store'}).catch(()=>fetch('/',{cache:'no-store'})));return;}const versionedStatic=url.origin===self.location.origin&&url.pathname.startsWith('/static/')&&url.searchParams.has('v')&&(req.destination==='style'||req.destination==='script');if(versionedStatic){event.respondWith(fetch(req,{cache:'force-cache'}));return;}if(req.destination==='style'||req.destination==='script'){event.respondWith(fetch(req,{cache:'reload'}));return;}event.respondWith(fetch(req));});\n"
@@ -19176,6 +19205,35 @@ def _v991_selected(summary, rows, *, fixture_operation=None, predicate=None, ran
     return _V991Selection(rows=tuple(chosen), groups=tuple((row,) for row in chosen), count=len(originals),
                           raw_rows=tuple(originals), confirmed_count=0, unresolved_observations=len(originals),
                           identity_basis=tuple("UNPREPARED" for _ in chosen), native_fixture_groups=0)
+
+
+@_v991_dataclass(frozen=True)
+class _V991CohortCounts:
+    counts: object
+    identity_state: str
+
+
+def _v991_count_cohorts(summary, cohorts, *, fixture_operation=None):
+    """Count one materialized facet batch, retaining each label's own originals.
+
+    Ownership is checked at this batch's entry and exit, rather than rebuilding
+    the full summary's membership/generation for every label. The snapshot stays
+    bound to this batch; each subset still gets count_rows' fresh identity
+    projection. There are no caller predicates, ranking callbacks or cached
+    selections. A persistent ownership change invalidates the entire batch.
+    This boundary does not promise atomicity or detect mutation and reversion.
+    """
+    originals = {key: _v991_unique_objects(rows) for key, rows in cohorts.items()}
+    operation = _v991_operation_for(summary, fixture_operation)
+    if operation is not None:
+        snapshot = operation.snapshot
+        counts = {key: snapshot.count_rows(rows) for key, rows in originals.items()}
+        if (operation.snapshot is snapshot
+                and _v991_operation_for(summary, operation) is operation):
+            return _V991CohortCounts(counts, "PREPARED")
+    # As with an unprepared single selection, unknown ownership never grants
+    # canonical grouping. Keep all supplied original observations independently.
+    return _V991CohortCounts({key: len(rows) for key, rows in originals.items()}, "UNPREPARED")
 
 
 def _v991_validated_base_summary():
@@ -20548,6 +20606,32 @@ def _v931_provider_context(summary):
     }
 
 
+def _v1000_3_calendar_client_data(summary, lane="today", date_value=""):
+    """Only the request-owned input needed before the Calendar projection.
+
+    Calendar builds its own current metrics, filters and favorite presentation.
+    Home, paid-advice and the second live-provider projection have no consumer
+    in this page. Keep original rows; this helper never prepares their identity.
+    """
+    today_matches = list(summary.get("valid_matches_today") or [])
+    upcoming = list(summary.get("valid_upcoming_matches") or [])
+    return {
+        "app_name": APP_NAME,
+        "version": APP_VERSION,
+        "date": date_value or today_iso(),
+        "lane": lane,
+        "matches": today_matches,
+        "upcoming_matches": upcoming,
+        "available_matches": list(summary.get("valid_matches_available") or _dedupe_sports_matches(today_matches + upcoming)),
+        "session_user": current_session_user(),
+        "v931_route_guard": {
+            "status": "safe_fallback",
+            "provider_status": summary.get("provider_status"),
+            "no_render_api_call": True,
+        },
+    }
+
+
 def _v931_minimal_client_data(summary, lane="today", date_value="", *, _shark_view=False):
     today_matches = list(summary.get("valid_matches_today") or [])
     upcoming = list(summary.get("valid_upcoming_matches") or [])
@@ -20622,14 +20706,19 @@ def _v931_minimal_client_data(summary, lane="today", date_value="", *, _shark_vi
     }
 
 
-def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None, _directo_minimal=False, _shark_view=False):
+def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None, _directo_minimal=False, _shark_view=False, _calendar_view=False):
+    calendar_view = compact and _calendar_view is True and _directo_minimal is not True and _shark_view is not True
     summary = (
         _v932_locked_sports_summary()
         if has_request_context() and request.environ.get("nemesis.v932.database_locked")
         else (
             sports_summary
             if isinstance(sports_summary, dict)
-            else get_public_home_sports_summary()
+            else (
+                get_public_home_sports_summary(
+                    selected_date=_v940_calendar_filters(lane, date_value)["date"], _prepare_only=True,
+                ) if calendar_view else get_public_home_sports_summary()
+            )
         )
     )
     if compact and _directo_minimal is True:
@@ -20658,11 +20747,15 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
         v931_record_client_route_issue(route, error, "sqlite_read_timeout_guard")
         if current_session_user():
             v932_record_authenticated_issue(route, error, "admin" if is_admin_session() else "client", "sqlite_read_timeout_guard")
+        if calendar_view:
+            return _v1000_3_calendar_client_data(summary, lane, date_value or today_iso()), summary
         if compact and _directo_minimal is True:
             return _directo_client_data(), summary
         return _v931_minimal_client_data(summary, lane, date_value or today_iso(), _shark_view=_shark_view), summary
     if compact:
-        if _directo_minimal is True:
+        if calendar_view:
+            data = _v1000_3_calendar_client_data(summary, lane, date_value or today_iso())
+        elif _directo_minimal is True:
             data = _directo_client_data()
         else:
             data = _v931_minimal_client_data(summary, lane, date_value or today_iso(), _shark_view=_shark_view)
@@ -20743,16 +20836,22 @@ def v932_safe_dashboard_data(
     sports_summary=None,
     _directo_minimal=False,
     _shark_view=False,
+    _calendar_view=False,
 ):
+    calendar_view = compact and _calendar_view is True and _directo_minimal is not True and _shark_view is not True
     if compact and _directo_minimal is True:
         data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary, _directo_minimal=True)
     elif _shark_view is True:
         data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact,
                                                sports_summary=sports_summary, _shark_view=True)
+    elif calendar_view:
+        data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact,
+                                               sports_summary=sports_summary, _calendar_view=True)
     else:
         data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary)
-    data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
-    data["sports_metrics"] = get_sports_metrics_contract(summary)
+    if not calendar_view:
+        data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
+        data["sports_metrics"] = get_sports_metrics_contract(summary)
     data["v932_authenticated_scope"] = "admin" if scope == "admin" else "client"
     return data, summary
 
@@ -23307,18 +23406,20 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
     approved_live_objects={id(row) for row in summary.get('valid_live_events') or ()}
     raw_all=[row for row in raw_all if id(row) in approved_live_objects or not prepared[id(row)]['status_info'].get('is_live')]
     original_for_projection={id(value):row for row in raw_all for value in (prepared[id(row)],)}
+    def member_rows(key):
+        members={id(row) for row in summary.get(key) or ()}
+        return [row for row in raw_all if id(row) in members]
     def lane_rows(lane_key):
         day=filters['date'];today=today_iso();week_end=today_iso(7)
-        members=lambda key:{id(row) for row in summary.get(key) or ()}
         if lane_key=='week':return [row for row in raw_all if today<=str(row.get('match_date') or '')<=week_end]
-        if lane_key=='upcoming':return [row for row in raw_all if id(row) in members('valid_upcoming_matches')]
-        if lane_key=='live':return [row for row in raw_all if id(row) in members('valid_live_events') and prepared[id(row)]['status_info'].get('is_live')]
+        if lane_key=='upcoming':return member_rows('valid_upcoming_matches')
+        if lane_key=='live':return [row for row in member_rows('valid_live_events') if prepared[id(row)]['status_info'].get('is_live')]
         if lane_key in {'with_pick','picks'}:return [row for row in raw_all if prepared[id(row)].get('has_pick')]
         if lane_key=='favorites':return [row for row in raw_all if prepared[id(row)].get('is_favorite')]
         if lane_key in {'finished','results'}:
             return [row for row in raw_all if str(row.get('match_date') or '')==day and
                 (prepared[id(row)]['status_info'].get('is_finished') or (lane_key=='results' and prepared[id(row)]['status_info'].get('is_result_pending')))]
-        if lane_key=='incidents':return [row for row in raw_all if id(row) in members('incident_matches')]
+        if lane_key=='incidents':return member_rows('incident_matches')
         if lane_key in {'top','spain','andalucia','international','uefa','national','world'}:
             return [row for row in raw_all if match_lane_filter(prepared[id(row)],lane_key)]
         return [row for row in raw_all if str(row.get('match_date') or '')==day]
@@ -23338,15 +23439,32 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
     day_groups=_calendar_group(sorted_matches,filters.get('sort'),match_dates_prepared=True)
     day_navigation=_v940_calendar_group_navigation(day_groups)
     today=today_iso();tomorrow=today_iso(1);week_end=today_iso(7)
-    date_counts={day:select([row for row in raw_all if str(row.get('match_date') or '')==day]).count
-                 for day in sorted({str(row.get('match_date') or '') for row in raw_all}) if day}
-    counts={'all':source_selection.count,'visible':selection.count,'days':len(day_groups),
-        'leagues':len({canonical_competition_surface_contract(row)['group_key'] for row in sorted_matches}),
-        'today':select([row for row in raw_all if id(row) in {id(item) for item in summary.get('valid_matches_today') or ()}]).count,
-        'tomorrow':date_counts.get(tomorrow,0),'week':select([row for row in raw_all if today<=str(row.get('match_date') or '')<=week_end]).count,
-        'live':select(lane_rows('live')).count,'picks':select(lane_rows('with_pick')).count,
-        'favorites':select(lane_rows('favorites')).count,'finished':select(lane_rows('finished')).count,
-        'incidents':select(lane_rows('incidents')).count}
+    # Count the original date/lane cohorts as one owned batch. Ranked source
+    # and filtered representatives above remain separate presentation decisions.
+    # Every subset still performs its own fresh identity projection.
+    calendar_dates = [day for day in sorted({str(row.get('match_date') or '') for row in raw_all}) if day]
+    count_cohorts = {
+        ('date', day): [row for row in raw_all if str(row.get('match_date') or '') == day]
+        for day in calendar_dates
+    }
+    count_cohorts.update({
+        ('lane', 'today'): member_rows('valid_matches_today'),
+        ('lane', 'week'): [row for row in raw_all if today <= str(row.get('match_date') or '') <= week_end],
+        ('lane', 'live'): lane_rows('live'),
+        ('lane', 'picks'): lane_rows('with_pick'),
+        ('lane', 'favorites'): lane_rows('favorites'),
+        ('lane', 'finished'): lane_rows('finished'),
+        ('lane', 'incidents'): lane_rows('incidents'),
+    })
+    count_batch = _v991_count_cohorts(summary, count_cohorts, fixture_operation=operation)
+    date_counts = {day: count_batch.counts[('date', day)] for day in calendar_dates}
+    counts = {
+        'all': source_selection.count, 'visible': selection.count, 'days': len(day_groups),
+        'leagues': len({canonical_competition_surface_contract(row)['group_key'] for row in sorted_matches}),
+        'today': count_batch.counts[('lane', 'today')], 'tomorrow': date_counts.get(tomorrow, 0),
+        **{name: count_batch.counts[('lane', name)]
+           for name in ('week', 'live', 'picks', 'favorites', 'finished', 'incidents')},
+    }
     active=_v940_calendar_active_filters(filters)
     selected_label=CALENDAR_LANE_LABELS.get(filters['lane'],'Calendario')
     title=date_display_label(filters['date']) if filters['lane'] in {'today','tomorrow'} else selected_label
@@ -23365,11 +23483,14 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
             for label in dict.fromkeys(str(label or '').strip() for label in labels):
                 if label:
                     facet_rows[family].setdefault(label, []).append(row)
+    facet_batch = _v991_count_cohorts(summary,
+        {(family,label):rows for family,values in facet_rows.items() for label,rows in values.items()},
+        fixture_operation=operation)
     facets = {}
     for family, values in facet_rows.items():
         options = []
         for label, values_for_label in values.items():
-            option = {'label':label,'value':label,'count':select(values_for_label).count}
+            option = {'label':label,'value':label,'count':facet_batch.counts[(family,label)]}
             if family == 'leagues':
                 option['rank'] = min(int(prepared[id(row)].get('calendar_rank') or 80) for row in values_for_label)
             options.append(option)
@@ -23394,7 +23515,9 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
         'selected_summary':selected_summary,'default_context':title,
         'source_summary':source_summary,'historical_results_read_state':summary.get('historical_results_read_state'),
         'no_render_api_call':True,"database_written": False,"external_calls": 0,
-        'identity_state':'PREPARED' if operation else 'UNPREPARED'}
+        'identity_state':'PREPARED' if operation else 'UNPREPARED',
+        'facet_identity_state':facet_batch.identity_state,
+        'count_identity_state':count_batch.identity_state}
 
 
 def calendar_experience_data():
@@ -23527,37 +23650,42 @@ def _v940_calendar_provider_context(summary):
 @app.route("/calendario-global")
 @app.route("/partidos")
 @app.route("/partidos/calendario")
+@timed_operation('calendar_read')
 def calendar_page():
     phase_metrics = {}
 
-    def timed_phase(name, callback):
-        started = time.perf_counter()
-        try:
-            return callback()
-        finally:
-            phase_metrics[name] = round((time.perf_counter() - started) * 1000.0, 1)
-            g.v935_route_phase_namespace = "calendar"
-            g.v935_route_phase_metrics = dict(phase_metrics)
+    def calendar_timed_phase(name, callback):
+        with timed_phase('calendar_read', name):
+            started = time.perf_counter()
+            try:
+                return callback()
+            finally:
+                phase_metrics[name] = round((time.perf_counter() - started) * 1000.0, 1)
+                g.v935_route_phase_namespace = "calendar"
+                g.v935_route_phase_metrics = dict(phase_metrics)
 
     lane = request.args.get("lane") or "today"
     date_value = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
-    data, summary = timed_phase(
+    data, summary = calendar_timed_phase(
         "sports_context",
-        lambda: v932_safe_dashboard_data(request.path, "today", date_value, compact=True),
+        lambda: v932_safe_dashboard_data(request.path, lane, date_value, compact=True, _calendar_view=True),
     )
-    summary = timed_phase(
+    summary = calendar_timed_phase(
         "historical_results",
         lambda: _v940_hydrate_selected_date_results(summary, date_value),
     )
-    data["calendar"] = timed_phase(
+    data["calendar"] = calendar_timed_phase(
         "calendar_context",
         lambda: v940_calendar_context(summary, lane, date_value),
     )
     data["matches"] = data["calendar"].get("matches", [])
     data["lane"] = data["calendar"].get("filters", {}).get("lane", "today")
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
-    data["v925_calendar"] = _v940_calendar_provider_context(summary)
-    return timed_phase("template_render", lambda: render_template("calendar.html", data=data))
+    data["sports_metrics"] = data["calendar"].get("sports_metrics")
+    data["v925_calendar"] = calendar_timed_phase(
+        "provider_context", lambda: _v940_calendar_provider_context(summary),
+    )
+    return calendar_timed_phase("template_render", lambda: render_template("calendar.html", data=data))
 
 
 @app.route("/sports-hub")
@@ -27109,7 +27237,8 @@ def picks_page():
     data["v925_picks"] = get_safe_picks_context(data["picks"])
     data["v925_odds"] = get_safe_odds_context(data["picks"])
     data["v934_realtime"] = get_realtime_safe_picks_context(summary)
-    data["v934_odds"] = get_realtime_safe_odds_context(summary)
+    # Both contexts describe the same request-owned evaluation.
+    data["v934_odds"] = _v934_odds_context_from_snapshot(data["v934_realtime"])
     data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
     data["pick_readiness"], data["pick_watchlist"] = client_pick_readiness(
         summary,
@@ -29938,7 +30067,11 @@ def get_realtime_safe_picks_context(summary=None) -> dict:
 
 
 def get_realtime_safe_odds_context(summary=None) -> dict:
-    snapshot = get_v934_realtime_context(summary)
+    return _v934_odds_context_from_snapshot(get_v934_realtime_context(summary))
+
+
+def _v934_odds_context_from_snapshot(snapshot) -> dict:
+    """Format an evaluated snapshot without another read or projection."""
     return {
         "items": [
             {
@@ -29947,7 +30080,7 @@ def get_realtime_safe_odds_context(summary=None) -> dict:
                 "odds": item.get("odds"),
                 "source": item.get("source"),
                 "recorded_at": item.get("odds_recorded_at"),
-                "freshness": item.get("odds_freshness"),
+                "freshness": copy.deepcopy(item.get("odds_freshness")),
             }
             for item in snapshot.get("picks") or []
         ],
@@ -32885,6 +33018,16 @@ def api_automation_continuous_evolution_tick():
             "secrets_exposed": 0,
         }
         return jsonify(payload), 409
+    # The existing protected tick owns both cadences. The hourly pass is bounded
+    # and reads local source only; the daily board can then use its proposals.
+    workforce_result = run_continuous_evolution_scheduler_task(
+        BASE_DIR,
+        APP_VERSION,
+        task_name="platform_workforce_review",
+        force=False,
+        trigger="SCHEDULED_PRODUCTION",
+        storage_root=preflight.get("storage_root"),
+    )
     result = run_continuous_evolution_scheduler_task(
         BASE_DIR,
         APP_VERSION,
@@ -32893,7 +33036,7 @@ def api_automation_continuous_evolution_tick():
         trigger="SCHEDULED_PRODUCTION",
         storage_root=preflight.get("storage_root"),
     )
-    payload = continuous_evolution_tick_response(result, preflight)
+    payload = continuous_evolution_tick_response(result, preflight, workforce_result)
     if payload.get("dangerous_actions_executed"):
         payload["ok"] = False
         payload["result"] = "EXTERNAL_ACTION_ATTEMPT"
@@ -37099,6 +37242,10 @@ def v808_support_center_context():
 def v808_pick_performance_context():
     data = dashboard_data()
     data["pick_stats"] = pick_stats()
+    # Only closed, fully certified grades can produce these metrics.
+    data["tipster_kpis"] = audited_tipster_kpis(DB_PATH)
+    data["pick_stats"]["roi"] = data["tipster_kpis"]["roi"]
+    data["pick_stats"]["winrate"] = data["tipster_kpis"]["winrate"]
     data["global_tracking"] = []
     data["bankroll_users"] = []
     try:
@@ -38969,6 +39116,23 @@ def go_to_market_office_snapshot():
     }
 
 
+def _founder_obligation_response(*, snapshot=None, obligation_form=None,
+                                 obligation_error=None, billing_error=None,
+                                 new_obligation=False, status=200):
+    # Failed drafts stay in this response, never in the redirect or session.
+    response = render_template(
+        "admin_founder_os.html",
+        data={"session_user": current_session_user()},
+        founder_os=snapshot if snapshot is not None else founder_os_snapshot(DB_PATH, read_only=True),
+        obligation_form=obligation_form or {},
+        obligation_error=obligation_error,
+        billing_error=billing_error,
+        new_obligation=new_obligation,
+        title="NeMeSiS Founder OS",
+    )
+    return response if status == 200 else (response, status)
+
+
 @app.route("/admin/founder-os")
 @app.route("/admin/founder-control")
 @app.route("/admin/company-control-center")
@@ -38976,12 +39140,20 @@ def go_to_market_office_snapshot():
 def admin_founder_os_page():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/founder-os")
-    return render_template(
-        "admin_founder_os.html",
-        data={"session_user": current_session_user()},
-        founder_os=founder_os_snapshot(DB_PATH, read_only=True),
-        title="NeMeSiS Founder OS",
-    )
+    snapshot = founder_os_snapshot(DB_PATH, read_only=True)
+    new_obligation = request.args.get("new") == "1"
+    edit_id = str(request.args.get("edit") or "").strip()
+    obligation_form = None
+    if edit_id and not new_obligation:
+        if not snapshot.get("available", False):
+            return _founder_obligation_response(snapshot=snapshot, status=503)
+        obligation_form = next((item for item in (snapshot.get("obligations", {}).get("items") or [])
+                                if item.get("id") == edit_id), None)
+        if obligation_form is None:
+            return _founder_obligation_response(snapshot=snapshot,
+                billing_error="Obligación no encontrada. Actualiza la lista antes de editar.", status=404)
+    return _founder_obligation_response(snapshot=snapshot, obligation_form=obligation_form,
+                                       new_obligation=new_obligation)
 
 
 @app.route("/api/admin/founder-os")
@@ -38997,31 +39169,39 @@ def api_admin_founder_os():
 def admin_founder_os_save_obligation():
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/founder-os")
+    payload = request.form.to_dict(flat=True)
+    fields = ("id", "provider_key", "label", "plan", "amount", "currency", "cadence",
+              "due_date", "payment_status", "notes")
+    draft = {name: payload.get(name, "") for name in fields}
+    draft["auto_renew"] = str(payload.get("auto_renew") or "").lower() in {"1", "true", "yes", "on"}
     try:
-        founder_save_obligation(
-            DB_PATH,
-            request.form.to_dict(flat=True),
-            actor=session.get("user_name") or "admin",
-        )
-        return redirect("/admin/founder-os?billing=saved#billing")
+        result = founder_save_obligation(DB_PATH, payload, actor=session.get("user_name") or "admin")
     except ValueError as exc:
-        return redirect(
-            "/admin/founder-os?billing=error&reason="
-            + urllib.parse.quote(str(exc))
-            + "#billing"
-        )
+        message = str(exc)
+        if message not in {"La obligación necesita un nombre.", "La fecha de vencimiento no es válida."}:
+            message = "No se pudo guardar la obligación. Revisa los campos e inténtalo de nuevo."
+        return _founder_obligation_response(obligation_form=draft, obligation_error=message, status=422)
+    if not result.get("ok"):
+        return _founder_obligation_response(obligation_form=draft,
+            obligation_error="No se confirmó el guardado. Revisa la lista antes de repetir.", status=409)
+    flash("Obligación guardada.", "founder-billing")
+    return redirect("/admin/founder-os#billing")
 
 
 @app.route("/admin/founder-os/obligations/<obligation_id>/paid", methods=["POST"])
 def admin_founder_os_mark_paid(obligation_id):
     if not is_admin_session():
         return redirect("/admin-login?next=/admin/founder-os")
-    founder_mark_obligation_paid(
+    result = founder_mark_obligation_paid(
         DB_PATH,
         obligation_id,
         actor=session.get("user_name") or "admin",
     )
-    return redirect("/admin/founder-os?billing=paid#billing")
+    if not result.get("ok"):
+        return _founder_obligation_response(
+            billing_error="No se confirmó el cambio. La obligación no existe o ya no está activa.", status=409)
+    flash("Obligación marcada como pagada.", "founder-billing")
+    return redirect("/admin/founder-os#billing")
 
 
 @app.route("/admin/founder-os/alerts/<alert_id>/ack", methods=["POST"])

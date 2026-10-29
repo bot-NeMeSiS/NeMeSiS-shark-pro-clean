@@ -246,8 +246,10 @@ def evaluate_shark_walk_forward(
             previous = competition_outcomes[competition]
             previous_count = sum(previous)
             baseline = tuple((count + 1.0) / (previous_count + 3.0) for count in previous)
-            baseline_rows.append((baseline, actual))
             if team_counts[home_state] >= min_history and team_counts[away_state] >= min_history:
+                # Compare both methods only on the same eligible matches.
+                # Warmup outcomes still update the history after each full day.
+                baseline_rows.append((baseline, actual))
                 model_rows.append((
                     _probabilities(home_elo, away_elo, home_edge, previous[1], previous_count),
                     actual,
@@ -282,9 +284,10 @@ def evaluate_shark_walk_forward(
         "incomplete_or_conflicting_rows_excluded": excluded,
         "eligible_model_evaluations": eligible_fixtures,
         "competition_baseline_evaluations": len(baseline_rows),
+        "comparison_basis": "SAME_ELIGIBLE_FIXTURES",
         "minimum_history_matches_per_team": min_history,
         "minimum_review_sample": review_sample,
-        "method": "Elo reference with prior-day-only updates; smoothed draw prior; comparison against prior competition outcome frequency.",
+        "method": "Elo reference with prior-day-only updates; smoothed draw prior; baseline scored only on the same eligible fixtures.",
         "temporal_policy": TERMINAL_ONLY_POLICY,
         "model_reference": model_metrics,
         "competition_frequency_baseline": baseline_metrics,
@@ -305,6 +308,7 @@ def _empty(state: str) -> dict[str, Any]:
         "incomplete_or_conflicting_rows_excluded": 0,
         "eligible_model_evaluations": 0,
         "competition_baseline_evaluations": 0,
+        "comparison_basis": "SAME_ELIGIBLE_FIXTURES",
         "model_reference": None,
         "competition_frequency_baseline": None,
         "limitations": [NOT_FOR_CUSTOMER],

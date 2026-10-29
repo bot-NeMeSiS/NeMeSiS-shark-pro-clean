@@ -6,11 +6,19 @@
   <p>Controla qué picks siguen los clientes, stakes marcados y salud comercial del sistema de pronósticos.</p>
 </section>
 
+{% set stats = data.pick_stats if data.pick_stats is defined and data.pick_stats else {} %}
 <section class="grid cards-3">
-  <article class="card stat-card"><span>Picks publicados</span><strong>{{ data.pick_stats.published or 0 }}</strong><small>visibles para clientes</small></article>
-  <article class="card stat-card"><span>Winrate</span><strong>{{ data.pick_stats.winrate or 0 }}%</strong><small>según resultados reales</small></article>
-  <article class="card stat-card"><span>ROI</span><strong>{{ data.pick_stats.roi or 0 }}%</strong><small>no inventa resultados</small></article>
+  <article class="card stat-card"><span>Picks publicados</span><strong>{{ stats.published if stats.published is defined and stats.published is not none else 'Sin dato' }}</strong><small>visibles para clientes, si consta el recuento</small></article>
+  <article class="card stat-card"><span>Winrate</span><strong>{% if stats.winrate is defined and stats.winrate is not none %}{{ stats.winrate }}%{% else %}Sin muestra evaluable{% endif %}</strong><small>solo si hay una tasa de acierto registrada</small></article>
+  <article class="card stat-card"><span>ROI</span><strong>{% if stats.roi is defined and stats.roi is not none %}{{ stats.roi }}%{% else %}Sin muestra evaluable{% endif %}</strong><small>no se sustituye la ausencia de resultados por un 0 %</small></article>
 </section>
+{% if data.tipster_kpis is defined %}
+<p class="muted" data-tipster-evidence="{{ data.tipster_kpis.state }}">
+  Evaluaciones automáticas coherentes: {{ data.tipster_kpis.certified_count }} / {{ data.tipster_kpis.decided_count }} decisiones.
+  {% if data.tipster_kpis.roi is none %}No se publica ROI con datos incompletos.{% else %}ROI calculado sobre {{ data.tipster_kpis.stake_units }} unidades de stake registradas, sin pendientes ni anulados.{% endif %}
+</p>
+{% endif %}
+<p class="muted tipster-kpi-disclaimer">El ROI es un cálculo interno sobre las cuotas y los stakes registrados; no acredita apuestas efectivamente realizadas y no garantiza rentabilidad futura.</p>
 
 <section class="card">
   <h2>Picks más seguidos</h2>

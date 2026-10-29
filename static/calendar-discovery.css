@@ -46,7 +46,7 @@ body.ns-app[data-v928-shell="true"] .v933-page[data-calendar-discovery="v1"] .v9
 [data-calendar-discovery="v1"] [data-v959-more-competitions] > summary {
   display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 5px 12px;
   border: 1px solid rgba(107, 194, 226, .24); border-radius: 11px;
-  background: linear-gradient(110deg, rgba(22, 53, 75, .72), rgba(10, 25, 39, .74));
+  background: linear-gradient(110deg, var(--ns-surface-hover,#17364f), var(--ns-surface-raised,#112a40)), var(--ns-surface-raised,#112a40);
   color: var(--ns-text); cursor: pointer; font-size: 13px; font-weight: 750;
   line-height: 1.35; list-style: none; transition: border-color .16s ease, filter .16s ease;
 }

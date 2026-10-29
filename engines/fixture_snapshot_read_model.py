@@ -79,6 +79,28 @@ class PreparedFixtureSnapshot:
     def select(self, cohort, *, predicate=None, rank_for=None, limit=None):
         return self.select_rows(self.cohorts[cohort],predicate=predicate,rank_for=rank_for,limit=limit)
 
+    def count_rows(self, rows):
+        """Cardinality only; it never returns canonical/native proof or a winner.
+
+        Freeze the supplied occurrences exactly as selection does. An empty
+        cohort has no group, and one occurrence has one group for every identity
+        state. Still perform that occurrence's fresh C3 check on every call;
+        no context or identity result is cached between count consumers.
+        Native grouping metadata (and its parser errors) is not evaluated for a
+        singleton. Larger cohorts retain the complete original selection path.
+        """
+        originals = preserve_match_observations(rows)
+        if not originals:
+            return 0
+        if len(originals) == 1:
+            row = originals[0]
+            # Preserve selection's initial ID access before the identity check.
+            if isinstance(row, Mapping):
+                _match_id(row)
+            self._checked_identity(row)
+            return 1
+        return self.select_rows(originals).count
+
     def select_rows(self, rows, *, predicate=None, rank_for=None, limit=None):
         if limit is not None and (type(limit) is not int or limit<0):
             raise ValueError("presentation limit must be a nonnegative integer")

@@ -15,6 +15,7 @@ from contextlib import closing
 from contextvars import ContextVar
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 from engines.backup_staging import (BackupInProgress, backup_directory_lock,
                                     new_workspace, recover_abandoned_workspaces,
@@ -147,7 +148,7 @@ def backup_dir(default_root: str | Path) -> Path:
 
 def connect_readonly(db_path: str | Path) -> sqlite3.Connection:
     path = Path(db_path).resolve()
-    conn = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True, timeout=10)
+    conn = sqlite3.connect("file:" + quote(path.as_posix(), safe="/:") + "?mode=ro", uri=True, timeout=10)
     conn.row_factory = sqlite3.Row
     return conn
 

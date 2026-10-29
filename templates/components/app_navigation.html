@@ -3,7 +3,7 @@
 {% macro navigation_content(scope, inline=false, query='') -%}
 {% set prefix = 'explore-page' if inline else 'explore-dialog' %}
 {% set admin = scope == 'admin' %}
-{% set groups = [('Administración', navigation.ADMIN_LINKS), ('Operaciones', navigation.DISCOVERY_ADMIN_EXTRA)] if admin else [('Deporte', [('Inicio', '/app' if scope == 'client' else '/', 'home')] + navigation.DISCOVERY_SPORTS), ('Análisis', navigation.DISCOVERY_ANALYSIS), ('Tu espacio', navigation.DISCOVERY_ACCOUNT if scope == 'client' else [('Entrar', '/cliente-login', 'user'), ('Crear cuenta', '/registro', 'user'), ('Planes', '/membresias', 'star')]), ('Ayuda', navigation.DISCOVERY_HELP)] %}
+{% set groups = navigation.ADMIN_GROUPS if admin else [('Deporte', [('Inicio', '/app' if scope == 'client' else '/', 'home')] + navigation.DISCOVERY_SPORTS), ('Análisis', navigation.DISCOVERY_ANALYSIS), ('Tu espacio', navigation.DISCOVERY_ACCOUNT if scope == 'client' else [('Entrar', '/cliente-login', 'user'), ('Crear cuenta', '/registro', 'user'), ('Planes', '/membresias', 'star')]), ('Ayuda', navigation.DISCOVERY_HELP)] %}
 <div class="app-explore" data-app-explore data-scope="{{ scope }}">
   <form method="get" action="{{ '/admin/explorar' if admin else '/explorar' }}" role="search" aria-label="{{ ui('Buscar secciones') }}" data-explore-form>
     <label for="{{ prefix }}-query">{{ ui('Buscar en Admin' if admin else '¿Dónde quieres ir?') }}</label>
@@ -18,15 +18,16 @@
   <div id="{{ prefix }}-results" class="app-explore-results" data-explore-results>
     {% set found = namespace(count=0) %}
     {% for heading, entries in groups %}
+    {% if admin and loop.last %}{% set entries = entries + navigation.DISCOVERY_ADMIN_EXTRA %}{% endif %}
     {% set group = namespace(count=0) %}
-    {% for label, href, icon in entries %}{% if navigation_matches(ui(label) ~ ' ' ~ (navigation.DISCOVERY_SEARCH.get(href, '') if not admin else ''), query) %}{% set group.count = group.count + 1 %}{% endif %}{% endfor %}
+    {% for label, href, icon in entries %}{% if navigation_matches(ui(label) ~ ' ' ~ (navigation.DISCOVERY_SEARCH.get(href, '') if not admin else ui(heading) ~ ' ' ~ navigation.ADMIN_SEARCH.get(href, '')), query) %}{% set group.count = group.count + 1 %}{% endif %}{% endfor %}
     <section data-explore-group{% if not group.count %} hidden{% endif %} aria-labelledby="{{ prefix }}-group-{{ loop.index }}">
       <h3 id="{{ prefix }}-group-{{ loop.index }}">{{ ui(heading) }}</h3>
       <div class="app-explore-links">
         {% for label, href, icon in entries %}
-        {% set matches = navigation_matches(ui(label) ~ ' ' ~ (navigation.DISCOVERY_SEARCH.get(href, '') if not admin else ''), query) %}
+        {% set matches = navigation_matches(ui(label) ~ ' ' ~ (navigation.DISCOVERY_SEARCH.get(href, '') if not admin else ui(heading) ~ ' ' ~ navigation.ADMIN_SEARCH.get(href, '')), query) %}
         {% if matches %}{% set found.count = found.count + 1 %}{% endif %}
-        <a href="{{ href }}"{% if not admin and href == '/shark' %} data-ns-assistant-restore{% endif %} data-explore-item data-explore-label="{{ ui(label) }}{% if not admin %} {{ navigation.DISCOVERY_SEARCH.get(href, '') }}{% endif %}"{% if not matches %} hidden{% endif %}><span>{{ ui(label) }}</span><span aria-hidden="true">→</span></a>
+        <a href="{{ href }}"{% if not admin and href == '/shark' %} data-ns-assistant-restore{% endif %} data-explore-item data-explore-label="{{ ui(label) }} {{ (ui(heading) ~ ' ' ~ navigation.ADMIN_SEARCH.get(href, '')) if admin else navigation.DISCOVERY_SEARCH.get(href, '') }}"{% if not matches %} hidden{% endif %}><span>{{ ui(label) }}</span><span aria-hidden="true">→</span></a>
         {% endfor %}
       </div>
     </section>

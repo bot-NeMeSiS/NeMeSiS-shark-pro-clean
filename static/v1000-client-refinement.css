@@ -1,0 +1,25 @@
+/* Canonical surfaces; decoration never changes text/control opacity. */
+body.ns-app .ns-marine-light{background:radial-gradient(ellipse at 50% 0,rgba(94,203,230,.11),transparent 64%);height:56vh;left:-8vw;opacity:0;pointer-events:none;position:absolute;top:0;transform:translateX(-3vw);width:116vw}
+body.ns-app .ns-marine-light.is-running{animation:ns-marine-drift 28s ease-in-out infinite alternate;opacity:1}
+@keyframes ns-marine-drift{to{transform:translateX(3vw)}}
+body.ns-app .ns-assistant-launcher.ns-discovery-pulse img{animation:ns-discovery-pulse .9s ease-in-out 2}
+@keyframes ns-discovery-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+body.ns-app .ns-motion-preferences{align-self:flex-start;max-width:100%;position:relative;z-index:1}
+body.ns-app .ns-motion-preferences[hidden]{display:none}
+body.ns-app .ns-motion-preferences summary{cursor:pointer;min-height:44px;padding:10px 0}
+body.ns-app .ns-motion-preferences>div{align-items:center;display:flex;flex-wrap:wrap;gap:12px}
+body.ns-app .ns-motion-preferences button{background:#10283c;border:1px solid #537185;border-radius:8px;color:#eaf8ff;font:inherit;min-height:44px;padding:8px 12px}
+body.ns-app .ns-motion-preferences label{align-items:center;display:flex;gap:8px;min-height:44px}
+body.ns-app .ns-motion-preferences input{height:20px;width:20px}
+body.ns-app .ns-motion-preferences :is(button,input):focus-visible{outline:3px solid #a2efff;outline-offset:3px}
+body.ns-app .ns-motion-preferences button:disabled{opacity:.7}
+body.ns-app [data-v1000-home] [data-home-greeting]{align-items:baseline;color:#aec6d8;display:flex;flex-wrap:wrap;font-size:.85rem;gap:4px;line-height:1.4;margin:0 0 6px;min-width:0}
+body.ns-app [data-v1000-home] [data-home-greeting] .ns16-user-name{color:#e7f4ff;display:inline-block;max-width:min(100%,24ch);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.ns-app [data-v1000-home] .ns16-home-hero{min-height:0;padding-block:12px}
+body.ns-app [data-v1000-home] .ns16-home-hero h1{font-size:clamp(1.25rem,2.4vw,1.8rem);line-height:1.2;margin:0}
+body.ns-app [data-v1000-home] .ns16-home-hero p:not([data-home-greeting]){font-size:.78rem;margin:6px 0 0}
+body.ns-app [data-v1000-home] .sports-priority-hero [data-home-greeting]{margin-bottom:8px}
+body.ns-app [data-v1000-home] [data-home-secondary-actions]{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
+@media(prefers-reduced-motion:reduce){body.ns-app .ns-marine-light,body.ns-app .ns-assistant-launcher.ns-discovery-pulse img{animation:none!important;transform:none!important}body.ns-app .ns-marine-light{display:none}}
+@media(prefers-reduced-transparency:reduce){body.ns-app .ns-marine-light{display:none}}
+@media(forced-colors:active){body.ns-app .ns-marine-light{display:none}body.ns-app .ns-motion-preferences button{border:1px solid ButtonText}}

@@ -53,7 +53,7 @@ READINESS_TIMEOUT_SECONDS = 8
 READINESS_ATTEMPTS = 6
 READINESS_BACKOFF_SECONDS = 5
 TRANSIENT_READINESS_HTTP = {502, 503, 504}
-CONTINUOUS_VALID_RESULTS = {"RUN", "SKIPPED_NOT_DUE", "SKIPPED_ALREADY_RUNNING"}
+CONTINUOUS_VALID_RESULTS = {"RUN", "SKIPPED_NOT_DUE", "SKIPPED_ALREADY_RUNNING", "SKIPPED_PAUSED"}
 BACKUP_VALID_RESULTS = {"PASS", "OK", "SKIPPED_ALREADY_DONE", "SKIPPED_ALREADY_RUNNING"}
 ODDS_SKIP_REASONS = {"SUCCESS_CACHE", "PROVIDER_FAILURE_COOLDOWN"}
 ODDS_CONTROLLED_DEFERRALS = {
@@ -827,6 +827,39 @@ def highlights_tick(base_url: str, secret: str) -> dict:
         return request_error_result("highlights", started, "TIMEOUT" if is_timeout else type(exc).__name__)
 
 
+def compact_native_workforce(value: object, secret: str) -> dict | None:
+    """Only bounded execution facts may leave the private review store."""
+    if not isinstance(value, dict):
+        return None
+    results = {"PASS", "PARTIAL", "SKIPPED_NOT_DUE", "SKIPPED_ALREADY_RUNNING",
+               "SKIPPED_PAUSED", "STALE_LOCK", "LOCK_UNVERIFIED"}
+    outcomes = {"PASS", "FAIL", "UNKNOWN"}
+
+    def identifier(raw):
+        if not isinstance(raw, str) or (secret and secret in raw):
+            return None
+        return raw if re.fullmatch(r"NWR-[a-f0-9]{16}", raw) else None
+
+    def bounded_count(raw, maximum):
+        return raw if type(raw) is int and 0 <= raw <= maximum else None
+
+    result = value.get("result")
+    outcome = value.get("outcome")
+    return {
+        "result": result if isinstance(result, str) and result in results else "UNKNOWN",
+        "receipt_id": identifier(value.get("receipt_id")),
+        "run_id": identifier(value.get("run_id")),
+        "review_kind": "STATIC_PARTIAL" if value.get("review_kind") == "STATIC_PARTIAL" else "UNVERIFIED",
+        "outcome": outcome if isinstance(outcome, str) and outcome in outcomes else "UNKNOWN",
+        "executed_count": bounded_count(value.get("executed_count"), 22),
+        "expected_count": bounded_count(value.get("expected_count"), 22),
+        "duration_ms": bounded_count(value.get("duration_ms"), 90000),
+        "next_expected_run": safe_timestamp(value.get("next_expected_run")) or None,
+        "business_execution_certified": False,
+        "production_certified": False,
+    }
+
+
 def continuous_evolution_tick(base_url: str, secret: str) -> dict:
     started = time.perf_counter()
     request = urllib.request.Request(
@@ -850,11 +883,13 @@ def continuous_evolution_tick(base_url: str, secret: str) -> dict:
             upstream_result = safe_label(payload.get("result") or payload.get("status"), secret)
             result = "RUN" if upstream_result == "PASS" else upstream_result
             ok = http_status == 200 and payload.get("ok") is not False and result in CONTINUOUS_VALID_RESULTS
+            native = compact_native_workforce(payload.get("native_workforce"), secret)
             return {
                 "continuous_http": http_status,
                 "continuous_status": "PASS" if ok else "FAIL",
                 "continuous_result": result,
                 "continuous_duration_ms": max(0, round((time.perf_counter() - started) * 1000)),
+                **({"native_workforce": native} if native is not None else {}),
             }
     except urllib.error.HTTPError as exc:
         return request_error_result("continuous", started, f"HTTP_{int(exc.code)}", int(exc.code))

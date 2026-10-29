@@ -44,10 +44,10 @@ jobs:
       SECRET_KEY: isolated-sportsdb-ci-only
       AUTOMATION_SECRET: isolated-sportsdb-cron-only
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
       - name: Install isolated dependencies
@@ -105,7 +105,7 @@ jobs:
           Path('sportsdb-qa/summary.json').write_text(json.dumps({'tests':len(cases),'failed':0,'errors':0,'skipped':0,'checkout_sha':os.environ['GITHUB_SHA'],'source_hashes':hashes,'production_changed':False,'real_provider_calls':0},indent=2))
           print('Verified tests:',len(cases))
           PY
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: sportsdb-premium-tests-${{ github.run_id }}

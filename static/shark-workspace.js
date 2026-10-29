@@ -66,6 +66,12 @@
     // Do not summon the mobile keyboard merely by opening the panel.
     root.querySelector('h2').focus({preventScroll:true});
   }
+  function openFromLink(event, source) {
+    // Preserve the browser's new-tab/window and download link gestures.
+    if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    open(source);
+  }
   invalidate = function () {
     generation += 1;
     if (controller) controller.abort();
@@ -154,7 +160,7 @@
       }
     }
   }
-  launcher.addEventListener('click', function (event) { event.preventDefault(); open(launcher); });
+  launcher.addEventListener('click', function (event) { openFromLink(event, launcher); });
   root.querySelector('[data-assistant-minimize]').addEventListener('click', function () { close(false); });
   root.querySelector('[data-assistant-hide]').addEventListener('click', function () {
     close(true);
@@ -185,6 +191,6 @@
   if (form) form.addEventListener('submit', function (event) { event.preventDefault(); ask(); });
   document.addEventListener('click', function (event) {
     var target = event.target.closest && event.target.closest('[data-ns-assistant-restore]');
-    if (target) { event.preventDefault(); open(target); }
+    if (target) openFromLink(event, target);
   });
 }());

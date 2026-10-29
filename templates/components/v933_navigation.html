@@ -50,12 +50,25 @@
 
 {% macro v933_admin_sidebar() -%}
 {% set links = nav_contracts.ADMIN_LINKS %}
-<aside class="v933-admin-sidebar" data-nav-zone="admin-sidebar">
+<aside class="v933-admin-sidebar v1000-admin-sidebar" data-nav-zone="admin-sidebar">
   <div class="v933-admin-brand">{{ nemesis_brand('/admin/dashboard', 'admin') }}</div>
-  <nav aria-label="Navegación de administración">
-    {% for label, href, icon_name in links %}
-    {% set active = nav_contracts.is_active(href, request.path, 'admin') %}
-    <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %} title="{{ ui(label) }}">{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
+  <div class="v1000-admin-shortcuts" role="group" aria-label="{{ ui('Accesos frecuentes') }}">
+    <span class="v1000-admin-caption">{{ ui('Frecuentes') }}</span>
+    <a href="/admin/dashboard">{{ nav_icon('dashboard') }}<span>{{ ui('Centro de mando') }}</span></a>
+    <a href="/admin/sentinel-issues">{{ nav_icon('shield') }}<span>{{ ui('Incidencias') }}</span></a>
+    <a href="/admin/explorar" data-open-explore>{{ nav_icon('search') }}<span>{{ ui('Explorar todas las secciones') }}</span></a>
+  </div>
+  <nav class="v1000-admin-directory" aria-label="Navegación de administración" data-v1000-admin-directory>
+    {% for heading, entries in nav_contracts.ADMIN_GROUPS %}
+    <details class="v1000-admin-group" open>
+      <summary><span>{{ ui(heading) }}</span><small>{{ entries|length }}</small></summary>
+      <div class="v1000-admin-group-links">
+        {% for label, href, icon_name in entries %}
+        {% set active = nav_contracts.is_active(href, request.path, 'admin') %}
+        <a href="{{ href }}" data-v1000-admin-destination{% if active %} class="is-active" aria-current="page"{% endif %} title="{{ ui(label) }}">{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
+        {% endfor %}
+      </div>
+    </details>
     {% endfor %}
   </nav>
   <div class="v933-admin-system-state"><i aria-hidden="true"></i><span><strong>{{ ui("Supervisión") }}</strong><small>{{ ui("Consultar evidencia en Sentinel") }}</small></span></div>

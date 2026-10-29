@@ -5,6 +5,7 @@ receipt must stay visible as such. Never probes providers, writes, or reads secr
 """
 from __future__ import annotations
 
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -35,7 +36,7 @@ def master_cron_receipt(db_path, *, now=None):
         path = Path(db_path).resolve()
         if not path.is_file():
             return result
-        with sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=.4) as conn:
+        with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True, timeout=.4)) as conn, conn:
             conn.execute("PRAGMA query_only=ON")
             if not conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' "
                                 "AND name='automation_state'").fetchone():

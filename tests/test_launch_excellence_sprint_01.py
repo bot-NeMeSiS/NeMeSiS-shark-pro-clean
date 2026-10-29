@@ -1,4 +1,12 @@
 from pathlib import Path
+import re
+from urllib.parse import urlsplit
+
+from flask import render_template
+import pytest
+
+from test_design02_calendar_presentation import Structure
+from test_combi_routes_and_browser import browser
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -29,19 +37,72 @@ def test_launch_excellence_home_guidance_is_present():
     assert '/player/101' not in home
 
 
-def test_home_has_one_primary_action_without_repeating_it_in_the_access_strip():
-    home = read_text("templates/home.html")
-    signed_in, remainder = home.split("{% if current_user %}", 1)[1].split("{% else %}", 1)
-    public, remainder = remainder.split("{% endif %}", 1)
-    access_strip = remainder.split('data-home-secondary-actions>', 1)[1].split('</nav>', 1)[0]
+@pytest.mark.parametrize("signed_in", [False, True])
+@pytest.mark.parametrize("live_count", [0, 2])
+@pytest.mark.parametrize("agenda_locked", [False, True])
+def test_home_has_one_primary_action_without_repeating_it_in_the_access_strip(
+    app_module, signed_in, live_count, agenda_locked,
+):
+    # Inspect the rendered branches, including the new idle/unknown agenda
+    # states. Source-text splitting cannot distinguish nested Jinja conditions.
+    user = {"id": "qa-home-actions", "role": "FREE", "membership": "FREE"} if signed_in else None
+    data = {"sports_metrics": {"live_confirmed": live_count},
+            "home_summary": {"storage_status": "database_locked" if agenda_locked else "available"}}
+    with app_module.app.test_request_context("/"):
+        dom = Structure(render_template("home.html", data=data, current_user=user,
+                                        greeting={"label": "QA", "name": ""}))
+    primary, = [node for node in dom.nodes if "data-home-primary-action" in node["attrs"]]
+    secondary, = [node for node in dom.nodes if "data-home-secondary-actions" in node["attrs"]]
+    primary_links = [node["attrs"]["href"] for node in dom.nodes if node["tag"] == "a" and primary in node["parents"]]
+    secondary_links = [node["attrs"]["href"] for node in dom.nodes if node["tag"] == "a" and secondary in node["parents"]]
+    confirmed_live = bool(live_count and not agenda_locked)
+    expected_primary = ("/directo" if confirmed_live else "/calendario") if signed_in else "/registro"
+    assert primary_links == [expected_primary]
+    expected_secondary = ["/favoritos", "/picks"]
+    if expected_primary != "/calendario":
+        expected_secondary.insert(0, "/calendario")
+    if confirmed_live and not signed_in:
+        expected_secondary.insert(0, "/directo")
+    assert secondary_links == expected_secondary
+    assert not set(primary_links) & set(secondary_links)
+    assert len(secondary_links) == len(set(secondary_links))
+    assert "/calendario" in primary_links + secondary_links
 
-    assert signed_in.count("action_button(") == 1
-    assert public.count("action_button(") == 1
-    assert "data-home-primary-action" in home
-    assert '{% if not current_user %}<a href="/directo">' in access_strip
-    assert '<a href="/calendario">' in access_strip
-    assert '<a href="/favoritos">' in access_strip
-    assert '<a href="/picks">' in access_strip
+
+@pytest.mark.parametrize("width", [320, 1440])
+@pytest.mark.parametrize("signed_in,live_count,count", [(True, 0, 2), (True, 2, 3), (False, 2, 4)])
+def test_home_access_strip_has_no_empty_columns(browser, app_module, width, signed_in, live_count, count):
+    """Measure the real template/styles offline; this is component QA, not production."""
+    user = {"id": "qa-home-actions", "role": "FREE", "membership": "FREE"} if signed_in else None
+    with app_module.app.test_request_context("/"):
+        html = render_template("home.html", data={"sports_metrics": {"live_confirmed": live_count}},
+                               current_user=user, greeting={"label": "QA", "name": ""})
+    styles = []
+    for node in Structure(html).nodes:
+        if node["tag"] == "link" and node["attrs"].get("rel") == "stylesheet":
+            path = urlsplit(node["attrs"].get("href", "")).path
+            if path.startswith("/static/"):
+                styles.append((ROOT / path.lstrip("/")).read_text(encoding="utf-8"))
+    # Use shipped CSS with the full server-rendered shell, suppressing scripts
+    # and all network requests in this geometry-only check.
+    html = re.sub(r"<script\b[^>]*>[\s\S]*?</script>", "", html)
+    html = re.sub(r"<link\b[^>]*>", "", html)
+    page = browser.new_page(viewport={"width": width, "height": 844})
+    page.route("**/*", lambda route: route.abort())
+    try:
+        page.set_content(html)
+        page.add_style_tag(content="\n".join(styles))
+        nav = page.locator("[data-home-secondary-actions]")
+        assert nav.is_visible()
+        assert nav.locator("a").count() == count
+        tracks = nav.evaluate("e => getComputedStyle(e).gridTemplateColumns.split(' ')")
+        assert len(tracks) == count
+        for link in nav.locator("a").all():
+            assert link.is_visible()
+            assert link.bounding_box()["height"] >= 44
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
+    finally:
+        page.close()
 
 
 def test_launch_excellence_client_js_is_local_and_safe():

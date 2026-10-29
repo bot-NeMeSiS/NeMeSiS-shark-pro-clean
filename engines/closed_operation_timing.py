@@ -15,6 +15,8 @@ PHASES = {
         'ledger_finalize_write', 'ledger_finalize_commit'}),
     'postmatch_discover': frozenset({'operation', 'connect', 'begin', 'read',
         'inventory', 'enqueue', 'commit', 'rollback'}),
+    'calendar_read': frozenset({'operation', 'sports_context', 'historical_results',
+        'calendar_context', 'provider_context', 'template_render'}),
 }
 _ACTIVE = ContextVar('closed_operation_timing', default=())
 _CODES = {5:'SQLITE_BUSY', 6:'SQLITE_LOCKED', 9:'SQLITE_INTERRUPT', 10:'SQLITE_IOERR',

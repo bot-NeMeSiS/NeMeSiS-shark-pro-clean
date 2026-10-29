@@ -19,6 +19,11 @@ body[data-ns-design="core"] #game-ui-lab .game-ui-discipline {
   box-shadow: var(--v860-shadow);
 }
 body[data-ns-design="core"] #game-ui-lab .game-ui-discipline p { color: rgba(237, 250, 255, .74); }
+body[data-ns-design="core"] #game-ui-lab .game-ui-evidence { padding-left: 18px; font-size: 12px; line-height: 1.5; }
+body[data-ns-design="core"] #game-ui-lab .game-ui-evidence code { white-space: normal; overflow-wrap: anywhere; }
+.v857-company-os .company-native-review { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--v933-border); }
+.v857-company-os .company-review-evidence ul { padding-left: 18px; font-size: 12px; line-height: 1.5; }
+.v857-company-os .company-review-evidence code { white-space: normal; overflow-wrap: anywhere; }
 @media (max-width: 768px) {
   body[data-ns-design="core"] #game-ui-lab .game-ui-discipline { padding: 14px; }
 }

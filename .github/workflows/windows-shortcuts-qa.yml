@@ -1,0 +1,109 @@
+name: Windows shortcut COM QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/windows-shortcuts-qa.yml'
+      - 'tools/local_desktop/install_pc_access_shortcuts.ps1'
+      - 'tests/test_v1000_pc_access_shortcuts.py'
+      - 'pytest.ini'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/windows-shortcuts-qa.yml'
+      - 'tools/local_desktop/install_pc_access_shortcuts.ps1'
+      - 'tests/test_v1000_pc_access_shortcuts.py'
+      - 'pytest.ini'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-shortcuts-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows-shortcut-com:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: python
+    env:
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUTF8: '1'
+      PYTEST_ADDOPTS: ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install minimal test dependency
+        run: |
+          import subprocess
+          import sys
+          subprocess.run([sys.executable, '-m', 'pip', 'install', '--disable-pip-version-check', 'pytest==8.3.4'], check=True)
+
+      - name: Execute owned Windows COM fixtures
+        # These tests pass explicit temporary DesktopPath/BackupDirectory values.
+        # Dummy browser targets are never executed; profile paths are arguments only.
+        run: |
+          import os
+          from pathlib import Path
+          import shutil
+          import subprocess
+          import sys
+
+          assert os.name == 'nt', 'The COM gate requires a real Windows runner'
+          powershell = shutil.which('pwsh.exe') or shutil.which('powershell.exe')
+          assert powershell, 'PowerShell must be available; skipped COM tests cannot certify this gate'
+          print(f'PowerShell host selected by the tests: {powershell}', flush=True)
+          subprocess.run([powershell, '-NoLogo', '-NoProfile', '-NonInteractive',
+                          '-Command', '$PSVersionTable.PSVersion.ToString()'], check=True)
+
+          output = Path(os.environ['RUNNER_TEMP']) / 'windows-shortcut-com'
+          output.mkdir(parents=True, exist_ok=True)
+          (output / 'source-commit.txt').write_text(os.environ['GITHUB_SHA'] + '\n', encoding='utf-8')
+          # Do not load application fixtures or optional plugins; only pytest is needed.
+          subprocess.run([
+              sys.executable, '-m', 'pytest', '--noconftest', '-p', 'no:cacheprovider',
+              '-o', 'addopts=', '-q', 'tests/test_v1000_pc_access_shortcuts.py',
+              '--basetemp', str(output / 'fixtures'),
+              '--junitxml', str(output / 'results.xml'),
+          ], check=True)
+
+      - name: Require all 12 cases with zero omissions
+        if: always()
+        run: |
+          import os
+          from pathlib import Path
+          from xml.etree import ElementTree
+
+          report = Path(os.environ['RUNNER_TEMP']) / 'windows-shortcut-com' / 'results.xml'
+          root = ElementTree.parse(report).getroot()
+          cases = root.findall('.//testcase')
+          assert len(cases) == 12, f'Expected exactly 12 shortcut cases, found {len(cases)}'
+          assert all(case.get('classname', '').endswith('test_v1000_pc_access_shortcuts') for case in cases)
+          assert all(case.find(tag) is None for case in cases for tag in ('skipped', 'failure', 'error'))
+          assert all(int(suite.get(tag, '0')) == 0
+                     for suite in root.iter('testsuite') for tag in ('skipped', 'failures', 'errors'))
+          print('Verified: 12 cases passed, including all 9 Windows COM cases; zero skips, failures or errors.')
+
+      - name: Upload Windows COM evidence
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: windows-shortcut-com-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/windows-shortcut-com/results.xml
+            ${{ runner.temp }}/windows-shortcut-com/source-commit.txt
+          if-no-files-found: warn
+          retention-days: 7

@@ -1,4 +1,4 @@
-{% if not is_admin_surface and request.path not in ['/shark','/shark-ai','/shark-core','/shark-intelligence'] %}
+{% if not is_admin_surface and request.endpoint not in ['client_login_page','admin_login_page'] and request.path not in ['/shark','/shark-ai','/shark-core','/shark-intelligence'] %}
 {% set assistant_detail = (data|default({}, true)).get('match_detail') or {} %}
 {% set assistant_match_id = (assistant_detail.get('match') or {}).get('id') or '' %}
 {% set assistant_page_url = '/shark' ~ ('?match_id=' ~ (assistant_match_id|urlencode) if assistant_match_id else '') %}
