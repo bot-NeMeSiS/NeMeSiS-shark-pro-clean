@@ -31,7 +31,7 @@
   {% endfor %}
   <link rel="manifest" href="{{ url_for('founder_manifest_json') if _founder_pwa else url_for('manifest_json') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='pwa-install.css') }}?v={{ app_version }}-{{ app_icon_version }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='product-system.css') }}?v={{ app_version }}-premium-2-canonical-core-4-home-leagues-live-statistics-lineup-grid-1-home-empty-state-1-admin-navigation-1-surfaces-1" data-product-system="premium-1">
+  <link rel="stylesheet" href="{{ url_for('static', filename='product-system.css') }}?v={{ app_version }}-premium-2-canonical-core-4-home-leagues-live-statistics-lineup-grid-1-home-empty-state-1-admin-navigation-1-surfaces-1-shark-visibility-1" data-product-system="premium-1">
   {% if request.endpoint in ['client_login_page', 'admin_login_page'] %}
   <link rel="stylesheet" href="{{ url_for('static', filename='auth-session-choice.css') }}?v={{ app_version }}">
   {% endif %}
@@ -65,7 +65,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='founder-os.css') }}?v={{ app_version }}-core-founder-2-surfaces-1-obligations-1">
   <script defer src="{{ url_for('static', filename='founder-os.js') }}?v={{ app_version }}-obligations-1"></script>
   {% endif %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='v1000-client-refinement.css') }}?v={{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v1000-client-refinement.css') }}?v={{ app_version }}-shark-visibility-1">
   {% if request.path.startswith('/admin') and request.path != '/admin-login' %}<link rel="stylesheet" href="{{ url_for('static', filename='v1000-admin-navigation.css') }}?v={{ app_version }}-keyboard-scroll-1">{% endif %}
   {% block head_extra %}{% endblock %}
 </head>

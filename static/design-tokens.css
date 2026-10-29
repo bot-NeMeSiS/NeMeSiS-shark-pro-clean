@@ -17,11 +17,11 @@
   --ns-overlay-scrim: rgba(0, 7, 17, .72);
   --ns-chrome-blur: blur(12px);
   --ns-scene-ocean-opacity: .58;
-  --ns-scene-mark-opacity: .085;
+  --ns-scene-mark-opacity: .12;
   --ns-scene-ocean-admin-opacity: .28;
   --ns-scene-mark-admin-opacity: .06;
   --ns-scene-ocean-mobile-opacity: .48;
-  --ns-scene-mark-mobile-opacity: .065;
+  --ns-scene-mark-mobile-opacity: .12;
   --ns-scene-mark-auth-opacity: .24;
   --bg:var(--v933-bg);--panel:var(--v933-surface);--panel2:var(--v933-surface-2);--line:var(--v933-border);--txt:var(--v933-text);--muted:var(--v933-text-soft);--cyan:var(--v933-cyan);--green:var(--v933-green);--gold:var(--v933-gold);--bad:var(--v933-red);
   --v724-surface:var(--v933-surface);

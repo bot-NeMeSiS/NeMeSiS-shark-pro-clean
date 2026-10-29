@@ -1,4 +1,5 @@
 /* Canonical surfaces; decoration never changes text/control opacity. */
+body.ns-app:not(.ns-admin){--ns-scene-mark-auth-opacity:.38}
 body.ns-app .ns-marine-light{background:radial-gradient(ellipse at 50% 0,rgba(94,203,230,.11),transparent 64%);height:56vh;left:-8vw;opacity:0;pointer-events:none;position:absolute;top:0;transform:translateX(-3vw);width:116vw}
 body.ns-app .ns-marine-light.is-running{animation:ns-marine-drift 28s ease-in-out infinite alternate;opacity:1}
 @keyframes ns-marine-drift{to{transform:translateX(3vw)}}
