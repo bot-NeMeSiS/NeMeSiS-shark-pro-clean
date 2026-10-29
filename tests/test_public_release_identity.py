@@ -278,7 +278,12 @@ def test_standalone_admin_preview_has_public_brand_and_keeps_readonly_warning(ap
         )
     dom = TextStructure(html)
     brand, = dom.with_class("preview-brand")
-    assert token("v1", text(brand))
+    label, = [
+        node for node in dom.nodes
+        if node["tag"] == "strong" and node["parents"]
+        and node["parents"][-1] is brand
+    ]
+    assert token("v1", text(label))
     assert not token("001", text(brand))
     assert meta(dom, "nemesis-product-version") == "v1"
     assert "No modifica cuentas, sesión ni membresías" in body_text(dom)
