@@ -10,6 +10,8 @@
   {% set _founder_pwa = request.path == '/admin' or request.path.startswith('/admin/') or request.path == '/admin-login' %}
   <meta name="apple-mobile-web-app-title" content="{{ 'NeMeSiS Founder' if _founder_pwa else 'NeMeSiS' }}">
   <meta name="nemesis-version" content="{{ app_version }}">
+  <meta name="nemesis-product-version" content="{{ public_product_version }}">
+  <meta name="nemesis-product-revision" content="{{ public_product_revision }}">
   <meta name="nemesis-app-icon-version" content="{{ app_icon_version }}">
   {% set _meta_title = title if title is defined and title else 'NeMeSiS SHARK PRO' %}
   {% set _meta_description = meta_description if meta_description is defined and meta_description else 'Deporte con contexto, evidencia y limites visibles.' %}
@@ -153,6 +155,7 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
   </dialog>
   {% endif %}
   <footer class="v787-legal-footer v933-legal-footer" aria-label="Aviso legal y responsable">
+    <span data-product-version="{{ public_product_version }}">NeMeSiS SHARK PRO · {{ public_product_version }}</span>
     <strong>{{ ns_ui("+18 - Información deportiva, no casa de apuestas.") }}</strong>
     <span>{{ ns_ui("NeMeSiS SHARK PRO no acepta apuestas, no custodia saldo de juego, no paga premios y no garantiza beneficios.") }}</span>
     <nav><a href="/landing">{{ ns_ui("Oficial") }}</a><a href="/precios">{{ ns_ui("Precios") }}</a><a href="/faq">FAQ</a><a href="/service-status">{{ ns_ui("Estado") }}</a><a href="/roadmap">{{ ns_ui("Roadmap") }}</a><a href="/legal">{{ ns_ui("Legal") }}</a><a href="/terminos">{{ ns_ui("Términos") }}</a><a href="/privacidad">{{ ns_ui("Privacidad") }}</a><a href="/cookies">Cookies</a><a href="/juego-responsable">{{ ns_ui("Juego responsable") }}</a><a href="/soporte">{{ ns_ui("Soporte") }}</a><a href="/instalar">Instalar app</a></nav>
@@ -424,7 +427,7 @@ data-v775-shell data-v776-shell data-v777-shell data-v778-shell data-v790-shell 
         .then(function(r){return r.ok ? r.json() : null;})
         .then(function(j){
           if(!j) return;
-          var label=(j.version||'runtime') + ' - ' + (j.status||'OK');
+          var label='Compilación técnica: ' + (j.version||'runtime') + ' - ' + (j.status||'OK');
           nodes.forEach(function(el){el.textContent=label; el.classList.add('is-fresh');});
         }).catch(function(){nodes.forEach(function(el){el.textContent='Runtime pendiente';});});
     }

@@ -18,17 +18,17 @@
 {% set section_order = ['platform_health','render','cron','telegram','stripe','sports_gateway','sports_core','database','cache','observability','security'] %}
 
 <div class="v933-page v933-admin-command-center operations-center-v1" data-v938-template="admin_operations_center" data-v938-read-only="true" data-operations-next-issue="{{ snapshot.next_issue_id or '' }}" {{ sports_contract_attributes(sports_metrics) }}>
-  {{ page_header('Centro de operaciones', 'Control interno de plataforma, evidencia y Release 1.0. No despliega, no envía Telegram, no cobra y no escribe en la DB de producto.', 'shield', [{'label':'Sentinel','href':'/admin/autonomous-company-sentinel','icon':'shield'},{'label':'Developer','href':'/admin/developer-center','icon':'code'},{'label':'Runtime','href':'/api/runtime-version','primary':true,'icon':'history'}]) }}
+  {{ page_header('Centro de operaciones', 'Control interno de plataforma, evidencia y ' ~ public_product_version ~ '. No despliega, no envía Telegram, no cobra y no escribe en la DB de producto.', 'shield', [{'label':'Sentinel','href':'/admin/autonomous-company-sentinel','icon':'shield'},{'label':'Developer','href':'/admin/developer-center','icon':'code'},{'label':'Runtime','href':'/api/runtime-version','primary':true,'icon':'history'}]) }}
 
   {% include 'components/admin_operations_workbench.html' %}
 
   <details class="admin-detailed-diagnostics" id="operations-diagnostics"><summary>Diagnóstico completo, sistemas y preparación de lanzamiento</summary>
   {% if release_gate.status == 'BLOCKED' %}
-    {{ executive_focus('Release 1.0 bloqueada por evidencias pendientes', (release_gate.missing_for_ready[0] if release_gate.missing_for_ready else snapshot.next_action), 'Ver incidencias', '#operations-incidents', 'Release Gate BLOCKED', 'danger', 'Abrir AutoPilot', '/admin/sentinel-autopilot') }}
+    {{ executive_focus('Versión ' ~ public_product_version ~ ' bloqueada por evidencias pendientes', (release_gate.missing_for_ready[0] if release_gate.missing_for_ready else snapshot.next_action), 'Ver incidencias', '#operations-incidents', 'Release Gate BLOCKED', 'danger', 'Abrir AutoPilot', '/admin/sentinel-autopilot') }}
   {% elif release_gate.status == 'PASS' %}
-    {{ executive_focus('Release 1.0 operativamente lista', snapshot.next_action, 'Ejecutar diagnóstico local', '#v938-safe-actions', 'Release Gate PASS', 'success', 'Abrir Sentinel', '/admin/autonomous-company-sentinel') }}
+    {{ executive_focus('Versión ' ~ public_product_version ~ ' operativamente lista', snapshot.next_action, 'Ejecutar diagnóstico local', '#v938-safe-actions', 'Release Gate PASS', 'success', 'Abrir Sentinel', '/admin/autonomous-company-sentinel') }}
   {% else %}
-    {{ executive_focus('Release 1.0 parcialmente lista', 'La arquitectura local está controlada, pero la certificación comercial/productiva aún necesita evidencia externa autorizada.', 'Ver gate', '#release-gate', 'Release Gate PARTIAL', 'warning', 'Abrir Centro de desarrollo', '/admin/developer-center') }}
+    {{ executive_focus('Versión ' ~ public_product_version ~ ' parcialmente lista', 'La arquitectura local está controlada, pero la certificación comercial/productiva aún necesita evidencia externa autorizada.', 'Ver gate', '#release-gate', 'Release Gate PARTIAL', 'warning', 'Abrir Centro de desarrollo', '/admin/developer-center') }}
   {% endif %}
 
   <section class="v933-kpi-grid is-six" aria-label="Resumen operativo">
@@ -76,7 +76,7 @@
       <section class="v933-admin-panel">
         <header><div><h2>Preparación comercial</h2><p>Estados reales para Render, Telegram, Stripe, persistencia, UX, conversión, soporte y observabilidad.</p></div>{{ status_chip(release_gate.status or 'PARTIAL', 'danger' if release_gate.status == 'BLOCKED' else 'success' if release_gate.status == 'PASS' else 'warning') }}</header>
         <div class="v933-admin-panel-body">
-          {% call data_table(['Área','Estado','Evidencia','Falta para Release 1.0']) %}
+          {% call data_table(['Área','Estado','Evidencia','Falta para ' ~ public_product_version]) %}
           {% for item in commercial %}
           <tr>
             <td><strong>{{ item.area }}</strong></td>
