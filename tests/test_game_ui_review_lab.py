@@ -19,7 +19,7 @@ def test_game_ui_roles_have_measurable_gates_without_running_agents():
     assert all(r["execution_state"] == "UNVERIFIED" for r in state["disciplines"])
     assert all(r["focus"] and r["acceptance"] and r["proof"] and r["surfaces"]
                for r in state["disciplines"])
-    assert list(GAME_UI_DISCIPLINES) == original
+    assert GAME_UI_DISCIPLINES == original
 
 
 def test_company_os_combines_existing_workers_without_claiming_24x7_execution():

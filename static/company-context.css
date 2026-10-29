@@ -10,6 +10,18 @@
 .v933-admin-workforce .company-inventory li > div { display: grid; justify-items: start; gap: 6px; min-width: 0; }
 .v933-admin-workforce .company-inventory code { font-size: 12px; overflow-wrap: anywhere; white-space: normal; }
 .v933-admin-workforce .company-inventory small { color: var(--v933-text-soft); }
+/* Review disciplines retain the core card surface without joining its inventory. */
+body[data-ns-design="core"] #game-ui-lab .game-ui-discipline {
+  padding: 16px;
+  border: 1px solid var(--v860-line);
+  border-radius: 20px;
+  background: var(--v860-panel);
+  box-shadow: var(--v860-shadow);
+}
+body[data-ns-design="core"] #game-ui-lab .game-ui-discipline p { color: rgba(237, 250, 255, .74); }
+@media (max-width: 768px) {
+  body[data-ns-design="core"] #game-ui-lab .game-ui-discipline { padding: 14px; }
+}
 @media (max-width: 600px) {
   body.ns-app .v933-admin-workforce > .v933-kpi-grid { grid-template-columns: minmax(0, 1fr) !important; }
   .v933-admin-workforce .company-inventory li { grid-template-columns: minmax(0, 1fr); }
