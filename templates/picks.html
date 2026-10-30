@@ -12,7 +12,7 @@
 {% set featured = picks[0] if picks else none %}
 {% set active_filter = request.args.get('filtro') or request.args.get('filter') or 'featured' %}
 {% set realtime = data.get('v934_realtime') or {} %}
-{% set customer_trust = data.get('v935_customer_trust') or {} %}
+
 {% set sports_metrics = data.get('sports_metrics') or {} %}
 {% set readiness = data.get('pick_readiness') or {} %}
 
