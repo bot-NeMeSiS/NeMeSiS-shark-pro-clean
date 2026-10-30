@@ -25,6 +25,7 @@ from engines.api_football_live_tracker_engine import (
 )
 from engines.cron_request_budget import CronTimeBudget, exhausted, sqlite_busy_timeout
 from engines.match_record_archive import record_observation, utc_stamp
+from engines import statistics_payload_store
 from engines.provider_access_evidence import FAILURE_PRIORITY, safe_failure_categories
 from engines.v935_launch_trust_engine import (
     _FINISHED_STATUS_KEYS, _HALFTIME_STATUS_KEYS, _LIVE_STATUS_KEYS,
@@ -310,6 +311,7 @@ def _persist(conn, fid, payload, received):
     usable = any(_stat_value(stat.get("value")) is not None for block in payload for stat in block["statistics"])
     if not usable:
         return 0  # Preserve the previous usable snapshot on an empty/null receipt.
+    statistics_payload_store.ensure_schema(conn)
     captured = utc_stamp(received)
     # A new usable receipt replaces the current set atomically. Omitted metrics
     # or teams must not survive as though they belonged to this fresh snapshot.
@@ -317,6 +319,7 @@ def _persist(conn, fid, payload, received):
     count = 0
     for block in payload:
         team = block["team"]
+        history_payload = statistics_payload_store.store_payload(conn, json.dumps(block, ensure_ascii=False))
         for stat in block["statistics"]:
             name, value = stat["type"].strip(), _stat_value(stat.get("value"))
             text_value = "" if value is None else str(value)
@@ -332,7 +335,7 @@ def _persist(conn, fid, payload, received):
             history_id = hashlib.sha256((row_id + captured).encode()).hexdigest()
             conn.execute("""INSERT OR IGNORE INTO api_football_match_stats_history
                 (id,fixture_id,team_id,team_name,stat_name,stat_value,numeric_value,payload_json,captured_at)
-                VALUES (?,?,?,?,?,?,?,?,?)""", (history_id, *identity, json.dumps(block, ensure_ascii=False), captured))
+                VALUES (?,?,?,?,?,?,?,?,?)""", (history_id, *identity, history_payload, captured))
             count += 1
     return count
 
