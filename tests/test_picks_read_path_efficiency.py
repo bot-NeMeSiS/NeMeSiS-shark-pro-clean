@@ -2,6 +2,12 @@
 from contextlib import contextmanager
 from copy import deepcopy
 import cProfile
+import ast
+import os
+from pathlib import Path
+import subprocess
+import sys
+import xml.etree.ElementTree as ET
 import hashlib
 import json
 import math
@@ -85,75 +91,115 @@ def assert_same_with_elapsed_age(left,right,max_elapsed):
         assert left==right
 
 
-@pytest.mark.parametrize('principal',('ANONYMOUS','FREE','PRO','ELITE'))
-def test_picks_display_and_authorization_equal_original_with_less_recomputation(prepared_probe,monkeypatch,principal):
-    probe=prepared_probe;a=probe['a']
-    client=a.app.test_client() if principal=='ANONYMOUS' else probe['login'](principal)[0]
-    # Warm only the owned fixture's actual normal source cache, never inject a
-    # summary, identity result, principal, timestamp or membership predicate.
-    warm=client.get('/picks',base_url='http://127.0.0.1')
-    assert warm.status_code==200
-    before=business_state(probe['path'])
-    compared_at=time.perf_counter()
-    candidate,data,calls=measured_page(a,client)
-    if principal=='ELITE':
-        time.sleep(1.1)  # Real elapsed time, to expose only evaluation metadata.
-    actual=a.v932_safe_dashboard_data
-    def previous_path(*args,**kwargs):
-        kwargs.pop('_picks_view',None)
-        return actual(*args,**kwargs)
-    with monkeypatch.context() as control:
-        control.setattr(a,'v932_safe_dashboard_data',previous_path)
-        original,prior,old_calls=measured_page(a,client)
-    max_elapsed=math.ceil(time.perf_counter()-compared_at)+1
-    assert candidate.get_data()==original.get_data()
-    for key in ('picks','locked_pick_count','pick_stats','v925_picks','v925_odds','pick_readiness','pick_watchlist'):
-        if data[key]!=prior[key]:
-            print('PICKS_CONTEXT_DIFFERENCES '+json.dumps({'key':key,'paths':differing_leaves(data[key],prior[key])}))
-        assert_same_with_elapsed_age(data[key],prior[key],max_elapsed)
-    for key in ('matches_today','matches_available','live_confirmed','picks_ready','matches_with_picks','finished_verified','incomplete_excluded','stale_live_excluded','snapshot_id'):
-        assert data['sports_metrics'][key]==prior['sports_metrics'][key]
-    assert calls['_picks_client_data']==1 and calls['_v931_minimal_client_data']==0
-    assert old_calls['_v931_minimal_client_data']==1
-    assert calls['build_sports_metrics_contract']<old_calls['build_sports_metrics_contract']
-    assert calls['_v991_prepare_summary_operation']==old_calls['_v991_prepare_summary_operation']==1
-    assert calls['_v991_realtime_projection']==old_calls['_v991_realtime_projection']==1
-    html=candidate.get_data(as_text=True)
-    assert probe['draft_canary'] not in html
-    if principal in ('ANONYMOUS','FREE','PRO'):
-        assert probe['published_canary'] not in html
-    assert business_state(probe['path'])==before
-    print('PICKS_EQUIVALENCE '+json.dumps({'principal':principal,'html_byte_equal':True,'business_tables_unchanged':True,'candidate_calls':calls,'original_calls':old_calls}))
+_loaded_app=sys.modules.get('app')
+_owned_supervisor=bool(
+    _loaded_app is not None and _loaded_app.local_safe_mode_enabled()
+    and Path(_loaded_app.DB_PATH).resolve().is_relative_to(Path(_loaded_app.LOCAL_SAFE_DATA_DIR).resolve())
+)
+
+if _owned_supervisor:
+    @pytest.mark.parametrize('principal',('ANONYMOUS','FREE','PRO','ELITE'))
+    def test_picks_display_and_authorization_equal_original_with_less_recomputation(prepared_probe,monkeypatch,principal):
+        probe=prepared_probe;a=probe['a']
+        client=a.app.test_client() if principal=='ANONYMOUS' else probe['login'](principal)[0]
+        # Warm only the owned fixture's actual normal source cache, never inject a
+        # summary, identity result, principal, timestamp or membership predicate.
+        warm=client.get('/picks',base_url='http://127.0.0.1')
+        assert warm.status_code==200
+        before=business_state(probe['path'])
+        compared_at=time.perf_counter()
+        candidate,data,calls=measured_page(a,client)
+        if principal=='ELITE':
+            time.sleep(1.1)  # Real elapsed time, to expose only evaluation metadata.
+        actual=a.v932_safe_dashboard_data
+        def previous_path(*args,**kwargs):
+            kwargs.pop('_picks_view',None)
+            return actual(*args,**kwargs)
+        with monkeypatch.context() as control:
+            control.setattr(a,'v932_safe_dashboard_data',previous_path)
+            original,prior,old_calls=measured_page(a,client)
+        max_elapsed=math.ceil(time.perf_counter()-compared_at)+1
+        assert candidate.get_data()==original.get_data()
+        for key in ('picks','locked_pick_count','pick_stats','v925_picks','v925_odds','pick_readiness','pick_watchlist'):
+            if data[key]!=prior[key]:
+                print('PICKS_CONTEXT_DIFFERENCES '+json.dumps({'key':key,'paths':differing_leaves(data[key],prior[key])}))
+            assert_same_with_elapsed_age(data[key],prior[key],max_elapsed)
+        for key in ('matches_today','matches_available','live_confirmed','picks_ready','matches_with_picks','finished_verified','incomplete_excluded','stale_live_excluded','snapshot_id'):
+            assert data['sports_metrics'][key]==prior['sports_metrics'][key]
+        assert calls['_picks_client_data']==1 and calls['_v931_minimal_client_data']==0
+        assert old_calls['_v931_minimal_client_data']==1
+        assert calls['build_sports_metrics_contract']<old_calls['build_sports_metrics_contract']
+        assert calls['_v991_prepare_summary_operation']==old_calls['_v991_prepare_summary_operation']==1
+        assert calls['_v991_realtime_projection']==old_calls['_v991_realtime_projection']==1
+        html=candidate.get_data(as_text=True)
+        assert probe['draft_canary'] not in html
+        if principal in ('ANONYMOUS','FREE','PRO'):
+            assert probe['published_canary'] not in html
+        assert business_state(probe['path'])==before
+        print('PICKS_EQUIVALENCE '+json.dumps({'principal':principal,'html_byte_equal':True,'business_tables_unchanged':True,'candidate_calls':calls,'original_calls':old_calls}))
 
 
-@pytest.mark.parametrize('principal',('ANONYMOUS','ELITE'))
-def test_picks_existing_locked_read_guard_is_preserved(prepared_probe,monkeypatch,principal):
-    probe=prepared_probe;a=probe['a']
-    client=a.app.test_client() if principal=='ANONYMOUS' else probe['login'](principal)[0]
-    # Keep the actual diagnostic writers/content active. Only their filesystem
-    # root is bound synchronously to this owned fixture, never the source tree.
-    # No access/route/DB/freshness function is replaced by this adapter.
-    for name in ('v931_record_client_route_issue','v932_record_authenticated_issue'):
-        writer=getattr(a,name)
-        def isolated_writer(*args,_writer=writer,**kwargs):
-            with monkeypatch.context() as owned:
-                owned.setattr(a,'BASE_DIR',probe['path'].parent)
-                return _writer(*args,**kwargs)
-        monkeypatch.setattr(a,name,isolated_writer)
-    fault={'environ_overrides':{'nemesis.v932.database_locked':True}}
-    candidate,data,_=measured_page(a,client,**fault)
-    actual=a.v932_safe_dashboard_data
-    def previous_path(*args,**kwargs):
-        kwargs.pop('_picks_view',None)
-        return actual(*args,**kwargs)
-    with monkeypatch.context() as control:
-        control.setattr(a,'v932_safe_dashboard_data',previous_path)
-        original,prior,_=measured_page(a,client,**fault)
-    assert candidate.get_data()==original.get_data()
-    assert data['pick_readiness']==prior['pick_readiness']
-    assert data['sports_metrics']['scope']==prior['sports_metrics']['scope']=='unprepared_observations'
-    assert data['sports_metrics']['matches_available']==0
-    assert data['pick_watchlist']==[]
-    issue_path=probe['path'].parent/'data/runtime/sentinel_client_route_issues.json'
-    issues=json.loads(issue_path.read_text(encoding='utf-8'))['issues']
-    assert any(row['route']=='/picks' and row['count']==2 for row in issues)
+    @pytest.mark.parametrize('principal',('ANONYMOUS','ELITE'))
+    def test_picks_existing_locked_read_guard_is_preserved(prepared_probe,monkeypatch,principal):
+        probe=prepared_probe;a=probe['a']
+        client=a.app.test_client() if principal=='ANONYMOUS' else probe['login'](principal)[0]
+        # Keep the actual diagnostic writers/content active. Only their filesystem
+        # root is bound synchronously to this owned fixture, never the source tree.
+        # No access/route/DB/freshness function is replaced by this adapter.
+        for name in ('v931_record_client_route_issue','v932_record_authenticated_issue'):
+            writer=getattr(a,name)
+            def isolated_writer(*args,_writer=writer,**kwargs):
+                with monkeypatch.context() as owned:
+                    owned.setattr(a,'BASE_DIR',probe['path'].parent)
+                    return _writer(*args,**kwargs)
+            monkeypatch.setattr(a,name,isolated_writer)
+        fault={'environ_overrides':{'nemesis.v932.database_locked':True}}
+        candidate,data,_=measured_page(a,client,**fault)
+        actual=a.v932_safe_dashboard_data
+        def previous_path(*args,**kwargs):
+            kwargs.pop('_picks_view',None)
+            return actual(*args,**kwargs)
+        with monkeypatch.context() as control:
+            control.setattr(a,'v932_safe_dashboard_data',previous_path)
+            original,prior,_=measured_page(a,client,**fault)
+        assert candidate.get_data()==original.get_data()
+        assert data['pick_readiness']==prior['pick_readiness']
+        assert data['sports_metrics']['scope']==prior['sports_metrics']['scope']=='unprepared_observations'
+        assert data['sports_metrics']['matches_available']==0
+        assert data['pick_watchlist']==[]
+        issue_path=probe['path'].parent/'data/runtime/sentinel_client_route_issues.json'
+        issues=json.loads(issue_path.read_text(encoding='utf-8'))['issues']
+        assert any(row['route']=='/picks' and row['count']==2 for row in issues)
+
+else:
+    def test_picks_contracts_in_original_guarded_process(tmp_path):
+        """Standard pytest must execute all six actual owned HTTP cases."""
+        root=Path(__file__).resolve().parents[1]
+        runner=root/'tools/check_local_candidate.py'
+        bootstrap=(
+            'import platform,runpy,sys;platform.uname();platform.platform();'
+            "sys.argv=[sys.argv[1],sys.argv[2],'-s','--tb=short'];"
+            "runpy.run_path(sys.argv[0],run_name='__main__')"
+        )
+        env=dict(os.environ,PYTEST_ADDOPTS='',PYTEST_DISABLE_PLUGIN_AUTOLOAD='1',PYTHONDONTWRITEBYTECODE='1')
+        result=subprocess.run([sys.executable,'-B','-c',bootstrap,str(runner),str(Path(__file__).resolve())],
+            cwd=root,env=env,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,
+            encoding='utf-8',errors='replace',timeout=180)
+        (tmp_path/'guarded.stdout.txt').write_text(result.stdout,encoding='utf-8')
+        (tmp_path/'guarded.stderr.txt').write_text(result.stderr,encoding='utf-8')
+        assert result.returncode==0,(result.stdout[-10000:],result.stderr[-2000:])
+        output_lines=[line.removeprefix('QA_OUTPUT ') for line in result.stdout.splitlines() if line.startswith('QA_OUTPUT ')]
+        boundary_lines=[line.removeprefix('BOUNDARY_EVENTS ') for line in result.stdout.splitlines() if line.startswith('BOUNDARY_EVENTS ')]
+        assert len(output_lines)==len(boundary_lines)==1
+        output=Path(output_lines[0]).resolve()
+        assert output.is_relative_to((root/'data/local_dev').resolve())
+        assert output.name.startswith('candidate-') and not output.is_symlink()
+        assert ast.literal_eval(boundary_lines[0])==[]
+        suite=ET.parse(output/'result.xml').find('testsuite')
+        assert suite is not None and suite.attrib['tests']=='6'
+        assert all(suite.attrib[key]=='0' for key in ('failures','errors','skipped'))
+        proof={'guarded_output':str(output),'actual_HTTP_cases':6,'failures':0,'errors':0,'skips':0,
+               'boundary_events':[],'supervisor':'original tools/check_local_candidate.py',
+               'application_or_policy_replacement':False}
+        (tmp_path/'guarded-proof.json').write_text(json.dumps(proof,indent=2),encoding='utf-8')
+        print('PICKS_STANDARD_GUARDED_PROOF '+json.dumps(proof))
