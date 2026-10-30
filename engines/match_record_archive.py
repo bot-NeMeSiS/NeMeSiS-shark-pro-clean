@@ -245,8 +245,11 @@ def record_observation(conn, fixture_id, section, payload, *, received_at=None, 
             VALUES(?,?,?,?,?,?,?,?)''', (*identity,ctx_raw.decode("utf-8"),zipped,len(raw)))
         conn.execute("RELEASE match_record_insert")
     except BaseException:
-        conn.execute("ROLLBACK TO match_record_insert")
-        conn.execute("RELEASE match_record_insert")
+        # SQLITE_FULL/INTERRUPT may already abort the outer transaction.
+        # Its savepoint is then gone; preserve the original SQLite error.
+        if conn.in_transaction:
+            conn.execute("ROLLBACK TO match_record_insert")
+            conn.execute("RELEASE match_record_insert")
         raise
     return {"stored": True, "reason": "RECORDED", "received_at": stamp}
 
