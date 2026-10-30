@@ -27297,7 +27297,6 @@ def picks_page():
     data["v934_realtime"] = get_realtime_safe_picks_context(summary)
     # Both contexts describe the same request-owned evaluation.
     data["v934_odds"] = _v934_odds_context_from_snapshot(data["v934_realtime"])
-    data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
     data["pick_readiness"], data["pick_watchlist"] = client_pick_readiness(
         summary,
         active_count=len(data["v925_picks"].get("picks") or []),
