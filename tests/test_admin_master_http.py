@@ -19,7 +19,7 @@ def admin(app_module, monkeypatch, tmp_path):
     a.app.config.update(TESTING=True)
     def deny(*args,**kwargs): pytest.fail("Unexpected external network")
     monkeypatch.setattr(socket.socket,"connect",deny)
-    monkeypatch.setattr(a,"get_public_home_sports_summary",lambda selected_date=None, *, _prepare_only=False:{
+    monkeypatch.setattr(a,"get_public_home_sports_summary",lambda selected_date=None, *, _prepare_only=False, _home_only=False:{
         "storage_status":"ok","valid_matches_today_count":0,"valid_matches_today":[],"valid_live_events":[],
         "valid_upcoming_matches":[],"valid_active_picks":[]})
     c=a.app.test_client()

@@ -536,7 +536,7 @@ def test_sports_relevance_home_links_to_match_center(client, app_module, monkeyp
 def test_sports_relevance_empty_live_state_is_honest(client, app_module, monkeypatch):
     # An empty collection without a verified source contract cannot establish zero.
     summary = _sports_relevance_summary([])
-    monkeypatch.setattr(app_module, "get_public_home_sports_summary", lambda *, _prepare_only=False: summary)
+    monkeypatch.setattr(app_module, "get_public_home_sports_summary", lambda *, _prepare_only=False, _home_only=False: summary)
     response = client.get("/live")
     html = response.get_data(as_text=True)
     assert response.status_code == 200
@@ -559,13 +559,13 @@ def test_sports_relevance_verified_empty_live_source_can_establish_zero(client, 
     with closing(sqlite3.connect(path)) as conn, conn:
         conn.execute("CREATE TABLE input_records (payload TEXT NOT NULL)")
 
-    def verified_empty_reader(*, _prepare_only=False):
+    def verified_empty_reader(*, _prepare_only=False, _home_only=False):
         with closing(connect_readonly(path)) as conn:
             observations = conn.execute("SELECT payload FROM input_records").fetchall()
         assert observations == []
         summary = _sports_relevance_summary([])
         summary["storage_status"] = "ok"
-        return app_module._v991_finish_summary(summary, _prepare_only=_prepare_only)[0]
+        return app_module._v991_finish_summary(summary, _prepare_only=_prepare_only, _home_only=_home_only)[0]
 
     monkeypatch.setattr(app_module, "get_public_home_sports_summary", verified_empty_reader)
     response = client.get("/live")

@@ -252,7 +252,8 @@ def test_canonical_client_gets_do_not_mutate_business_tables(app_module,monkeypa
         conn.execute("UPDATE users SET role=?,membership=?,membership_expires_at=? WHERE id=?",
                      (plan,plan,"2030-01-01T00:00:00+00:00","qa-read-client"))
     calendar_reads=[]
-    def read_summary(*, selected_date=None, _prepare_only=False):
+    home_only_reads=[]
+    def read_summary(*, selected_date=None, _prepare_only=False, _home_only=False):
         # Calendar explicitly prepares its selected date without the unused Home view.
         # Preserve this suite's snapshots and SQLite DML observer unchanged.
         if _prepare_only:
@@ -261,6 +262,10 @@ def test_canonical_client_gets_do_not_mutate_business_tables(app_module,monkeypa
             calendar_reads.append(selected_date)
         else:
             assert selected_date is None
+        if _home_only:
+            assert not _prepare_only
+            assert a.request.path in {"/live", "/picks", "/shark"}
+            home_only_reads.append(a.request.path)
         return {
             "storage_status":"ok","valid_matches_today_count":0,"valid_matches_today":[],
             "valid_live_events":[],"valid_upcoming_matches":[],"valid_active_picks":[],"all_picks":[]}
@@ -277,6 +282,7 @@ def test_canonical_client_gets_do_not_mutate_business_tables(app_module,monkeypa
         assert snapshot(db)==before, (plan,route)
         assert not writes, (plan,route,writes)
     assert calendar_reads == [a.today_iso()]
+    assert set(home_only_reads) == {"/live", "/picks", "/shark"}
 
 def test_canonical_admin_gets_do_not_mutate_business_tables(app_module,monkeypatch,tmp_path):
     a,db=isolated(app_module,monkeypatch,tmp_path)

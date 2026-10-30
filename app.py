@@ -19238,7 +19238,7 @@ def _v991_prepare_summary_operation(summary, *, selected_date=None, current=None
     return operation
 
 
-def _v991_finish_summary(summary, *, selected_date=None, _prepare_only=False):
+def _v991_finish_summary(summary, *, selected_date=None, _prepare_only=False, _home_only=False):
     selected = _safe_date_value(selected_date, today_iso())
     # Admit only each original's own fresh LIVE evidence in the already-approved
     # live cohort, before the only context preparation and current/history split.
@@ -19279,7 +19279,10 @@ def _v991_finish_summary(summary, *, selected_date=None, _prepare_only=False):
         summary.pop("sports_metrics", None)
     else:
         summary["sports_home"] = build_sports_home_sections(summary, reuse_ranked=True, fixture_operation=operation)
-        summary["sports_metrics"] = build_sports_metrics_contract(summary, fixture_operation=operation)
+        if _home_only is True:
+            summary.pop("sports_metrics", None)
+        else:
+            summary["sports_metrics"] = build_sports_metrics_contract(summary, fixture_operation=operation)
     return summary, operation
 
 
@@ -20306,7 +20309,7 @@ def _latest_sports_update_at(*row_groups):
     return max(candidates).isoformat() if candidates else ""
 
 
-def get_public_home_sports_summary(selected_date=None, *, _prepare_only=False):
+def get_public_home_sports_summary(selected_date=None, *, _prepare_only=False, _home_only=False):
     if selected_date is None and has_request_context() and request.path in _V991_CALENDAR_PATHS:
         selected = _v940_calendar_filters(request.args.get("lane") or "today", request.args.get("date"))["date"]
     else:
@@ -20324,14 +20327,17 @@ def get_public_home_sports_summary(selected_date=None, *, _prepare_only=False):
                 existing.pop("sports_metrics", None)
             else:
                 existing["sports_home"] = build_sports_home_sections(existing, reuse_ranked=True, fixture_operation=operation)
-                existing["sports_metrics"] = build_sports_metrics_contract(existing, fixture_operation=operation)
+                if _home_only is True:
+                    existing.pop("sports_metrics", None)
+                else:
+                    existing["sports_metrics"] = build_sports_metrics_contract(existing, fixture_operation=operation)
             return existing
     result, cache_status = cached_v934_realtime_snapshot(
         _public_sports_cache_key(), _v991_validated_base_summary, ttl_seconds=300)
     if _prepare_only is True:
         result, operation = _v991_finish_summary(result, selected_date=selected, _prepare_only=True)
     else:
-        result, operation = _v991_finish_summary(result, selected_date=selected)
+        result, operation = _v991_finish_summary(result, selected_date=selected, _home_only=_home_only)
     result["summary_cache_status"] = cache_status
     if has_request_context():
         g.v935_public_sports_summary = result
@@ -20713,6 +20719,7 @@ def _picks_client_data(summary, lane="today", date_value=""):
 def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None, _directo_minimal=False, _shark_view=False, _calendar_view=False, _picks_view=False):
     calendar_view = compact and _calendar_view is True and _directo_minimal is not True and _shark_view is not True
     picks_view = compact and _picks_view is True and not calendar_view and _directo_minimal is not True and _shark_view is not True
+    home_only_view = compact and (_directo_minimal is True or _shark_view is True or picks_view)
     summary = (
         _v932_locked_sports_summary()
         if has_request_context() and request.environ.get("nemesis.v932.database_locked")
@@ -20722,7 +20729,9 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
             else (
                 get_public_home_sports_summary(
                     selected_date=_v940_calendar_filters(lane, date_value)["date"], _prepare_only=True,
-                ) if calendar_view else get_public_home_sports_summary()
+                ) if calendar_view else (
+                    get_public_home_sports_summary(_home_only=True) if home_only_view else get_public_home_sports_summary()
+                )
             )
         )
     )

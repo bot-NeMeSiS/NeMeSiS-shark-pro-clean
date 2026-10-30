@@ -329,7 +329,8 @@ def test_v931_calendar_flag_does_not_replace_directo_shark_or_noncompact_path(
         assert a.request.environ["nemesis.v931.degraded"] is (not compact)
 
     assert owner is summary
-    assert getter_calls == [((), {})]
+    expected_view = {"_home_only": True} if compact else {}
+    assert getter_calls == [((), expected_view)]
     if mode == "directo":
         assert set(data) == MINIMAL_KEYS
         assert data["matches"][0] is summary["valid_matches_today"][0]

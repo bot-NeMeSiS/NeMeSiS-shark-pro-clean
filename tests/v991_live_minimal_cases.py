@@ -79,10 +79,10 @@ class LiveMinimalContracts(unittest.TestCase):
                     counts = self.r.totals(probe)
                     builds = [row for row in probe['calls'] if row['function']=='build_sports_metrics_contract']
                     acceptance = sum(row['cache_acceptance'] for row in builds)
-                    self.assertEqual(len(builds)-acceptance, 3)
+                    self.assertEqual(len(builds)-acceptance, 2)
                     self.assertIn(acceptance, (0,1))
                     self.assertEqual(counts['get_sports_metrics_contract'], 2)
-                    self.assertEqual(self.r.post_finish(probe, 'build_sports_metrics_contract'), 1)
+                    self.assertEqual(self.r.post_finish(probe, 'build_sports_metrics_contract'), 0)
                     self.assertEqual(counts['_v931_minimal_client_data'], 0)
                     self.assertEqual(counts['_v931_legacy_home_summary'], 0)
                     self.assertEqual(counts['_v931_provider_context'], 0)
