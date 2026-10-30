@@ -98,7 +98,7 @@ def shark_probe(monkeypatch, tmp_path):
                  json.dumps({"qa_private_marker": canary})),
             )
     # These are upstream collections, not selected-pick/authorization mocks.
-    monkeypatch.setattr(a, "get_public_home_sports_summary", lambda: {
+    monkeypatch.setattr(a, "get_public_home_sports_summary", lambda *, _home_only=False: {
         "storage_status": "ok", "valid_matches_today": [],
         "valid_live_events": [], "valid_upcoming_matches": [],
         "all_picks": [], "valid_active_picks": [],
