@@ -444,3 +444,60 @@ def test_thumbnail_change_does_not_inherit_image_rights(store):
         _upsert_highlight(conn,{**EVENT,'strThumb':'https://example.org/changed-image.jpg'})
         row=conn.execute('SELECT thumbnail_rights_status,thumbnail_commercial_use_status FROM sportsdb_match_highlights').fetchone()
         assert tuple(row)==('UNKNOWN_RIGHTS','UNKNOWN')
+
+
+def test_postmatch_media_lookup_index_is_idempotent_and_retains_rights(store):
+    """Production-shaped EXISTS must use a media lookup, not a per-job full scan."""
+    from engines.sportsdb_highlights_engine import ensure_sportsdb_highlights_schema
+
+    with store.connection(True) as conn:
+        conn.executemany(
+            "INSERT INTO postmatch_jobs "
+            "(match_id,kind,identity,state,due_at,created_at,updated_at) "
+            "VALUES (?,?,?,'PENDING',?,?,?)",
+            (
+                (f"synthetic-{i}", "highlights" if i % 3 == 0 else "statistics",
+                 "synthetic-only", NOW + i, NOW, NOW)
+                for i in range(6000)
+            ),
+        )
+        conn.executemany(
+            "INSERT INTO sportsdb_match_highlights "
+            "(id,match_id,rights_status,commercial_use_status) VALUES (?,?,?,?)",
+            (
+                (f"synthetic-media-{i}", f"synthetic-{i*5}", "REVIEW_REQUIRED", "UNKNOWN")
+                for i in range(1200)
+            ),
+        )
+        before = conn.execute(
+            "SELECT id,match_id,rights_status,commercial_use_status "
+            "FROM sportsdb_match_highlights ORDER BY id"
+        ).fetchall()
+        sql = (
+            "SELECT * FROM postmatch_jobs WHERE kind='highlights' "
+            "AND state IN ('PENDING','RETRY','REVIEW_REQUIRED') "
+            "AND EXISTS (SELECT 1 FROM sportsdb_match_highlights h "
+            "WHERE h.match_id=postmatch_jobs.match_id) "
+            "ORDER BY CASE WHEN state='REVIEW_REQUIRED' THEN 1 ELSE 0 END,due_at,id LIMIT 100"
+        )
+        selected_before = [row["match_id"] for row in conn.execute(sql)]
+        assert selected_before
+
+    # Repeated schema checks run in the existing explicit worker initialization.
+    ensure_sportsdb_highlights_schema(str(store.path))
+    ensure_sportsdb_highlights_schema(str(store.path))
+
+    with store.connection() as conn:
+        indexes = {row["name"] for row in conn.execute(
+            "PRAGMA index_list('sportsdb_match_highlights')")}
+        assert "idx_sportsdb_highlights_match_id" in indexes
+        plan = [row["detail"] for row in conn.execute("EXPLAIN QUERY PLAN " + sql)]
+        assert any(
+            "USING COVERING INDEX idx_sportsdb_highlights_match_id" in part
+            for part in plan
+        ), plan
+        assert [row["match_id"] for row in conn.execute(sql)] == selected_before
+        assert conn.execute(
+            "SELECT id,match_id,rights_status,commercial_use_status "
+            "FROM sportsdb_match_highlights ORDER BY id"
+        ).fetchall() == before
