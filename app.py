@@ -20683,8 +20683,36 @@ def _v931_minimal_client_data(summary, lane="today", date_value="", *, _shark_vi
     }
 
 
-def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None, _directo_minimal=False, _shark_view=False, _calendar_view=False):
+def _picks_client_data(summary, lane="today", date_value=""):
+    """Read only the request-owned facts used by the Picks page and shell.
+
+    Home sections and Calendar provider cards have their own consumers. Do not
+    build them here or reuse their cached identity/count assertions. The normal
+    sports getter, fresh metric contract and the route's authorized pick/realtime
+    projections remain in place.
+    """
+    today = list(summary.get("valid_matches_today") or [])
+    upcoming = list(summary.get("valid_upcoming_matches") or [])
+    return {
+        "app_name": APP_NAME,
+        "version": APP_VERSION,
+        "date": date_value or today_iso(),
+        "lane": lane,
+        "matches": today,
+        "upcoming_matches": upcoming,
+        "session_user": current_session_user(),
+        "sports_metrics": get_sports_metrics_contract(summary),
+        "v931_route_guard": {
+            "status": "safe_fallback",
+            "provider_status": summary.get("provider_status"),
+            "no_render_api_call": True,
+        },
+    }
+
+
+def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None, _directo_minimal=False, _shark_view=False, _calendar_view=False, _picks_view=False):
     calendar_view = compact and _calendar_view is True and _directo_minimal is not True and _shark_view is not True
+    picks_view = compact and _picks_view is True and not calendar_view and _directo_minimal is not True and _shark_view is not True
     summary = (
         _v932_locked_sports_summary()
         if has_request_context() and request.environ.get("nemesis.v932.database_locked")
@@ -20726,12 +20754,16 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
             v932_record_authenticated_issue(route, error, "admin" if is_admin_session() else "client", "sqlite_read_timeout_guard")
         if calendar_view:
             return _v1000_3_calendar_client_data(summary, lane, date_value or today_iso()), summary
+        if picks_view:
+            return _picks_client_data(summary, lane, date_value or today_iso()), summary
         if compact and _directo_minimal is True:
             return _directo_client_data(), summary
         return _v931_minimal_client_data(summary, lane, date_value or today_iso(), _shark_view=_shark_view), summary
     if compact:
         if calendar_view:
             data = _v1000_3_calendar_client_data(summary, lane, date_value or today_iso())
+        elif picks_view:
+            data = _picks_client_data(summary, lane, date_value or today_iso())
         elif _directo_minimal is True:
             data = _directo_client_data()
         else:
@@ -20814,8 +20846,10 @@ def v932_safe_dashboard_data(
     _directo_minimal=False,
     _shark_view=False,
     _calendar_view=False,
+    _picks_view=False,
 ):
     calendar_view = compact and _calendar_view is True and _directo_minimal is not True and _shark_view is not True
+    picks_view = compact and _picks_view is True and not calendar_view and _directo_minimal is not True and _shark_view is not True
     if compact and _directo_minimal is True:
         data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary, _directo_minimal=True)
     elif _shark_view is True:
@@ -20824,9 +20858,12 @@ def v932_safe_dashboard_data(
     elif calendar_view:
         data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact,
                                                sports_summary=sports_summary, _calendar_view=True)
+    elif picks_view:
+        data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact,
+                                               sports_summary=sports_summary, _picks_view=True)
     else:
         data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary)
-    if not calendar_view:
+    if not calendar_view and not picks_view:
         data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
         data["sports_metrics"] = get_sports_metrics_contract(summary)
     data["v932_authenticated_scope"] = "admin" if scope == "admin" else "client"
@@ -27194,7 +27231,7 @@ def client_pick_readiness(summary, *, active_count=0, locked_count=0, watchlist_
 
 @app.route("/picks")
 def picks_page():
-    data, summary = v932_safe_dashboard_data(request.path, compact=True)
+    data, summary = v932_safe_dashboard_data(request.path, compact=True, _picks_view=True)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
     all_current_picks = list(summary.get("valid_active_picks") or [])
