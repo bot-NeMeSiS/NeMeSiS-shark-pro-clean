@@ -139,8 +139,11 @@ def rewrite_history_batch(conn: sqlite3.Connection, *, after_rowid=0, limit=100,
         check()
         conn.execute("RELEASE statistics_payload_batch")
     except BaseException:
-        conn.execute("ROLLBACK TO statistics_payload_batch")
-        conn.execute("RELEASE statistics_payload_batch")
+        # SQLITE_FULL/INTERRUPT may already abort the outer transaction.
+        # Its savepoint is then gone; preserve the original SQLite error.
+        if conn.in_transaction:
+            conn.execute("ROLLBACK TO statistics_payload_batch")
+            conn.execute("RELEASE statistics_payload_batch")
         raise
     return {"scanned": len(rows), "changed": changed,
             "last_rowid": rows[-1][0] if rows else after_rowid, "reverse": bool(reverse)}
