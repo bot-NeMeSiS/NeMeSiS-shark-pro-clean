@@ -94,7 +94,7 @@ class PicksProjectionContracts(unittest.TestCase):
         self.assertEqual(calls['_v991_prepare_summary_operation'], 1)
         # The request prepares its source once and builds one fresh display
         # contract; Picks no longer builds unused Home/Calendar contexts.
-        self.assertEqual(calls['build_sports_metrics_contract'], 2)
+        self.assertEqual(calls['build_sports_metrics_contract'], 1)
         with self.r.context('/picks'), self.r.observed_calls('independent_public_wrappers') as control:
             summary = self.a.get_public_home_sports_summary()
             expected_picks = self.a.get_realtime_safe_picks_context(summary)
@@ -111,7 +111,7 @@ class PicksProjectionContracts(unittest.TestCase):
         self.assertEqual(self.stable_realtime(data['v934_realtime']), self.stable_realtime(expected_picks))
         self.assertEqual(self.stable_odds(data['v934_odds']), self.stable_odds(expected_odds))
         self.r.picks_projection_details.append({'case': 'warm_page', 'projections': 1,
-            'independent_wrapper_projections': 2, 'metrics_builds': 2,
+            'independent_wrapper_projections': 2, 'metrics_builds': calls['build_sports_metrics_contract'],
             'base_rebuilds': 0, 'output_equivalent': True})
 
     def test_02_contexts_share_no_mutable_containers_or_freshness(self):
