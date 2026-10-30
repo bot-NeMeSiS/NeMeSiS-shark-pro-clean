@@ -291,6 +291,7 @@ def test_v931_calendar_flag_does_not_replace_directo_shark_or_noncompact_path(
     """Exercise dispatch only; the noncompact fault is explicit test injection."""
     a = app_module
     summary, getter_calls, legacy_calls, dashboard_calls, issues = _summary(), [], [], [], []
+    shark_input_calls = []
     legacy_data = {
         "matches": summary["valid_matches_today"],
         "upcoming_matches": summary["valid_upcoming_matches"],
@@ -315,6 +316,11 @@ def test_v931_calendar_flag_does_not_replace_directo_shark_or_noncompact_path(
         raise fault
 
     monkeypatch.setattr(a, "get_public_home_sports_summary", getter)
+    def shark_inputs(*args, **kwargs):
+        shark_input_calls.append((args, kwargs))
+        return legacy_data
+
+    monkeypatch.setattr(a, "_shark_client_input_data", shark_inputs)
     monkeypatch.setattr(a, "_v931_minimal_client_data", legacy)
     monkeypatch.setattr(a, "dashboard_data", dashboard)
     monkeypatch.setattr(a, "current_session_user", lambda: None)
@@ -336,11 +342,19 @@ def test_v931_calendar_flag_does_not_replace_directo_shark_or_noncompact_path(
         assert data["matches"][0] is summary["valid_matches_today"][0]
         assert data["upcoming_matches"][0] is summary["valid_upcoming_matches"][0]
         assert legacy_calls == []
+    elif mode == "shark":
+        # Calendar cannot divert SHARK into its own renderer. SHARK now prepares
+        # its consumed inputs; the unmodified v932 wrapper supplies fresh metrics.
+        assert data is legacy_data
+        assert legacy_calls == []
+        assert shark_input_calls == [((summary, "today", "2026-10-28"), {})]
     else:
         assert data is legacy_data
         assert legacy_calls == [((summary, "today", "2026-10-28"), {
-            "_shark_view": mode == "shark",
+            "_shark_view": False,
         })]
+    if mode != "shark":
+        assert shark_input_calls == []
     if compact:
         assert dashboard_calls == [] and issues == []
         assert data["v931_route_guard"]["status"] == "compact_read_only_context"

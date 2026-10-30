@@ -20716,9 +20716,40 @@ def _picks_client_data(summary, lane="today", date_value=""):
     }
 
 
+def _shark_client_input_data(summary, lane="today", date_value=""):
+    """Prepare only SHARK inputs before the wrapper's fresh metric contract.
+
+    The existing wrapper still reads provider state and builds the current full
+    metrics once, after this input stage. Briefing, live collections, selected
+    advice, quotas and rendering retain their own normal consumers. No cached
+    metrics or source/identity/role assertion is reused here.
+    """
+    today = list(summary.get("valid_matches_today") or [])
+    upcoming = list(summary.get("valid_upcoming_matches") or [])
+    picks = _v999_authorized_snapshot_picks(summary.get("valid_active_picks") or [], active_only=True)
+    return {
+        "app_name": APP_NAME,
+        "version": APP_VERSION,
+        "date": date_value or today_iso(),
+        "lane": lane,
+        "matches": today,
+        "upcoming_matches": upcoming,
+        "session_user": current_session_user(),
+        "picks": picks,
+        "v925_picks": get_safe_picks_context(picks),
+        "v925_odds": get_safe_odds_context(picks),
+        "v931_route_guard": {
+            "status": "safe_fallback",
+            "provider_status": summary.get("provider_status"),
+            "no_render_api_call": True,
+        },
+    }
+
+
 def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None, _directo_minimal=False, _shark_view=False, _calendar_view=False, _picks_view=False):
     calendar_view = compact and _calendar_view is True and _directo_minimal is not True and _shark_view is not True
     picks_view = compact and _picks_view is True and not calendar_view and _directo_minimal is not True and _shark_view is not True
+    shark_view = compact and _shark_view is True and _directo_minimal is not True
     home_only_view = compact and (_directo_minimal is True or _shark_view is True or picks_view)
     summary = (
         _v932_locked_sports_summary()
@@ -20763,6 +20794,8 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
             v932_record_authenticated_issue(route, error, "admin" if is_admin_session() else "client", "sqlite_read_timeout_guard")
         if calendar_view:
             return _v1000_3_calendar_client_data(summary, lane, date_value or today_iso()), summary
+        if shark_view:
+            return _shark_client_input_data(summary, lane, date_value or today_iso()), summary
         if picks_view:
             return _picks_client_data(summary, lane, date_value or today_iso()), summary
         if compact and _directo_minimal is True:
@@ -20771,6 +20804,8 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
     if compact:
         if calendar_view:
             data = _v1000_3_calendar_client_data(summary, lane, date_value or today_iso())
+        elif shark_view:
+            data = _shark_client_input_data(summary, lane, date_value or today_iso())
         elif picks_view:
             data = _picks_client_data(summary, lane, date_value or today_iso())
         elif _directo_minimal is True:
