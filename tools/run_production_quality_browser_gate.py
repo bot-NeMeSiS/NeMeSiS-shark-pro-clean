@@ -531,19 +531,35 @@ def _click_journey(page: Any, base_url: str, zone: str, paths: tuple[str, ...]) 
         final_query = ""
         final_url = ""
         error = ""
+        failed_stage = ""
+        stage_elapsed_ms: dict[str, float] = {}
         if found:
             try:
+                stage = "capture_images"
+                stage_started = time.perf_counter()
                 _remember_image_failures(page)
+                stage_elapsed_ms[stage] = round((time.perf_counter() - stage_started) * 1000, 3)
+                stage = "click"
+                stage_started = time.perf_counter()
                 locator.click(timeout=10_000)
+                stage_elapsed_ms[stage] = round((time.perf_counter() - stage_started) * 1000, 3)
+                stage = "wait_for_url"
+                stage_started = time.perf_counter()
                 page.wait_for_url(
                     lambda url: _navigation_url_matches(str(url), path, base_url),
                     wait_until="domcontentloaded", timeout=30_000,
                 )
+                stage_elapsed_ms[stage] = round((time.perf_counter() - stage_started) * 1000, 3)
+                stage = "read_destination"
+                stage_started = time.perf_counter()
                 final_url = page.url
                 destination = urllib.parse.urlsplit(final_url)
                 final_path, final_query = destination.path, destination.query
+                stage_elapsed_ms[stage] = round((time.perf_counter() - stage_started) * 1000, 3)
             except Exception as exc:
                 error = type(exc).__name__
+                failed_stage = stage
+                stage_elapsed_ms[stage] = round((time.perf_counter() - stage_started) * 1000, 3)
         results.append({
             "href": path,
             "found": found,
@@ -552,6 +568,8 @@ def _click_journey(page: Any, base_url: str, zone: str, paths: tuple[str, ...]) 
             "final_url": final_url,
             "pass": bool(found and not error and _navigation_url_matches(final_url, path, base_url)),
             "error": error,
+            "failed_stage": failed_stage,
+            "stage_elapsed_ms": stage_elapsed_ms,
         })
     return results
 
