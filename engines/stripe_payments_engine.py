@@ -20,7 +20,11 @@ MADRID_OFFSET_FALLBACK = "+01:00"
 ACTIVE_STATUSES = {"active", "trialing"}
 KEEP_ACCESS_STATUSES = {"active", "trialing", "past_due"}
 CANCEL_STATUSES = {"canceled", "unpaid", "incomplete_expired", "paused"}
+# Legacy paid-plan allowlist remains unchanged until all checkout/webhook/permissions
+# paths support ELITE+; do not enable a plan on a partial deployment.
 VALID_PAID_PLANS = {"PRO", "ELITE"}
+REVENUE_OS_PLAN_ORDER = ("FREE", "PRO", "ELITE", "ELITE+")
+REVENUE_OS_BILLING_PERIODS = ("monthly", "yearly")
 MAX_STRIPE_WEBHOOK_BODY_BYTES = 2 * 1024 * 1024
 
 def local_safe_payments_blocked() -> bool:
@@ -163,6 +167,39 @@ def normalize_plan(plan: Any) -> str:
     if value in {"ELITE", "ELITE_PLUS", "ELITE+"}:
         return "ELITE"
     return ""
+
+
+def revenue_os_normalize_plan(plan: Any) -> str:
+    """Normalize future plan labels without downgrading ELITE+ to ELITE.
+
+    This helper does not alter the existing live checkout allowlist.
+    """
+    value = str(plan or "").strip().upper().replace("_", "+").replace(" ", "")
+    if value in {"ELITE+", "ELITEPLUS"}:
+        return "ELITE+"
+    if value in {"PRO", "PRO+", "PROPLUS"}:
+        return "PRO"
+    return value if value in REVENUE_OS_PLAN_ORDER else ""
+
+
+def revenue_os_price_id(plan: Any, period: Any) -> str:
+    """Look up a configured price; never infer prices from labels or amounts."""
+    key = revenue_os_normalize_plan(plan)
+    interval = str(period or "").strip().lower()
+    if key not in REVENUE_OS_PLAN_ORDER[1:] or interval not in REVENUE_OS_BILLING_PERIODS:
+        return ""
+    suffix = "MONTHLY" if interval == "monthly" else "YEARLY"
+    return str(os.getenv(f"STRIPE_PRICE_{key.replace('+', '_PLUS')}_{suffix}") or "").strip()
+
+
+def revenue_os_checkout_idempotency_key(user_id: str, plan: Any, period: Any, price_id: str, at: Optional[datetime] = None) -> str:
+    """Key a proposed checkout to the actual plan, billing period and price ID."""
+    key = revenue_os_normalize_plan(plan)
+    interval = str(period or "").strip().lower()
+    if not user_id or not key or interval not in REVENUE_OS_BILLING_PERIODS or not price_id:
+        return ""
+    current = at or datetime.now(timezone.utc)
+    return stable_id("nemesis_checkout_v2", user_id, key, interval, price_id, int(current.timestamp()) // 600)
 
 
 def env_bool(name: str, default: bool = False) -> bool:
