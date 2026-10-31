@@ -422,12 +422,25 @@ def user_by_stripe(conn: sqlite3.Connection, customer_id: str = "", subscription
 
 
 def resolve_plan_from_price(price_id: str) -> str:
+    """Resolve only known configured Stripe prices; never trust caller metadata."""
     price_id = str(price_id or "").strip()
-    if price_id and price_id == plan_price_id("PRO"):
-        return "PRO"
-    if price_id and price_id == plan_price_id("ELITE"):
-        return "ELITE"
+    if not price_id:
+        return ""
+    for name in ("PRO", "ELITE", "ELITE+"):
+        for period in REVENUE_OS_BILLING_PERIODS:
+            configured = revenue_os_price_id(name, period)
+            if configured and price_id == configured:
+                return name
+    for name in ("PRO", "ELITE"):
+        legacy = plan_price_id(name)
+        if legacy and price_id == legacy:
+            return name
     return ""
+
+
+def revenue_os_price_matches_plan(price_id: str, plan: Any) -> bool:
+    """Payment entitlement must be supported by a configured Stripe price."""
+    return bool(price_id and resolve_plan_from_price(price_id) == revenue_os_normalize_plan(plan))
 
 
 
@@ -453,7 +466,7 @@ def extract_subscription_fields(subscription: Dict[str, Any]) -> Dict[str, Any]:
     status = str(subscription.get("status") or "").lower()
     metadata = subscription.get("metadata") if isinstance(subscription.get("metadata"), dict) else {}
     user_id = str(metadata.get("user_id") or "")
-    plan = normalize_plan(metadata.get("plan"))
+    plan = ""
     price_id = ""
     try:
         items = ((subscription.get("items") or {}).get("data") or []) if isinstance(subscription.get("items"), dict) else []
@@ -462,7 +475,8 @@ def extract_subscription_fields(subscription: Dict[str, Any]) -> Dict[str, Any]:
             price_id = str(price.get("id") or "")
     except Exception:
         price_id = ""
-    plan = plan or resolve_plan_from_price(price_id)
+    # Price is the source of truth, not editable metadata supplied by a client.
+    plan = resolve_plan_from_price(price_id)
     return {
         "subscription_id": sub_id,
         "customer_id": customer_id,
@@ -481,7 +495,9 @@ def apply_subscription_to_user(conn: sqlite3.Connection, fields: Dict[str, Any],
     subscription_id = str(fields.get("subscription_id") or "")
     customer_id = str(fields.get("customer_id") or "")
     status = str(fields.get("status") or "").lower()
-    plan = normalize_plan(fields.get("plan"))
+    plan = revenue_os_normalize_plan(fields.get("plan"))
+    if not revenue_os_price_matches_plan(str(fields.get("price_id") or ""), plan):
+        return {"applied": False, "reason": "price_plan_unverified", "status": status}
     if not user_id:
         found = user_by_stripe(conn, customer_id=customer_id, subscription_id=subscription_id)
         user_id = str(found.get("id") or "")
@@ -648,8 +664,7 @@ def sync_checkout_session(db_path: str, user: Dict[str, Any], session_id: str) -
         return {"ok": False, "reason": "stripe_subscription_owner_mismatch", "session_id": session_id}
 
     fields = extract_subscription_fields(subscription)
-    plan = normalize_plan(fields.get("plan")) or normalize_plan(metadata.get("plan"))
-    plan = plan or resolve_plan_from_price(fields.get("price_id"))
+    plan = resolve_plan_from_price(fields.get("price_id"))
     if plan not in VALID_PAID_PLANS:
         return {"ok": False, "reason": "stripe_subscription_plan_unconfirmed", "session_id": session_id}
     fields.update({
@@ -982,7 +997,7 @@ def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -
                             status = "stripe_subscription_owner_mismatch"
                             processed = True
                         else:
-                            plan = normalize_plan(fields.get("plan")) or plan or resolve_plan_from_price(fields.get("price_id"))
+                            plan = resolve_plan_from_price(fields.get("price_id"))
                             if plan not in VALID_PAID_PLANS:
                                 applied = {"applied": False, "reason": "stripe_subscription_plan_unconfirmed"}
                                 status = "stripe_subscription_plan_unconfirmed"
