@@ -32,6 +32,12 @@ THEMES = {
         "accent": "#d69a16",
         "description": "Dorado de máximo valor para análisis avanzado.",
     },
+    "ELITE+": {
+        "name": "Elite Plus Violet",
+        "primary": "#c45cff",
+        "accent": "#7c3aed",
+        "description": "Identidad morada para suscriptores ELITE+; no promete herramientas beta desactivadas.",
+    },
     "ADMIN": {
         "name": "Neon Purple",
         "primary": "#c45cff",
