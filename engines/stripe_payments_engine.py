@@ -22,7 +22,7 @@ KEEP_ACCESS_STATUSES = {"active", "trialing", "past_due"}
 CANCEL_STATUSES = {"canceled", "unpaid", "incomplete_expired", "paused"}
 # Legacy paid-plan allowlist remains unchanged until all checkout/webhook/permissions
 # paths support ELITE+; do not enable a plan on a partial deployment.
-VALID_PAID_PLANS = {"PRO", "ELITE"}
+VALID_PAID_PLANS = {"PRO", "ELITE", "ELITE+"}
 REVENUE_OS_PLAN_ORDER = ("FREE", "PRO", "ELITE", "ELITE+")
 REVENUE_OS_BILLING_PERIODS = ("monthly", "yearly")
 MAX_STRIPE_WEBHOOK_BODY_BYTES = 2 * 1024 * 1024
@@ -164,7 +164,9 @@ def normalize_plan(plan: Any) -> str:
     value = str(plan or "").strip().upper()
     if value in {"PRO", "PRO_PLUS", "PRO+"}:
         return "PRO"
-    if value in {"ELITE", "ELITE_PLUS", "ELITE+"}:
+    if value in {"ELITE_PLUS", "ELITE+", "ELITEPLUS"}:
+        return "ELITE+"
+    if value == "ELITE":
         return "ELITE"
     return ""
 
@@ -248,7 +250,9 @@ def plan_catalog() -> Dict[str, Dict[str, Any]]:
         legacy_id = plan_price_id(key) if key in VALID_PAID_PLANS else ""
         monthly_id = revenue_os_price_id(key, "monthly") or legacy_id
         yearly_id = revenue_os_price_id(key, "yearly")
-        enabled = key in VALID_PAID_PLANS and bool(monthly_id)
+        six_enabled = env_bool("REVENUE_OS_SIX_PLANS_ENABLED", False)
+        enabled = bool(monthly_id) and (key != "ELITE+" or six_enabled)
+        yearly_enabled = six_enabled and bool(yearly_id)
         catalog[key] = {
             "plan": key, "title": key, "price_label": os.getenv(f"STRIPE_PRICE_{key.replace('+', '_PLUS')}_LABEL", monthly_label),
             "yearly_price_label": yearly_label,
@@ -259,6 +263,7 @@ def plan_catalog() -> Dict[str, Dict[str, Any]]:
             "yearly_configured": bool(yearly_id),
             "configured": enabled,
             "available_for_checkout": enabled,
+            "yearly_available_for_checkout": yearly_enabled,
             "features": features,
         }
     return catalog
@@ -401,6 +406,10 @@ def ensure_stripe_schema(db_path: str) -> Dict[str, Any]:
         last_event_at TEXT,
         raw_json TEXT
     )""")
+    # Additive migrations only: keep existing checkout and subscription history.
+    for col, ddl in {"billing_period": "TEXT", "expected_price_id": "TEXT"}.items():
+        add_column(conn, "stripe_checkout_sessions", col, ddl)
+    add_column(conn, "stripe_subscriptions", "billing_period", "TEXT")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_stripe_sub_user ON stripe_subscriptions(user_id,status)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_stripe_sub_subscription ON stripe_subscriptions(stripe_subscription_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_payment_events_received ON payment_webhook_events(received_at)")
@@ -679,6 +688,16 @@ def sync_checkout_session(db_path: str, user: Dict[str, Any], session_id: str) -
     plan = resolve_plan_from_price(fields.get("price_id"))
     if plan not in VALID_PAID_PLANS:
         return {"ok": False, "reason": "stripe_subscription_plan_unconfirmed", "session_id": session_id}
+    # A returned checkout must match the stored signed-in purchase selection.
+    with connect(db_path) as check_conn:
+        checkout_row = check_conn.execute(
+            "SELECT user_id,plan,expected_price_id FROM stripe_checkout_sessions WHERE stripe_session_id=?",
+            (session_id,),
+        ).fetchone()
+    if checkout_row and (str(checkout_row["user_id"] or "") != user_id or
+            (checkout_row["expected_price_id"] and str(checkout_row["expected_price_id"]) != fields.get("price_id")) or
+            normalize_plan(checkout_row["plan"]) != plan):
+        return {"ok": False, "reason": "checkout_price_or_owner_mismatch", "session_id": session_id}
     fields.update({
         "user_id": user_id,
         "plan": plan,
@@ -726,14 +745,18 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str, billi
     plan = normalize_plan(plan)
     if plan not in VALID_PAID_PLANS:
         return {"ok": False, "error": "Plan no válido para pago."}
+    if plan == "ELITE+" and not env_bool("REVENUE_OS_SIX_PLANS_ENABLED", False):
+        return {"ok": False, "error": "Este plan aún no está disponible para contratar."}
     billing_period = str(billing_period or "").strip().lower()
     if billing_period not in REVENUE_OS_BILLING_PERIODS:
         return {"ok": False, "error": "Periodo de facturación no válido."}
+    if billing_period == "yearly" and not env_bool("REVENUE_OS_SIX_PLANS_ENABLED", False):
+        return {"ok": False, "error": "La suscripción anual está pendiente de habilitación."}
     price_id = revenue_os_price_id(plan, billing_period)
     if not price_id and billing_period == "monthly":
         price_id = plan_price_id(plan)
-    if not price_id:
-        return {"ok": False, "error": "Precio de este periodo aún no configurado."}
+    if not price_id or not revenue_os_price_matches_plan(price_id, plan):
+        return {"ok": False, "error": "Precio de este periodo aún no configurado o no verificable."}
     # Prevent checkout when Stripe events cannot be authenticated and processed.
     status = stripe_runtime_status(db_path)
     if not status["checkout_ready"] or not status["webhook_ready"]:
@@ -781,13 +804,15 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str, billi
         url = str(getattr(session, "url", "") or session.get("url"))
         conn.execute(
             """INSERT OR REPLACE INTO stripe_checkout_sessions
-               (id,user_id,plan,stripe_session_id,stripe_customer_id,status,url,created_at,raw_json)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
-            (session_id or stable_id("checkout", user_id, plan, utc_now()), user_id, plan, session_id, customer_id, "created", url, utc_now(), safe_json(safe_stripe_audit_object(session))),
+               (id,user_id,plan,billing_period,expected_price_id,stripe_session_id,stripe_customer_id,status,url,created_at,raw_json)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (session_id or stable_id("checkout", user_id, plan, utc_now()), user_id, plan,
+             billing_period, price_id, session_id, customer_id, "created", url, utc_now(),
+             safe_json(safe_stripe_audit_object(session))),
         )
         conn.commit()
         conn.close()
-        return {"ok": True, "url": url, "session_id": session_id, "plan": plan}
+        return {"ok": True, "url": url, "session_id": session_id, "plan": plan, "billing_period": billing_period}
     except Exception as exc:
         conn.close()
         return {"ok": False, "error": "No se pudo iniciar el pago. Inténtalo de nuevo más tarde.", "error_code": "stripe_checkout_unavailable", "plan": plan}
@@ -936,7 +961,7 @@ def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -
             customer_id = str(obj.get("customer") or "")
             subscription_id = str(obj.get("subscription") or "")
             stored_checkout = conn.execute(
-                "SELECT user_id,plan FROM stripe_checkout_sessions WHERE stripe_session_id=? LIMIT 1",
+                "SELECT user_id,plan,expected_price_id FROM stripe_checkout_sessions WHERE stripe_session_id=? LIMIT 1",
                 (session_id,),
             ).fetchone() if session_id else None
             stored_user_id = str(stored_checkout["user_id"] or "") if stored_checkout else ""
@@ -1011,7 +1036,16 @@ def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -
                             processed = True
                         else:
                             plan = resolve_plan_from_price(fields.get("price_id"))
-                            if plan not in VALID_PAID_PLANS:
+                            expected_price = str(stored_checkout["expected_price_id"] or "") if stored_checkout else ""
+                            if expected_price and expected_price != fields.get("price_id"):
+                                applied = {"applied": False, "reason": "checkout_price_mismatch"}
+                                status = "checkout_price_mismatch"
+                                processed = True
+                            elif stored_checkout and stored_plan and plan != stored_plan:
+                                applied = {"applied": False, "reason": "checkout_plan_mismatch"}
+                                status = "checkout_plan_mismatch"
+                                processed = True
+                            elif plan not in VALID_PAID_PLANS:
                                 applied = {"applied": False, "reason": "stripe_subscription_plan_unconfirmed"}
                                 status = "stripe_subscription_plan_unconfirmed"
                                 processed = True
