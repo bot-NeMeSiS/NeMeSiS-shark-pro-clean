@@ -16,6 +16,7 @@ from engines.stripe_payments_engine import (
     revenue_os_price_id,
     resolve_plan_from_price,
     revenue_os_price_matches_plan,
+    revenue_os_price_matches_period,
     extract_subscription_fields,
     apply_subscription_to_user,
     plan_catalog,
@@ -184,6 +185,46 @@ class RevenueOSCheckoutTests(unittest.TestCase):
                     "WHERE stripe_session_id='cs_qa_yearly'"
                 ).fetchone()
             self.assertEqual(row, ("user_qa", "PRO", "yearly", "price_pro_year"))
+
+    def test_same_stripe_price_cannot_be_both_monthly_and_yearly(self):
+        with patch.dict(os.environ, {
+            "STRIPE_PRICE_PRO": "",
+            "STRIPE_PRICE_PRO_MONTHLY": "price_wrong_reused",
+            "STRIPE_PRICE_PRO_YEARLY": "price_wrong_reused",
+            "REVENUE_OS_SIX_PLANS_ENABLED": "true",
+        }, clear=False):
+            self.assertEqual(resolve_plan_from_price("price_wrong_reused"), "PRO")
+            self.assertFalse(revenue_os_price_matches_period("price_wrong_reused", "PRO", "monthly"))
+            self.assertFalse(revenue_os_price_matches_period("price_wrong_reused", "PRO", "yearly"))
+            catalog = plan_catalog()
+            self.assertFalse(catalog["PRO"]["available_for_checkout"])
+            self.assertFalse(catalog["PRO"]["yearly_available_for_checkout"])
+
+    def test_annual_subscription_mrr_is_monthly_equivalent(self):
+        import engines.stripe_payments_engine as billing
+        import engines.subscription_control_engine as revenue
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = str(Path(tmp) / "mrr.sqlite")
+            with sqlite3.connect(db_path) as conn:
+                conn.execute("CREATE TABLE users(id TEXT PRIMARY KEY, role TEXT, membership TEXT, "
+                             "membership_source TEXT, membership_admin_granted INTEGER DEFAULT 0)")
+                conn.execute("INSERT INTO users(id,role,membership,membership_source) "
+                             "VALUES('paid-qa','PRO','PRO','stripe')")
+            billing.ensure_stripe_schema(db_path)
+            with sqlite3.connect(db_path) as conn:
+                conn.execute("INSERT INTO stripe_subscriptions "
+                             "(id,user_id,plan,stripe_price_id,status,current_period_end,last_event_at) "
+                             "VALUES('sub-qa','paid-qa','PRO','price_pro_year','active',"
+                             "'2030-01-01T00:00:00+00:00','2026-10-31T00:00:00Z')")
+            with patch.dict(os.environ, {
+                "STRIPE_PRICE_PRO_YEARLY": "price_pro_year",
+                "STRIPE_PRICE_PRO_LABEL": "14,99 €/mes",
+            }, clear=False):
+                summary = revenue.subscription_summary(db_path, apply_rules=False, persist_metrics=False)
+            self.assertEqual(summary["active_paid"], 1)
+            self.assertEqual(summary["paid_by_tier"]["PRO"], 1)
+            self.assertAlmostEqual(summary["estimated_mrr"], round(149 / 12, 2), places=2)
+            self.assertFalse(summary["estimated_mrr_verified_by_provider"])
 
     def test_idempotency_changes_with_period_price_and_user(self):
         now = datetime(2026, 10, 31, 12, 0, tzinfo=timezone.utc)
