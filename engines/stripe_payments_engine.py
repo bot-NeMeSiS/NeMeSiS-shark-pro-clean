@@ -507,7 +507,7 @@ def extract_subscription_fields(subscription: Dict[str, Any]) -> Dict[str, Any]:
     except Exception:
         price_id = ""
     # Stripe Billing API versions can provide the interval on the item.
-    first_item = items[0] if items else {}
+    first_item = items[0] if items and isinstance(items[0], dict) else {}
     period_start = subscription.get("current_period_start") or first_item.get("current_period_start")
     period_end = subscription.get("current_period_end") or first_item.get("current_period_end")
     # Price is the source of truth, not editable metadata supplied by a client.
