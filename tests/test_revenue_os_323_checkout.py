@@ -27,7 +27,13 @@ class RevenueOSCheckoutTests(unittest.TestCase):
     def test_elite_plus_is_distinct_and_not_live_yet(self):
         self.assertEqual(revenue_os_normalize_plan("elite_plus"), "ELITE+")
         self.assertEqual(revenue_os_normalize_plan("ELITE+"), "ELITE+")
-        self.assertNotIn("ELITE+", VALID_PAID_PLANS)
+        self.assertIn("ELITE+", VALID_PAID_PLANS)
+        with patch.dict(os.environ, {"REVENUE_OS_SIX_PLANS_ENABLED": "false",
+                                    "STRIPE_PRICE_ELITE_PLUS_MONTHLY": "price_plus"}, clear=False):
+            self.assertFalse(plan_catalog()["ELITE+"]["available_for_checkout"])
+        with patch.dict(os.environ, {"REVENUE_OS_SIX_PLANS_ENABLED": "true",
+                                    "STRIPE_PRICE_ELITE_PLUS_MONTHLY": "price_plus"}, clear=False):
+            self.assertTrue(plan_catalog()["ELITE+"]["available_for_checkout"])
 
     def test_unknown_period_or_plan_never_maps_to_a_price(self):
         with patch.dict(os.environ, {"STRIPE_PRICE_PRO_MONTHLY": "price_month"}, clear=False):
@@ -89,6 +95,7 @@ class RevenueOSCheckoutTests(unittest.TestCase):
             "STRIPE_PRICE_ELITE": "price_elite_legacy",
             "STRIPE_PRICE_ELITE_PLUS_MONTHLY": "price_plus_month",
             "STRIPE_PRICE_PRO_YEARLY": "price_pro_year",
+            "REVENUE_OS_SIX_PLANS_ENABLED": "false",
         }, clear=False):
             catalog = plan_catalog()
             self.assertEqual(set(catalog), {"FREE", "PRO", "ELITE", "ELITE+"})
