@@ -108,6 +108,17 @@ class RevenueOSCheckoutTests(unittest.TestCase):
             self.assertFalse(result["applied"])
             self.assertEqual(result["reason"], "subscription_period_unverified")
 
+    def test_same_price_assigned_to_two_tiers_must_not_grant_either(self):
+        with patch.dict(os.environ, {
+            "STRIPE_PRICE_PRO_MONTHLY": "price_collision",
+            "STRIPE_PRICE_ELITE_MONTHLY": "price_collision",
+            "STRIPE_PRICE_PRO": "",
+            "STRIPE_PRICE_ELITE": "",
+        }, clear=False):
+            self.assertEqual(resolve_plan_from_price("price_collision"), "")
+            self.assertFalse(revenue_os_price_matches_plan("price_collision", "PRO"))
+            self.assertFalse(revenue_os_price_matches_plan("price_collision", "ELITE"))
+
     def test_idempotency_changes_with_period_price_and_user(self):
         now = datetime(2026, 10, 31, 12, 0, tzinfo=timezone.utc)
         f = lambda user, period, price: revenue_os_checkout_idempotency_key(user, "PRO", period, price, now)
