@@ -66,3 +66,15 @@ def test_storage_telemetry_admin_api_requires_session_and_stays_readonly(app_mod
     assert payload["dbstat_scanned"] is False
     assert payload["db_size_bytes"] == path.stat().st_size
     assert "db_path" not in payload
+
+
+def test_admin_vault_backup_forms_are_csrf_protected_and_do_not_claim_restoration():
+    from pathlib import Path
+    html = (Path(__file__).resolve().parents[1] / "templates" / "admin_data_vault.html").read_text(
+        encoding="utf-8"
+    )
+    assert html.count('name="csrf_token" value="{{ csrf_token() }}"') == 2
+    assert 'name="backup_name" required' in html
+    assert "manifiesto declarado, recuperación sin certificar" in html
+    assert "No prueba su restauración automáticamente." in html
+    assert 'data-storage-readonly="true"' in html
