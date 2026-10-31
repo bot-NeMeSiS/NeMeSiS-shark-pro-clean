@@ -67,7 +67,8 @@ def test_rate_limit_slots_are_shared_scoped_and_fail_closed(tmp_path, monkeypatc
     assert unavailable == {"allowed": False, "reason": "rate_limit_store_unavailable"}
 
 
-def test_stripe_audit_storage_keeps_state_but_excludes_customer_payment_details(tmp_path):
+def test_stripe_audit_storage_keeps_state_but_excludes_customer_payment_details(tmp_path, monkeypatch):
+    monkeypatch.setenv("STRIPE_PRICE_ELITE_MONTHLY", "price_qa")
     db_path = str(tmp_path / "stripe.sqlite")
     with sqlite3.connect(db_path) as conn:
         conn.execute("CREATE TABLE users(id TEXT PRIMARY KEY, role TEXT, membership TEXT, membership_admin_granted TEXT, membership_source TEXT)")
@@ -129,10 +130,12 @@ def test_stripe_checkout_and_portal_failures_never_return_provider_exception_tex
 
     db_path = str(tmp_path / "stripe-errors.sqlite")
     monkeypatch.setattr(billing, "local_safe_payments_blocked", lambda: False)
-    monkeypatch.setattr(billing, "stripe_runtime_status", lambda _path: {"checkout_ready": True, "blockers": []})
+    monkeypatch.setattr(billing, "stripe_runtime_status", lambda _path: {"checkout_ready": True, "webhook_ready": True, "blockers": []})
     monkeypatch.setattr(billing, "stripe_sdk", lambda: BrokenCheckout())
     monkeypatch.setattr(billing, "public_base_url", lambda: "https://example.invalid")
-    monkeypatch.setattr(billing, "plan_price_id", lambda _plan: "price_qa")
+    monkeypatch.setattr(billing, "plan_price_id", lambda plan: "price_qa" if plan == "PRO" else "")
+    monkeypatch.setenv("STRIPE_PRICE_PRO_MONTHLY", "price_qa")
+    monkeypatch.setenv("STRIPE_PRICE_ELITE_MONTHLY", "")
     monkeypatch.setenv("STRIPE_SECRET_KEY", "synthetic-only")
 
     checkout = billing.create_checkout_session(db_path, {"id": "qa-user"}, "PRO")

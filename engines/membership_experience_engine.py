@@ -10,6 +10,7 @@ SAFE_LOCKED_COPY = {
     "free": "Disponible en PRO",
     "pro": "Disponible en ELITE",
     "elite": "Incluido en ELITE",
+    "elite_plus": "Incluido en ELITE+",
     "admin": "Command center total",
 }
 
@@ -18,6 +19,8 @@ def normalize_plan(plan: str | None) -> str:
     value = (plan or "FREE").strip().upper()
     if value == "ADMIN":
         return "admin"
+    if value in {"ELITE+", "ELITE_PLUS"}:
+        return "elite_plus"
     if value == "ELITE":
         return "elite"
     if value == "PRO":
@@ -59,6 +62,15 @@ def build_membership_experience_matrix() -> dict:
             "unlocks": ["SHARK avanzado", "Telegram top", "Análisis ampliado", "Prioridad visual"],
             "cta": "Mantener ELITE",
             "locked_copy": SAFE_LOCKED_COPY["elite"],
+        },
+        "elite_plus": {
+            "label": "ELITE+",
+            "tone": "acceso premium superior",
+            "accent": "purple",
+            "summary": "Incluye las prestaciones actuales de ELITE. Las pruebas beta solo se ofrecen cuando estén habilitadas.",
+            "unlocks": ["Beneficios ELITE", "SHARK avanzado", "Telegram ELITE"],
+            "cta": "Gestionar membresía",
+            "locked_copy": SAFE_LOCKED_COPY["elite_plus"],
         },
         "admin": {
             "label": "ADMIN",

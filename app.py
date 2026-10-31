@@ -12270,11 +12270,12 @@ MEMBERSHIP_PLANS = [
     {"key": "free", "name": "FREE", "price": "0 €", "features": ["Calendario", "Directo con datos disponibles", "Resultados", "SHARK base"]},
     {"key": "pro", "name": "PRO", "price": "Precio según configuración", "features": ["Pronósticos PRO publicados", "Combinadas", "Opciones de Telegram", "SHARK con más contexto"]},
     {"key": "elite", "name": "ELITE", "price": "Precio según configuración", "features": ["Pronósticos ELITE publicados", "Combinadas ELITE", "Funciones de Telegram del plan", "SHARK con contexto ampliado"]},
+    {"key": "elite_plus", "name": "ELITE+", "price": "Precio según configuración", "features": ["Todo ELITE", "Funciones beta seleccionadas cuando estén habilitadas", "Feedback prioritario"]},
 ]
 
 
-VALID_ROLES = {"FREE", "PRO", "ELITE", "ADMIN"}
-COMMERCIAL_MEMBERSHIP_TIERS = frozenset({"FREE", "PRO", "ELITE"})
+VALID_ROLES = {"FREE", "PRO", "ELITE", "ELITE+", "ADMIN"}
+COMMERCIAL_MEMBERSHIP_TIERS = frozenset({"FREE", "PRO", "ELITE", "ELITE+"})
 
 
 def normalize_email(email):
@@ -24214,12 +24215,12 @@ def _safe_admin_next(value: str | None, default: str = "/admin/control-center") 
 
 def _selected_paid_plan(value: str | None) -> str:
     plan = str(value or "").strip().upper()
-    return plan if plan in {"PRO", "ELITE"} else ""
+    return plan if plan in {"PRO", "ELITE", "ELITE+"} else ""
 
 
 def _membership_next_for_plan(plan: str) -> str:
     plan = _selected_paid_plan(plan)
-    return f"/membresias?plan={plan}&continuar_pago=1" if plan else "/membresias"
+    return "/membresias?" + urllib.parse.urlencode({"plan": plan, "continuar_pago": "1"}) if plan else "/membresias"
 
 
 def _store_pending_checkout_plan(plan: str) -> str:
@@ -33834,7 +33835,7 @@ def onboarding_status(user=None):
 def membership_revenue_summary():
     """Separa distribución de acceso de ingresos Stripe reales."""
     distribution = membership_distribution()
-    total_clients = distribution.get("FREE", 0) + distribution.get("PRO", 0) + distribution.get("ELITE", 0)
+    total_clients = distribution.get("FREE", 0) + distribution.get("PRO", 0) + distribution.get("ELITE", 0) + distribution.get("ELITE+", 0)
     try:
         billing = subscription_summary(DB_PATH, apply_rules=False, persist_metrics=False) or {}
     except Exception:
@@ -34542,11 +34543,12 @@ def api_payments_checkout():
     if not user:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Inicia sesión antes de pagar."}), 401
     payload = request.get_json(silent=True) or request.form or {}
-    plan = str(payload.get("plan") or request.args.get("plan") or "").upper()
+    plan = _selected_paid_plan(payload.get("plan") or request.args.get("plan"))
+    billing_period = str(payload.get("billing_period") or "monthly").strip().lower()
     ok_legal, legal_response = enforce_checkout_legal_gate(user, plan)
     if not ok_legal:
         return legal_response
-    result = create_checkout_session(DB_PATH, user, plan)
+    result = create_checkout_session(DB_PATH, user, plan, billing_period=billing_period)
     status_code = 200 if result.get("ok") else 400
     if request.form and result.get("ok") and result.get("url"):
         return redirect(result["url"])
@@ -34562,10 +34564,11 @@ def payments_checkout_plan(plan):
         target = _membership_next_for_plan(plan)
         encoded_next = urllib.parse.quote(target, safe="")
         return redirect(f"/cliente-login?plan={plan}&next={encoded_next}")
+    billing_period = str(request.form.get("billing_period") or "monthly").strip().lower()
     ok_legal, legal_response = enforce_checkout_legal_gate(user, plan)
     if not ok_legal:
         return legal_response
-    result = create_checkout_session(DB_PATH, user, plan)
+    result = create_checkout_session(DB_PATH, user, plan, billing_period=billing_period)
     if result.get("ok") and result.get("url"):
         return redirect(result["url"])
     data = dashboard_data()
@@ -36470,6 +36473,9 @@ def admin_data_vault_page():
         return redirect("/admin-login?next=/admin/data-vault")
     data = dashboard_data()
     data["data_vault_admin"] = v743_data_vault_context()
+    # Fast, read-only capacity preflight; no dbstat scan on page render.
+    from tools.inspect_sqlite_growth_readonly import inspect_database
+    data["storage_telemetry"] = inspect_database(DB_PATH, limit=0)
     return render_template("admin_data_vault.html", data=data)
 
 
@@ -36479,6 +36485,15 @@ def api_admin_data_vault():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, **v743_data_vault_context()})
+
+
+@app.route("/api/admin/data-vault/storage-telemetry", methods=["GET"])
+def api_admin_data_vault_storage_telemetry():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    from tools.inspect_sqlite_growth_readonly import inspect_database
+    payload = inspect_database(DB_PATH, limit=0)
+    return jsonify({"version": APP_VERSION, **payload})
 
 
 @app.route("/api/admin/data-vault/create-backup", methods=["POST"])

@@ -74,7 +74,7 @@ jobs:
           pnpm run check:css
           python -m pip install -r requirements-dev.txt -r browser_qa/playwright_requirements.txt tzdata
           python -m playwright install --with-deps chromium
-          python -m pytest -o addopts='' -q tests/test_premium_visual_system.py tests/test_v966_match_center_browser.py tests/test_design02_calendar_presentation.py tests/test_contextual_sports_entity_navigation.py tests/test_home_league_delivery.py
+          python -m pytest -o addopts='' -q tests/test_premium_visual_system.py tests/test_v966_match_center_browser.py tests/test_design02_calendar_presentation.py tests/test_contextual_sports_entity_navigation.py tests/test_home_league_delivery.py tests/test_match_card_identity_readability_browser.py
       - name: Capture isolated desktop and mobile surfaces
         run: |
           python tools/run_visual_preview.py > /tmp/visual-preview.log 2>&1 &

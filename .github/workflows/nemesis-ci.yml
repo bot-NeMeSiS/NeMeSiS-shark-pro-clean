@@ -51,6 +51,15 @@ jobs:
       - name: Real App read-path contracts (fresh guarded worker)
         run: python -B tools/check_v991_app_read_paths.py --output-dir "$RUNNER_TEMP/v991-app-read-paths" -v
 
+      - name: Revenue OS #323 checkout security regressions
+        run: python -m unittest discover -s tests -p test_revenue_os_323_checkout.py -v
+
+      - name: Revenue OS #323 authenticated route and lifecycle contracts
+        run: python -m pytest tests/test_revenue_os_323_routes.py tests/test_revenue_os_323_lifecycle.py -q
+
+      - name: Data Vault storage headroom QA (#327)
+        run: python -m pytest tests/test_backup_growth_readonly_327.py -q
+
       - name: Existing project checks
         run: |
           python tools/check_madrid_times.py
