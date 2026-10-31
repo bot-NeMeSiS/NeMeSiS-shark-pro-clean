@@ -133,7 +133,9 @@ def test_stripe_checkout_and_portal_failures_never_return_provider_exception_tex
     monkeypatch.setattr(billing, "stripe_runtime_status", lambda _path: {"checkout_ready": True, "webhook_ready": True, "blockers": []})
     monkeypatch.setattr(billing, "stripe_sdk", lambda: BrokenCheckout())
     monkeypatch.setattr(billing, "public_base_url", lambda: "https://example.invalid")
-    monkeypatch.setattr(billing, "plan_price_id", lambda _plan: "price_qa")
+    monkeypatch.setattr(billing, "plan_price_id", lambda plan: "price_qa" if plan == "PRO" else "")
+    monkeypatch.setenv("STRIPE_PRICE_PRO_MONTHLY", "price_qa")
+    monkeypatch.setenv("STRIPE_PRICE_ELITE_MONTHLY", "")
     monkeypatch.setenv("STRIPE_SECRET_KEY", "synthetic-only")
 
     checkout = billing.create_checkout_session(db_path, {"id": "qa-user"}, "PRO")
