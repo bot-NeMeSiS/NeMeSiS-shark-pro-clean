@@ -26,8 +26,7 @@ def inspect_database(db_path: str, limit: int = 20) -> dict:
         for suffix, field in (("-wal", "wal_size_bytes"), ("-shm", "shm_size_bytes")):
             linked = Path(str(path) + suffix)
             result[field] = linked.stat().st_size if linked.is_file() else 0
-        # immutable=1 avoids even creating a SHM file on the production mount.
-        # Note: immutable snapshots do not include concurrently written WAL state.
+        # Read-only connection. No explicit checkpoint, journal operation or writes.
         with sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=2) as db:
             db.execute("PRAGMA query_only=ON")
             result["page_size"] = int(db.execute("PRAGMA page_size").fetchone()[0])
