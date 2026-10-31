@@ -60,6 +60,29 @@
       </div>
     </article>
   </section>
+  {% set triads = summary.review_triads or {} %}
+  <section class="v857-company-panels" id="review-triads" data-review-triad="{{ triads.contract or 'NOT_CONFIGURED' }}">
+    <article>
+      <h2>Triple revisión: analizar, verificar y cuestionar</h2>
+      <p><strong>{{ triads.configured_areas or 0 }} áreas</strong> · {{ triads.additional_review_roles or 0 }} funciones de contraste adicionales · {{ triads.total_review_roles or 0 }} funciones de revisión definidas.</p>
+      <p>Estas funciones comparten el ciclo de revisión existente: no son personas contratadas ni 66 procesos independientes. No consumen créditos adicionales ni autorizan cambios automáticamente.</p>
+      <p><strong>Consenso independiente: {{ triads.confirmed_consensus or 0 }} confirmado.</strong> Los controles de código y sus hashes no sustituyen capturas reales, pruebas de navegador, datos de producción ni revisión humana.</p>
+      <details class="company-review-evidence">
+        <summary>Ver el estado de los tres revisores por área</summary>
+        {% for area in triads.reviewers or [] %}
+        <details class="company-review-evidence">
+          <summary>{{ area.title }} · {{ area.consensus }}</summary>
+          <ul aria-label="Tres funciones de revisión">
+            {% for reviewer in area.roles %}
+            <li><strong>{{ reviewer.name }}:</strong> {{ reviewer.state }}{% if not reviewer.executed %} · sin ejecución acreditada{% endif %}. {{ reviewer.limitation }}</li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endfor %}
+      </details>
+      <p><small>Si dos revisores aportan evidencia realmente independiente, su coincidencia solo produce una propuesta revisable. Pagos, seguridad, datos, legal y despliegues mantienen puertas obligatorias adicionales.</small></p>
+    </article>
+  </section>
   <section class="v857-workers-grid" aria-label="{{ ui('Responsabilidades configuradas') }}">
     {% for worker in summary.workers %}
     <article class="v857-worker-card v860-board-card risk-{{ worker.risk_level }}">
