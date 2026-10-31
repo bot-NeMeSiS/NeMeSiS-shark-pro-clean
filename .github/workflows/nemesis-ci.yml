@@ -54,8 +54,8 @@ jobs:
       - name: Revenue OS #323 checkout security regressions
         run: python -m unittest discover -s tests -p test_revenue_os_323_checkout.py -v
 
-      - name: Revenue OS #323 authenticated route contracts
-        run: python -m pytest tests/test_revenue_os_323_routes.py -q
+      - name: Revenue OS #323 authenticated route and lifecycle contracts
+        run: python -m pytest tests/test_revenue_os_323_routes.py tests/test_revenue_os_323_lifecycle.py -q
 
       - name: Existing project checks
         run: |
