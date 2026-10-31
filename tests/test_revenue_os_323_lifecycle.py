@@ -212,6 +212,35 @@ def test_cancel_at_period_end_preserves_paid_access_until_deleted(sandbox, monke
     assert _state(sandbox)[0] == "FREE"
 
 
+def test_existing_paid_user_cannot_start_a_second_checkout(tmp_path, monkeypatch):
+    db_path = str(tmp_path / "paid-checkout.sqlite")
+    _seed(db_path, paid=True)
+    class StripeStub:
+        api_key = None
+        class checkout:
+            class Session:
+                @staticmethod
+                def create(**kwargs):
+                    pytest.fail("Existing subscriber must not create another Stripe Checkout session")
+    monkeypatch.setattr(billing, "stripe_sdk", lambda: StripeStub)
+    for key, value in {
+        "STRIPE_PRICE_PRO": "price_pro",
+        "STRIPE_PRICE_ELITE": "price_elite",
+        "STRIPE_PRICE_PRO_MONTHLY": "price_pro",
+        "STRIPE_PRICE_ELITE_MONTHLY": "price_elite",
+        "APP_PUBLIC_URL": "https://example.invalid",
+        "STRIPE_SECRET_KEY": "sk_test_synthetic_only",
+        "STRIPE_WEBHOOK_SECRET": "whsec_synthetic_only",
+        "PAYMENTS_ENABLED": "true",
+        "NEMESIS_LOCAL_SAFE_MODE": "false",
+    }.items():
+        monkeypatch.setenv(key, value)
+    result = billing.create_checkout_session(db_path, {"id": "user-1"}, "ELITE", "monthly")
+    assert result["ok"] is False
+    assert result["reason"] == "existing_subscription_manage_in_portal"
+    assert result["manage_url"] == "/mi-cuenta"
+
+
 def test_payment_failed_records_issue_without_early_cancellation(sandbox, monkeypatch):
     _stub(monkeypatch, _sub())
     _deliver(monkeypatch, sandbox, _checkout_event())
