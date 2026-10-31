@@ -1,0 +1,27 @@
+"""Offline contract for issue #327. Never touches production database."""
+import sqlite3
+from tools.inspect_sqlite_growth_readonly import inspect_database
+
+
+def test_sqlite_growth_inventory_never_modifies_source(tmp_path):
+    path = tmp_path / "sample.sqlite3"
+    with sqlite3.connect(path) as db:
+        db.execute("CREATE TABLE fixtures(id INTEGER PRIMARY KEY, name TEXT)")
+        db.executemany("INSERT INTO fixtures(name) VALUES(?)", [("fixture",)] * 10)
+    size_before = path.stat().st_size
+    data_before = path.read_bytes()
+    result = inspect_database(str(path))
+    assert result["ok"] is True
+    assert result["readonly"] is True
+    assert result["writes"] == 0
+    assert result["db_size_bytes"] == size_before
+    assert result["allocated_bytes"] >= size_before
+    assert path.read_bytes() == data_before
+    if result["dbstat_available"]:
+        assert any(item["name"] == "fixtures" and item["bytes"] > 0 for item in result["tables"])
+
+
+def test_missing_database_does_not_create_file(tmp_path):
+    path = tmp_path / "missing.db"
+    assert inspect_database(str(path))["error_code"] == "DB_NOT_FOUND"
+    assert not path.exists()
