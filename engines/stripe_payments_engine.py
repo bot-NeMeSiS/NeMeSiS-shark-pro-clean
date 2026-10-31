@@ -298,7 +298,7 @@ def stripe_runtime_status(db_path: str = "") -> Dict[str, Any]:
         "portal_enabled": env_bool("STRIPE_CUSTOMER_PORTAL_ENABLED", True),
         "payments_enabled": env_bool("PAYMENTS_ENABLED", True),
     }
-    checkout_ready = all(flags[k] for k in ["stripe_sdk", "secret_key", "price_pro", "price_elite", "public_url"]) and flags["payments_enabled"]
+    checkout_ready = (all(flags[k] for k in ["stripe_sdk", "secret_key", "webhook_secret", "price_pro", "price_elite", "public_url"]) and flags["payments_enabled"])
     webhook_ready = flags["stripe_sdk"] and flags["webhook_secret"]
     blockers = []
     labels = {
