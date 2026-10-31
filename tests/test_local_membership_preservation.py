@@ -19,7 +19,10 @@ def account(app_module,tmp_path,monkeypatch):
     billing.ensure_stripe_schema(str(path))
     con=sqlite3.connect(path)
     con.row_factory=sqlite3.Row
-    con.execute("INSERT INTO users(id,name,email,password_hash,created_at,role,membership,membership_source,membership_admin_granted,stripe_subscription_id) VALUES('qa-billing','Local QA','billing@example.invalid','invalid_qa_hash','2026-09-19','ELITE','ELITE','stripe',0,'sub_current_qa')")
+    con.execute("INSERT INTO users(id,name,email,password_hash,created_at,role,membership,membership_source,membership_admin_granted,stripe_customer_id,stripe_subscription_id) VALUES('qa-billing','Local QA','billing@example.invalid','invalid_qa_hash','2026-09-19','ELITE','ELITE','stripe',0,'cus_local_qa','sub_current_qa')")
+    # Seed the same linked customer/subscription identity that production Stripe
+    # records before a signed cancellation. Missing identity must fail closed.
+    con.execute("INSERT INTO stripe_subscriptions(id,user_id,plan,stripe_customer_id,stripe_subscription_id,stripe_price_id,status,current_period_end,last_event_at) VALUES('sub_current_qa','qa-billing','PRO','cus_local_qa','sub_current_qa','price_local_pro_qa','active','2030-01-01T00:00:00+00:00','2026-10-31T00:00:00Z')")
     yield con
     con.close()
 
