@@ -4,6 +4,7 @@ Run: python -m unittest tests.test_revenue_os_323_checkout
 No real Stripe keys, network calls, customers or charges.
 """
 import os
+import sqlite3
 import unittest
 from datetime import datetime, timezone
 from unittest.mock import patch
@@ -13,6 +14,8 @@ from engines.stripe_payments_engine import (
     revenue_os_price_id,
     resolve_plan_from_price,
     revenue_os_price_matches_plan,
+    extract_subscription_fields,
+    apply_subscription_to_user,
     revenue_os_checkout_idempotency_key,
     VALID_PAID_PLANS,
     REVENUE_OS_BILLING_PERIODS,
@@ -50,6 +53,22 @@ class RevenueOSCheckoutTests(unittest.TestCase):
             self.assertFalse(revenue_os_price_matches_plan("price_pro_month", "ELITE"))
             self.assertFalse(revenue_os_price_matches_plan("price_unknown", "PRO"))
             self.assertFalse(revenue_os_price_matches_plan("", "PRO"))
+
+    def test_forged_plan_metadata_cannot_upgrade_price(self):
+        with patch.dict(os.environ, {"STRIPE_PRICE_PRO_MONTHLY": "price_pro_good"}, clear=False):
+            subscription = {
+                "id": "sub_fake", "customer": "cus_fake", "status": "active",
+                "metadata": {"plan": "ELITE+", "user_id": "u_fake"},
+                "items": {"data": [{"price": {"id": "price_pro_good"}}]},
+            }
+            fields = extract_subscription_fields(subscription)
+            self.assertEqual(fields["plan"], "PRO")
+            self.assertEqual(fields["price_id"], "price_pro_good")
+            fields["plan"] = "ELITE+"
+            with sqlite3.connect(":memory:") as conn:
+                result = apply_subscription_to_user(conn, fields, "test")
+            self.assertFalse(result["applied"])
+            self.assertEqual(result["reason"], "price_plan_unverified")
 
     def test_idempotency_changes_with_period_price_and_user(self):
         now = datetime(2026, 10, 31, 12, 0, tzinfo=timezone.utc)
