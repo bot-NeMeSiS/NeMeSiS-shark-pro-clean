@@ -146,7 +146,7 @@ def test_rejected_payload_shapes_return_without_persisting_or_raising(tmp_path, 
     assert not (tmp_path / "stripe.sqlite").exists()
 
 
-def test_verified_payment_webhook_still_updates_and_is_idempotent(tmp_path, monkeypatch):
+def test_unlinked_invoice_is_audited_without_changing_access_and_is_idempotent(tmp_path, monkeypatch):
     monkeypatch.setattr(billing, "local_safe_payments_blocked", lambda: False)
     db_path = str(tmp_path / "stripe.sqlite")
     conn = sqlite3.connect(db_path)
@@ -185,8 +185,8 @@ def test_verified_payment_webhook_still_updates_and_is_idempotent(tmp_path, monk
     conn.close()
     assert first["ok"] is True and first["verified"] is True and first["processed"] is True
     assert second["duplicate"] is True
-    assert user["last_payment_status"] == "paid"
-    assert tuple(stored) == (1, 1, "payment_recorded")
+    assert user["last_payment_status"] is None
+    assert tuple(stored) == (1, 1, "invoice_without_linked_checkout")
 
 
 def test_checkout_completed_waits_for_delayed_payment_then_async_success_activates(tmp_path, monkeypatch):
