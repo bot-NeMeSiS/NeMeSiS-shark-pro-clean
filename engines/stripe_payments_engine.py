@@ -250,7 +250,7 @@ def plan_catalog() -> Dict[str, Dict[str, Any]]:
         yearly_id = revenue_os_price_id(key, "yearly")
         enabled = key in VALID_PAID_PLANS and bool(monthly_id)
         catalog[key] = {
-            "plan": key, "title": key, "price_label": monthly_label,
+            "plan": key, "title": key, "price_label": os.getenv(f"STRIPE_PRICE_{key.replace('+', '_PLUS')}_LABEL", monthly_label),
             "yearly_price_label": yearly_label,
             "price_id": monthly_id if enabled else "",
             "monthly_price_id": monthly_id,
