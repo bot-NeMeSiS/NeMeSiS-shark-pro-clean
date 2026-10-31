@@ -18,6 +18,66 @@
     </div>
   </header>
 
+
+  {# Advisory control reads only bounded evidence from the same Company OS snapshot. #}
+  {% set leadership = summary.vicepresidency or {} %}
+  {% set president = leadership.president or {} %}
+  {% set vice = leadership.vicepresident or {} %}
+  {% set executive = leadership.executive_readout or {} %}
+  <section class="v857-company-panels nemesis-executive-structure" id="vicepresidency"
+           data-vp-contract="{{ leadership.contract or 'NOT_CONFIGURED' }}"
+           data-vp-state="{{ vice.state or 'AWAITING_RECENT_REVIEW' }}">
+    <article class="nemesis-leadership">
+      <span class="eyebrow">Presidencia y dirección operativa</span>
+      <h2>Tu empresa, con dirección y límites claros</h2>
+      <div class="nemesis-leadership-roles">
+        <div class="nemesis-leadership-role">
+          <strong>Presidencia · fundador</strong>
+          <p>Autoridad final. Decides estrategia, cambios y presupuesto.</p>
+          <small>Control del fundador: {{ 'confirmado como política' if president.retains_control else 'no disponible' }}</small>
+        </div>
+        <div class="nemesis-leadership-role">
+          <strong>Vicepresidencia operativa digital</strong>
+          <p>Analiza recibos, prepara propuestas, prioriza revisiones y te entrega una agenda cuando vuelves.</p>
+          <small>Revisión: {{ vice.state or 'AWAITING_RECENT_REVIEW' }} · sin autorizaciones de producción</small>
+        </div>
+      </div>
+      <p><strong>Verificación operativa:</strong> Cron {{ leadership.cron.state or 'NO_EVIDENCE' }}; {{ leadership.reviewed_static_specialists or 0 }} de {{ leadership.configured_specialists or 0 }} especialidades con comprobación estática reciente.</p>
+      <p>Sin evidencia reciente no se declara trabajo continuo. La coincidencia entre revisores no permite cambiar código, pagos, datos o despliegues.</p>
+      <a href="/admin/founder-dashboard">Abrir control del fundador</a>
+    </article>
+    <article>
+      <h2>Agenda preparada para presidencia</h2>
+      <p>{{ executive.state or 'NO_VERIFIED_RECEIPT' }} · lectura de código, no certificación de producto.</p>
+      {% if executive.observed_at_madrid %}
+        <p><time datetime="{{ executive.observed_at_madrid }}">{{ executive.observed_at_madrid }}</time></p>
+      {% endif %}
+      {% if leadership.agenda %}
+        <ol class="nemesis-vp-agenda">
+          {% for work in leadership.agenda[:8] %}
+            <li><strong>{{ work.priority }} · {{ work.area_id }}</strong>: contrastar con otra fuente antes de actuar. <small>{{ work.reason }}</small></li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p>No hay prioridades recientes verificables. Consultar el recibo no inicia nuevas tareas.</p>
+      {% endif %}
+      <p><small>El consejo no dispone de votos independientes verificados: {{ leadership.crosscheck.independent_votes or 0 }}. No hay aprobaciones automáticas.</small></p>
+    </article>
+    <article class="nemesis-advisory">
+      <h2>Consejo asesor · {{ (leadership.advisory_council or [])|length }} áreas</h2>
+      <p>Estrategia, finanzas, tecnología, seguridad, cumplimiento, datos deportivos, SHARK, Game UI, crecimiento y clientes.</p>
+      <div class="nemesis-advisory-list">
+        {% for advisor in leadership.advisory_council or [] %}
+          <details>
+            <summary>{{ advisor.name }}</summary>
+            <p>{{ advisor.mandate }}</p>
+            <small>Función definida; no acredita empleado ni agente ejecutándose. Sin autoridad de aprobación.</small>
+          </details>
+        {% endfor %}
+      </div>
+    </article>
+  </section>
+
   {% set native = summary.native_workforce_review or {} %}
   <section class="v857-company-summary v860-kpi-row">
     {% if summary.execution_state == 'STATIC_PARTIAL' %}

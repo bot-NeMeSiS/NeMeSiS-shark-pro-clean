@@ -260,6 +260,12 @@ def build_company_os_summary(version: str = "", runtime: dict[str, Any] | None =
         workers, game_ui_lab.get("disciplines") or [], records if recent else [],
         receipt_state=review.get("state") if recent else "NOT_RUN",
     )
+    from engines.company_vicepresidency_engine import build_vicepresidency_snapshot
+    cron_receipt = master_cron_receipt(db_path)
+    vice = build_vicepresidency_snapshot(
+        workers, game_ui_lab.get("disciplines") or [], review,
+        cron_receipt, review_triads,
+    )
     return {
         "version": version,
         "global_status": "responsabilidades_configuradas",
@@ -273,6 +279,7 @@ def build_company_os_summary(version: str = "", runtime: dict[str, Any] | None =
         "workers": workers,
         "game_ui_lab": game_ui_lab,
         "review_triads": review_triads,
+        "vicepresidency": vice,
         "native_workforce_review": {
             "state": review.get("state") if review.get("state") in {"RECENT", "STALE", "NOT_RUN", "UNAVAILABLE", "CLOCK_UNVERIFIED"} else "UNAVAILABLE",
             "finished_at_madrid": str(receipt.get("finished_at_madrid") or "")[:80],
@@ -281,7 +288,7 @@ def build_company_os_summary(version: str = "", runtime: dict[str, Any] | None =
             "reviewed_game_count": game_ui_lab.get("reviewed_count", 0),
             "scope": "STATIC_PARTIAL",
         },
-        "workforce_receipt": master_cron_receipt(db_path),
+        "workforce_receipt": cron_receipt,
         "areas": sorted({worker["area"] for worker in workers}),
         "findings": [finding for worker in workers for finding in worker["findings"]],
         "recommendations": [worker["safe_next_step"] for worker in workers],

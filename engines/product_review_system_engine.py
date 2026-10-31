@@ -2796,6 +2796,10 @@ def run_native_workforce_review(project_root: str | Path | None = None, app_vers
         "business_execution_certified": False, "production_certified": False,
         "autonomous_agents_started": 0, "automatic_code_changes": False,
     }
+    # Persist the acting Vice President readout inside the EXISTING hourly receipt.
+    # This is pure/local, does not start agents or bypass scheduler/approval gates.
+    from engines.company_vicepresidency_engine import build_executive_readout
+    receipt["vicepresidency_readout"] = build_executive_readout(receipt)
     run = {"run_id": run_id, "job_id": job_id, "scheduled_for": scheduled_for, "trigger": trigger,
            "task_name": "platform_workforce_review", "result": result, "started_at": started_at,
            "finished_at": finished_at, "duration_ms": duration_ms, "receipt_id": run_id}

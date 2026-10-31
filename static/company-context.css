@@ -32,3 +32,19 @@ body[data-ns-design="core"] #game-ui-lab .game-ui-evidence code { white-space: n
   .v933-admin-workforce .company-inventory li { grid-template-columns: minmax(0, 1fr); }
   .v857-company-os .v857-company-hero { padding: 16px; }
 }
+
+/* Acting VP: one read-only operating layer, not another dashboard. */
+.v857-company-os .nemesis-executive-structure { margin-block: 16px; }
+.v857-company-os .nemesis-executive-structure > article { min-width: 0; }
+.v857-company-os .nemesis-executive-structure h2 { margin-block: 6px 12px; font-size: clamp(17px, 2vw, 22px); }
+.v857-company-os .nemesis-leadership-roles { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px; }
+.v857-company-os .nemesis-leadership-role { border: 1px solid var(--v860-line, #35536b); border-radius: 14px; padding: 14px; min-width: 0; background: rgba(9,29,48,.35); }
+.v857-company-os .nemesis-leadership-role p { margin-block: 6px; }
+.v857-company-os .nemesis-advisory-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
+.v857-company-os .nemesis-advisory-list details { min-width: 0; padding: 12px; border: 1px solid var(--v860-line, #35536b); border-radius: 12px; }
+.v857-company-os .nemesis-advisory-list summary { cursor: pointer; overflow-wrap: anywhere; }
+.v857-company-os .nemesis-vp-agenda { padding-inline-start: 24px; }
+.v857-company-os .nemesis-vp-agenda li { margin-block: 10px; overflow-wrap: anywhere; }
+@media (max-width: 680px) {
+  .v857-company-os .nemesis-leadership-roles, .v857-company-os .nemesis-advisory-list { grid-template-columns: minmax(0,1fr); }
+}
