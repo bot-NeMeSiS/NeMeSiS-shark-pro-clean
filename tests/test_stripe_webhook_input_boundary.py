@@ -232,6 +232,9 @@ def test_checkout_completed_waits_for_delayed_payment_then_async_success_activat
 def test_checkout_subscription_lookup_failure_is_retryable_and_never_grants_fallback_access(tmp_path, monkeypatch):
     monkeypatch.setattr(billing, "local_safe_payments_blocked", lambda: False)
     monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_not_real")
+    # The retried verified subscription has price_pro; configure its trusted mapping.
+    # Do not weaken the production price-to-entitlement validation for mock data.
+    monkeypatch.setenv("STRIPE_PRICE_PRO_MONTHLY", "price_pro")
     db_path = str(tmp_path / "stripe-retry.sqlite")
     _seed_membership_checkout(db_path)
     event = _checkout_event("evt_retryable", "checkout.session.completed", "paid")
