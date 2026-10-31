@@ -499,15 +499,18 @@ def extract_subscription_fields(subscription: Dict[str, Any]) -> Dict[str, Any]:
     user_id = str(metadata.get("user_id") or "")
     plan = ""
     price_id = ""
+    items = []
     try:
         items = ((subscription.get("items") or {}).get("data") or []) if isinstance(subscription.get("items"), dict) else []
-        if items:
+        # NeMeSiS sells one subscription tier per customer. A multi-price
+        # subscription must be reviewed, never resolved from its first item.
+        if len(items) == 1 and isinstance(items[0], dict):
             price = items[0].get("price") or {}
-            price_id = str(price.get("id") or "")
-    except Exception:
+            price_id = str(price.get("id") if isinstance(price, dict) else price or "")
+    except (TypeError, AttributeError, ValueError):
         price_id = ""
     # Stripe Billing API versions can provide the interval on the item.
-    first_item = items[0] if items and isinstance(items[0], dict) else {}
+    first_item = items[0] if len(items) == 1 and isinstance(items[0], dict) else {}
     period_start = subscription.get("current_period_start") or first_item.get("current_period_start")
     period_end = subscription.get("current_period_end") or first_item.get("current_period_end")
     # Price is the source of truth, not editable metadata supplied by a client.
@@ -576,6 +579,15 @@ def apply_subscription_to_user(conn: sqlite3.Connection, fields: Dict[str, Any],
     if not period_end and status in KEEP_ACCESS_STATUSES:
         return {"applied": False, "reason": "subscription_period_unverified",
                 "user_id": user_id, "plan": plan, "status": status}
+    if period_end and status in KEEP_ACCESS_STATUSES:
+        try:
+            end_dt = datetime.fromisoformat(period_end.replace("Z", "+00:00"))
+            if end_dt.tzinfo is None or end_dt.astimezone(timezone.utc) <= datetime.now(timezone.utc):
+                return {"applied": False, "reason": "subscription_period_expired",
+                        "user_id": user_id, "plan": plan, "status": status}
+        except ValueError:
+            return {"applied": False, "reason": "subscription_period_unverified",
+                    "user_id": user_id, "plan": plan, "status": status}
     conn.execute(
         """INSERT OR REPLACE INTO stripe_subscriptions
            (id,user_id,plan,stripe_customer_id,stripe_subscription_id,stripe_price_id,status,
