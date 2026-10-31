@@ -148,3 +148,48 @@ body.ns-app .ns16-live .ns16-live-feature .v933-match-card {
     --sports-crest-size: 22px;
   }
 }
+
+/* Desktop visual-worker refinement: use available match-card width for team identity.
+   Keep the canonical markup, logos/fallbacks, score, date and actions intact.
+   Mobile rules above remain unchanged. */
+@media (min-width: 1024px) {
+  body.ns-app .v933-match-card .v933-match-teams {
+    gap: clamp(12px, 1.4vw, 24px);
+    align-items: center;
+  }
+
+  body.ns-app .v933-match-card .v933-match-teams > div:not(.v933-match-center) {
+    min-width: 0;
+  }
+
+  body.ns-app .v933-match-card .v933-match-teams .v933-entity-inline.is-team {
+    min-width: 0;
+    gap: 10px;
+  }
+
+  body.ns-app .v933-match-card .v933-match-teams .v933-team-logo {
+    --sports-crest-size: clamp(36px, 2.6vw, 48px);
+    flex-shrink: 0;
+  }
+
+  body.ns-app .v933-match-card .v933-match-teams strong {
+    font-size: clamp(15px, 1.12vw, 19px);
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) {
+    min-height: 86px !important;
+    grid-template-rows: minmax(58px, auto) !important;
+    padding: 10px 16px !important;
+    column-gap: 16px !important;
+  }
+
+  body.ns-app .ns16-live .ns16-match-row .v933-match-card {
+    min-height: 146px;
+  }
+
+  body.ns-app .ns16-live .ns16-live-feature .v933-match-card {
+    min-height: 162px;
+  }
+}
