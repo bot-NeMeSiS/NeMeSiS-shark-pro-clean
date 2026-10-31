@@ -515,8 +515,11 @@ def apply_subscription_to_user(conn: sqlite3.Connection, fields: Dict[str, Any],
     if not user_id:
         return {"applied": False, "reason": "usuario_no_resuelto", "plan": plan, "status": status}
     period_end = str(fields.get("current_period_end") or "")
+    # Never invent a paid entitlement expiry from a missing provider period.
+    # Keep existing access untouched and retry reconciliation with Stripe.
     if not period_end and status in KEEP_ACCESS_STATUSES:
-        period_end = future_period(31)
+        return {"applied": False, "reason": "subscription_period_unverified",
+                "user_id": user_id, "plan": plan, "status": status}
     conn.execute(
         """INSERT OR REPLACE INTO stripe_subscriptions
            (id,user_id,plan,stripe_customer_id,stripe_subscription_id,stripe_price_id,status,
