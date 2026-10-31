@@ -174,8 +174,8 @@ def revenue_os_normalize_plan(plan: Any) -> str:
 
     This helper does not alter the existing live checkout allowlist.
     """
-    value = str(plan or "").strip().upper().replace("_", "+").replace(" ", "")
-    if value in {"ELITE+", "ELITEPLUS"}:
+    value = str(plan or "").strip().upper().replace(" ", "").replace("-", "_")
+    if value in {"ELITE+", "ELITE_PLUS", "ELITEPLUS"}:
         return "ELITE+"
     if value in {"PRO", "PRO+", "PROPLUS"}:
         return "PRO"
