@@ -5,7 +5,9 @@ No real Stripe keys, network calls, customers or charges.
 """
 import os
 import sqlite3
+import tempfile
 import unittest
+from pathlib import Path
 from datetime import datetime, timezone
 from unittest.mock import patch
 
@@ -17,6 +19,7 @@ from engines.stripe_payments_engine import (
     extract_subscription_fields,
     apply_subscription_to_user,
     plan_catalog,
+    create_checkout_session,
     revenue_os_checkout_idempotency_key,
     VALID_PAID_PLANS,
     REVENUE_OS_BILLING_PERIODS,
@@ -125,6 +128,62 @@ class RevenueOSCheckoutTests(unittest.TestCase):
             self.assertEqual(resolve_plan_from_price("price_collision"), "")
             self.assertFalse(revenue_os_price_matches_plan("price_collision", "PRO"))
             self.assertFalse(revenue_os_price_matches_plan("price_collision", "ELITE"))
+
+    def test_six_plan_checkout_requires_explicit_rollout_flag(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = str(Path(tmp) / "checkout.sqlite")
+            with patch.dict(os.environ, {"NEMESIS_LOCAL_SAFE_MODE": "false",
+                                        "REVENUE_OS_SIX_PLANS_ENABLED": "false",
+                                        "STRIPE_PRICE_ELITE_PLUS_MONTHLY": "price_plus"}, clear=False):
+                result = create_checkout_session(db_path, {"id": "qa-user"}, "ELITE+", "monthly")
+                self.assertFalse(result["ok"])
+                self.assertIn("aún no", result["error"])
+                yearly = create_checkout_session(db_path, {"id": "qa-user"}, "PRO", "yearly")
+                self.assertFalse(yearly["ok"])
+                self.assertIn("pendiente", yearly["error"])
+
+    def test_six_plan_checkout_uses_exact_annual_price_and_owner(self):
+        import engines.stripe_payments_engine as billing
+
+        class StripeStub:
+            api_key = None
+            class checkout:
+                class Session:
+                    @staticmethod
+                    def create(**kwargs):
+                        StripeStub.seen = kwargs
+                        return {"id": "cs_qa_yearly", "url": "https://example.invalid/pay"}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            db_path = str(Path(tmp) / "checkout.sqlite")
+            with sqlite3.connect(db_path) as conn:
+                conn.execute("CREATE TABLE users(id TEXT PRIMARY KEY, email TEXT)")
+                conn.execute("INSERT INTO users(id,email) VALUES('user_qa','user@example.invalid')")
+            variables = {
+                "NEMESIS_LOCAL_SAFE_MODE": "false",
+                "REVENUE_OS_SIX_PLANS_ENABLED": "true",
+                "PAYMENTS_ENABLED": "true",
+                "APP_PUBLIC_URL": "https://example.invalid",
+                "STRIPE_SECRET_KEY": "sk_test_synthetic_only",
+                "STRIPE_WEBHOOK_SECRET": "whsec_synthetic_only",
+                "STRIPE_PRICE_PRO": "price_pro_month",
+                "STRIPE_PRICE_ELITE": "price_elite_month",
+                "STRIPE_PRICE_PRO_MONTHLY": "price_pro_month",
+                "STRIPE_PRICE_PRO_YEARLY": "price_pro_year",
+            }
+            with patch.dict(os.environ, variables, clear=False), patch.object(billing, "stripe_sdk", return_value=StripeStub):
+                result = create_checkout_session(db_path, {"id": "user_qa"}, "PRO", "yearly")
+            self.assertTrue(result["ok"], result)
+            self.assertEqual(result["billing_period"], "yearly")
+            self.assertEqual(StripeStub.seen["line_items"], [{"price": "price_pro_year", "quantity": 1}])
+            self.assertEqual(StripeStub.seen["client_reference_id"], "user_qa")
+            self.assertEqual(StripeStub.seen["subscription_data"]["metadata"]["billing_period"], "yearly")
+            with sqlite3.connect(db_path) as conn:
+                row = conn.execute(
+                    "SELECT user_id,plan,billing_period,expected_price_id FROM stripe_checkout_sessions "
+                    "WHERE stripe_session_id='cs_qa_yearly'"
+                ).fetchone()
+            self.assertEqual(row, ("user_qa", "PRO", "yearly", "price_pro_year"))
 
     def test_idempotency_changes_with_period_price_and_user(self):
         now = datetime(2026, 10, 31, 12, 0, tzinfo=timezone.utc)
