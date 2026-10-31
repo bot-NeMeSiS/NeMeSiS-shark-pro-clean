@@ -212,6 +212,62 @@ def test_cancel_at_period_end_preserves_paid_access_until_deleted(sandbox, monke
     assert _state(sandbox)[0] == "FREE"
 
 
+def test_cancel_current_subscription_after_price_retirement(sandbox, monkeypatch):
+    _stub(monkeypatch, _sub())
+    assert _deliver(monkeypatch, sandbox, _checkout_event())["processed"] is True
+    assert _state(sandbox)[0] == "PRO"
+    monkeypatch.delenv("STRIPE_PRICE_PRO_MONTHLY", raising=False)
+    monkeypatch.delenv("STRIPE_PRICE_PRO", raising=False)
+    canceled = _sub(status="canceled")
+    canceled["items"]["data"] = []
+    result = _deliver(monkeypatch, sandbox, _event(
+        "evt_cancel_retired_price", "customer.subscription.deleted", canceled
+    ))
+    assert result["status"] == "processed"
+    assert _state(sandbox)[0] == "FREE"
+    with sqlite3.connect(sandbox) as conn:
+        status = conn.execute(
+            "SELECT status FROM stripe_subscriptions WHERE stripe_subscription_id='sub-1'"
+        ).fetchone()[0]
+    assert status == "canceled"
+
+
+def test_cancellation_from_different_subscription_or_customer_cannot_demote(sandbox, monkeypatch):
+    _stub(monkeypatch, _sub())
+    assert _deliver(monkeypatch, sandbox, _checkout_event())["processed"] is True
+    for name, sub_id, customer_id in (
+        ("other_sub", "sub-other", "cus-1"),
+        ("other_customer", "sub-1", "cus-other"),
+    ):
+        canceled = _sub(status="canceled")
+        canceled["id"] = sub_id
+        canceled["customer"] = customer_id
+        result = _deliver(monkeypatch, sandbox, _event(
+            "evt_cancel_" + name, "customer.subscription.deleted", canceled
+        ))
+        assert result["status"] == "verified_not_applied"
+        assert _state(sandbox)[0] == "PRO"
+
+
+def test_cancelled_stripe_subscription_preserves_manual_grant(sandbox, monkeypatch):
+    _stub(monkeypatch, _sub())
+    _deliver(monkeypatch, sandbox, _checkout_event())
+    with sqlite3.connect(sandbox) as conn:
+        conn.execute(
+            "UPDATE users SET membership='ELITE',role='ELITE',"
+            "membership_source='admin_manual',membership_admin_granted=1 "
+            "WHERE id='user-1'"
+        )
+    canceled = _sub(status="canceled")
+    canceled["items"]["data"] = []
+    result = _deliver(monkeypatch, sandbox, _event(
+        "evt_cancel_with_manual", "customer.subscription.deleted", canceled
+    ))
+    assert result["processed"] is True
+    assert result["applied"]["membership_changed"] is False
+    assert _state(sandbox)[0] == "ELITE"
+
+
 def test_existing_paid_user_cannot_start_a_second_checkout(tmp_path, monkeypatch):
     db_path = str(tmp_path / "paid-checkout.sqlite")
     _seed(db_path, paid=True)

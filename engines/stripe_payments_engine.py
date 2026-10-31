@@ -564,6 +564,54 @@ def apply_subscription_to_user(conn: sqlite3.Connection, fields: Dict[str, Any],
     customer_id = str(fields.get("customer_id") or "")
     status = str(fields.get("status") or "").lower()
     plan = revenue_os_normalize_plan(fields.get("plan"))
+    if status in CANCEL_STATUSES:
+        # A signed cancellation must still revoke a previously paid subscription
+        # when its old price has been retired. Match the current customer,
+        # subscription and user; never rely on unverified metadata alone.
+        if not subscription_id or not customer_id:
+            return {"applied": False, "reason": "subscription_identity_unverified", "status": status}
+        linked = user_by_stripe(conn, customer_id=customer_id, subscription_id=subscription_id)
+        linked_id = str(linked.get("id") or "")
+        if (not linked_id or (user_id and linked_id != user_id)
+                or str(linked.get("stripe_subscription_id") or "") != subscription_id
+                or str(linked.get("stripe_customer_id") or "") != customer_id):
+            return {"applied": False, "reason": "subscription_owner_unverified",
+                    "status": status, "user_id": user_id}
+        user_id = linked_id
+        conn.execute(
+            "UPDATE stripe_subscriptions SET status=?,cancel_at_period_end=0,"
+            "last_event_type=?,last_event_at=? "
+            "WHERE user_id=? AND stripe_subscription_id=?",
+            (status, event_type, utc_now(), user_id, subscription_id),
+        )
+        conn.execute(
+            "UPDATE users SET stripe_subscription_status=? "
+            "WHERE id=? AND stripe_subscription_id=?",
+            (status, user_id, subscription_id),
+        )
+        manual_access = (
+            str(linked.get("membership_admin_granted") or "0").lower() in {"1", "true"}
+            or str(linked.get("membership_source") or "").lower() == "admin_manual"
+            or str(linked.get("role") or "").upper() == "ADMIN"
+        )
+        if manual_access:
+            return {"applied": True, "action": "subscription_recorded_access_preserved",
+                    "membership_changed": False, "user_id": user_id,
+                    "plan": linked.get("membership"), "status": status}
+        if str(linked.get("membership_source") or "") == "stripe":
+            conn.execute(
+                """UPDATE users SET role='FREE', membership='FREE',
+                       membership_source='stripe_cancelled', membership_expires_at='',
+                       membership_note='Suscripción Stripe cancelada o vencida. Acceso devuelto a FREE.',
+                       membership_updated_at=?, membership_updated_by='stripe_webhook',
+                       stripe_subscription_status=?, last_payment_status=?
+                   WHERE id=? AND stripe_subscription_id=? AND stripe_customer_id=?""",
+                (utc_now(), status, status, user_id, subscription_id, customer_id),
+            )
+            return {"applied": True, "action": "membership_free", "user_id": user_id,
+                    "plan": "FREE", "status": status}
+        return {"applied": False, "reason": "subscription_not_current_paid_access",
+                "user_id": user_id, "status": status}
     if not revenue_os_price_matches_plan(str(fields.get("price_id") or ""), plan):
         return {"applied": False, "reason": "price_plan_unverified", "status": status}
     if not user_id:
@@ -658,18 +706,6 @@ def apply_subscription_to_user(conn: sqlite3.Connection, fields: Dict[str, Any],
             ),
         )
         return {"applied": True, "action": "membership_active", "user_id": user_id, "plan": plan, "status": status}
-    if status in CANCEL_STATUSES:
-        if (subscription_id and str(current.get("membership_source") or "") == "stripe"
-                and str(current.get("stripe_subscription_id") or "") == subscription_id):
-            conn.execute(
-                """UPDATE users
-                      SET role='FREE', membership='FREE', membership_source='stripe_cancelled', membership_expires_at='',
-                          membership_note='Suscripción Stripe cancelada o vencida. Acceso devuelto a FREE.',
-                          membership_updated_at=?, membership_updated_by='stripe_webhook', stripe_subscription_status=?, last_payment_status=?
-                    WHERE id=?""",
-                (utc_now(), status, status, user_id),
-            )
-            return {"applied": True, "action": "membership_free", "user_id": user_id, "plan": "FREE", "status": status}
     return {"applied": False, "reason": "estado_no_aplica_cambio", "user_id": user_id, "plan": plan, "status": status}
 
 
