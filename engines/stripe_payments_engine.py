@@ -722,9 +722,10 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str, billi
         price_id = plan_price_id(plan)
     if not price_id:
         return {"ok": False, "error": "Precio de este periodo aún no configurado."}
+    # Prevent checkout when Stripe events cannot be authenticated and processed.
     status = stripe_runtime_status(db_path)
-    if not status["checkout_ready"]:
-        return {"ok": False, "error": "Stripe Checkout no está configurado completamente.", "blockers": status.get("blockers", [])}
+    if not status["checkout_ready"] or not status["webhook_ready"]:
+        return {"ok": False, "error": "Pago no disponible: checkout o verificación de suscripciones sin configurar.", "blockers": status.get("blockers", [])}
     user_id = str(user.get("id") or "")
     if not user_id:
         return {"ok": False, "error": "Inicia sesión antes de pagar."}
