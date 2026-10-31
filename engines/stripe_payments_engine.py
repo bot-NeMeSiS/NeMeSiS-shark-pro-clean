@@ -692,13 +692,21 @@ def sync_checkout_session(db_path: str, user: Dict[str, Any], session_id: str) -
     return {"ok": bool(applied.get("applied")), "plan": fields.get("plan"), "status": fields.get("status"), "applied": applied, "session_id": session_id}
 
 
-def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Dict[str, Any]:
+def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str, billing_period: str = "monthly") -> Dict[str, Any]:
     if local_safe_payments_blocked():
         return local_safe_payment_result()
     ensure_stripe_schema(db_path)
     plan = normalize_plan(plan)
     if plan not in VALID_PAID_PLANS:
         return {"ok": False, "error": "Plan no válido para pago."}
+    billing_period = str(billing_period or "").strip().lower()
+    if billing_period not in REVENUE_OS_BILLING_PERIODS:
+        return {"ok": False, "error": "Periodo de facturación no válido."}
+    price_id = revenue_os_price_id(plan, billing_period)
+    if not price_id and billing_period == "monthly":
+        price_id = plan_price_id(plan)
+    if not price_id:
+        return {"ok": False, "error": "Precio de este periodo aún no configurado."}
     status = stripe_runtime_status(db_path)
     if not status["checkout_ready"]:
         return {"ok": False, "error": "Stripe Checkout no está configurado completamente.", "blockers": status.get("blockers", [])}
@@ -710,14 +718,15 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Di
         return {"ok": False, "error": "La librería stripe no está instalada."}
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     base = public_base_url()
-    price_id = plan_price_id(plan)
     conn = connect(db_path)
     db_user = user_by_id(conn, user_id) or user
     customer_id = str(db_user.get("stripe_customer_id") or "")
-    idempotency_key = checkout_idempotency_key(user_id, plan)
+    idempotency_key = revenue_os_checkout_idempotency_key(user_id, plan, billing_period, price_id)
     metadata = {
         "user_id": user_id,
         "plan": plan,
+        "billing_period": billing_period,
+        "price_id": price_id,
         "app": "nemesis_shark_pro",
         "version": "V937",
         "checkout_attempt": idempotency_key,
@@ -727,7 +736,7 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Di
             "mode": "subscription",
             "line_items": [{"price": price_id, "quantity": 1}],
             "success_url": f"{base}/pagos/exito?session_id={{CHECKOUT_SESSION_ID}}",
-            "cancel_url": f"{base}/pagos/cancelado?plan={plan}",
+            "cancel_url": f"{base}/pagos/cancelado?plan={plan}&billing_period={billing_period}",
             "client_reference_id": user_id,
             "metadata": metadata,
             "subscription_data": {"metadata": metadata},
