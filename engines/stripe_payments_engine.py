@@ -227,32 +227,41 @@ def plan_price_id(plan: str) -> str:
 
 
 def plan_catalog() -> Dict[str, Dict[str, Any]]:
-    return {
+    """Public offer catalog; only currently integrated plans are checkout-ready.
+
+    Annual and ELITE+ are informative until the authenticated route and
+    entitlement gates are updated and verified.
+    """
+    catalog = {
         "FREE": {
-            "plan": "FREE",
-            "title": "FREE",
-            "price_label": "0€",
-            "price_id": "",
-            "configured": True,
+            "plan": "FREE", "title": "FREE", "price_label": "0 €",
+            "price_id": "", "configured": True,
             "features": ["Calendario", "Directo", "Resultados", "SHARK base"],
         },
-        "PRO": {
-            "plan": "PRO",
-            "title": "PRO",
-            "price_label": os.getenv("STRIPE_PRICE_PRO_LABEL", "9,99 €/mes"),
-            "price_id": plan_price_id("PRO"),
-            "configured": bool(plan_price_id("PRO")),
-            "features": ["Pronósticos PRO", "Combinadas", "Telegram premium", "Más lectura SHARK"],
-        },
-        "ELITE": {
-            "plan": "ELITE",
-            "title": "ELITE",
-            "price_label": os.getenv("STRIPE_PRICE_ELITE_LABEL", "24,99 €/mes"),
-            "price_id": plan_price_id("ELITE"),
-            "configured": bool(plan_price_id("ELITE")),
-            "features": ["Pronósticos ELITE", "Alertas en directo", "Prioridad Telegram", "SHARK contextual"],
-        },
     }
+    offers = (
+        ("PRO", "14,99 €/mes", "149 €/año", ["Pronósticos PRO", "Combinadas", "Telegram premium", "SHARK"]),
+        ("ELITE", "29,99 €/mes", "299 €/año", ["Todo PRO", "Alertas avanzadas", "Combinadas ELITE", "SHARK contextual"]),
+        ("ELITE+", "44,99 €/mes", "449 €/año", ["Todo ELITE", "NeMeSiS Lab", "Acceso anticipado", "Soporte prioritario"]),
+    )
+    for key, monthly_label, yearly_label, features in offers:
+        legacy_id = plan_price_id(key) if key in VALID_PAID_PLANS else ""
+        monthly_id = revenue_os_price_id(key, "monthly") or legacy_id
+        yearly_id = revenue_os_price_id(key, "yearly")
+        enabled = key in VALID_PAID_PLANS and bool(monthly_id)
+        catalog[key] = {
+            "plan": key, "title": key, "price_label": monthly_label,
+            "yearly_price_label": yearly_label,
+            "price_id": monthly_id if enabled else "",
+            "monthly_price_id": monthly_id,
+            "yearly_price_id": yearly_id,
+            "monthly_configured": bool(monthly_id),
+            "yearly_configured": bool(yearly_id),
+            "configured": enabled,
+            "available_for_checkout": enabled,
+            "features": features,
+        }
+    return catalog
 
 
 def stripe_sdk():
