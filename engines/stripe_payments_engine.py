@@ -435,16 +435,16 @@ def resolve_plan_from_price(price_id: str) -> str:
     price_id = str(price_id or "").strip()
     if not price_id:
         return ""
+    matches = set()
     for name in ("PRO", "ELITE", "ELITE+"):
         for period in REVENUE_OS_BILLING_PERIODS:
-            configured = revenue_os_price_id(name, period)
-            if configured and price_id == configured:
-                return name
+            if revenue_os_price_id(name, period) == price_id:
+                matches.add(name)
     for name in ("PRO", "ELITE"):
-        legacy = plan_price_id(name)
-        if legacy and price_id == legacy:
-            return name
-    return ""
+        if plan_price_id(name) == price_id:
+            matches.add(name)
+    # A misconfigured price used by two tiers must never grant a higher tier.
+    return next(iter(matches)) if len(matches) == 1 else ""
 
 
 def revenue_os_price_matches_plan(price_id: str, plan: Any) -> bool:
