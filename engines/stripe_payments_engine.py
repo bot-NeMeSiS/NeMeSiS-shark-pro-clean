@@ -838,6 +838,18 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str, billi
     conn = connect(db_path)
     db_user = user_by_id(conn, user_id) or user
     customer_id = str(db_user.get("stripe_customer_id") or "")
+    # Customers with an existing Stripe subscription must use Billing Portal
+    # for upgrades, downgrades, renewal issues or cancellation.
+    if (str(db_user.get("membership_source") or "") == "stripe"
+            and str(db_user.get("stripe_subscription_id") or "").strip()
+            and str(db_user.get("stripe_subscription_status") or "").lower() in KEEP_ACCESS_STATUSES):
+        conn.close()
+        return {
+            "ok": False,
+            "reason": "existing_subscription_manage_in_portal",
+            "error": "Ya tienes una suscripción. Cambia de plan o actualiza el pago desde Mi cuenta.",
+            "manage_url": "/mi-cuenta",
+        }
     idempotency_key = revenue_os_checkout_idempotency_key(user_id, plan, billing_period, price_id)
     metadata = {
         "user_id": user_id,
