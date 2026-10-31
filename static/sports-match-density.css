@@ -183,8 +183,14 @@ body.ns-app .v933-match-card .v933-match-teams strong {
     font-size: clamp(13px, 3.7vw, 15px); line-height: 1.3;
   }
   body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) {
-    /* Preserve 34px crests + legible labels without inflating the two-row card. */
+    /* Keep the mobile clock's optional row genuinely collapsible. */
     padding: 5px 7px !important; gap: 2px !important;
+  }
+  /* Calendar starts at 24px in main: 28px stays larger without forcing the
+     card to keep the clock's height after its optional labels disappear.
+     Other match cards retain their 34/36px mobile identity. */
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-team-logo {
+    --sports-crest-size: 28px;
   }
   body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-teams > div,
   body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-teams .v933-entity-inline.is-team {
