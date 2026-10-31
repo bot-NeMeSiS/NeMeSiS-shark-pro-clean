@@ -7,6 +7,8 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import Any, Dict, Iterable, List, Mapping, Optional
 
+from engines.sportsdb_pause_engine import sportsdb_paused
+
 PROVIDER_LABELS = {
     "thesportsdb": "TheSportsDB",
     "api_football": "API-Football",
@@ -31,8 +33,8 @@ PROVIDER_ENV_KEYS = {
     "the_odds_api": ["THE_ODDS_API_KEY_PAID", "THE_ODDS_API_KEY_FREE", "THE_ODDS_API_KEY"],
 }
 
-DEFAULT_PROVIDER_ORDER = ["thesportsdb", "api_football", "sportmonks", "sportradar"]
-DEFAULT_PRIMARY_PROVIDER = "thesportsdb"
+DEFAULT_PROVIDER_ORDER = ["api_football", "thesportsdb", "sportmonks", "sportradar"]
+DEFAULT_PRIMARY_PROVIDER = "api_football"
 
 NORMALIZED_MATCH_FIELDS = [
     "external_id", "provider", "league_name", "league_id", "season", "match_date",
@@ -87,13 +89,17 @@ def provider_order() -> List[str]:
     raw = os.getenv("FOOTBALL_DATA_PROVIDER_ORDER") or os.getenv("DATA_PROVIDER_ORDER") or ""
     if raw.strip():
         order = [item.strip().lower().replace("-", "_") for item in raw.split(",") if item.strip()]
-        return [item for item in order if item in PROVIDER_LABELS]
+        order = [item for item in order if item in PROVIDER_LABELS]
+        return (["api_football"] + [p for p in order if p not in {"api_football", "thesportsdb"}]
+                if sportsdb_paused() else order)
     primary = primary_provider()
     order = [primary] + [p for p in DEFAULT_PROVIDER_ORDER if p != primary]
-    return order
+    return [p for p in order if not (sportsdb_paused() and p == "thesportsdb")]
 
 
 def primary_provider() -> str:
+    if sportsdb_paused():
+        return "api_football"
     raw = (os.getenv("PRIMARY_FOOTBALL_DATA_PROVIDER") or DEFAULT_PRIMARY_PROVIDER).strip().lower().replace("-", "_")
     return raw if raw in PROVIDER_LABELS else DEFAULT_PRIMARY_PROVIDER
 
@@ -103,12 +109,14 @@ def provider_status(provider: str) -> Dict[str, Any]:
     active_key = _first_env(keys)
     funded = provider != "the_odds_api" or _env_flag("THE_ODDS_API_FUNDED", False)
     enabled = _env_flag(f"ENABLE_{provider.upper()}_PROVIDER", default=provider in {"thesportsdb", "api_football", "the_odds_api"})
-    enabled = enabled and funded
+    paused = provider == "thesportsdb" and sportsdb_paused()
+    enabled = enabled and funded and not paused
     configured = bool(active_key) or provider == "thesportsdb" and bool(_first_env(PROVIDER_ENV_KEYS["thesportsdb"]))
     return {
         "provider": provider,
         "name": PROVIDER_LABELS.get(provider, provider),
         "enabled": enabled,
+        "paused": paused,
         "configured": configured,
         "funded": funded if provider == "the_odds_api" else None,
         "active_key": active_key or "",
@@ -265,7 +273,8 @@ def data_provider_summary(db_path: str) -> Dict[str, Any]:
         or (provider_readiness.get("the_odds_api") or {}).get("configured")
         and (provider_readiness.get("the_odds_api") or {}).get("enabled")
     )
-    sportsdb_ready = bool(provider_status("thesportsdb")["configured"])
+    sportsdb_state = provider_status("thesportsdb")
+    sportsdb_ready = bool(sportsdb_state["configured"] and sportsdb_state["enabled"])
     ready_score = 25
     if sportsdb_ready:
         ready_score += 20
@@ -318,6 +327,8 @@ def data_provider_summary(db_path: str) -> Dict[str, Any]:
 
 
 def provider_recommendation(live_ready: bool, sportsdb_ready: bool, odds_ready: bool) -> str:
+    if sportsdb_paused():
+        return "API-Football es la fuente principal. TheSportsDB está en pausa sin nuevas consultas; se conserva la caché guardada."
     if live_ready and sportsdb_ready and odds_ready:
         return "Base integrada: API-Football para calendario, directo, estadísticas y cuotas disponibles; TheSportsDB complementa resultados, equipos y contenido."
     if sportsdb_ready and odds_ready:

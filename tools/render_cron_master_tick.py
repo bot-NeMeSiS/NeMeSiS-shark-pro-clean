@@ -64,6 +64,7 @@ HIGHLIGHTS_SKIP_REASONS = {
     "scope_completed_with_gaps",
     "fresh_sync_window",
     "retry_cooldown",
+    "provider_paused",
 }
 HIGHLIGHTS_ERROR_CODES = {
     "TIME_BUDGET", "REQUEST_BUDGET", "MEDIA_BUDGET", "ITEM_BUDGET", "PARTITION_BUDGET",
@@ -756,6 +757,12 @@ def odds_tick(base_url: str, secret: str) -> dict:
 
 def highlights_tick(base_url: str, secret: str) -> dict:
     """Run media enrichment independently so a slow provider cannot kill sports/Telegram."""
+    from engines.sportsdb_pause_engine import sportsdb_paused
+    if sportsdb_paused():
+        return {"highlights_http": None, "highlights_status": "PASS",
+                "highlights_result": "provider_paused", "skipped": True,
+                "external_calls": 0, "highlights_found": 0, "linked_matches": 0,
+                "highlights_duration_ms": 0}
     started = time.perf_counter()
     query = urllib.parse.urlencode({
         "days_back": 7,
@@ -788,7 +795,7 @@ def highlights_tick(base_url: str, secret: str) -> dict:
             errors_present = bool(result.get("error") or result.get("errors"))
             last = result.get("last") if isinstance(result.get("last"), dict) else {}
             if skipped:
-                status = "PASS" if reason in {"fresh_sync_window", "already_synced_today"} else "PARTIAL"
+                status = "PASS" if reason in {"fresh_sync_window", "already_synced_today", "provider_paused"} else "PARTIAL"
             elif result.get("ok") is True and not errors_present:
                 status = "PASS"
             elif str(result.get("status") or "").upper() == "PARTIAL":

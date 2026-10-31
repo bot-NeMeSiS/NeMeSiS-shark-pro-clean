@@ -17,6 +17,9 @@ from __future__ import annotations
 import json
 import os
 import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -50,6 +53,11 @@ def print_event(payload: dict) -> None:
 
 
 def main() -> int:
+    from engines.sportsdb_pause_engine import sportsdb_paused
+    if sportsdb_paused():
+        print_event({"ok": True, "event": "HIGHLIGHTS_SYNC_SKIPPED", "reason": "provider_paused",
+                     "external_calls": 0})
+        return 0
     base_url = (os.environ.get("PUBLIC_BASE_URL") or "").strip()
     secret = (os.environ.get("AUTOMATION_SECRET") or "").strip()
     utc_now, madrid_now = now_labels()

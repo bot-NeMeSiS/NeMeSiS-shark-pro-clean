@@ -1710,7 +1710,12 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
     )
     fallback = {"ok": True, "status": "NOT_REQUIRED", "skipped": True, "processed": 0}
     if fixtures.get("ok") is False and not fixtures.get("skipped"):
-        fallback = _safe_sports_sync_call("sportsdb_calendar", sync_sportsdb_calendar, limit=180)
+        from engines.sportsdb_pause_engine import sportsdb_paused
+        if sportsdb_paused():
+            fallback = {"ok": True, "status": "PAUSED", "reason": "provider_paused",
+                        "skipped": True, "processed": 0, "external_calls": 0}
+        else:
+            fallback = _safe_sports_sync_call("sportsdb_calendar", sync_sportsdb_calendar, limit=180)
 
     # Reopen the request read snapshot after provider writers committed.
     if has_request_context():
@@ -5020,7 +5025,8 @@ def apply_team_identities_to_match(item):
 
 
 def thesportsdb_key():
-    return str(os.getenv("THESPORTSDB_KEY") or os.getenv("THESPORTSDB_API_KEY") or "").strip()
+    from engines.sportsdb_pause_engine import sportsdb_effective_key
+    return sportsdb_effective_key()
 
 
 SPORTSDB_SEARCH_ALIASES = {
@@ -5308,6 +5314,7 @@ def fetch_thesportsdb_team_by_id(external_id):
 
 
 def crest_sync_status():
+    from engines.sportsdb_pause_engine import sportsdb_paused
     seed_core()
     teams = rows("SELECT * FROM teams ORDER BY name")
     with_logo = [t for t in teams if t.get("logo_url")]
@@ -5321,6 +5328,7 @@ def crest_sync_status():
             last_sync = {"raw": state.get("value_json")}
     return {
         "key_present": bool(thesportsdb_key()),
+        "paused": sportsdb_paused(),
         "key_masked": masked_key(thesportsdb_key()),
         "live_enabled": sportsdb_live_enabled(),
         "total_teams": len(teams),
@@ -6396,6 +6404,7 @@ def sync_sportsdb_feed(limit=220):
 
 
 def sportsdb_feed_status():
+    from engines.sportsdb_pause_engine import sportsdb_paused
     seed_core()
     state = one("SELECT * FROM automation_state WHERE key='sportsdb_feed_sync'")
     last_sync = {}
@@ -6408,6 +6417,7 @@ def sportsdb_feed_status():
     updated = (one("SELECT MAX(updated_at) AS updated_at FROM matches WHERE source LIKE 'TheSportsDB%'") or {}).get("updated_at", "")
     return {
         "key_present": bool(thesportsdb_key()),
+        "paused": sportsdb_paused(),
         "key_masked": masked_key(thesportsdb_key()),
         "live_enabled": sportsdb_live_enabled(),
         "cached_matches": cached,
@@ -22008,6 +22018,10 @@ def v766_sync_highlights_daily(force=False, days_back=7, limit=250, priority=Non
     import os
     import time
     started = now_iso()
+    from engines.sportsdb_pause_engine import sportsdb_paused
+    if sportsdb_paused():
+        return {"ok": True, "skipped": True, "status": "PAUSED", "reason": "provider_paused",
+                "processed": 0, "updated": 0, "external_calls": 0, "errors": []}
     if not force:
         last = automation_get("sportsdb_highlights_last_sync", {}) or {}
         try:

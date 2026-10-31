@@ -93,7 +93,8 @@ def ensure_sportsdb_highlights_schema(db_path):
 
 
 def _api_key():
-    return (os.getenv('THESPORTSDB_KEY') or os.getenv('THESPORTSDB_API_KEY') or '').strip()
+    from engines.sportsdb_pause_engine import sportsdb_effective_key
+    return sportsdb_effective_key()
 
 
 def _fetch_json(url, timeout=12):

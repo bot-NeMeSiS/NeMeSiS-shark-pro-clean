@@ -114,7 +114,8 @@ def normalize_event_tv(payload: Any, event_id: str) -> list[dict[str, Any]]:
 
 
 def _provider_key(env: Mapping[str, str]) -> str:
-    return str(env.get("THESPORTSDB_API_KEY") or env.get("THESPORTSDB_KEY") or "").strip()
+    from engines.sportsdb_pause_engine import sportsdb_effective_key
+    return sportsdb_effective_key(env)
 
 
 def _fetch_event_tv(event_id: str, key: str, timeout: float = 6.0) -> Any:
@@ -225,6 +226,10 @@ def sync_upcoming_broadcasts(
 ) -> dict[str, Any]:
     """Refresh bounded upcoming TV listings using exact SportsDB event IDs only."""
     env = os.environ if env is None else env
+    from engines.sportsdb_pause_engine import sportsdb_paused
+    if sportsdb_paused(env):
+        return {"ok": True, "skipped": True, "reason": "SPORTSDB_PAUSED", "source": SOURCE,
+                "external_calls": 0, "processed": 0, "updated": 0, "cached": 0}
     key = _provider_key(env)
     observed = (now or _utc_now()).astimezone(timezone.utc)
     max_matches = max(1, min(12, int(max_matches or DEFAULT_LIMIT)))
