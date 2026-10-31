@@ -70,6 +70,18 @@ class RevenueOSCheckoutTests(unittest.TestCase):
             self.assertFalse(result["applied"])
             self.assertEqual(result["reason"], "price_plan_unverified")
 
+    def test_unknown_price_does_not_grant_access(self):
+        with patch.dict(os.environ, {"STRIPE_PRICE_PRO_MONTHLY": "price_verified_pro"}, clear=False):
+            fields = {
+                "user_id": "u_fake", "subscription_id": "sub_fake",
+                "customer_id": "cus_fake", "status": "active",
+                "plan": "PRO", "price_id": "price_not_configured",
+            }
+            with sqlite3.connect(":memory:") as conn:
+                result = apply_subscription_to_user(conn, fields, "test")
+            self.assertFalse(result["applied"])
+            self.assertEqual(result["reason"], "price_plan_unverified")
+
     def test_idempotency_changes_with_period_price_and_user(self):
         now = datetime(2026, 10, 31, 12, 0, tzinfo=timezone.utc)
         f = lambda user, period, price: revenue_os_checkout_idempotency_key(user, "PRO", period, price, now)
