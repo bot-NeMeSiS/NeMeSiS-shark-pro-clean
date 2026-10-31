@@ -1314,7 +1314,7 @@ def continuous_evolution_endpoint_preflight():
     }
 
 
-def continuous_evolution_tick_response(result, preflight):
+def continuous_evolution_tick_response(result, preflight, workforce_result=None):
     job = result.get("job") or {}
     cycle = result.get("cycle") or {}
     snapshot = cycle.get("snapshot") or {}
@@ -1376,6 +1376,34 @@ def continuous_evolution_tick_response(result, preflight):
     }
     if result.get("error_safe"):
         response["error_safe"] = sanitize_runtime_value(result.get("error_safe"))
+    if workforce_result is not None:
+        native_job = workforce_result.get("job") or {}
+        native_receipt = workforce_result.get("receipt") or {}
+        native_status = workforce_result.get("result") or "UNKNOWN"
+        response["daily_result"] = response["result"]
+        response["native_workforce"] = {
+            "task_name": "platform_workforce_review",
+            "result": native_status,
+            "receipt_id": native_receipt.get("receipt_id") or native_receipt.get("run_id"),
+            "run_id": native_job.get("run_id"),
+            "review_kind": native_receipt.get("review_kind") or "STATIC_PARTIAL",
+            "outcome": native_receipt.get("outcome"),
+            "executed_count": native_receipt.get("executed_count", 0),
+            "expected_count": native_receipt.get("expected_count", 22),
+            "duration_ms": native_job.get("duration_ms", 0),
+            "next_expected_run": native_job.get("next_expected_run"),
+            "business_execution_certified": False,
+            "production_certified": False,
+        }
+        accepted = {"PASS", "SKIPPED_NOT_DUE", "SKIPPED_ALREADY_RUNNING", "SKIPPED_PAUSED"}
+        if workforce_result.get("ok") is False or native_status not in accepted:
+            response.update({"ok": False, "result": "PARTIAL", "status": "PARTIAL"})
+        elif native_status == "PASS" and response["result"] == "SKIPPED_NOT_DUE":
+            response.update({"result": "PASS", "status": "PASS"})
+        response["dangerous_actions_executed"] = bool(
+            response["dangerous_actions_executed"]
+            or workforce_result.get("dangerous_actions_executed")
+        )
     return response
 
 
@@ -33076,6 +33104,16 @@ def api_automation_continuous_evolution_tick():
             "secrets_exposed": 0,
         }
         return jsonify(payload), 409
+    # The existing protected tick owns both cadences. The hourly pass is bounded
+    # and reads local source only; the daily board can then use its proposals.
+    workforce_result = run_continuous_evolution_scheduler_task(
+        BASE_DIR,
+        APP_VERSION,
+        task_name="platform_workforce_review",
+        force=False,
+        trigger="SCHEDULED_PRODUCTION",
+        storage_root=preflight.get("storage_root"),
+    )
     result = run_continuous_evolution_scheduler_task(
         BASE_DIR,
         APP_VERSION,
@@ -33084,7 +33122,7 @@ def api_automation_continuous_evolution_tick():
         trigger="SCHEDULED_PRODUCTION",
         storage_root=preflight.get("storage_root"),
     )
-    payload = continuous_evolution_tick_response(result, preflight)
+    payload = continuous_evolution_tick_response(result, preflight, workforce_result)
     if payload.get("dangerous_actions_executed"):
         payload["ok"] = False
         payload["result"] = "EXTERNAL_ACTION_ATTEMPT"

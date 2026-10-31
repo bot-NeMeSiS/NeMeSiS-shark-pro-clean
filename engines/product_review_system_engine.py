@@ -11,6 +11,7 @@ import hashlib
 import os
 import json
 import re
+import tempfile
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -58,6 +59,7 @@ EVIDENCE_ORIGINS = {
     "UNKNOWN",
 }
 CONTINUOUS_EVOLUTION_TASKS = {
+    "platform_workforce_review": {"label": "Platform Workforce Review", "cadence": "hourly", "interval": timedelta(hours=1)},
     "daily_product_review": {"label": "Daily Product Review", "cadence": "daily", "interval": timedelta(days=1)},
     "daily_founder_brief": {"label": "Daily Founder Brief", "cadence": "daily", "interval": timedelta(days=1)},
     "weekly_executive_review": {"label": "Weekly Executive Review", "cadence": "weekly", "interval": timedelta(days=7)},
@@ -79,6 +81,7 @@ CONTINUOUS_EVOLUTION_TRIGGERS = {"MANUAL", "SCHEDULED_LOCAL", "SCHEDULED_PRODUCT
 CONTINUOUS_EVOLUTION_LOCK_TTL = timedelta(hours=2)
 CONTINUOUS_EVOLUTION_POLICY = {
     "timezone": "Europe/Madrid",
+    "platform_workforce_review": {"cadence": "hourly", "period_timezone": "UTC"},
     "daily_product_review": {"hour": 4, "minute": 0},
     "daily_founder_brief": {"hour": 4, "minute": 5},
     "weekly_executive_review": {"weekday": 0, "hour": 4, "minute": 30},
@@ -1065,9 +1068,20 @@ def _ce_load_json(path: Path, default: Any) -> Any:
 
 def _ce_write_json(path: Path, payload: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True, default=str), encoding="utf-8")
-    tmp.replace(path)
+    # Separate temporary names prevent concurrent independent readers/writers
+    # from replacing or unlinking another writer's in-progress JSON file.
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                         prefix=path.name + ".", suffix=".tmp", delete=False) as fh:
+            temporary = Path(fh.name)
+            json.dump(payload, fh, ensure_ascii=False, indent=2, sort_keys=True, default=str)
+            fh.flush()
+            os.fsync(fh.fileno())
+        temporary.replace(path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def _ce_clean_text(value: Any, limit: int = 900) -> str:
@@ -1103,6 +1117,9 @@ def _ce_hash(prefix: str, *parts: Any) -> str:
 
 
 def _ce_recommendation_id(candidate: dict[str, Any]) -> str:
+    component = str(candidate.get("component") or "")
+    if component.startswith("native_workforce."):
+        return _ce_hash("REC", "native_workforce", component)
     return _ce_hash("REC", candidate.get("module"), candidate.get("route"), candidate.get("component"), candidate.get("proposal"))
 
 
@@ -1177,6 +1194,8 @@ def set_continuous_evolution_pause(project_root: str | Path | None = None, *, pa
 
 
 def _ce_period_key(task_name: str, now_dt: datetime) -> str:
+    if task_name == "platform_workforce_review":
+        return now_dt.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:00Z")
     if task_name == "weekly_executive_review":
         year, week, _ = now_dt.isocalendar()
         return f"{year}-W{week:02d}"
@@ -1186,6 +1205,8 @@ def _ce_period_key(task_name: str, now_dt: datetime) -> str:
 
 
 def _ce_scheduled_for(task_name: str, now_dt: datetime) -> datetime:
+    if task_name == "platform_workforce_review":
+        return now_dt.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0).astimezone(MADRID)
     policy = CONTINUOUS_EVOLUTION_POLICY.get(task_name) or {}
     hour = int(policy.get("hour", 3))
     minute = int(policy.get("minute", 15))
@@ -1200,6 +1221,9 @@ def _ce_scheduled_for(task_name: str, now_dt: datetime) -> datetime:
 
 
 def _ce_next_expected(task_name: str, now_dt: datetime) -> str:
+    if task_name == "platform_workforce_review":
+        following = now_dt.astimezone(timezone.utc).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+        return following.astimezone(MADRID).isoformat(timespec="seconds")
     scheduled = _ce_scheduled_for(task_name, now_dt)
     if task_name == "weekly_executive_review":
         next_dt = scheduled + timedelta(days=7)
@@ -1231,6 +1255,10 @@ def _ce_due(task_state: dict[str, Any], task_name: str, now_dt: datetime, force:
     if now_dt < scheduled:
         return False, scheduled.isoformat(timespec="seconds"), period
     if task_state.get("last_completed_period") == period:
+        return False, scheduled.isoformat(timespec="seconds"), period
+    # A bounded native attempt, including a partial/failed attempt, consumes its
+    # hourly slot. Do not retry a failing reviewer on every five-minute Cron tick.
+    if task_name == "platform_workforce_review" and task_state.get("last_attempt_period") == period:
         return False, scheduled.isoformat(timespec="seconds"), period
     return True, scheduled.isoformat(timespec="seconds"), period
 
@@ -1269,13 +1297,16 @@ def _ce_acquire_lock(paths: dict[str, Path], job_id: str, now_iso: str) -> tuple
     except FileExistsError:
         existing = _ce_load_json(lock_path, {})
         locked_at = existing.get("locked_at_madrid") if isinstance(existing, dict) else None
+        if not locked_at:
+            return False, {"state": "LOCK_UNVERIFIED"}
         if locked_at:
             try:
                 if _ce_now(now_iso) - _ce_now(locked_at) > CONTINUOUS_EVOLUTION_LOCK_TTL:
-                    lock_path.unlink(missing_ok=True)
-                    return _ce_acquire_lock(paths, job_id, now_iso)
-            except OSError:
-                pass
+                    # A stale timestamp cannot prove that its owner has stopped.
+                    # Never delete an observed lock and risk deleting a new owner.
+                    return False, {**existing, "state": "STALE_LOCK"}
+            except (OSError, ValueError, TypeError):
+                return False, {"state": "LOCK_UNVERIFIED"}
         return False, existing if isinstance(existing, dict) else {"locked": True}
 
 
@@ -1553,13 +1584,17 @@ def _ce_update_memory(memory: dict[str, Any], recommendations: list[dict[str, An
                 cleaned_evidence.append(cleaned)
         existing["evidence"] = cleaned_evidence
         previous_state = existing.get("state")
-        if previous_state in {"IMPLEMENTED", "VERIFIED", "RESOLVED"}:
+        native_candidate = str(candidate.get("component") or "").startswith("native_workforce.")
+        if previous_state in {"IMPLEMENTED", "VERIFIED", "RESOLVED"} and (not native_candidate or candidate.get("evidence_sufficient") is True):
             existing["state"] = "REGRESSED"
             existing["reopened_count"] = int(existing.get("reopened_count") or 0) + 1
             existing["outcome_after"] = "OUTCOME_REGRESSION"
             existing["why_priority_changed"] = "La recomendacion reaparecio despues de estar cerrada o verificada."
             event_type = "REGRESSION"
         existing["last_seen"] = now_iso
+        if str(candidate.get("component") or "").startswith("native_workforce."):
+            existing["source_family"] = "native_workforce"
+            existing["native_check_id"] = candidate["component"].removeprefix("native_workforce.")
         existing["issue_status"] = candidate.get("issue_status") or "INSUFFICIENT_EVIDENCE"
         existing["evidence_sufficient"] = bool(candidate.get("evidence_sufficient"))
         existing["seen_count"] = int(existing.get("seen_count") or 0) + 1
@@ -1590,6 +1625,9 @@ def _ce_update_memory(memory: dict[str, Any], recommendations: list[dict[str, An
         events.append({"event_id": _ce_hash("EVT", rec_id, run_id, event_type, now_iso), "type": event_type, "recommendation_id": rec_id, "run_id": run_id, "snapshot_id": snapshot_id, "at_madrid": now_iso, "state": existing.get("state"), "priority_current": existing.get("priority_current")})
     for rec_id, record in records.items():
         if rec_id in current_ids:
+            continue
+        # A missing/old/partial native receipt is not evidence of resolution.
+        if record.get("source_family") == "native_workforce":
             continue
         record["missed_count"] = int(record.get("missed_count") or 0) + 1
         if record.get("state") in {"IMPLEMENTED", "VERIFIED"} and not record.get("resolved_at"):
@@ -1813,6 +1851,11 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
             review.get("evidence_checks") or [],
         )
         review["status"] = "REQUIRES_REVIEW" if finding_counts.get("P0") or finding_counts.get("P1") else review.get("status")
+    native_findings, native_review = _nw_daily_findings(root, storage, now_dt)
+    if native_findings:
+        review.setdefault("findings", []).extend(native_findings)
+        counts = Counter(item.get("priority", "P3") for item in review["findings"])
+        review["findings_summary"] = {**{key: counts.get(key, 0) for key in ("P0", "P1", "P2", "P3")}, "total": len(review["findings"])}
     board = _build_executive_board_from_review(review, app_version, now_iso)
     recommendations = _ce_recommendations_from_board(board)
     comparison = _ce_compare(recommendations, previous, history)
@@ -1877,6 +1920,7 @@ def run_continuous_evolution_cycle(project_root: str | Path | None = None, app_v
         "blockers": [],
         "qa_available": _ce_available_qa(root),
         "autonomous_product_qa": product_qa,
+        "native_workforce": native_review,
         "issue_ledger": {
             "status_contract": issue_ledger.get("status_contract"),
             "issue_health": issue_ledger.get("issue_health") or {},
@@ -2001,14 +2045,18 @@ def build_continuous_evolution_status_snapshot(project_root: str | Path | None =
     except OSError:
         latest_brief = ""
     snapshots = _ce_snapshot_history(paths)
-    completed = len([job for job in jobs if job.get("status") in {"PASS", "PARTIAL"}])
-    failed = len([job for job in jobs if job.get("status") in {"FAILED", "PARTIAL"}])
+    native_jobs = [job for job in jobs if job.get("task_name") == "platform_workforce_review"]
+    cycle_jobs = [job for job in jobs if job.get("task_name") != "platform_workforce_review"]
+    completed = len([job for job in cycle_jobs if job.get("status") in {"PASS", "PARTIAL"}])
+    failed = len([job for job in cycle_jobs if job.get("status") in {"FAILED", "PARTIAL"}])
+    native_completed = len([job for job in native_jobs if job.get("status") in {"PASS", "PARTIAL"}])
+    native_failed = len([job for job in native_jobs if job.get("status") in {"FAILED", "PARTIAL"}])
     last_job = jobs[-1] if jobs else None
     if control.get("paused"):
         automation_status = "PAUSED"
     elif last_job and last_job.get("status") == "FAILED":
         automation_status = "ERROR"
-    elif completed:
+    elif completed or native_completed:
         automation_status = "ACTIVE"
     else:
         automation_status = "MANUAL"
@@ -2029,6 +2077,8 @@ def build_continuous_evolution_status_snapshot(project_root: str | Path | None =
         "next_execution": next_execution,
         "cycles_completed": completed,
         "cycles_failed": failed,
+        "native_review_runs_completed": native_completed,
+        "native_review_runs_failed": native_failed,
         "snapshot_count": len(snapshots),
         "product_memory": {"contract": memory.get("contract"), "recommendations": len(memory.get("recommendations") or {}), "events": len(memory.get("events") or []), "learning_summary": memory.get("learning_summary") or {}},
         "temporal_comparison": (latest or {}).get("temporal_comparison") or {"today_vs_previous": {"state": "INSUFFICIENT_HISTORY"}},
@@ -2064,81 +2114,116 @@ def run_continuous_evolution_scheduler_task(project_root: str | Path | None = No
     if task_name not in CONTINUOUS_EVOLUTION_TASKS:
         return {"ok": False, "task_name": task_name, "result": "UNKNOWN_TASK", "dangerous_actions_executed": False}
     trigger = trigger if trigger in CONTINUOUS_EVOLUTION_TRIGGERS else "SCHEDULED_LOCAL"
+    if trigger == "SCHEDULED_PRODUCTION" and force:
+        return {"ok": False, "task_name": task_name, "result": "FORCE_NOT_ALLOWED_IN_PRODUCTION", "dangerous_actions_executed": False}
     now_dt = _ce_now(now)
     now_iso = now_dt.isoformat(timespec="seconds")
     paths = _ce_paths(_ce_storage(project_root, storage_root))
     _ce_ensure_dirs(paths)
-    state = _ce_read_scheduler_state(paths, now_iso)
-    control = _ce_read_control(paths, now_iso)
-    task_state = state["tasks"][task_name]
-    due, scheduled_for, period = _ce_due(task_state, task_name, now_dt, force=force)
-    job_id = _ce_hash("JOB", task_name, scheduled_for, trigger, now_iso)
-    base_job = {"contract": CONTINUOUS_EVOLUTION_JOB_CONTRACT, "job_id": job_id, "task_name": task_name, "scheduled_for": scheduled_for, "scheduled_for_utc": _ce_utc_iso(scheduled_for), "period": period, "trigger": trigger, "started_at": now_iso, "started_at_utc": _ce_utc_iso(now_iso), "finished_at": None, "finished_at_utc": None, "duration_ms": 0, "status": "PENDING", "run_id": None, "snapshot_id": None, "founder_brief_id": None, "codex_ready_count": 0, "error_safe": None, "next_expected_run": _ce_next_expected(task_name, now_dt), "next_expected_run_utc": _ce_utc_iso(_ce_next_expected(task_name, now_dt)), "dangerous_actions_executed": False}
-    if control.get("paused") and trigger != "MANUAL":
-        base_job.update({"status": "SKIPPED_PAUSED", "finished_at": now_iso, "finished_at_utc": _ce_utc_iso(now_iso), "error_safe": {"message": "Evolucion continua pausada por administrador."}})
-        task_state["last_result"] = "SKIPPED_PAUSED"
-        task_state["next_expected_run"] = base_job["next_expected_run"]
-        state["updated_at_madrid"] = now_iso
-        _ce_write_json(paths["scheduler"], state)
-        _ce_write_job_log(paths, base_job)
-        return {"ok": True, "task_name": task_name, "result": "SKIPPED_PAUSED", "job": base_job, "scheduler": state, "dangerous_actions_executed": False}
-    if not due:
-        base_job.update({"status": "SKIPPED_NOT_DUE", "finished_at": now_iso, "finished_at_utc": _ce_utc_iso(now_iso)})
-        task_state["last_result"] = "SKIPPED_NOT_DUE"
-        task_state["automated_or_manual"] = "scheduled_run" if trigger != "MANUAL" else "manual_run"
-        task_state["next_expected_run"] = _ce_next_expected(task_name, now_dt)
-        state["updated_at_madrid"] = now_iso
-        _ce_write_json(paths["scheduler"], state)
-        _ce_write_job_log(paths, base_job)
-        return {"ok": True, "task_name": task_name, "result": "SKIPPED_NOT_DUE", "job": base_job, "scheduler": state, "dangerous_actions_executed": False}
+    scheduled_for = _ce_scheduled_for(task_name, now_dt).isoformat(timespec="seconds")
+    period = _ce_period_key(task_name, now_dt)
+    # Same-second callers must never share a lock ownership token.
+    job_id = _ce_hash("JOB", task_name, scheduled_for, trigger, now_iso, os.urandom(16).hex())
+    next_run = _ce_next_expected(task_name, now_dt)
+    base_job = {"contract": CONTINUOUS_EVOLUTION_JOB_CONTRACT, "job_id": job_id, "task_name": task_name, "scheduled_for": scheduled_for, "scheduled_for_utc": _ce_utc_iso(scheduled_for), "period": period, "trigger": trigger, "started_at": now_iso, "started_at_utc": _ce_utc_iso(now_iso), "finished_at": None, "finished_at_utc": None, "duration_ms": 0, "status": "PENDING", "run_id": None, "snapshot_id": None, "founder_brief_id": None, "codex_ready_count": 0, "error_safe": None, "next_expected_run": next_run, "next_expected_run_utc": _ce_utc_iso(next_run), "dangerous_actions_executed": False}
     acquired, lock = _ce_acquire_lock(paths, job_id, now_iso)
     if not acquired:
-        base_job.update({"status": "SKIPPED_ALREADY_RUNNING", "finished_at": now_iso, "finished_at_utc": _ce_utc_iso(now_iso), "error_safe": {"message": "Ya existe una ejecucion activa.", "lock": _ce_sanitize(lock)}})
-        task_state["last_result"] = "SKIPPED_ALREADY_RUNNING"
-        task_state["next_expected_run"] = _ce_next_expected(task_name, now_dt)
-        state["updated_at_madrid"] = now_iso
-        _ce_write_json(paths["scheduler"], state)
-        _ce_write_job_log(paths, base_job)
-        return {"ok": True, "task_name": task_name, "result": "SKIPPED_ALREADY_RUNNING", "job": base_job, "scheduler": state, "dangerous_actions_executed": False}
+        stale = lock.get("state") in {"STALE_LOCK", "LOCK_UNVERIFIED"}
+        status = lock["state"] if stale else "SKIPPED_ALREADY_RUNNING"
+        base_job.update({"status": status, "finished_at": now_iso, "finished_at_utc": _ce_utc_iso(now_iso), "error_safe": {"message": "Bloqueo anterior sin cierre verificado." if stale else "Ya existe una ejecucion activa."}})
+        # A losing caller must not overwrite a winning caller's state or logs.
+        return {"ok": not stale, "task_name": task_name, "result": status, "job": base_job, "scheduler": _ce_read_scheduler_state(paths, now_iso), "dangerous_actions_executed": False}
+    state = None
+    task_state = None
+    native_task = task_name == "platform_workforce_review"
     try:
+        # Read again only after owning the lock. Another caller may have
+        # completed this period while we were waiting to acquire it.
+        state = _ce_read_scheduler_state(paths, now_iso)
+        control = _ce_read_control(paths, now_iso)
+        task_state = state["tasks"][task_name]
+        due, scheduled_for, period = _ce_due(task_state, task_name, now_dt, force=force)
+        if control.get("paused") and trigger != "MANUAL":
+            status = "SKIPPED_PAUSED"
+        elif not due:
+            status = "SKIPPED_NOT_DUE"
+        else:
+            status = ""
+        if status:
+            base_job.update({"status": status, "finished_at": now_iso, "finished_at_utc": _ce_utc_iso(now_iso)})
+            # Hourly no-op ticks preserve the last execution receipt and do not
+            # create 288 new job files per day. Daily compatibility is unchanged.
+            if not native_task:
+                task_state["last_result"] = status
+                task_state["automated_or_manual"] = "scheduled_run" if trigger != "MANUAL" else "manual_run"
+                task_state["next_expected_run"] = next_run
+                state["updated_at_madrid"] = now_iso
+                _ce_write_json(paths["scheduler"], state)
+                _ce_write_job_log(paths, base_job)
+            return {"ok": True, "task_name": task_name, "result": status, "job": base_job, "scheduler": state, "dangerous_actions_executed": False}
+        if native_task:
+            task_state["last_attempt_period"] = period
+            state["updated_at_madrid"] = now_iso
+            _ce_write_json(paths["scheduler"], state)
         if control_fixture and control_fixture.get("scheduler_exception"):
             raise RuntimeError("Controlled scheduler exception fixture")
-        result = run_continuous_evolution_cycle(project_root, app_version, execution_mode="scheduled_run", scheduled_task=task_name, now=now_iso, storage_root=storage_root, control_fixture=control_fixture, write=True, job_id=job_id, scheduled_for=scheduled_for, trigger=trigger)
-        cycle_status = result["snapshot"].get("result") or "PASS"
-        status = "PARTIAL" if str(cycle_status).startswith("PARTIAL") else "PASS"
+        if native_task:
+            result = run_native_workforce_review(
+                project_root, app_version, now=now_dt, storage_root=storage_root,
+                job_id=job_id, scheduled_for=scheduled_for, trigger=trigger, write=True,
+            )
+            status = "PASS" if result.get("ok") is not False and result.get("result") == "PASS" else "PARTIAL"
+            run = result.get("run") or {}
+            snapshot = {}
+            extra = {"receipt": result.get("receipt"), "run": run}
+        else:
+            result = run_continuous_evolution_cycle(project_root, app_version, execution_mode="scheduled_run", scheduled_task=task_name, now=now_iso, storage_root=storage_root, control_fixture=control_fixture, write=True, job_id=job_id, scheduled_for=scheduled_for, trigger=trigger)
+            cycle_status = result["snapshot"].get("result") or "PASS"
+            status = "PARTIAL" if str(cycle_status).startswith("PARTIAL") else "PASS"
+            run = result["run"]
+            snapshot = result["snapshot"]
+            extra = {"cycle": result}
         finished_at = _ce_now().isoformat(timespec="seconds")
-        base_job.update({"status": status, "finished_at": finished_at, "finished_at_utc": _ce_utc_iso(finished_at), "duration_ms": result["run"].get("duration_ms", 0), "run_id": result["run"].get("run_id"), "snapshot_id": result["snapshot"].get("snapshot_id"), "founder_brief_id": ((result.get("snapshot") or {}).get("founder_brief") or {}).get("brief_id"), "codex_ready_count": ((result.get("snapshot") or {}).get("prepared_for_codex") or {}).get("ready_count", 0), "error_safe": result["run"].get("error_safe"), "next_expected_run": _ce_next_expected(task_name, now_dt), "next_expected_run_utc": _ce_utc_iso(_ce_next_expected(task_name, now_dt))})
+        dangerous = bool(result.get("dangerous_actions_executed") or run.get("dangerous_actions_executed"))
+        base_job["dangerous_actions_executed"] = dangerous
+        base_job.update({"status": status, "finished_at": finished_at, "finished_at_utc": _ce_utc_iso(finished_at), "duration_ms": run.get("duration_ms", result.get("duration_ms", 0)), "run_id": run.get("run_id") or result.get("run_id"), "snapshot_id": snapshot.get("snapshot_id"), "founder_brief_id": (snapshot.get("founder_brief") or {}).get("brief_id"), "codex_ready_count": (snapshot.get("prepared_for_codex") or {}).get("ready_count", 0), "error_safe": run.get("error_safe")})
         task_state["run_count"] = int(task_state.get("run_count") or 0) + 1
         if status == "PARTIAL":
             task_state["failed_count"] = int(task_state.get("failed_count") or 0) + 1
         task_state["last_run"] = now_iso
         task_state["last_result"] = status
         task_state["last_job_id"] = job_id
-        task_state["last_snapshot_id"] = result["snapshot"].get("snapshot_id")
+        task_state["last_snapshot_id"] = snapshot.get("snapshot_id")
         task_state["last_completed_period"] = period
-        task_state["next_expected_run"] = base_job["next_expected_run"]
+        task_state["next_expected_run"] = next_run
         task_state["automated_or_manual"] = "scheduled_run" if trigger != "MANUAL" else "manual_run"
-        task_state["evidence"] = f"snapshot {task_state['last_snapshot_id']}"
+        if native_task:
+            receipt = result.get("receipt") or {}
+            task_state["last_receipt_id"] = receipt.get("receipt_id") or run.get("run_id")
+            task_state["evidence"] = "native_workforce " + str(task_state["last_receipt_id"] or "NO_RECEIPT")
+        else:
+            task_state["evidence"] = f"snapshot {task_state['last_snapshot_id']}"
         if task_name == "daily_product_review":
             brief_task = state["tasks"].get("daily_founder_brief") or {}
-            brief_task.update({"run_count": int(brief_task.get("run_count") or 0) + 1, "last_run": now_iso, "last_result": status, "last_job_id": job_id, "last_snapshot_id": result["snapshot"].get("snapshot_id"), "last_completed_period": period, "next_expected_run": _ce_next_expected("daily_founder_brief", now_dt), "automated_or_manual": "scheduled_run", "evidence": "Founder Brief generado despues de Daily Product Review"})
+            brief_task.update({"run_count": int(brief_task.get("run_count") or 0) + 1, "last_run": now_iso, "last_result": status, "last_job_id": job_id, "last_snapshot_id": snapshot.get("snapshot_id"), "last_completed_period": period, "next_expected_run": _ce_next_expected("daily_founder_brief", now_dt), "automated_or_manual": "scheduled_run", "evidence": "Founder Brief generado despues de Daily Product Review"})
             state["tasks"]["daily_founder_brief"] = brief_task
         state["updated_at_madrid"] = now_iso
         _ce_write_json(paths["scheduler"], state)
         _ce_write_job_log(paths, base_job)
-        return {"ok": True, "task_name": task_name, "result": status, "job": base_job, "scheduler": state, "cycle": result, "dangerous_actions_executed": False}
+        return {"ok": result.get("ok") is not False and not dangerous, "task_name": task_name, "result": status, "job": base_job, "scheduler": state, **extra, "dangerous_actions_executed": dangerous}
     except Exception as exc:
         finished_at = _ce_now().isoformat(timespec="seconds")
         safe = _ce_safe_error(exc)
         base_job.update({"status": "PARTIAL", "finished_at": finished_at, "finished_at_utc": _ce_utc_iso(finished_at), "error_safe": safe})
-        task_state["failed_count"] = int(task_state.get("failed_count") or 0) + 1
-        task_state["last_result"] = "PARTIAL"
-        task_state["last_job_id"] = job_id
-        task_state["next_expected_run"] = _ce_next_expected(task_name, now_dt)
-        state["updated_at_madrid"] = now_iso
-        _ce_write_json(paths["scheduler"], state)
-        _ce_write_job_log(paths, base_job)
-        return {"ok": False, "task_name": task_name, "result": "PARTIAL", "job": base_job, "scheduler": state, "error_safe": safe, "dangerous_actions_executed": False}
+        if state is not None and task_state is not None:
+            task_state["failed_count"] = int(task_state.get("failed_count") or 0) + 1
+            task_state["last_result"] = "PARTIAL"
+            task_state["last_job_id"] = job_id
+            task_state["next_expected_run"] = next_run
+            state["updated_at_madrid"] = now_iso
+            _ce_write_json(paths["scheduler"], state)
+            _ce_write_job_log(paths, base_job)
+        return {"ok": False, "task_name": task_name, "result": "PARTIAL", "job": base_job, "scheduler": state or {}, "error_safe": safe, "dangerous_actions_executed": False}
     finally:
         _ce_release_lock(paths, job_id)
 
@@ -2209,3 +2294,537 @@ def record_continuous_evolution_decision(project_root: str | Path | None, recomm
     memory["updated_at_madrid"] = now_iso
     save_product_memory(project_root, memory, storage_root=storage_root)
     return {"ok": True, "recommendation_id": recommendation_id, "decision": decision, "transition": transition}
+
+
+# A bounded reviewer inside Continuous Evolution, not a new business executor.
+NATIVE_WORKFORCE_REVIEW_CONTRACT = "NEMESIS-NATIVE-WORKFORCE-REVIEW-V1"
+NATIVE_WORKFORCE_MEMORY_CONTRACT = "NEMESIS-NATIVE-WORKFORCE-MEMORY-V1"
+NATIVE_WORKFORCE_BUDGET_SECONDS = 2.0
+NATIVE_WORKFORCE_MAX_SOURCE_BYTES = 8 * 1024 * 1024
+NATIVE_WORKFORCE_MAX_FILE_BYTES = 3 * 1024 * 1024
+NATIVE_WORKFORCE_MAX_STORE_BYTES = 4 * 1024 * 1024
+NATIVE_WORKFORCE_HISTORY_LIMIT = 48
+NATIVE_WORKFORCE_GAME_IDS = (
+    "arcade_signal", "strategy_information", "technical_art", "game_motion",
+    "platform_accessibility", "graphics_performance", "visual_qa_director",
+)
+# Stable IDs identify a narrow static contract, never a person's employment or
+# proof that the underlying business activity has happened.
+NATIVE_WORKFORCE_CORE_CHECKS = (
+    ("product_ceo", "Product CEO Worker", "catalog", ("engines/company_operating_system_engine.py",)),
+    ("technical_director", "Technical Director Worker", "python_syntax", ("app.py", "engines/security_engine.py")),
+    ("client_experience", "Client Experience Worker", "navigation", ("templates/components/v933_navigation.html",)),
+    ("admin_command_center", "Admin Command Center Worker", "inventory_isolation", ("templates/admin_company_os.html",)),
+    ("membership_value", "Membership Value Worker", "membership", ("engines/membership_engine.py",)),
+    ("shark_intelligence", "SHARK Intelligence Worker", "request_contract", ("engines/shark_request_contract.py",)),
+    ("telegram_premium", "Telegram Premium Worker", "queue_states", ("engines/telegram_delivery_engine.py",)),
+    ("sports_data", "Sports Data Worker", "evidence_states", ("engines/sports_platform_contracts.py",)),
+    ("odds_picks", "Odds & Picks Worker", "grading_states", ("engines/pick_grading_engine.py",)),
+    ("crest_identity", "Crest & Identity Worker", "identity_manifest", ("static/img/approved-identity/manifest.json",)),
+    ("routes_buttons", "Routes & Buttons Worker", "navigation", ("templates/base.html", "templates/components/v933_navigation.html")),
+    ("spanish_copy", "Spanish Copy Worker", "visible_encoding", ("templates/home.html", "templates/client_app_center.html", "templates/admin_company_os.html")),
+    ("qa_visual", "QA Visual Worker", "design_contract", ("reference_images/design_contracts.json",)),
+    ("qa_data_reality", "QA Data Reality Worker", "finite_json_contract", ("engines/shark_request_contract.py",)),
+    ("render_zip", "Render ZIP Worker", "deployment_declaration", ("render.yaml", "Procfile")),
+)
+NATIVE_WORKFORCE_GAME_TARGETS = (
+    "reference_images/design_contracts.json", "static/img/approved-identity/manifest.json",
+    "tools/visual_css_sources.json", "static/design-tokens.css", "static/design-system.css",
+    "static/v968-directo-freshness.css", "static/v969-directo-mobile-calendar.css",
+    "static/product-system.css", "templates/base.html", "static/platform-motion.js",
+    "static/v1000-client-refinement.css", "templates/components/app_navigation.html",
+    "templates/components/v933_navigation.html",
+)
+NATIVE_WORKFORCE_TARGETS = tuple(dict.fromkeys(
+    [path for _, _, _, targets in NATIVE_WORKFORCE_CORE_CHECKS for path in targets]
+    + list(NATIVE_WORKFORCE_GAME_TARGETS)
+))
+NATIVE_WORKFORCE_PROPOSALS = {
+    "product_ceo": "Mantener las 15 responsabilidades diferenciadas y aportar resultados observados para priorizar valor comercial.",
+    "technical_director": "Revisar la sintaxis si aparece un fallo y adjuntar health-check y recibo del tick del candidato.",
+    "client_experience": "Verificar los destinos de navegación y completar una muestra real de tareas de cliente móvil y PC.",
+    "admin_command_center": "Mantener las disciplinas Game UI fuera del inventario de 15 trabajadores y verificar el panel renderizado.",
+    "membership_value": "Conservar referencias coherentes entre planes, límites y funciones; verificar después permisos reales por rol.",
+    "shark_intelligence": "Conservar el contrato de entrada SHARK y verificar respuestas, rechazo de entradas y fallback sin proveedor.",
+    "telegram_premium": "Conservar estados de cola distintos y límite declarado; aportar recibos de dedupe y calidad sin realizar envíos de prueba.",
+    "sports_data": "Preservar estados de evidencia desconocida y obsoleta; aportar antigüedad real de la caché deportiva.",
+    "odds_picks": "Revisar estados elegibles de grading y contrastarlos con picks reales sin publicar ni liquidar desde esta revisión.",
+    "crest_identity": "Conservar metadatos válidos de los recursos aprobados y comprobar archivos y apariencia con evidencia específica.",
+    "routes_buttons": "Revisar esquemas de enlace y verificar clicks, retorno y logout en navegador con permisos reales.",
+    "spanish_copy": "Revisar daños de codificación si aparecen y comprobar copy renderizado, incluyendo datos dinámicos.",
+    "qa_visual": "Conservar identificadores de pantallas únicos y adjuntar capturas del mismo candidato para evaluación visual.",
+    "qa_data_reality": "Conservar JSON finito y verificar estados sin datos reales antes de certificar métricas o resultados.",
+    "render_zip": "Reconciliar declaraciones de arranque y aportar auditoría del ZIP y evidencia del despliegue real.",
+}
+
+
+def _nw_clock() -> float:
+    import time
+    return time.monotonic()
+
+
+def _nw_state_path(storage: Path) -> Path:
+    return storage / "native_workforce" / "state.json"
+
+
+def _nw_json_read(path: Path, maximum: int = NATIVE_WORKFORCE_MAX_STORE_BYTES) -> Any:
+    """Bounded read; malformed history must not be silently replaced."""
+    with path.open("rb") as stream:
+        raw = stream.read(maximum + 1)
+    if len(raw) > maximum:
+        raise ValueError("native_workforce_store_too_large")
+    return json.loads(raw)
+
+
+def _nw_fingerprint(evidence: list[dict[str, Any]]) -> str:
+    material = [[item["path"], item.get("sha256"), item.get("state")] for item in evidence]
+    return hashlib.sha256(json.dumps(material, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def _nw_read_sources(root: Path, deadline: float) -> tuple[dict[str, str | None], dict[str, dict[str, Any]], int]:
+    """Read only fixed code/contract paths, once; no runtime data or DB reads."""
+    import stat
+    snapshot: dict[str, str | None] = {}
+    evidence: dict[str, dict[str, Any]] = {}
+    total = 0
+    for relative in NATIVE_WORKFORCE_TARGETS:
+        snapshot[relative] = None
+        item: dict[str, Any] = {"path": relative, "state": "BUDGET_EXHAUSTED", "sha256": None}
+        evidence[relative] = item
+        if _nw_clock() >= deadline:
+            continue
+        try:
+            path = (root / relative).resolve()
+            if not path.is_relative_to(root):
+                item["state"] = "OUTSIDE_PROJECT"
+                continue
+            info = path.stat()
+            if not stat.S_ISREG(info.st_mode):
+                item["state"] = "NOT_REGULAR_FILE"
+                continue
+            allowance = min(NATIVE_WORKFORCE_MAX_FILE_BYTES, NATIVE_WORKFORCE_MAX_SOURCE_BYTES - total)
+            if info.st_size > allowance:
+                item["state"] = "INPUT_LIMIT"
+                continue
+            with path.open("rb") as stream:
+                if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+                    item["state"] = "NOT_REGULAR_FILE"
+                    continue
+                raw = stream.read(allowance)
+                grew = os.fstat(stream.fileno()).st_size > allowance
+            total += len(raw)
+            if grew:
+                item["state"] = "INPUT_LIMIT"
+                continue
+            item.update({"sha256": hashlib.sha256(raw).hexdigest(), "bytes": len(raw)})
+            snapshot[relative] = raw.decode("utf-8-sig")
+            item["state"] = "READ"
+        except FileNotFoundError:
+            item["state"] = "MISSING"
+        except UnicodeDecodeError:
+            item["state"] = "INVALID_UTF8"
+        except OSError:
+            item["state"] = "UNAVAILABLE"
+    return snapshot, evidence, total
+
+
+def _nw_literals(source: str) -> tuple[Any, dict[str, Any]]:
+    import ast
+    tree = ast.parse(source)
+    values = {}
+    for statement in tree.body:
+        if isinstance(statement, (ast.Assign, ast.AnnAssign)):
+            names = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+            for name in names:
+                if isinstance(name, ast.Name):
+                    try:
+                        values[name.id] = ast.literal_eval(statement.value)
+                    except (ValueError, TypeError):
+                        pass
+    return tree, values
+
+
+def _nw_markup(source: str) -> tuple[list[dict[str, str | None]], str]:
+    from html.parser import HTMLParser
+
+    class VisibleMarkup(HTMLParser):
+        def __init__(self):
+            super().__init__(convert_charrefs=True)
+            self.links = []
+            self.visible = []
+            self.hidden = 0
+
+        def handle_starttag(self, tag, attrs):
+            if tag in {"style", "script"}:
+                self.hidden += 1
+            if tag == "a":
+                self.links.append(dict(attrs))
+
+        def handle_endtag(self, tag):
+            if tag in {"style", "script"}:
+                self.hidden = max(0, self.hidden - 1)
+
+        def handle_data(self, data):
+            if not self.hidden:
+                self.visible.append(data)
+
+    parser = VisibleMarkup()
+    parser.feed(source)
+    return parser.links, " ".join(parser.visible)
+
+
+def _nw_static_check(kind: str, sources: list[str]) -> tuple[str, str]:
+    """Return a narrow result code, never source excerpts or business proof."""
+    import ast
+    if kind == "python_syntax":
+        for source in sources:
+            ast.parse(source)
+        return "PASS", "PYTHON_SYNTAX_VALID"
+    if kind == "catalog":
+        _, values = _nw_literals(sources[0])
+        catalog = values.get("WORKER_BLUEPRINTS")
+        expected = [item[1] for item in NATIVE_WORKFORCE_CORE_CHECKS]
+        if not isinstance(catalog, (list, tuple)):
+            return "UNKNOWN", "CATALOG_NOT_LITERAL"
+        actual = [row[0] for row in catalog if isinstance(row, (list, tuple)) and row]
+        return ("PASS", "CATALOG_15_UNIQUE") if len(actual) == 15 and set(actual) == set(expected) else ("FAIL", "CATALOG_ROLE_MISMATCH")
+    if kind == "inventory_isolation":
+        bad = re.search(r'<details\b[^>]*class\s*=\s*[\"\'][^\"\']*\bv857-worker-card\b', sources[0], re.I)
+        return ("FAIL", "DISCIPLINE_CONTAMINATES_WORKER_INVENTORY") if bad else ("PASS", "DISCIPLINE_CLASS_ISOLATED")
+    if kind == "navigation":
+        links = [link for source in sources for link in _nw_markup(source)[0]]
+        literal = [str(link.get("href") or "").strip() for link in links if "{{" not in str(link.get("href") or "")]
+        if any(re.match(r"(?i)^(?:javascript|vbscript):", value) for value in literal):
+            return "FAIL", "SCRIPT_URL_IN_STATIC_ANCHOR"
+        return ("PASS", "STATIC_ANCHOR_SCHEMES_VALID") if literal else ("UNKNOWN", "NO_LITERAL_ANCHORS")
+    if kind == "visible_encoding":
+        visible = " ".join(_nw_markup(source)[1] for source in sources)
+        invalid = re.search("\ufffd|Ã[\u0080-\u00bf]|Â[\u0080-\u00bf]|â€", visible)
+        return ("FAIL", "VISIBLE_ENCODING_DAMAGE") if invalid else ("PASS", "NO_KNOWN_VISIBLE_ENCODING_DAMAGE")
+    if kind == "membership":
+        _, values = _nw_literals(sources[0])
+        order, features, limits = [values.get(key) for key in ("PLAN_ORDER", "FEATURE_MIN_PLAN", "MEMBERSHIP_LIMITS")]
+        if not all(isinstance(value, dict) for value in (order, features, limits)):
+            return "UNKNOWN", "MEMBERSHIP_CONTRACT_NOT_LITERAL"
+        valid = set(order) == {"FREE", "PRO", "ELITE", "ADMIN"} and set(limits) == set(order)
+        valid = valid and all(type(value) is int for value in order.values()) and len(set(order.values())) == len(order)
+        valid = valid and bool(features) and all(value in order for value in features.values())
+        return ("PASS", "PLAN_REFERENCES_CONSISTENT") if valid else ("FAIL", "PLAN_REFERENCE_MISMATCH")
+    if kind in {"request_contract", "finite_json_contract"}:
+        tree, _ = _nw_literals(sources[0])
+        functions = {node.name: node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        if kind == "request_contract":
+            required = {"normalize_request", "finite_json", "encode_snapshot"}
+            return ("PASS", "REQUEST_CONTRACT_FUNCTIONS_PRESENT") if required <= set(functions) else ("FAIL", "REQUEST_CONTRACT_FUNCTION_MISSING")
+        encoder = functions.get("encode_snapshot")
+        if encoder is None:
+            return "FAIL", "SNAPSHOT_ENCODER_MISSING"
+        dumps = [node for node in ast.walk(encoder) if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                 and isinstance(node.func.value, ast.Name) and node.func.value.id == "json" and node.func.attr == "dumps"]
+        finite = bool(dumps) and all(any(key.arg == "allow_nan" and isinstance(key.value, ast.Constant) and key.value.value is False for key in call.keywords) for call in dumps)
+        return ("PASS", "SNAPSHOT_JSON_REJECTS_NONFINITE_LITERAL") if finite else ("FAIL", "SNAPSHOT_JSON_NONFINITE_GUARD_MISSING")
+    if kind == "queue_states":
+        _, values = _nw_literals(sources[0])
+        states = [values.get("QUEUE_" + key) for key in ("PENDING", "SENDING", "SENT", "FAILED", "SKIPPED")]
+        settings = values.get("DEFAULT_SETTINGS")
+        if not all(isinstance(value, str) for value in states) or not isinstance(settings, dict):
+            return "UNKNOWN", "QUEUE_CONTRACT_NOT_LITERAL"
+        valid = len(set(states)) == 5 and type(settings.get("max_messages_per_hour")) is int and settings["max_messages_per_hour"] > 0
+        return ("PASS", "QUEUE_STATES_DISTINCT_WITH_DECLARED_LIMIT") if valid else ("FAIL", "QUEUE_STATE_OR_LIMIT_INVALID")
+    if kind == "evidence_states":
+        _, values = _nw_literals(sources[0])
+        states = values.get("EVIDENCE_STATES")
+        if not isinstance(states, (list, tuple)):
+            return "UNKNOWN", "EVIDENCE_STATES_NOT_LITERAL"
+        valid = all(isinstance(state, str) for state in states) and len(set(states)) == len(states)
+        valid = valid and {"NOT_CERTIFIED", "NOT_CONFIGURED", "STALE", "INSUFFICIENT_DATA"} <= set(states)
+        return ("PASS", "UNKNOWN_AND_STALE_EVIDENCE_STATES_DECLARED") if valid else ("FAIL", "EVIDENCE_STATE_CONTRACT_INVALID")
+    if kind == "grading_states":
+        _, values = _nw_literals(sources[0])
+        states = values.get("ELIGIBLE_PICK_STATUSES")
+        if not isinstance(states, (list, tuple)) or not all(isinstance(value, str) for value in states):
+            return "UNKNOWN", "GRADING_STATES_NOT_LITERAL"
+        valid = {"published", "pending", "won", "lost", "void"} <= set(states) and not {"draft", "archived", "deleted"}.intersection(states)
+        return ("PASS", "PUBLIC_GRADING_STATES_DECLARED") if valid else ("FAIL", "GRADING_STATUS_CONTRACT_INVALID")
+    if kind == "identity_manifest":
+        manifest = json.loads(sources[0])
+        assets = manifest.get("assets") if isinstance(manifest, dict) else None
+        if not isinstance(assets, list) or not assets:
+            return "FAIL", "IDENTITY_MANIFEST_HAS_NO_ASSETS"
+        names = []
+        for asset in assets:
+            if not isinstance(asset, dict):
+                return "FAIL", "IDENTITY_MANIFEST_ENTRY_INVALID"
+            name = asset.get("file")
+            if not isinstance(name, str) or Path(name).name != name or name in {".", ".."} or not name:
+                return "FAIL", "IDENTITY_MANIFEST_PATH_INVALID"
+            if not re.fullmatch(r"[a-f0-9]{64}", str(asset.get("sha256") or "")) or type(asset.get("bytes")) is not int or asset["bytes"] <= 0:
+                return "FAIL", "IDENTITY_MANIFEST_DIGEST_OR_SIZE_INVALID"
+            names.append(name)
+        return ("PASS", "DECLARED_ASSET_METADATA_CONSISTENT") if len(set(names)) == len(names) else ("FAIL", "IDENTITY_MANIFEST_DUPLICATE_ASSET")
+    if kind == "design_contract":
+        contract = json.loads(sources[0])
+        screens = contract.get("screens") if isinstance(contract, dict) else None
+        if not isinstance(screens, list) or not screens:
+            return "FAIL", "DESIGN_CONTRACT_SCREENS_MISSING"
+        ids = [item.get("screen_id") for item in screens if isinstance(item, dict)]
+        valid = contract.get("contract") == "NEMESIS-CREATIVE-DESIGN-1" and len(ids) == len(screens)
+        valid = valid and all(isinstance(value, str) and value for value in ids) and len(set(ids)) == len(ids)
+        return ("PASS", "DESIGN_SCREEN_IDENTITIES_UNIQUE") if valid else ("FAIL", "DESIGN_SCREEN_CONTRACT_INVALID")
+    if kind == "deployment_declaration":
+        web = re.findall(r"(?m)^\s*startCommand:\s*(.+)$", sources[0])
+        proc = re.findall(r"(?m)^web:\s*(.+)$", sources[1])
+        if not web or not proc:
+            return "UNKNOWN", "DEPLOYMENT_DECLARATION_NOT_SUPPORTED"
+        valid = proc[0].strip() in [value.strip() for value in web]
+        return ("PASS", "WEB_START_DECLARATIONS_CONSISTENT") if valid else ("FAIL", "WEB_START_DECLARATIONS_DIFFER")
+    return "UNKNOWN", "CHECK_NOT_IMPLEMENTED"
+
+
+def _nw_core_result(definition: tuple, snapshot: dict[str, str | None], inputs: dict[str, dict[str, Any]], deadline: float) -> dict[str, Any]:
+    check_id, name, kind, targets = definition
+    evidence = [dict(inputs[path]) for path in targets]
+    executed = _nw_clock() < deadline and not any(item["state"] == "BUDGET_EXHAUSTED" for item in evidence)
+    static_state, code = "UNKNOWN", "BUDGET_EXHAUSTED"
+    if executed:
+        if any(item["state"] == "INVALID_UTF8" for item in evidence):
+            static_state, code = "FAIL", "INVALID_UTF8_SOURCE"
+        elif any(snapshot[path] is None for path in targets):
+            code = "SOURCE_UNAVAILABLE_OR_BOUNDED"
+        else:
+            try:
+                static_state, code = _nw_static_check(kind, [snapshot[path] for path in targets])
+            except (SyntaxError, json.JSONDecodeError):
+                static_state, code = "FAIL", "SOURCE_SYNTAX_INVALID"
+            except (ValueError, TypeError, KeyError, RecursionError):
+                static_state, code = "UNKNOWN", "UNSUPPORTED_SOURCE_STRUCTURE"
+    return {
+        "id": check_id, "worker_name": name, "group": "company_core", "executed": executed,
+        "state": "FAIL" if static_state == "FAIL" else "UNKNOWN",
+        "static_state": static_state, "check_ids": ["core." + check_id + "." + kind],
+        "targets": list(targets), "source_fingerprint": _nw_fingerprint(evidence), "evidence": evidence,
+        "checks": [{"id": kind, "state": static_state, "result": code}],
+        "limitation": "Revisión estática parcial. No ejecuta negocio, proveedores, rutas HTTP, browser ni certifica producción.",
+        "business_execution_certified": False,
+        "proposal": NATIVE_WORKFORCE_PROPOSALS[check_id],
+    }
+
+
+def _nw_game_results(root: Path, snapshot: dict[str, str | None], inputs: dict[str, dict[str, Any]], deadline: float, revision: str, observed_at: str) -> list[dict[str, Any]]:
+    rows = {}
+    if _nw_clock() < deadline:
+        try:
+            from engines.game_ui_review_lab import evaluate_game_ui_review
+            evaluated = evaluate_game_ui_review(root, input_snapshot=snapshot, deadline=deadline,
+                                                candidate_revision=revision, observed_at=observed_at)
+            rows = {row.get("id"): row for row in evaluated.get("disciplines", []) if isinstance(row, dict)}
+        except (ImportError, AttributeError, TypeError, ValueError, KeyError, OSError):
+            rows = {}
+    results = []
+    for check_id in NATIVE_WORKFORCE_GAME_IDS:
+        row = rows.get(check_id)
+        targets = [path for path in (row or {}).get("targets", NATIVE_WORKFORCE_GAME_TARGETS) if path in inputs]
+        evidence = [dict(inputs[path]) for path in targets]
+        checks = []
+        for check in (row or {}).get("checks", []):
+            if isinstance(check, dict):
+                checks.append({"id": str(check.get("id") or "")[:100],
+                               "state": check.get("state") if check.get("state") in {"PASS", "FAIL", "UNKNOWN"} else "UNKNOWN",
+                               "detail": _ce_clean_text(check.get("detail"), 360)})
+        executed = bool(row and row.get("executed", True) and not any(item["state"] == "BUDGET_EXHAUSTED" for item in evidence))
+        state = row.get("state") if row and row.get("state") in {"PASS", "FAIL", "UNKNOWN"} else "UNKNOWN"
+        results.append({"id": check_id, "group": "game_ui", "executed": executed, "state": state,
+                        "area": _ce_clean_text((row or {}).get("area"), 140),
+                        "check_ids": ["game_ui." + check_id], "targets": targets,
+                        "source_fingerprint": _nw_fingerprint(evidence), "evidence": evidence, "checks": checks,
+                        "limitation": "Análisis estático de Game UI; sin capturas, clicks ni métricas reales de navegador.",
+                        "business_execution_certified": False,
+                        "proposal": _ce_clean_text((row or {}).get("proposal"), 420)})
+    return results
+
+
+def _nw_valid_receipt(receipt: Any) -> bool:
+    expected = {item[0] for item in NATIVE_WORKFORCE_CORE_CHECKS} | set(NATIVE_WORKFORCE_GAME_IDS)
+    if not isinstance(receipt, dict) or receipt.get("contract") != NATIVE_WORKFORCE_REVIEW_CONTRACT:
+        return False
+    results = receipt.get("results")
+    if not isinstance(results, list) or len(results) != 22 or not all(isinstance(row, dict) for row in results):
+        return False
+    if {row.get("id") for row in results} != expected or any(row.get("state") not in {"PASS", "FAIL", "UNKNOWN"} or type(row.get("executed")) is not bool for row in results):
+        return False
+    if receipt.get("expected_count") != 22 or receipt.get("executed_count") != sum(row.get("executed") is True for row in results):
+        return False
+    outcome = "FAIL" if any(row["state"] == "FAIL" for row in results) else ("UNKNOWN" if any(row["state"] == "UNKNOWN" for row in results) else "PASS")
+    return (receipt.get("review_kind") == "STATIC_PARTIAL" and receipt.get("outcome") == outcome and receipt.get("production_certified") is False
+            and receipt.get("business_execution_certified") is False and receipt.get("external_calls") == 0
+            and receipt.get("browser_executed") is False and receipt.get("source_revision_verified") is False
+            and bool(re.fullmatch(r"[a-f0-9]{64}", str(receipt.get("source_fingerprint") or "")))
+            and bool(re.fullmatch(r"NWR-[a-f0-9]{16}", str(receipt.get("receipt_id") or ""))))
+
+
+def load_native_workforce_receipt(project_root: str | Path | None = None, *, storage_root: str | Path | None = None, now: str | datetime | None = None, max_age_seconds: int = 7200) -> dict[str, Any]:
+    """Read-only evidence projection. Reading Company OS never starts a review."""
+    empty = {"state": "NOT_RUN", "age_seconds": None, "receipt": None, "results": []}
+    path = _nw_state_path(_ce_storage(project_root, storage_root))
+    try:
+        state = _nw_json_read(path)
+        receipt = state.get("latest") if isinstance(state, dict) and state.get("contract") == NATIVE_WORKFORCE_MEMORY_CONTRACT else None
+        if not _nw_valid_receipt(receipt):
+            return {**empty, "state": "UNAVAILABLE"}
+        finished = datetime.fromisoformat(receipt["finished_at_madrid"])
+        if finished.tzinfo is None:
+            return {**empty, "state": "CLOCK_UNVERIFIED"}
+        age = (_ce_now(now) - finished).total_seconds()
+        # Scheduler supplies a single nominal clock to sequential tasks. Allow
+        # only the bounded review duration as clock tolerance, not arbitrary future evidence.
+        freshness = "CLOCK_UNVERIFIED" if age < -NATIVE_WORKFORCE_BUDGET_SECONDS else ("RECENT" if age <= max_age_seconds else "STALE")
+        current_revision = str(os.getenv("RENDER_GIT_COMMIT") or "")
+        advertised = str(receipt.get("source_revision_advertised") or "")
+        revision_changed = (re.fullmatch(r"[a-fA-F0-9]{40}", current_revision) and re.fullmatch(r"[a-fA-F0-9]{40}", advertised)
+                            and current_revision.lower() != advertised.lower())
+        if revision_changed:
+            freshness = "STALE"
+        return {"state": freshness, "age_seconds": max(0, round(age)), "receipt": receipt,
+                "results": receipt["results"] if freshness == "RECENT" else [],
+                "reason": "SOURCE_REVISION_CHANGED" if revision_changed else None}
+    except FileNotFoundError:
+        return empty
+    except (OSError, ValueError, TypeError, KeyError, RecursionError):
+        return {**empty, "state": "UNAVAILABLE"}
+
+
+def _nw_proposal(row: dict[str, Any], receipt: dict[str, Any]) -> dict[str, Any]:
+    failed = row["state"] == "FAIL"
+    check_id = row["id"]
+    # Stable problem scope; changing evidence/hash must not create a new backlog item.
+    proposal = row.get("proposal") or "Revisar el contrato estático y aportar evidencia ejecutada para " + check_id + "."
+    return {
+        "id": "NWR-" + check_id, "source_family": "native_workforce", "check_id": check_id,
+        "reviewer": row.get("worker_name") or row.get("area") or "Game UI · " + check_id,
+        "module": "Native Workforce", "screen": (row.get("targets") or ["local source"])[0],
+        "route": "/admin/company-os", "component": "native_workforce." + check_id,
+        "priority": "P2" if failed else "P3", "proposal": proposal,
+        "evidence": "receipt=" + receipt["receipt_id"] + "; check=" + check_id + "; result=" + row["state"] + "; fingerprint=" + row["source_fingerprint"],
+        "evidence_origin": "SYSTEM_OBSERVATION", "issue_status": "OPEN_REAL" if failed else "INSUFFICIENT_EVIDENCE",
+        "evidence_sufficient": failed, "certification_state": "STATIC_PARTIAL",
+        "impact_user": "Detectar defectos estáticos concretos y señalar lo que falta comprobar con evidencia real.",
+        "impact_business": "Priorizar mejoras sin inventar actividad, resultados comerciales ni certificación visual.",
+        "automatic_execution_allowed": False, "approved_for_execution": False,
+        "candidate_improvement_ready": failed,
+    }
+
+
+def _nw_update_state(previous: dict[str, Any], receipt: dict[str, Any]) -> dict[str, Any]:
+    state = dict(previous)
+    proposals = {key: dict(value) for key, value in (previous.get("proposals") or {}).items()}
+    now_iso = receipt["finished_at_madrid"]
+    for row in receipt["results"]:
+        if not row["executed"]:
+            continue
+        check_id = row["id"]
+        existing = proposals.get(check_id)
+        if row["state"] == "PASS":
+            # A scoped success does not resolve a human decision or wider business issue.
+            if existing:
+                existing["last_observation"] = "PASS"
+                existing["last_observed_at"] = now_iso
+            continue
+        if existing is None:
+            existing = {"state": "NEW", "first_seen": now_iso, "seen_count": 0, "reopened_count": 0, "decisions": []}
+            proposals[check_id] = existing
+        if row["state"] == "FAIL" and existing.get("state") in {"RESOLVED", "VERIFIED", "IMPLEMENTED"}:
+            existing["state"] = "REGRESSED"
+            existing["reopened_count"] = int(existing.get("reopened_count") or 0) + 1
+        existing.update({"last_seen": now_iso, "last_observed_at": now_iso, "last_observation": row["state"],
+                         "last_receipt_id": receipt["receipt_id"], "seen_count": int(existing.get("seen_count") or 0) + 1,
+                         "finding": _nw_proposal(row, receipt)})
+    if len(proposals) > 128:
+        raise ValueError("native_workforce_proposal_capacity")
+    state.update({"contract": NATIVE_WORKFORCE_MEMORY_CONTRACT, "latest": receipt, "proposals": proposals,
+                  "history": [*(previous.get("history") or []), receipt][-NATIVE_WORKFORCE_HISTORY_LIMIT:]})
+    return state
+
+
+def _nw_lock_owned(storage: Path, job_id: str) -> bool:
+    if not job_id:
+        return False
+    try:
+        lock = _nw_json_read(_ce_paths(storage)["scheduler_lock"], maximum=4096)
+        return isinstance(lock, dict) and lock.get("job_id") == job_id and lock.get("pid") == os.getpid()
+    except (OSError, ValueError, TypeError):
+        return False
+
+
+def run_native_workforce_review(project_root: str | Path | None = None, app_version: str = "LOCAL", *, now: str | datetime | None = None, storage_root: str | Path | None = None, job_id: str = "", scheduled_for: str = "", trigger: str = "SCHEDULED_PRODUCTION", write: bool = True) -> dict[str, Any]:
+    """Run at most 2 seconds of cooperative static analysis under scheduler lock.
+
+    PASS means all 22 evaluations finished. Receipt outcome separately reports
+    FAIL/UNKNOWN; it never certifies the 15 business responsibilities as active.
+    write=False supports local fixtures without acquiring or creating a lock.
+    """
+    start = _nw_clock()
+    deadline = start + NATIVE_WORKFORCE_BUDGET_SECONDS
+    root, storage = _root(project_root), _ce_storage(project_root, storage_root)
+    if write and not _nw_lock_owned(storage, job_id):
+        raise RuntimeError("native_workforce_requires_owned_scheduler_lock")
+    now_dt = _ce_now(now)
+    started_at = now_dt.isoformat(timespec="seconds")
+    run_id = "NWR-" + hashlib.sha256((job_id + "|" + started_at + "|" + trigger).encode()).hexdigest()[:16]
+    advertised = str(os.getenv("RENDER_GIT_COMMIT") or "")
+    revision = advertised if re.fullmatch(r"[a-fA-F0-9]{40}", advertised) else ""
+    snapshot, inputs, total_bytes = _nw_read_sources(root, deadline)
+    results = [_nw_core_result(definition, snapshot, inputs, deadline) for definition in NATIVE_WORKFORCE_CORE_CHECKS]
+    results.extend(_nw_game_results(root, snapshot, inputs, deadline, revision, started_at))
+    elapsed = max(0.0, _nw_clock() - start)
+    duration_ms = round(elapsed * 1000)
+    executed = sum(row["executed"] is True for row in results)
+    outcome = "FAIL" if any(row["state"] == "FAIL" for row in results) else ("UNKNOWN" if any(row["state"] == "UNKNOWN" for row in results) else "PASS")
+    result = "PASS" if executed == 22 else "PARTIAL"
+    finished_at = (now_dt + timedelta(seconds=elapsed)).isoformat(timespec="microseconds")
+    receipt = {
+        "contract": NATIVE_WORKFORCE_REVIEW_CONTRACT, "receipt_id": run_id, "run_id": run_id,
+        "app_version": _ce_clean_text(app_version, 80), "task_name": "platform_workforce_review",
+        "review_kind": "STATIC_PARTIAL", "execution_kind": "DETERMINISTIC_LOCAL_READ_ONLY", "outcome": outcome,
+        "started_at_madrid": started_at, "finished_at_madrid": finished_at, "duration_ms": duration_ms,
+        "source_revision_advertised": revision or None, "source_revision_verified": False,
+        "source_fingerprint": _nw_fingerprint(list(inputs.values())), "sources": list(inputs.values()),
+        "expected_count": 22, "executed_count": executed, "results": results,
+        "coverage": {"company_core": 15, "game_ui": 7, "scope": "STATIC_SOURCE_CONTRACTS_ONLY"},
+        "limits": {"cooperative_seconds": NATIVE_WORKFORCE_BUDGET_SECONDS, "source_bytes_max": NATIVE_WORKFORCE_MAX_SOURCE_BYTES,
+                   "source_bytes_read": total_bytes, "budget_exhausted": elapsed >= NATIVE_WORKFORCE_BUDGET_SECONDS},
+        "browser_executed": False, "external_calls": 0, "paid_credits_consumed": 0,
+        "business_execution_certified": False, "production_certified": False,
+        "autonomous_agents_started": 0, "automatic_code_changes": False,
+    }
+    run = {"run_id": run_id, "job_id": job_id, "scheduled_for": scheduled_for, "trigger": trigger,
+           "task_name": "platform_workforce_review", "result": result, "started_at": started_at,
+           "finished_at": finished_at, "duration_ms": duration_ms, "receipt_id": run_id}
+    if write:
+        path = _nw_state_path(storage)
+        try:
+            previous = _nw_json_read(path)
+        except FileNotFoundError:
+            previous = {"contract": NATIVE_WORKFORCE_MEMORY_CONTRACT}
+        if not isinstance(previous, dict) or previous.get("contract") != NATIVE_WORKFORCE_MEMORY_CONTRACT:
+            raise ValueError("native_workforce_memory_contract_invalid")
+        payload = _nw_update_state(previous, receipt)
+        while len(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True, default=str).encode()) > NATIVE_WORKFORCE_MAX_STORE_BYTES:
+            if len(payload["history"]) <= 1:
+                raise ValueError("native_workforce_store_capacity")
+            payload["history"].pop(0)
+        if not _nw_lock_owned(storage, job_id):
+            raise RuntimeError("native_workforce_scheduler_lock_lost")
+        _ce_write_json(path, payload)
+    return {"ok": True, "result": result, "run_id": run_id, "duration_ms": duration_ms,
+            "receipt": receipt, "run": run, "dangerous_actions_executed": False}
+
+
+def _nw_daily_findings(project_root: Path, storage: Path, now: datetime) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Use the latest scoped observation; daily never reexecutes the workforce."""
+    loaded = load_native_workforce_receipt(project_root, storage_root=storage, now=now)
+    if loaded["state"] != "RECENT":
+        return [], {"state": loaded["state"], "receipt_id": None}
+    receipt = loaded["receipt"]
+    findings = [_nw_proposal(row, receipt) for row in receipt["results"] if row["executed"] and row["state"] in {"FAIL", "UNKNOWN"}]
+    return findings, {"state": "RECENT", "receipt_id": receipt["receipt_id"], "review_kind": receipt["review_kind"],
+                      "outcome": receipt["outcome"], "expected_count": 22, "executed_count": receipt["executed_count"]}

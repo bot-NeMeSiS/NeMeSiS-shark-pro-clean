@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "partials/ui_components.html" import stat_card, empty_state, status_chip, action_button %}
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='company-context.css') }}?v=company-context-1">
+<link rel="stylesheet" href="{{ url_for('static', filename='company-context.css') }}?v=company-context-3-native-review">
 <section class="v857-company-os v858-visual-lock v860-admin-board">
   <header class="v857-company-hero">
     <span>{{ ui('Responsabilidades configuradas') }}</span>
@@ -11,7 +11,6 @@
       {{ action_button('Panel', '/admin/dashboard', 'neutral') }}
       {{ action_button('Revisión de producto', '/admin/company-audit', 'brand') }}
       {{ action_button('Mejora continua', '/admin/auto-improvement', 'brand') }}
-      {{ action_button('Economía / costes', '/admin/finanzas', 'brand') }}
       {{ action_button('Centro de datos', '/admin/data-center', 'neutral') }}
       {{ action_button('Telegram', '/admin/telegram/command-center', 'neutral') }}
       {{ action_button('SHARK AI', '/admin/shark-ai', 'neutral') }}
@@ -19,13 +18,71 @@
     </div>
   </header>
 
+  {% set native = summary.native_workforce_review or {} %}
   <section class="v857-company-summary v860-kpi-row">
+    {% if summary.execution_state == 'STATIC_PARTIAL' %}
+    {{ stat_card('Revisión registrada', 'Estática y parcial', 'No acredita navegación ni servicios en producción', 'neutral') }}
+    {% else %}
     {{ stat_card(ui('Ejecución'), ui('Sin ejecución acreditada'), ui('Las responsabilidades no incluyen recibos de ejecución.'), 'neutral') }}
+    {% endif %}
     {{ stat_card(ui('Responsabilidades configuradas'), summary.workers|length, ui('Sin llamadas externas desde este panel'), 'info') }}
     {{ stat_card('Datos', 'No inventar' if not summary.data_invention_allowed else 'Revisar', 'Estados premium si falta proveedor', 'warning') }}
     {{ stat_card('Seguridad', 'Sin secretos' if not summary.secrets_exposed else 'Revisar', 'Diagnóstico administrativo protegido', 'success') }}
   </section>
 
+  {% set receipt = summary.workforce_receipt or {} %}
+  <section class="v857-company-panels" id="cron-evidence" data-workforce-receipt="{{ receipt.contract or 'NONE' }}">
+    <article>
+      <h2>Recibo real de automatización</h2>
+      <p>Última ejecución guardada del Cron maestro en la base de datos; no significa que todos los trabajadores estén operativos 24 horas al día.</p>
+      <p><strong>Estado de evidencia: {{ receipt.state or 'NO_EVIDENCE' }}</strong></p>
+      {% if receipt.last_observed_madrid %}
+      <p>Última marca persistida: <time datetime="{{ receipt.last_observed_madrid }}">{{ receipt.last_observed_madrid }}</time> · {{ receipt.age_minutes if receipt.age_minutes is not none else '—' }} min de antigüedad.</p>
+      {% else %}
+      <p>No hay un recibo temporal verificable. Debemos revisar Cron y sus fuentes antes de certificar funcionamiento continuo.</p>
+      {% endif %}
+      <p><small>Procedencia: automation_state · {{ receipt.source or 'Sin origen' }}. Abrir Company OS no consulta APIs ni inicia trabajadores.</small></p>
+      <a href="/admin/automation-center">Revisar automatizaciones</a>
+      <div class="company-native-review" data-native-workforce-review="{{ native.state or 'NOT_RUN' }}">
+        <h3>Última revisión local</h3>
+        <p>Estado del recibo: <strong>{{ native.state or 'NOT_RUN' }}</strong>. La revisión local y el recibo de Cron son comprobaciones distintas.</p>
+        {% if native.finished_at_madrid %}
+        <p>Fecha registrada: <time datetime="{{ native.finished_at_madrid }}">{{ native.finished_at_madrid }}</time>.</p>
+        {% endif %}
+        {% if summary.execution_state == 'STATIC_PARTIAL' %}
+        <p>{{ native.reviewed_core_count or 0 }} responsabilidades y {{ native.reviewed_game_count or 0 }} disciplinas con revisión estática reciente. Los resultados pueden incluir evidencia pendiente.</p>
+        {% else %}
+        <p>No hay una revisión local reciente acreditada. Los datos antiguos no describen el estado actual.</p>
+        {% endif %}
+        <p>Consultar este panel no ejecuta revisiones ni actualiza sus fechas.</p>
+        <p>Las propuestas disponibles de las 15 responsabilidades y las 7 disciplinas se muestran en sus tarjetas. El ciclo diario de Evolución Continua las incorpora a su tablero.</p>
+        <a href="/admin/founder-dashboard#continuous-evolution">Ver propuestas de Evolución Continua</a>
+      </div>
+    </article>
+  </section>
+  {% set triads = summary.review_triads or {} %}
+  <section class="v857-company-panels" id="review-triads" data-review-triad="{{ triads.contract or 'NOT_CONFIGURED' }}">
+    <article>
+      <h2>Triple revisión: analizar, verificar y cuestionar</h2>
+      <p><strong>{{ triads.configured_areas or 0 }} áreas</strong> · {{ triads.additional_review_roles or 0 }} funciones de contraste adicionales · {{ triads.total_review_roles or 0 }} funciones de revisión definidas.</p>
+      <p>Estas funciones comparten el ciclo de revisión existente: no son personas contratadas ni 66 procesos independientes. No consumen créditos adicionales ni autorizan cambios automáticamente.</p>
+      <p><strong>Consenso independiente: {{ triads.confirmed_consensus or 0 }} confirmado.</strong> Los controles de código y sus hashes no sustituyen capturas reales, pruebas de navegador, datos de producción ni revisión humana.</p>
+      <details class="company-review-evidence">
+        <summary>Ver el estado de los tres revisores por área</summary>
+        {% for area in triads.reviewers or [] %}
+        <details class="company-review-evidence">
+          <summary>{{ area.title }} · {{ area.consensus }}</summary>
+          <ul aria-label="Tres funciones de revisión">
+            {% for reviewer in area.roles %}
+            <li><strong>{{ reviewer.name }}:</strong> {{ reviewer.state }}{% if not reviewer.executed %} · sin ejecución acreditada{% endif %}. {{ reviewer.limitation }}</li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endfor %}
+      </details>
+      <p><small>Si dos revisores aportan evidencia realmente independiente, su coincidencia solo produce una propuesta revisable. Pagos, seguridad, datos, legal y despliegues mantienen puertas obligatorias adicionales.</small></p>
+    </article>
+  </section>
   <section class="v857-workers-grid" aria-label="{{ ui('Responsabilidades configuradas') }}">
     {% for worker in summary.workers %}
     <article class="v857-worker-card v860-board-card risk-{{ worker.risk_level }}">
@@ -34,6 +91,23 @@
         <h2>{{ ui(worker.area) }}</h2>
       </div>
       <strong>{{ ui(worker.status) }}</strong>
+      {% if worker.static_review %}
+      <p><time datetime="{{ worker.static_review.finished_at_madrid }}">{{ worker.static_review.finished_at_madrid }}</time> · {{ worker.static_review.limitation }}</p>
+      <details class="company-review-evidence">
+        <summary>Resultado de la revisión estática</summary>
+        <ul aria-label="Comprobaciones de código, sin navegador">
+          {% for check in worker.static_review.checks or [] %}
+          <li>{{ check.state }} · {{ check.detail }}</li>
+          {% endfor %}
+        </ul>
+        {% if worker.static_review.proposal %}<p><strong>Propuesta:</strong> {{ worker.static_review.proposal }}</p>{% endif %}
+        <ul aria-label="Fuentes de la revisión estática">
+          {% for proof in worker.static_review.evidence or [] %}
+          <li><code>{{ proof.path }}</code> · {{ proof.state }}{% if proof.sha256 %}<br><code>{{ proof.sha256 }}</code>{% endif %}</li>
+          {% endfor %}
+        </ul>
+      </details>
+      {% endif %}
       {% if worker.configuration_status %}<p>{{ ui('Configuración del contexto') }}: {{ ui(worker.configuration_status) }}</p>{% endif %}
       <p>{{ ui('Alcance previsto') }}</p>
       <ul aria-label="{{ ui('Alcance previsto') }}">
@@ -49,6 +123,51 @@
     {% endfor %}
   </section>
 
+  {% set visual = summary.game_ui_lab or {} %}
+  <section class="v857-company-panels" id="game-ui-lab" data-game-ui-lab="{{ visual.contract or 'NO_CONTRACT' }}">
+    <article>
+      <span class="eyebrow">División Creativa · Experiencia Game UI/UX</span>
+      <h2>Especialistas visuales de videojuegos</h2>
+      <p>Disciplinas profesionales de diseño de interfaces —arcade clásico, simulación moderna, arte técnico, motion y accesibilidad— aplicadas a nuestra plataforma deportiva. No son personas contratadas ni modelos externos. Este panel muestra los recibos del ciclo local cuando existen.</p>
+      <p><strong>Estado: {{ visual.state or 'SIN EVIDENCIA' }}</strong> · Revisión humana obligatoria · 0 gastos adicionales autorizados.</p>
+      <p>La aprobación visual requiere capturas reales, métricas de navegación, referencias aprobadas y control de rendimiento. Una revisión de código no sustituye esas pruebas. No se copian recursos de videojuegos existentes.</p>
+      <div class="v857-company-actions">
+        {{ action_button('QA visual', '/admin/visual-qa', 'neutral') }}
+        {{ action_button('Referencias aprobadas', '/admin/client-screen-audit', 'neutral') }}
+      </div>
+    </article>
+    <article>
+      <h2>Áreas de especialización</h2>
+      <div class="v857-chip-list v860-chip-grid">
+        {% for expert in visual.disciplines or [] %}
+          <details class="game-ui-discipline">
+            <summary><strong>{{ expert.name }}</strong></summary>
+            <p>{{ expert.focus }}</p>
+            <p><strong>Objetivo:</strong> {{ expert.acceptance }}</p>
+            <p><small>Validación: {{ expert.proof }}</small></p>
+            {% if expert.execution_state == 'STATIC_PARTIAL' %}
+            <p><strong>{{ expert.review_label }}</strong></p>
+            <p><time datetime="{{ expert.last_review_at }}">{{ expert.last_review_at }}</time> · {{ expert.limitation }}</p>
+            <ul class="game-ui-evidence" aria-label="Comprobaciones de código, sin navegador">
+              {% for check in expert.checks or [] %}
+              <li>{{ check.state }} · {{ check.detail }}</li>
+              {% endfor %}
+            </ul>
+            <p><strong>Propuesta:</strong> {{ expert.proposal }}</p>
+            <ul class="game-ui-evidence" aria-label="Fuentes de la revisión estática">
+              {% for proof in expert.evidence or [] %}
+              <li><code>{{ proof.path }}</code> · {{ proof.state }}{% if proof.sha256 %}<br><code>{{ proof.sha256 }}</code>{% endif %}</li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p>Sin revisión estática reciente acreditada para esta disciplina.</p>
+            {% endif %}
+          </details>
+        {% endfor %}
+      </div>
+      <small>Responsabilidades definidas, sin acreditar ejecución 24/7. La cadencia y los recibos reales se certifican por separado.</small>
+    </article>
+  </section>
   <section class="v857-company-panels">
     <article>
       <h2>Estados seguros</h2>

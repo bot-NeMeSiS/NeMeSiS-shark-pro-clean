@@ -10,6 +10,23 @@
 .v933-admin-workforce .company-inventory li > div { display: grid; justify-items: start; gap: 6px; min-width: 0; }
 .v933-admin-workforce .company-inventory code { font-size: 12px; overflow-wrap: anywhere; white-space: normal; }
 .v933-admin-workforce .company-inventory small { color: var(--v933-text-soft); }
+/* Review disciplines retain the core card surface without joining its inventory. */
+body[data-ns-design="core"] #game-ui-lab .game-ui-discipline {
+  padding: 16px;
+  border: 1px solid var(--v860-line);
+  border-radius: 20px;
+  background: var(--v860-panel);
+  box-shadow: var(--v860-shadow);
+}
+body[data-ns-design="core"] #game-ui-lab .game-ui-discipline p { color: rgba(237, 250, 255, .74); }
+body[data-ns-design="core"] #game-ui-lab .game-ui-evidence { padding-left: 18px; font-size: 12px; line-height: 1.5; }
+body[data-ns-design="core"] #game-ui-lab .game-ui-evidence code { white-space: normal; overflow-wrap: anywhere; }
+.v857-company-os .company-native-review { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--v933-border); }
+.v857-company-os .company-review-evidence ul { padding-left: 18px; font-size: 12px; line-height: 1.5; }
+.v857-company-os .company-review-evidence code { white-space: normal; overflow-wrap: anywhere; }
+@media (max-width: 768px) {
+  body[data-ns-design="core"] #game-ui-lab .game-ui-discipline { padding: 14px; }
+}
 @media (max-width: 600px) {
   body.ns-app .v933-admin-workforce > .v933-kpi-grid { grid-template-columns: minmax(0, 1fr) !important; }
   .v933-admin-workforce .company-inventory li { grid-template-columns: minmax(0, 1fr); }
