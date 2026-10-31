@@ -247,12 +247,12 @@ def plan_catalog() -> Dict[str, Dict[str, Any]]:
         ("ELITE+", "44,99 €/mes", "449 €/año", ["Todo ELITE", "NeMeSiS Lab", "Acceso anticipado", "Soporte prioritario"]),
     )
     for key, monthly_label, yearly_label, features in offers:
-        legacy_id = plan_price_id(key) if key in VALID_PAID_PLANS else ""
+        legacy_id = plan_price_id(key) if key in {"PRO", "ELITE"} else ""
         monthly_id = revenue_os_price_id(key, "monthly") or legacy_id
         yearly_id = revenue_os_price_id(key, "yearly")
         six_enabled = env_bool("REVENUE_OS_SIX_PLANS_ENABLED", False)
-        enabled = bool(monthly_id) and (key != "ELITE+" or six_enabled)
-        yearly_enabled = six_enabled and bool(yearly_id)
+        enabled = bool(monthly_id) and revenue_os_price_matches_period(monthly_id, key, "monthly") and (key != "ELITE+" or six_enabled)
+        yearly_enabled = six_enabled and bool(yearly_id) and revenue_os_price_matches_period(yearly_id, key, "yearly")
         catalog[key] = {
             "plan": key, "title": key, "price_label": os.getenv(f"STRIPE_PRICE_{key.replace('+', '_PLUS')}_LABEL", monthly_label),
             "yearly_price_label": yearly_label,
@@ -459,6 +459,19 @@ def resolve_plan_from_price(price_id: str) -> str:
 def revenue_os_price_matches_plan(price_id: str, plan: Any) -> bool:
     """Payment entitlement must be supported by a configured Stripe price."""
     return bool(price_id and resolve_plan_from_price(price_id) == revenue_os_normalize_plan(plan))
+
+
+def revenue_os_price_matches_period(price_id: str, plan: Any, period: str) -> bool:
+    """Deny price IDs accidentally assigned to both monthly and annual billing."""
+    plan = revenue_os_normalize_plan(plan)
+    period = str(period or "").strip().lower()
+    if not revenue_os_price_matches_plan(price_id, plan) or period not in REVENUE_OS_BILLING_PERIODS:
+        return False
+    periods = {candidate for candidate in REVENUE_OS_BILLING_PERIODS
+               if revenue_os_price_id(plan, candidate) == price_id}
+    if plan in {"PRO", "ELITE"} and plan_price_id(plan) == price_id:
+        periods.add("monthly")
+    return periods == {period}
 
 
 
@@ -755,7 +768,7 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str, billi
     price_id = revenue_os_price_id(plan, billing_period)
     if not price_id and billing_period == "monthly":
         price_id = plan_price_id(plan)
-    if not price_id or not revenue_os_price_matches_plan(price_id, plan):
+    if not price_id or not revenue_os_price_matches_period(price_id, plan, billing_period):
         return {"ok": False, "error": "Precio de este periodo aún no configurado o no verificable."}
     # Prevent checkout when Stripe events cannot be authenticated and processed.
     status = stripe_runtime_status(db_path)
@@ -961,7 +974,7 @@ def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -
             customer_id = str(obj.get("customer") or "")
             subscription_id = str(obj.get("subscription") or "")
             stored_checkout = conn.execute(
-                "SELECT user_id,plan,expected_price_id FROM stripe_checkout_sessions WHERE stripe_session_id=? LIMIT 1",
+                "SELECT user_id,plan,billing_period,expected_price_id FROM stripe_checkout_sessions WHERE stripe_session_id=? LIMIT 1",
                 (session_id,),
             ).fetchone() if session_id else None
             stored_user_id = str(stored_checkout["user_id"] or "") if stored_checkout else ""
@@ -1037,7 +1050,9 @@ def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -
                         else:
                             plan = resolve_plan_from_price(fields.get("price_id"))
                             expected_price = str(stored_checkout["expected_price_id"] or "") if stored_checkout else ""
-                            if expected_price and expected_price != fields.get("price_id"):
+                            if expected_price and (expected_price != fields.get("price_id") or
+                                    not revenue_os_price_matches_period(expected_price, stored_plan,
+                                         str(stored_checkout["billing_period"] or "monthly"))):
                                 applied = {"applied": False, "reason": "checkout_price_mismatch"}
                                 status = "checkout_price_mismatch"
                                 processed = True
