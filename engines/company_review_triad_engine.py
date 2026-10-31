@@ -82,7 +82,7 @@ def build_company_review_triads(
         if name:
             record = by_name.get(name, {})
             identifier = str(record.get("id") or "core_" + str(index))[:80]
-            triads.append(_review_for_area(identifier, name, "company_core", record, fresh))
+            triads.append(_review_for_area(identifier, str(item.get("area") or name)[:120], "company_core", record, fresh))
     for item in disciplines:
         if not isinstance(item, dict):
             continue
