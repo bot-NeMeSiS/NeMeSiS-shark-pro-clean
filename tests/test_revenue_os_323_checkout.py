@@ -16,6 +16,7 @@ from engines.stripe_payments_engine import (
     revenue_os_price_matches_plan,
     extract_subscription_fields,
     apply_subscription_to_user,
+    plan_catalog,
     revenue_os_checkout_idempotency_key,
     VALID_PAID_PLANS,
     REVENUE_OS_BILLING_PERIODS,
@@ -81,6 +82,20 @@ class RevenueOSCheckoutTests(unittest.TestCase):
                 result = apply_subscription_to_user(conn, fields, "test")
             self.assertFalse(result["applied"])
             self.assertEqual(result["reason"], "price_plan_unverified")
+
+    def test_public_catalog_does_not_enable_unintegrated_elite_plus(self):
+        with patch.dict(os.environ, {
+            "STRIPE_PRICE_PRO": "price_pro_legacy",
+            "STRIPE_PRICE_ELITE": "price_elite_legacy",
+            "STRIPE_PRICE_ELITE_PLUS_MONTHLY": "price_plus_month",
+            "STRIPE_PRICE_PRO_YEARLY": "price_pro_year",
+        }, clear=False):
+            catalog = plan_catalog()
+            self.assertEqual(set(catalog), {"FREE", "PRO", "ELITE", "ELITE+"})
+            self.assertEqual(catalog["ELITE+"]["price_label"], "44,99 €/mes")
+            self.assertFalse(catalog["ELITE+"]["available_for_checkout"])
+            self.assertEqual(catalog["PRO"]["yearly_price_label"], "149 €/año")
+            self.assertTrue(catalog["PRO"]["available_for_checkout"])
 
     def test_idempotency_changes_with_period_price_and_user(self):
         now = datetime(2026, 10, 31, 12, 0, tzinfo=timezone.utc)
