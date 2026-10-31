@@ -148,3 +148,50 @@ body.ns-app .ns16-live .ns16-live-feature .v933-match-card {
     --sports-crest-size: 22px;
   }
 }
+
+/* Match identity readability (#304): generous crest and team label scale on
+   real canonical cards without altering clocks, scores, links or data. */
+body.ns-app .v933-match-card .v933-team-logo { --sports-crest-size: clamp(35px, 2.7vw, 45px); }
+body.ns-app .v933-match-card .v933-team-logo img { width: 88%; height: 88%; object-fit: contain; }
+body.ns-app .v933-match-card .v933-match-teams > div,
+body.ns-app .v933-match-card .v933-match-teams .v933-entity-inline.is-team { min-width: 0; max-width: 100%; }
+body.ns-app .v933-match-card .v933-match-teams strong {
+  font-size: clamp(14px, 1.1vw, 17px);
+  font-weight: 750;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  hyphens: auto;
+}
+@media (min-width: 761px) {
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) {
+    min-height: 92px !important; padding: 10px 14px !important; gap: 12px !important;
+  }
+  body.ns-app .ns16-live :is(.ns16-match-row, .ns16-live-feature) .v933-match-card {
+    min-height: 144px; padding: 13px;
+  }
+  body.ns-app .ns16-live .v933-match-card .v933-team-logo { --sports-crest-size: 44px; }
+}
+@media (max-width: 760px) {
+  body.ns-app .v933-match-card .v933-team-logo { --sports-crest-size: 34px; }
+  body.ns-app .v933-match-card .v933-match-teams strong {
+    font-size: clamp(13px, 3.7vw, 15px); line-height: 1.3;
+  }
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) {
+    padding: 8px 9px !important; gap: 6px !important;
+  }
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-teams > div,
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-teams .v933-entity-inline.is-team {
+    grid-template-columns: var(--sports-crest-size) minmax(0, 1fr); gap: 6px;
+  }
+  body.ns-app .ns16-live .v933-match-card .v933-team-logo { --sports-crest-size: 36px; }
+}
+@media (max-width: 380px) {
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-teams > div,
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-teams .v933-entity-inline.is-team {
+    grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center;
+  }
+  body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-team-logo {
+    --sports-crest-size: 32px;
+  }
+}
