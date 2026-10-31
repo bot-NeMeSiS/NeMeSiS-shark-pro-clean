@@ -702,13 +702,19 @@ def sync_checkout_session(db_path: str, user: Dict[str, Any], session_id: str) -
     if plan not in VALID_PAID_PLANS:
         return {"ok": False, "reason": "stripe_subscription_plan_unconfirmed", "session_id": session_id}
     # A returned checkout must match the stored signed-in purchase selection.
-    with connect(db_path) as check_conn:
+    check_conn = connect(db_path)
+    try:
         checkout_row = check_conn.execute(
-            "SELECT user_id,plan,expected_price_id FROM stripe_checkout_sessions WHERE stripe_session_id=?",
+            "SELECT user_id,plan,billing_period,expected_price_id FROM stripe_checkout_sessions WHERE stripe_session_id=?",
             (session_id,),
         ).fetchone()
+    finally:
+        check_conn.close()
     if checkout_row and (str(checkout_row["user_id"] or "") != user_id or
-            (checkout_row["expected_price_id"] and str(checkout_row["expected_price_id"]) != fields.get("price_id")) or
+            (checkout_row["expected_price_id"] and
+             (str(checkout_row["expected_price_id"]) != fields.get("price_id") or
+              not revenue_os_price_matches_period(fields.get("price_id"), plan,
+                  str(checkout_row["billing_period"] or "monthly")))) or
             normalize_plan(checkout_row["plan"]) != plan):
         return {"ok": False, "reason": "checkout_price_or_owner_mismatch", "session_id": session_id}
     fields.update({
