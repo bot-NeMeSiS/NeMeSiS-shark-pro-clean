@@ -39,6 +39,7 @@ def isolated_payment_configuration(monkeypatch):
 def configure(monkeypatch, environment="test", enabled=True):
     # These are intentionally synthetic, and never sent to Stripe.
     monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_" + environment + "_synthetic_local_qa")
+    monkeypatch.setenv("STRIPE_WEBHOOK_SECRET", "whsec_synthetic_only")
     monkeypatch.setenv("STRIPE_PRICE_PRO", "price_synthetic_pro")
     monkeypatch.setenv("STRIPE_PRICE_ELITE", "price_synthetic_elite")
     monkeypatch.setenv("APP_PUBLIC_URL", "https://membership-qa.invalid")
@@ -138,7 +139,7 @@ def test_guest_with_configured_payments_gets_login_and_correct_environment(
     assert "synthetic_local_qa" not in html
 
 
-@pytest.mark.parametrize("state", ["missing_key", "disabled", "missing_price", "unavailable"])
+@pytest.mark.parametrize("state", ["missing_key", "missing_webhook", "disabled", "missing_price", "unavailable"])
 def test_incomplete_or_unavailable_payment_state_has_no_purchase_control(
     app_module, monkeypatch, tmp_path, state,
 ):
@@ -146,6 +147,8 @@ def test_incomplete_or_unavailable_payment_state_has_no_purchase_control(
     override = None
     if state == "missing_key":
         monkeypatch.delenv("STRIPE_SECRET_KEY")
+    elif state == "missing_webhook":
+        monkeypatch.delenv("STRIPE_WEBHOOK_SECRET")
     elif state == "disabled":
         monkeypatch.setenv("PAYMENTS_ENABLED", "false")
     elif state == "missing_price":
