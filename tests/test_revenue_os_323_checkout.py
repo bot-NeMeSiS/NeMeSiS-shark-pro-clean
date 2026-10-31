@@ -252,6 +252,41 @@ class RevenueOSCheckoutTests(unittest.TestCase):
             self.assertFalse(result["applied"])
             self.assertEqual(result["reason"], "subscription_period_expired")
 
+    def test_past_due_cannot_upgrade_access_or_extend_period(self):
+        import engines.stripe_payments_engine as billing
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as folder:
+            db_path = str(Path(folder) / "past-due.sqlite")
+            with sqlite3.connect(db_path) as conn:
+                conn.execute(
+                    "CREATE TABLE users(id TEXT PRIMARY KEY,role TEXT,membership TEXT,"
+                    "membership_source TEXT,stripe_subscription_id TEXT,stripe_customer_id TEXT,"
+                    "membership_expires_at TEXT,stripe_subscription_status TEXT,last_payment_status TEXT)"
+                )
+                conn.execute(
+                    "INSERT INTO users(id,role,membership,membership_source,stripe_subscription_id,"
+                    "stripe_customer_id,membership_expires_at) VALUES("
+                    "'qa','PRO','PRO','stripe','sub_qa','cus_qa','2027-01-01T00:00:00+00:00')"
+                )
+            billing.ensure_stripe_schema(db_path)
+            with patch.dict(os.environ, {"STRIPE_PRICE_ELITE_MONTHLY": "price_elite_qa"}, clear=False):
+                with billing.connect(db_path) as conn:
+                    result = billing.apply_subscription_to_user(conn, {
+                        "user_id": "qa", "subscription_id": "sub_qa",
+                        "customer_id": "cus_qa", "status": "past_due",
+                        "plan": "ELITE", "price_id": "price_elite_qa",
+                        "current_period_end": "2028-01-01T00:00:00+00:00",
+                    }, "customer.subscription.updated")
+                    conn.commit()
+                    user = conn.execute(
+                        "SELECT membership,membership_expires_at,stripe_subscription_status "
+                        "FROM users WHERE id='qa'"
+                    ).fetchone()
+                self.assertFalse(result["applied"])
+                self.assertEqual(result["reason"], "past_due_existing_access_preserved")
+                self.assertEqual(tuple(user), ("PRO", "2027-01-01T00:00:00+00:00", "past_due"))
+
     def test_idempotency_changes_with_period_price_and_user(self):
         now = datetime(2026, 10, 31, 12, 0, tzinfo=timezone.utc)
         f = lambda user, period, price: revenue_os_checkout_idempotency_key(user, "PRO", period, price, now)
