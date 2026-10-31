@@ -46,3 +46,23 @@ def test_fast_inventory_reports_capacity_without_scanning_dbstat(tmp_path):
         status["disk_free_bytes"] >= status["backup_required_bytes"]
     )
     assert path.read_bytes() == data_before
+
+
+def test_storage_telemetry_admin_api_requires_session_and_stays_readonly(app_module, monkeypatch, tmp_path):
+    path = tmp_path / "admin-storage.sqlite3"
+    with sqlite3.connect(path) as db:
+        db.execute("CREATE TABLE fixtures(id INTEGER PRIMARY KEY)")
+    monkeypatch.setattr(app_module, "DB_PATH", str(path))
+    with app_module.app.test_request_context("/api/admin/data-vault/storage-telemetry"):
+        monkeypatch.setattr(app_module, "is_admin_session", lambda: False)
+        blocked, code = app_module.api_admin_data_vault_storage_telemetry()
+        assert code == 403
+        assert blocked.get_json()["ok"] is False
+        monkeypatch.setattr(app_module, "is_admin_session", lambda: True)
+        payload = app_module.api_admin_data_vault_storage_telemetry().get_json()
+    assert payload["ok"] is True
+    assert payload["readonly"] is True
+    assert payload["writes"] == 0
+    assert payload["dbstat_scanned"] is False
+    assert payload["db_size_bytes"] == path.stat().st_size
+    assert "db_path" not in payload

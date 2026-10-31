@@ -36473,6 +36473,9 @@ def admin_data_vault_page():
         return redirect("/admin-login?next=/admin/data-vault")
     data = dashboard_data()
     data["data_vault_admin"] = v743_data_vault_context()
+    # Fast, read-only capacity preflight; no dbstat scan on page render.
+    from tools.inspect_sqlite_growth_readonly import inspect_database
+    data["storage_telemetry"] = inspect_database(DB_PATH, limit=0)
     return render_template("admin_data_vault.html", data=data)
 
 
@@ -36482,6 +36485,15 @@ def api_admin_data_vault():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, **v743_data_vault_context()})
+
+
+@app.route("/api/admin/data-vault/storage-telemetry", methods=["GET"])
+def api_admin_data_vault_storage_telemetry():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    from tools.inspect_sqlite_growth_readonly import inspect_database
+    payload = inspect_database(DB_PATH, limit=0)
+    return jsonify({"version": APP_VERSION, **payload})
 
 
 @app.route("/api/admin/data-vault/create-backup", methods=["POST"])

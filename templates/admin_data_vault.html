@@ -3,6 +3,7 @@
 {% set vault = data.data_vault_admin or {} %}
 {% set dv = vault.data_vault or {} %}
 {% set policies = vault.policies or {} %}
+{% set storage = data.storage_telemetry or {} %}
 <section class="scoreboard-hero v701-scoreboard">
   <div>
     <div class="kicker">Admin · Data Vault</div>
@@ -45,6 +46,31 @@
       </div>
     </article>
   </div>
+</section>
+
+<section class="band compact-band" data-storage-readonly="true">
+  <div class="section-head"><h2>Capacidad de recuperación</h2><span class="pill">Solo lectura</span></div>
+  {% if storage.ok %}
+  <div class="grid compact-grid">
+    <article class="card">
+      <h3>Espacio disponible en el disco</h3>
+      <p><strong>{{ (storage.disk_free_bytes / 1048576)|round(1) }} MiB</strong> libres de {{ (storage.disk_total_bytes / 1073741824)|round(2) }} GiB</p>
+      <p class="small">Medición local. No demuestra que exista una copia restaurable.</p>
+    </article>
+    <article class="card">
+      <h3>Espacio estimado para la próxima copia</h3>
+      <p><strong>{{ 'Capacidad suficiente' if storage.backup_headroom_ok else 'Falta capacidad' }}</strong></p>
+      <p class="small">{{ (storage.backup_required_bytes / 1048576)|round(1) }} MiB para la copia y su margen de seguridad. El tiempo de ejecución y la integridad se verifican aparte.</p>
+    </article>
+    <article class="card">
+      <h3>Recuperación de datos</h3>
+      <p><strong>Restauración pendiente de certificar</strong></p>
+      <p class="small">Verifica SHA-256, PRAGMA integrity_check y una restauración aislada antes de cerrar la incidencia.</p>
+    </article>
+  </div>
+  {% else %}
+  <div class="card"><p>Medición no disponible: {{ storage.error_code or 'NOT_AVAILABLE' }}.</p></div>
+  {% endif %}
 </section>
 
 <section class="band compact-band">
