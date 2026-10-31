@@ -1,6 +1,7 @@
 """Browser geometry on canonical match cards with synthetic favorite_page data."""
 import pytest
 from test_match_card_favorite_browser import favorite_page
+from test_app_navigation_browser import browser
 
 
 @pytest.mark.parametrize("width,height,min_crest,min_text", [
