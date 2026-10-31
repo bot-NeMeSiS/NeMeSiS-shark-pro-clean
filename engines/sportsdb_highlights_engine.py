@@ -162,7 +162,8 @@ def ensure_sportsdb_highlights_schema(db_path):
 
 
 def _api_key():
-    return (os.getenv('THESPORTSDB_KEY') or os.getenv('THESPORTSDB_API_KEY') or '').strip()
+    from engines.sportsdb_pause_engine import sportsdb_effective_key
+    return sportsdb_effective_key()
 
 
 def _fetch_json(url, timeout=12):
@@ -623,6 +624,10 @@ def _sync_sportsdb_highlights(db_path, days_back, limit, force, historical_only,
     """
     import uuid
     from engines.sportsdb_request_budget import SportsDBBudget, SportsDBStopped
+    from engines.sportsdb_pause_engine import sportsdb_paused
+    if sportsdb_paused():
+        return {"ok": True, "skipped": True, "status": "PAUSED", "reason": "provider_paused",
+                "external_calls": 0, "highlights_found": 0, "linked_matches": 0, "errors": []}
     if not _api_key():
         return {'ok': False, 'status': 'MISSING_KEY', 'sin_key': True,
                 'error': 'Falta THESPORTSDB_KEY o THESPORTSDB_API_KEY', 'external_calls': 0}

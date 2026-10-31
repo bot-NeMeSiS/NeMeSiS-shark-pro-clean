@@ -230,7 +230,8 @@ def test_system_uses_canonical_admin_routes_and_plain_language():
 
 def test_final_release_does_not_overclaim_or_show_stale_version_label():
     text=read("templates/admin_final_release.html")
-    assert "{{ app_version }} · Candidata de publicación comercial" in text
+    assert "{{ public_product_version }} · Revisión {{ public_product_revision }} · Candidata de publicación comercial" in text
+    assert "{{ app_version }} · Candidata" not in text
     assert "V738 · Candidata" not in text
     assert "Candidata preparada para validación comercial" in text
     assert "Versión final preparada para vender con control" not in text

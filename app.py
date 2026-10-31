@@ -528,7 +528,10 @@ from engines.madrid_time_engine import (
 )
 
 APP_NAME = "NeMeSiS SHARK PRO"
-APP_VERSION = 'V1000_4_CALENDAR_COHORT_COUNTS_PHASE_TIMING'
+# Public product identity is independent of the monotonic build and commit.
+PUBLIC_PRODUCT_VERSION = "v1"
+PUBLIC_PRODUCT_REVISION = "001"
+APP_VERSION = 'V1000_5_PUBLIC_V1_RELEASE_IDENTITY'
 SEED_VERSION = "v528-client-login-route-stability-seed"
 BASE_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 APP_ICON_VERSION = json.loads((BASE_DIR / "static/img/app-icons/icons.json").read_text(encoding="utf-8"))["fingerprint"]
@@ -1735,7 +1738,12 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
     )
     fallback = {"ok": True, "status": "NOT_REQUIRED", "skipped": True, "processed": 0}
     if fixtures.get("ok") is False and not fixtures.get("skipped"):
-        fallback = _safe_sports_sync_call("sportsdb_calendar", sync_sportsdb_calendar, limit=180)
+        from engines.sportsdb_pause_engine import sportsdb_paused
+        if sportsdb_paused():
+            fallback = {"ok": True, "status": "PAUSED", "reason": "provider_paused",
+                        "skipped": True, "processed": 0, "external_calls": 0}
+        else:
+            fallback = _safe_sports_sync_call("sportsdb_calendar", sync_sportsdb_calendar, limit=180)
 
     # Reopen the request read snapshot after provider writers committed.
     if has_request_context():
@@ -5045,7 +5053,8 @@ def apply_team_identities_to_match(item):
 
 
 def thesportsdb_key():
-    return str(os.getenv("THESPORTSDB_KEY") or os.getenv("THESPORTSDB_API_KEY") or "").strip()
+    from engines.sportsdb_pause_engine import sportsdb_effective_key
+    return sportsdb_effective_key()
 
 
 SPORTSDB_SEARCH_ALIASES = {
@@ -5333,6 +5342,7 @@ def fetch_thesportsdb_team_by_id(external_id):
 
 
 def crest_sync_status():
+    from engines.sportsdb_pause_engine import sportsdb_paused
     seed_core()
     teams = rows("SELECT * FROM teams ORDER BY name")
     with_logo = [t for t in teams if t.get("logo_url")]
@@ -5346,6 +5356,7 @@ def crest_sync_status():
             last_sync = {"raw": state.get("value_json")}
     return {
         "key_present": bool(thesportsdb_key()),
+        "paused": sportsdb_paused(),
         "key_masked": masked_key(thesportsdb_key()),
         "live_enabled": sportsdb_live_enabled(),
         "total_teams": len(teams),
@@ -6421,6 +6432,7 @@ def sync_sportsdb_feed(limit=220):
 
 
 def sportsdb_feed_status():
+    from engines.sportsdb_pause_engine import sportsdb_paused
     seed_core()
     state = one("SELECT * FROM automation_state WHERE key='sportsdb_feed_sync'")
     last_sync = {}
@@ -6433,6 +6445,7 @@ def sportsdb_feed_status():
     updated = (one("SELECT MAX(updated_at) AS updated_at FROM matches WHERE source LIKE 'TheSportsDB%'") or {}).get("updated_at", "")
     return {
         "key_present": bool(thesportsdb_key()),
+        "paused": sportsdb_paused(),
         "key_masked": masked_key(thesportsdb_key()),
         "live_enabled": sportsdb_live_enabled(),
         "cached_matches": cached,
@@ -13193,6 +13206,8 @@ def get_v937_pick_learning(pick):
 
 
 app.jinja_env.globals.update(
+    public_product_version=PUBLIC_PRODUCT_VERSION,
+    public_product_revision=PUBLIC_PRODUCT_REVISION,
     nemesis_data_confidence=get_v937_nemesis_data_confidence,
     nemesis_attention_priority=get_v937_attention_priority,
     nemesis_pick_learning=get_v937_pick_learning,
@@ -17606,7 +17621,7 @@ def telegram_daily_message():
     summary = briefing["summary"]
     return (
         "<b>NeMeSiS SHARK PRO</b>\n"
-        f"Versión: {APP_VERSION}\n"
+        f"Versión: {PUBLIC_PRODUCT_VERSION}\n"
         f"Partidos hoy: {summary['matches_today']} | Live: {summary['live_now']} | Picks: {summary['picks_ready']}\n"
         "Cobertura: mundial, competiciones top, directo, resultados y picks con hora Madrid.\n"
         "Legal: solo APIs permitidas, importaciones autorizadas y cache propio."
@@ -19261,7 +19276,7 @@ def _v991_prepare_summary_operation(summary, *, selected_date=None, current=None
     return operation
 
 
-def _v991_finish_summary(summary, *, selected_date=None, _prepare_only=False):
+def _v991_finish_summary(summary, *, selected_date=None, _prepare_only=False, _home_only=False):
     selected = _safe_date_value(selected_date, today_iso())
     # Admit only each original's own fresh LIVE evidence in the already-approved
     # live cohort, before the only context preparation and current/history split.
@@ -19302,7 +19317,10 @@ def _v991_finish_summary(summary, *, selected_date=None, _prepare_only=False):
         summary.pop("sports_metrics", None)
     else:
         summary["sports_home"] = build_sports_home_sections(summary, reuse_ranked=True, fixture_operation=operation)
-        summary["sports_metrics"] = build_sports_metrics_contract(summary, fixture_operation=operation)
+        if _home_only is True:
+            summary.pop("sports_metrics", None)
+        else:
+            summary["sports_metrics"] = build_sports_metrics_contract(summary, fixture_operation=operation)
     return summary, operation
 
 
@@ -20329,7 +20347,7 @@ def _latest_sports_update_at(*row_groups):
     return max(candidates).isoformat() if candidates else ""
 
 
-def get_public_home_sports_summary(selected_date=None, *, _prepare_only=False):
+def get_public_home_sports_summary(selected_date=None, *, _prepare_only=False, _home_only=False):
     if selected_date is None and has_request_context() and request.path in _V991_CALENDAR_PATHS:
         selected = _v940_calendar_filters(request.args.get("lane") or "today", request.args.get("date"))["date"]
     else:
@@ -20347,14 +20365,17 @@ def get_public_home_sports_summary(selected_date=None, *, _prepare_only=False):
                 existing.pop("sports_metrics", None)
             else:
                 existing["sports_home"] = build_sports_home_sections(existing, reuse_ranked=True, fixture_operation=operation)
-                existing["sports_metrics"] = build_sports_metrics_contract(existing, fixture_operation=operation)
+                if _home_only is True:
+                    existing.pop("sports_metrics", None)
+                else:
+                    existing["sports_metrics"] = build_sports_metrics_contract(existing, fixture_operation=operation)
             return existing
     result, cache_status = cached_v934_realtime_snapshot(
         _public_sports_cache_key(), _v991_validated_base_summary, ttl_seconds=300)
     if _prepare_only is True:
         result, operation = _v991_finish_summary(result, selected_date=selected, _prepare_only=True)
     else:
-        result, operation = _v991_finish_summary(result, selected_date=selected)
+        result, operation = _v991_finish_summary(result, selected_date=selected, _home_only=_home_only)
     result["summary_cache_status"] = cache_status
     if has_request_context():
         g.v935_public_sports_summary = result
@@ -20706,8 +20727,68 @@ def _v931_minimal_client_data(summary, lane="today", date_value="", *, _shark_vi
     }
 
 
-def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None, _directo_minimal=False, _shark_view=False, _calendar_view=False):
+def _picks_client_data(summary, lane="today", date_value=""):
+    """Read only the request-owned facts used by the Picks page and shell.
+
+    Home sections and Calendar provider cards have their own consumers. Do not
+    build them here or reuse their cached identity/count assertions. The normal
+    sports getter, fresh metric contract and the route's authorized pick/realtime
+    projections remain in place.
+    """
+    today = list(summary.get("valid_matches_today") or [])
+    upcoming = list(summary.get("valid_upcoming_matches") or [])
+    return {
+        "app_name": APP_NAME,
+        "version": APP_VERSION,
+        "date": date_value or today_iso(),
+        "lane": lane,
+        "matches": today,
+        "upcoming_matches": upcoming,
+        "session_user": current_session_user(),
+        "sports_metrics": get_sports_metrics_contract(summary),
+        "v931_route_guard": {
+            "status": "safe_fallback",
+            "provider_status": summary.get("provider_status"),
+            "no_render_api_call": True,
+        },
+    }
+
+
+def _shark_client_input_data(summary, lane="today", date_value=""):
+    """Prepare only SHARK inputs before the wrapper's fresh metric contract.
+
+    The existing wrapper still reads provider state and builds the current full
+    metrics once, after this input stage. Briefing, live collections, selected
+    advice, quotas and rendering retain their own normal consumers. No cached
+    metrics or source/identity/role assertion is reused here.
+    """
+    today = list(summary.get("valid_matches_today") or [])
+    upcoming = list(summary.get("valid_upcoming_matches") or [])
+    picks = _v999_authorized_snapshot_picks(summary.get("valid_active_picks") or [], active_only=True)
+    return {
+        "app_name": APP_NAME,
+        "version": APP_VERSION,
+        "date": date_value or today_iso(),
+        "lane": lane,
+        "matches": today,
+        "upcoming_matches": upcoming,
+        "session_user": current_session_user(),
+        "picks": picks,
+        "v925_picks": get_safe_picks_context(picks),
+        "v925_odds": get_safe_odds_context(picks),
+        "v931_route_guard": {
+            "status": "safe_fallback",
+            "provider_status": summary.get("provider_status"),
+            "no_render_api_call": True,
+        },
+    }
+
+
+def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False, sports_summary=None, _directo_minimal=False, _shark_view=False, _calendar_view=False, _picks_view=False):
     calendar_view = compact and _calendar_view is True and _directo_minimal is not True and _shark_view is not True
+    picks_view = compact and _picks_view is True and not calendar_view and _directo_minimal is not True and _shark_view is not True
+    shark_view = compact and _shark_view is True and _directo_minimal is not True
+    home_only_view = compact and (_directo_minimal is True or _shark_view is True or picks_view)
     summary = (
         _v932_locked_sports_summary()
         if has_request_context() and request.environ.get("nemesis.v932.database_locked")
@@ -20717,7 +20798,9 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
             else (
                 get_public_home_sports_summary(
                     selected_date=_v940_calendar_filters(lane, date_value)["date"], _prepare_only=True,
-                ) if calendar_view else get_public_home_sports_summary()
+                ) if calendar_view else (
+                    get_public_home_sports_summary(_home_only=True) if home_only_view else get_public_home_sports_summary()
+                )
             )
         )
     )
@@ -20749,12 +20832,20 @@ def v931_safe_dashboard_data(route, lane="today", date_value=None, compact=False
             v932_record_authenticated_issue(route, error, "admin" if is_admin_session() else "client", "sqlite_read_timeout_guard")
         if calendar_view:
             return _v1000_3_calendar_client_data(summary, lane, date_value or today_iso()), summary
+        if shark_view:
+            return _shark_client_input_data(summary, lane, date_value or today_iso()), summary
+        if picks_view:
+            return _picks_client_data(summary, lane, date_value or today_iso()), summary
         if compact and _directo_minimal is True:
             return _directo_client_data(), summary
         return _v931_minimal_client_data(summary, lane, date_value or today_iso(), _shark_view=_shark_view), summary
     if compact:
         if calendar_view:
             data = _v1000_3_calendar_client_data(summary, lane, date_value or today_iso())
+        elif shark_view:
+            data = _shark_client_input_data(summary, lane, date_value or today_iso())
+        elif picks_view:
+            data = _picks_client_data(summary, lane, date_value or today_iso())
         elif _directo_minimal is True:
             data = _directo_client_data()
         else:
@@ -20837,8 +20928,10 @@ def v932_safe_dashboard_data(
     _directo_minimal=False,
     _shark_view=False,
     _calendar_view=False,
+    _picks_view=False,
 ):
     calendar_view = compact and _calendar_view is True and _directo_minimal is not True and _shark_view is not True
+    picks_view = compact and _picks_view is True and not calendar_view and _directo_minimal is not True and _shark_view is not True
     if compact and _directo_minimal is True:
         data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary, _directo_minimal=True)
     elif _shark_view is True:
@@ -20847,9 +20940,12 @@ def v932_safe_dashboard_data(
     elif calendar_view:
         data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact,
                                                sports_summary=sports_summary, _calendar_view=True)
+    elif picks_view:
+        data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact,
+                                               sports_summary=sports_summary, _picks_view=True)
     else:
         data, summary = v931_safe_dashboard_data(route, lane, date_value, compact=compact, sports_summary=sports_summary)
-    if not calendar_view:
+    if not calendar_view and not picks_view:
         data["v932_sports_value"] = get_v932_real_sports_value_context(summary)
         data["sports_metrics"] = get_sports_metrics_contract(summary)
     data["v932_authenticated_scope"] = "admin" if scope == "admin" else "client"
@@ -21950,6 +22046,10 @@ def v766_sync_highlights_daily(force=False, days_back=7, limit=250, priority=Non
     import os
     import time
     started = now_iso()
+    from engines.sportsdb_pause_engine import sportsdb_paused
+    if sportsdb_paused():
+        return {"ok": True, "skipped": True, "status": "PAUSED", "reason": "provider_paused",
+                "processed": 0, "updated": 0, "external_calls": 0, "errors": []}
     if not force:
         last = automation_get("sportsdb_highlights_last_sync", {}) or {}
         try:
@@ -27217,7 +27317,7 @@ def client_pick_readiness(summary, *, active_count=0, locked_count=0, watchlist_
 
 @app.route("/picks")
 def picks_page():
-    data, summary = v932_safe_dashboard_data(request.path, compact=True)
+    data, summary = v932_safe_dashboard_data(request.path, compact=True, _picks_view=True)
     user = current_session_user() or {"membership": "FREE", "role": "FREE"}
     membership = normalize_role(user.get("membership") or user.get("role") or "FREE")
     all_current_picks = list(summary.get("valid_active_picks") or [])

@@ -114,7 +114,7 @@
         <header><div><h2>Fuente de verdad</h2><p>Git, runtime y Render se clasifican por acceso.</p></div></header>
         <div class="v933-admin-panel-body">
           <div class="v933-truth-list is-no-icon">
-            <div><span>Versión</span><strong title="{{ company.version }}">{{ company.version.split('_', 1)[0] }}</strong></div>
+            <div><span>Compilación técnica</span><strong title="{{ company.version }}">{{ company.version.split('_', 1)[0] }}</strong></div>
             <div><span>Rama</span><strong title="{{ company.git.branch or 'No disponible' }}">{{ (company.git.branch[:16] ~ '…') if company.git.branch and company.git.branch|length > 16 else (company.git.branch or 'No disponible') }}</strong></div>
             <div><span>HEAD</span><strong>{{ company.git.head_sha[:12] if company.git.head_sha else 'No disponible' }}</strong></div>
             <div><span>Main</span><strong>{{ company.git.main_sha[:12] if company.git.main_sha else 'No disponible' }}</strong></div>

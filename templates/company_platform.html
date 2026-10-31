@@ -4,7 +4,7 @@
 {% block content %}
 <!-- NEMESIS-COMPANY-PLATFORM-BUSINESS-ECOSYSTEM-V1 -->
 {% if page_key == 'landing' %}
-<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"NeMeSiS SHARK PRO","applicationCategory":"SportsApplication","operatingSystem":"Web","description":"Deporte con contexto, evidencia y limites visibles.","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR","description":"Acceso FREE para empezar."}}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"NeMeSiS SHARK PRO","softwareVersion":{{ public_product_version|tojson }},"applicationCategory":"SportsApplication","operatingSystem":"Web","description":"Deporte con contexto, evidencia y limites visibles.","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR","description":"Acceso FREE para empezar."}}</script>
 {% endif %}
 <div class="v933-page company-platform-v1" data-company-platform-contract="{{ company_contract }}" data-company-platform-page="{{ page_key }}"{% if page_key == 'landing' %} data-growth-stage="LANDING" data-growth-target="company-landing"{% endif %}>
   <section class="v933-public-hero company-platform-hero" aria-labelledby="company-platform-title">
@@ -132,7 +132,7 @@
     {{ section_header('Hitos visibles', 'Orden estrategico, no calendario comercial cerrado.') }}
     <div class="company-platform-grid">
       <article class="company-platform-card"><header>{{ status_chip('Preparación','neutral') }}</header><h3>Beta cerrada</h3><p>Validar primer uso, soporte, comentarios y valor percibido con usuarios reales.</p><a class="v933-action is-blue" href="/beta">{{ icon('arrow') }}<span>Abrir</span></a></article>
-      <article class="company-platform-card"><header>{{ status_chip('Gate pendiente','neutral') }}</header><h3>Release 1.0</h3><p>Activar lanzamiento solo cuando producción, pagos, Telegram, soporte y observabilidad tengan evidencia suficiente.</p><a class="v933-action is-blue" href="/service-status">{{ icon('arrow') }}<span>Abrir</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('Gate pendiente','neutral') }}</header><h3>Versión {{ public_product_version }}</h3><p>Activar lanzamiento solo cuando producción, pagos, Telegram, soporte y observabilidad tengan evidencia suficiente.</p><a class="v933-action is-blue" href="/service-status">{{ icon('arrow') }}<span>Abrir</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Base local','neutral') }}</header><h3>Ecosistema deportivo</h3><p>Profundizar centros deportivos y experiencia diaria sin romper Sports Core.</p><a class="v933-action is-blue" href="/calendario">{{ icon('arrow') }}<span>Abrir</span></a></article>
     </div>
   </section>
@@ -140,7 +140,7 @@
   <section class="v933-panel company-platform-section">
     {{ section_header('Sistemas visibles', 'Clasificacion honesta; no se convierte falta de evidencia en PASS.') }}
     <div class="company-platform-grid">
-      <article class="company-platform-card"><header>{{ status_chip('Respuesta servida','neutral') }}</header><h3>Aplicación</h3><p>Respuesta servida por esta instancia. Versión {{ service_status.version }} · Consulta {{ service_status.observed_at }}. Esto confirma esta respuesta; no certifica otros sistemas.</p><a class="v933-action is-blue" href="/api/health">{{ icon('arrow') }}<span>Ver respuesta básica</span></a></article>
+      <article class="company-platform-card"><header>{{ status_chip('Respuesta servida','neutral') }}</header><h3>Aplicación</h3><p>Respuesta servida por esta instancia. Versión {{ public_product_version }} · Consulta {{ service_status.observed_at }}. Esto confirma esta respuesta; no certifica otros sistemas.</p><a class="v933-action is-blue" href="/api/health">{{ icon('arrow') }}<span>Ver respuesta básica</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Sin comprobación externa','neutral') }}</header><h3>Datos deportivos</h3><p>Esta visita no hace llamadas a proveedores ni consume cuota. La respuesta de esta página no certifica disponibilidad ni frescura de partidos.</p><a class="v933-action is-blue" href="/calendario">{{ icon('arrow') }}<span>Abrir calendario</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Sin compra desde aquí','neutral') }}</header><h3>Pagos</h3><p>Esta página no inicia compras. Consulta disponibilidad, entorno y condiciones en Membresías antes de continuar.</p><a class="v933-action is-blue" href="/membresias">{{ icon('arrow') }}<span>Membresías</span></a></article>
       <article class="company-platform-card"><header>{{ status_chip('Sin envío desde aquí','neutral') }}</header><h3>Telegram</h3><p>Esta página no envía mensajes. La disponibilidad y la entrega se deben comprobar en el contexto correspondiente.</p><a class="v933-action is-blue" href="/telegram">{{ icon('arrow') }}<span>Abrir Telegram</span></a></article>

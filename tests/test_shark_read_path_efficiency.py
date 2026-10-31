@@ -198,11 +198,12 @@ def _observe_page_builders(a, monkeypatch):
     compact = a.v932_safe_dashboard_data
     render = a.render_template
     trust = a.get_v935_customer_trust_context
-    prepared_keys = ("v925_calendar", "v925_picks", "v925_odds", "sports_metrics")
+    prepared_keys = ("v925_picks", "v925_odds", "sports_metrics")
 
     @wraps(compact)
     def observed_compact(*args, **kwargs):
         data, summary = compact(*args, **kwargs)
+        assert "v925_calendar" not in data  # No SHARK/base consumer exists.
         observed["compact"].append({
             "data": data, "prepared": {key: data[key] for key in prepared_keys},
         })
@@ -212,6 +213,7 @@ def _observe_page_builders(a, monkeypatch):
     def observed_render(template, *args, **kwargs):
         if template == "shark.html":
             data = kwargs["data"]
+            assert "v925_calendar" not in data
             observed["render"].append({
                 "data": data, "prepared": {key: data[key] for key in prepared_keys},
             })

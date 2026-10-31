@@ -13,6 +13,7 @@ from zoneinfo import ZoneInfo
 from pathlib import Path
 from contextlib import closing
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS
+from engines.statistics_payload_store import read_payload as read_statistics_payload
 
 FINAL = {"ft", "finished", "final", "finalizado", "match finished", "archived", "aet", "pen"}
 KINDS = {"competition", "season", "team", "player", "coach", "stadium", "referee", "match"}
@@ -497,6 +498,8 @@ def sync_existing_details(conn):
             if len(candidates) != 1:
                 unlinked += 1
                 continue
+            if table == "api_football_match_stats_history":
+                row["payload_json"] = read_statistics_payload(conn, row.get("payload_json"))
             if kind == "lineups" and row.get("player_id"):
                 row["canonical_player_id"] = entity(conn, "player", source, row["player_id"], {"name": row.get("player_name"), "position": row.get("position"), "number": row.get("number")})
                 # This existing table is the approved confirmed provider lineup cache.
