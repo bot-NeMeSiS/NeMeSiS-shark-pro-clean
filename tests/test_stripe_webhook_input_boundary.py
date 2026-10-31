@@ -192,6 +192,7 @@ def test_verified_payment_webhook_still_updates_and_is_idempotent(tmp_path, monk
 def test_checkout_completed_waits_for_delayed_payment_then_async_success_activates(tmp_path, monkeypatch):
     monkeypatch.setattr(billing, "local_safe_payments_blocked", lambda: False)
     monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_not_real")
+    monkeypatch.setenv("STRIPE_PRICE_PRO_MONTHLY", "price_pro")
     db_path = str(tmp_path / "stripe-checkout.sqlite")
     _seed_membership_checkout(db_path)
     events = {
