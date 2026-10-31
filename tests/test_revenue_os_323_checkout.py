@@ -97,6 +97,17 @@ class RevenueOSCheckoutTests(unittest.TestCase):
             self.assertEqual(catalog["PRO"]["yearly_price_label"], "149 €/año")
             self.assertTrue(catalog["PRO"]["available_for_checkout"])
 
+    def test_missing_billing_period_does_not_fabricate_entitlement(self):
+        with patch.dict(os.environ, {"STRIPE_PRICE_PRO_MONTHLY": "price_verified"}, clear=False):
+            fields = {"user_id": "u1", "subscription_id": "sub1",
+                      "customer_id": "cus1", "status": "active",
+                      "plan": "PRO", "price_id": "price_verified",
+                      "current_period_end": ""}
+            with sqlite3.connect(":memory:") as conn:
+                result = apply_subscription_to_user(conn, fields, "test")
+            self.assertFalse(result["applied"])
+            self.assertEqual(result["reason"], "subscription_period_unverified")
+
     def test_idempotency_changes_with_period_price_and_user(self):
         now = datetime(2026, 10, 31, 12, 0, tzinfo=timezone.utc)
         f = lambda user, period, price: revenue_os_checkout_idempotency_key(user, "PRO", period, price, now)
