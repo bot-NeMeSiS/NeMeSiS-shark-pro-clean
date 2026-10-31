@@ -25,3 +25,24 @@ def test_missing_database_does_not_create_file(tmp_path):
     path = tmp_path / "missing.db"
     assert inspect_database(str(path))["error_code"] == "DB_NOT_FOUND"
     assert not path.exists()
+
+
+def test_fast_inventory_reports_capacity_without_scanning_dbstat(tmp_path):
+    path = tmp_path / "fast.sqlite3"
+    with sqlite3.connect(path) as db:
+        db.execute("CREATE TABLE fixtures(id INTEGER PRIMARY KEY, name TEXT)")
+        db.execute("INSERT INTO fixtures(name) VALUES('qa')")
+    data_before = path.read_bytes()
+    status = inspect_database(str(path), limit=0)
+    assert status["ok"] is True
+    assert status["readonly"] is True
+    assert status["writes"] == 0
+    assert status["dbstat_scanned"] is False
+    assert status["tables"] == []
+    assert status["disk_total_bytes"] > status["db_size_bytes"] > 0
+    assert status["disk_free_bytes"] >= 0
+    assert status["backup_required_bytes"] > status["allocated_bytes"]
+    assert status["backup_headroom_ok"] == (
+        status["disk_free_bytes"] >= status["backup_required_bytes"]
+    )
+    assert path.read_bytes() == data_before
