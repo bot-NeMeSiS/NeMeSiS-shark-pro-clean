@@ -636,6 +636,25 @@ def apply_subscription_to_user(conn: sqlite3.Connection, fields: Dict[str, Any],
         except ValueError:
             return {"applied": False, "reason": "subscription_period_unverified",
                     "user_id": user_id, "plan": plan, "status": status}
+    if status == "past_due":
+        # Pending renewal payment is not evidence of new entitlement.
+        # Keep the already-paid tier and its existing expiration unchanged.
+        # Reconciliation after invoice.paid may update these fields.
+        current = user_by_id(conn, user_id)
+        same_link = (
+            str(current.get("membership_source") or "") == "stripe"
+            and str(current.get("stripe_subscription_id") or "") == subscription_id
+            and str(current.get("stripe_customer_id") or "") == customer_id
+        )
+        if same_link:
+            conn.execute(
+                "UPDATE users SET stripe_subscription_status='past_due', "
+                "last_payment_status='payment_failed' "
+                "WHERE id=? AND stripe_subscription_id=? AND stripe_customer_id=?",
+                (user_id, subscription_id, customer_id),
+            )
+        return {"applied": False, "reason": "past_due_existing_access_preserved" if same_link
+                else "past_due_unverified", "user_id": user_id, "plan": plan, "status": status}
     conn.execute(
         """INSERT OR REPLACE INTO stripe_subscriptions
            (id,user_id,plan,stripe_customer_id,stripe_subscription_id,stripe_price_id,status,
