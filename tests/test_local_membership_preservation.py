@@ -6,7 +6,8 @@ from engines import stripe_payments_engine as billing
 
 
 @pytest.fixture
-def account(app_module,tmp_path):
+def account(app_module,tmp_path,monkeypatch):
+    monkeypatch.setenv('STRIPE_PRICE_PRO_MONTHLY', 'price_local_pro_qa')
     source=sqlite3.connect(app_module.DB_PATH)
     try:
         schema=source.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").fetchone()[0]
@@ -24,9 +25,6 @@ def account(app_module,tmp_path):
 
 
 def deliver(con,status='canceled',subscription='sub_current_qa'):
-    # Synthetic subscription events use the same price verification as production.
-    import os
-    os.environ['STRIPE_PRICE_PRO_MONTHLY'] = 'price_local_pro_qa'
     return billing.apply_subscription_to_user(con,dict(user_id='qa-billing',plan='PRO',status=status,
         subscription_id=subscription,customer_id='cus_local_qa',price_id='price_local_pro_qa',current_period_end='2030-01-01T00:00:00+00:00',cancel_at_period_end=1),'SIMULATED_QA')
 
