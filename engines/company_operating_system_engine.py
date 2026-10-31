@@ -255,6 +255,11 @@ def build_company_os_summary(version: str = "", runtime: dict[str, Any] | None =
                            if isinstance(check, dict) and isinstance(check.get("state"), str) and check["state"] in labels and isinstance(check.get("result"), str)],
             }
     game_ui_lab = build_game_ui_lab(review=review)
+    from engines.company_review_triad_engine import build_company_review_triads
+    review_triads = build_company_review_triads(
+        workers, game_ui_lab.get("disciplines") or [], records if recent else [],
+        receipt_state=review.get("state") if recent else "NOT_RUN",
+    )
     return {
         "version": version,
         "global_status": "responsabilidades_configuradas",
@@ -267,6 +272,7 @@ def build_company_os_summary(version: str = "", runtime: dict[str, Any] | None =
         "safe_states": SAFE_STATES,
         "workers": workers,
         "game_ui_lab": game_ui_lab,
+        "review_triads": review_triads,
         "native_workforce_review": {
             "state": review.get("state") if review.get("state") in {"RECENT", "STALE", "NOT_RUN", "UNAVAILABLE", "CLOCK_UNVERIFIED"} else "UNAVAILABLE",
             "finished_at_madrid": str(receipt.get("finished_at_madrid") or "")[:80],
