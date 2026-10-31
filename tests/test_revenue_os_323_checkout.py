@@ -226,6 +226,32 @@ class RevenueOSCheckoutTests(unittest.TestCase):
             self.assertAlmostEqual(summary["estimated_mrr"], round(149 / 12, 2), places=2)
             self.assertFalse(summary["estimated_mrr_verified_by_provider"])
 
+    def test_ambiguous_subscription_items_cannot_grant_any_plan(self):
+        with patch.dict(os.environ, {"STRIPE_PRICE_PRO_MONTHLY": "price_pro",
+                                    "STRIPE_PRICE_ELITE_MONTHLY": "price_elite"}, clear=False):
+            subscription = {
+                "id": "sub_multi", "customer": "cus_qa", "status": "active",
+                "items": {"data": [
+                    {"price": {"id": "price_pro"}, "current_period_end": 1800000000},
+                    {"price": {"id": "price_elite"}, "current_period_end": 1800000000},
+                ]},
+            }
+            fields = extract_subscription_fields(subscription)
+            self.assertEqual(fields["plan"], "")
+            self.assertEqual(fields["price_id"], "")
+            self.assertFalse(revenue_os_price_matches_plan(fields["price_id"], "PRO"))
+
+    def test_expired_subscription_period_cannot_grant_paid_access(self):
+        with patch.dict(os.environ, {"STRIPE_PRICE_PRO_MONTHLY": "price_pro"}, clear=False):
+            fields = {"user_id": "qa-user", "subscription_id": "sub_old",
+                      "customer_id": "cus_old", "status": "active",
+                      "plan": "PRO", "price_id": "price_pro",
+                      "current_period_end": "2020-01-01T00:00:00+00:00"}
+            with sqlite3.connect(":memory:") as conn:
+                result = apply_subscription_to_user(conn, fields, "test")
+            self.assertFalse(result["applied"])
+            self.assertEqual(result["reason"], "subscription_period_expired")
+
     def test_idempotency_changes_with_period_price_and_user(self):
         now = datetime(2026, 10, 31, 12, 0, tzinfo=timezone.utc)
         f = lambda user, period, price: revenue_os_checkout_idempotency_key(user, "PRO", period, price, now)
