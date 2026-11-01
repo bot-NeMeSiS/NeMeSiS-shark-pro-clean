@@ -76,7 +76,7 @@ def test_browser_scripts_and_beacons_cannot_forward_writes(browser, monkeypatch,
         context.close()
 
 
-@pytest.mark.parametrize("alter", ["missing", "context", "worker", "outbound", "bool_count", "contract"])
+@pytest.mark.parametrize("alter", ["missing", "context", "worker", "cache", "outbound", "bool_count", "contract"])
 def test_missing_or_incomplete_guard_can_never_certify_read_only(alter):
     proof = gate._read_only_evidence(CONTEXTS, {})
     evidence = {"read_only_browser": proof}
@@ -86,6 +86,8 @@ def test_missing_or_incomplete_guard_can_never_certify_read_only(alter):
         proof["guarded_contexts"] = CONTEXTS[:-1]
     elif alter == "worker":
         proof["service_workers"] = "allow"
+    elif alter == "cache":
+        proof.pop("http_cache")
     elif alter == "outbound":
         proof["outbound_write_requests"] = 1
     elif alter == "bool_count":
@@ -163,6 +165,8 @@ def test_all_actual_collector_contexts_use_guard_and_local_telemetry_is_labelled
     proof = report["evidence"]["read_only_browser"]
     assert proof["guarded_contexts"] == CONTEXTS
     assert proof["unexpected_write_attempts"] == 0
+    assert proof["http_cache"] == "disabled_by_request_routing"
+    assert report["evidence"]["performance_cohort"]["comparison_to_unrouted_runs"] == "NOT_EQUIVALENT"
     assert len(proof["intercepted_writes"]) > 3
     assert report["checks"]["read_only_browser"] == "PASS"
     responses = [row for row in report["evidence"]["resource_responses"] if row["method"] == "POST"]

@@ -71,6 +71,7 @@ def _read_only_evidence(contexts: list[str], intercepted: dict[Any, dict[str, An
         "contract": "PUBLIC_BROWSER_HTTP_READ_ONLY_V1",
         "guarded_contexts": list(contexts),
         "service_workers": "blocked",
+        "http_cache": "disabled_by_request_routing",
         "intercepted_writes": [dict(row) for row in intercepted.values()],
         "outbound_write_requests": 0,
         "unexpected_write_attempts": sum(
@@ -85,6 +86,7 @@ def _read_only_check(evidence: dict[str, Any]) -> str:
     if (not isinstance(proof, dict) or proof.get("contract") != "PUBLIC_BROWSER_HTTP_READ_ONLY_V1"
             or proof.get("guarded_contexts") != ["public-desktop", "public-mobile", "admin-protection"]
             or proof.get("service_workers") != "blocked"
+            or proof.get("http_cache") != "disabled_by_request_routing"
             or type(proof.get("outbound_write_requests")) is not int
             or proof["outbound_write_requests"] != 0
             or type(proof.get("unexpected_write_attempts")) is not int
@@ -970,6 +972,13 @@ def run_gate(
     }
     evidence = {
         "read_only_browser": _read_only_evidence(guarded_contexts, intercepted_writes),
+        "performance_cohort": {
+            "browser_http_cache": "DISABLED_BY_REQUEST_ROUTING",
+            "service_workers": "BLOCKED",
+            "comparison_to_unrouted_runs": "NOT_EQUIVALENT",
+            "original_elapsed_and_latency_limits_unchanged": True,
+            "scope": "Request-routed public navigation; not a measured application regression versus another cohort.",
+        },
         "runtime_http": runtime_http,
         "health_http": health_http,
         "sports_http": sports_http,
