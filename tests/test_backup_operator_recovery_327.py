@@ -1,6 +1,7 @@
 """Synthetic-only tests for the operator recovery tool; never touch /data."""
 from __future__ import annotations
 
+from contextlib import closing
 import json
 import sqlite3
 import subprocess
@@ -19,7 +20,7 @@ class BackupOperatorRecovery327Tests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.source = self.root / "source.db"
         self.backups = self.root / "operator_327"
-        with sqlite3.connect(self.source) as conn:
+        with closing(sqlite3.connect(self.source)) as conn, conn:
             conn.execute("CREATE TABLE sample (id INTEGER PRIMARY KEY, value TEXT)")
             conn.executemany(
                 "INSERT INTO sample(value) VALUES (?)",
@@ -59,7 +60,7 @@ class BackupOperatorRecovery327Tests(unittest.TestCase):
         self.assertEqual(len(list(self.backups.glob("database_*.db"))), 1)
         self.assertTrue((self.backups / result["backup_name"]).with_suffix(".json").is_file())
         self.assertFalse(list(self.backups.glob(".isolated_restore_327_*")))
-        with sqlite3.connect(self.source) as conn:
+        with closing(sqlite3.connect(self.source)) as conn, conn:
             self.assertEqual(conn.execute("SELECT count(*) FROM sample").fetchone()[0], 200)
         second, check = self.cli("--verify-existing", result["backup_name"])
         self.assertEqual(second.returncode, 0, second.stderr)

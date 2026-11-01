@@ -35,7 +35,7 @@ jobs:
           python -m pytest tests/test_odds_credentials.py tests/test_odds_cache_credit_guard.py tests/test_odds_admin_pipeline.py -q
 
       - name: SQLite recovery contract #327 (synthetic data only)
-        run: python -m pytest tests/test_backup_operator_recovery_327.py -q
+        run: python -m pytest tests/test_backup_operator_recovery_327.py tests/test_backup_preserve_history_mode.py tests/test_backup_validation_deadline.py -q
 
       - name: API-Football statistics regressions (mocked provider)
         env:

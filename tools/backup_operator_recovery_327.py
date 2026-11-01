@@ -23,6 +23,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from engines.data_vault_engine import (  # noqa: E402
+    BackupInProgress,
+    backup_directory_lock,
     backup_dir,
     connect_readonly,
     create_sqlite_backup,
@@ -81,43 +83,105 @@ def preflight(source: Path, directory: Path) -> dict:
 
 
 def verify_and_restore_isolated(directory: Path, name: str, timeout: int) -> dict:
-    # Do not accept arbitrary relative paths from command-line arguments.
-    if Path(name).name != name or not name.startswith("database_") or not name.endswith(".db"):
+    started = time.monotonic()
+    try:
+        budget = float(timeout)
+    except (ValueError, TypeError, OverflowError):
+        return {"ok": False, "code": "INVALID_VERIFICATION_BUDGET"}
+    if isinstance(timeout, bool) or not 0 < budget < float("inf"):
+        return {"ok": False, "code": "INVALID_VERIFICATION_BUDGET"}
+    deadline = started + budget
+    stage = "ARCHIVE_VALIDATION"
+
+    def check_time():
+        if time.monotonic() >= deadline:
+            raise TimeoutError("isolated_restore_timeout")
+
+    def fingerprint(path):
+        info = path.lstat()
+        return {"size": info.st_size, "mtime_ns": info.st_mtime_ns,
+                "device": info.st_dev, "inode": info.st_ino}
+
+    if (not isinstance(name, str) or Path(name).name != name or "/" in name or "\\" in name
+            or not name.startswith("database_") or not name.endswith(".db")):
         return {"ok": False, "code": "INVALID_BACKUP_NAME"}
     selected = directory / name
-    if not selected.is_file() or selected.is_symlink():
+    if not directory.is_dir() or directory.is_symlink() or not selected.is_file() or selected.is_symlink():
         return {"ok": False, "code": "BACKUP_NOT_FOUND"}
-    check = validate_backup(ROOT, name, directory=directory)
-    if check.get("ok") is not True or check.get("validated") != 1:
-        return {"ok": False, "code": "HASH_OR_INTEGRITY_FAILED"}
-    required = selected.stat().st_size + max(MIN_RESERVE, selected.stat().st_size // 5)
-    if shutil.disk_usage(directory).free < required:
-        return {"ok": False, "code": "INSUFFICIENT_ISOLATED_RESTORE_SPACE"}
-    deadline = time.monotonic() + timeout
     try:
-        with tempfile.TemporaryDirectory(prefix=".isolated_restore_327_", dir=directory) as temp:
-            destination_path = Path(temp) / "restoration-test.db"
-            with closing(connect_readonly(selected)) as original, closing(
-                sqlite3.connect(str(destination_path), timeout=15)
-            ) as restored:
-                def progress(_status: int, _remaining: int, _total: int) -> None:
-                    if time.monotonic() >= deadline:
-                        raise sqlite3.OperationalError("isolated_restore_timeout")
-                original.backup(restored, pages=256, progress=progress, sleep=0.05)
-                restored.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
-                if restored.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
-                    return {"ok": False, "code": "ISOLATED_INTEGRITY_FAILED"}
-                source_tables = original.execute(
-                    "SELECT count(*) FROM sqlite_master WHERE type='table'"
-                ).fetchone()[0]
-                restored_tables = restored.execute(
-                    "SELECT count(*) FROM sqlite_master WHERE type='table'"
-                ).fetchone()[0]
-                if source_tables != restored_tables:
-                    return {"ok": False, "code": "SCHEMA_MISMATCH"}
-    except (OSError, sqlite3.Error):
-        return {"ok": False, "code": "ISOLATED_RESTORE_FAILED"}
-    return {"ok": True, "code": "RESTORE_VERIFIED"}
+        check_time()
+        with backup_directory_lock(directory):
+            check_time()
+            checked = validate_backup(ROOT, name, directory=directory, deadline=deadline)
+            if checked.get("ok") is not True or checked.get("validated") != 1:
+                if checked.get("error") == "backup_validation_timeout":
+                    return {"ok": False, "code": "VERIFICATION_TIMEOUT",
+                            "failure_stage": checked.get("failure_stage", stage)}
+                details = {key: checked[key] for key in ("failure_stage", "error_type", "sqlite_error_code")
+                           if key in checked}
+                return {"ok": False, "code": "HASH_OR_INTEGRITY_FAILED", **details}
+            check_time()
+            archive_identity = checked.get("file_identity")
+            if archive_identity != fingerprint(selected):
+                return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
+            stage = "RESTORE_CAPACITY"
+            required = archive_identity["size"] + max(MIN_RESERVE, archive_identity["size"] // 5)
+            free = shutil.disk_usage(directory).free
+            check_time()
+            if free < required:
+                return {"ok": False, "code": "INSUFFICIENT_ISOLATED_RESTORE_SPACE"}
+            stage = "RESTORE_SNAPSHOT"
+            with tempfile.TemporaryDirectory(prefix=".isolated_restore_327_", dir=directory) as temp:
+                check_time()
+                destination_path = Path(temp) / "restoration-test.db"
+                with closing(connect_readonly(selected)) as original, closing(
+                    sqlite3.connect(str(destination_path), timeout=min(.05, max(.001, deadline - time.monotonic())))
+                ) as restored:
+                    check_time()
+                    remaining_ms = max(1, min(50, int((deadline - time.monotonic()) * 1000)))
+                    original.execute(f"PRAGMA busy_timeout={remaining_ms}")
+                    restored.execute(f"PRAGMA busy_timeout={remaining_ms}")
+                    original.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
+                    restored.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
+                    def progress(_status: int, _remaining: int, _total: int) -> None:
+                        check_time()
+                    original.backup(restored, pages=256, progress=progress, sleep=.05)
+                    check_time()
+                    stage = "RESTORE_INTEGRITY"
+                    if restored.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
+                        return {"ok": False, "code": "ISOLATED_INTEGRITY_FAILED"}
+                    check_time()
+                    stage = "RESTORE_SCHEMA"
+                    query = "SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name"
+                    with closing(original.execute(query)) as left, closing(restored.execute(query)) as right:
+                        while True:
+                            check_time()
+                            a = next(left, None)
+                            b = next(right, None)
+                            if a is None and b is None:
+                                break
+                            if a is None or b is None or tuple(a) != tuple(b):
+                                return {"ok": False, "code": "SCHEMA_MISMATCH"}
+                    check_time()
+            stage = "FINAL_CHECK"
+            if fingerprint(selected) != archive_identity:
+                return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
+            finished = time.monotonic()
+            if finished >= deadline:
+                raise TimeoutError("isolated_restore_timeout")
+            return {"ok": True, "code": "RESTORE_VERIFIED", "sha256": checked["results"][0]["actual"],
+                    "schema_match": True, "verification_duration_ms": int((finished - started) * 1000)}
+    except BackupInProgress:
+        return {"ok": False, "code": "RECOVERY_LOCK_BUSY"}
+    except TimeoutError:
+        return {"ok": False, "code": "VERIFICATION_TIMEOUT", "failure_stage": stage}
+    except sqlite3.Error as exc:
+        if getattr(exc, "sqlite_errorname", "") == "SQLITE_INTERRUPT" and time.monotonic() >= deadline:
+            return {"ok": False, "code": "VERIFICATION_TIMEOUT", "failure_stage": stage}
+        return {"ok": False, "code": "ISOLATED_RESTORE_FAILED", "error_type": type(exc).__name__,
+                "sqlite_error_code": getattr(exc, "sqlite_errorname", "")}
+    except (OSError, ValueError, TypeError) as exc:
+        return {"ok": False, "code": "ISOLATED_RESTORE_FAILED", "error_type": type(exc).__name__}
 
 
 def run(args: argparse.Namespace) -> int:
@@ -154,6 +218,7 @@ def run(args: argparse.Namespace) -> int:
             created_by="render_web_shell",
             directory=directory,
             max_files=0,
+            preserve_existing_backups=True,
             snapshot_timeout=float(args.timeout),
         )
     except (OSError, sqlite3.Error, ValueError):

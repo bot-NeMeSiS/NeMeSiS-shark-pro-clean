@@ -414,6 +414,7 @@ def ensure_backup_capacity(
     root: str | Path,
     *,
     directory: str | Path | None = None,
+    allow_reclaim: bool = True,
 ) -> dict:
     """Reserve enough filesystem headroom for one atomic SQLite backup.
 
@@ -444,6 +445,11 @@ def ensure_backup_capacity(
         "removed": [],
         "preserved_verified": "",
     }
+    if not allow_reclaim:
+        result["reclamation_allowed"] = False
+        if not result["ok"]:
+            result["error"] = "backup_storage_insufficient"
+        return result
     if result["ok"]:
         return result
 
@@ -499,7 +505,7 @@ def ensure_backup_capacity(
     return result
 
 
-def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str, backup_type: str = "manual", created_by: str = "admin", *, directory: str | Path | None = None, max_files: int | None = None, snapshot_timeout: float = 15.0) -> dict:
+def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str, backup_type: str = "manual", created_by: str = "admin", *, directory: str | Path | None = None, max_files: int | None = None, snapshot_timeout: float = 15.0, preserve_existing_backups: bool = False) -> dict:
     """Serialize capacity, crash recovery, snapshot publication and retention."""
     src = Path(db_path)
     if not src.exists():
@@ -535,9 +541,10 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
                     return with_diagnostics({"ok": False, "backup_created": False,
                             "error": "backup_temporary_recovery_failed", "failure_stage": "RECOVERY",
                             "storage": {"temporary_recovery": recovery}})
+                preservation = {"preserve_existing_backups": True} if preserve_existing_backups else {}
                 result = _create_sqlite_backup_locked(src, root, app_version, backup_type, created_by,
                                                       directory=bdir, max_files=max_files,
-                                                      snapshot_timeout=snapshot_timeout)
+                                                      snapshot_timeout=snapshot_timeout, **preservation)
                 result.setdefault("storage", {})["temporary_recovery"] = recovery
                 _emit_backup_stage("ATTEMPT", "finished" if result.get("ok") else "failed",
                                    started_at=attempt_started,
@@ -558,7 +565,7 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
         _BACKUP_DIAGNOSTIC_EVENTS.reset(context_token)
 
 
-def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_version: str, backup_type: str, created_by: str, *, directory: Path, max_files: int | None, snapshot_timeout: float) -> dict:
+def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_version: str, backup_type: str, created_by: str, *, directory: Path, max_files: int | None, snapshot_timeout: float, preserve_existing_backups: bool = False) -> dict:
     src = Path(db_path)
     if not src.exists():
         return {"ok": False, "backup_created": False, "error": "DB no encontrada", "db_path": str(src)}
@@ -566,7 +573,8 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
     bdir.mkdir(parents=True, exist_ok=True)
     capacity_started = time.monotonic()
     _emit_backup_stage("CAPACITY_PREFLIGHT", "started")
-    storage = ensure_backup_capacity(src, root, directory=bdir)
+    storage = (ensure_backup_capacity(src, root, directory=bdir, allow_reclaim=False)
+               if preserve_existing_backups else ensure_backup_capacity(src, root, directory=bdir))
     _emit_backup_stage("CAPACITY_PREFLIGHT", "finished" if storage.get("ok") else "rejected",
                        started_at=capacity_started,
                        snapshot_bytes=storage.get("snapshot_bytes"),
@@ -716,7 +724,8 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
             finally:
                 os.close(directory_fd)
         advance_stage("RETENTION")
-        retention = apply_backup_retention(root, directory=bdir, max_files=max_files)
+        retention = apply_backup_retention(root, directory=bdir,
+                                           max_files=0 if preserve_existing_backups else max_files)
         result = {"ok": bool(retention.get("ok")), "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": counts, "retention": retention, "storage": storage}
         if not result["ok"]:
             result["failure_stage"] = stage
@@ -762,7 +771,106 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
                            error_type=("cleanup_failed" if not cleanup_ok else ""))
 
 
-def validate_backup(root: str | Path, backup_name: str = "", *, directory: str | Path | None = None) -> dict:
+def _validate_named_backup_until(root: str | Path, backup_name: str, *, directory: str | Path | None, deadline: float) -> dict:
+    """Validate one immutable archive under a cooperative monotonic deadline."""
+    stage = "VALIDATION_METADATA"
+    validated = 0
+    expected = ""
+    actual = ""
+
+    def failure(code, **details):
+        return {"ok": False, "validated": validated,
+                "results": ([{"name": backup_name, "ok": False, "expected": expected, "actual": actual}]
+                            if validated else []),
+                "error": code, "failure_stage": stage, **details}
+
+    def check_time():
+        if time.monotonic() >= deadline:
+            raise TimeoutError("backup_validation_timeout")
+
+    def regular(path):
+        info = path.lstat()
+        if (not stat.S_ISREG(info.st_mode) or path.is_symlink()
+                or getattr(info, "st_file_attributes", 0) & 0x400 or info.st_nlink != 1):
+            raise ValueError("unsafe_backup_file")
+        return info
+
+    def identity(info):
+        return {"size": info.st_size, "mtime_ns": info.st_mtime_ns,
+                "device": info.st_dev, "inode": info.st_ino}
+
+    if (isinstance(deadline, bool) or not isinstance(deadline, (int, float))
+            or not 0 < deadline < float("inf")):
+        return failure("invalid_backup_validation_deadline")
+    if (not isinstance(backup_name, str) or not 1 <= len(backup_name) <= 240
+            or "/" in backup_name or "\\" in backup_name
+            or not ((backup_name.startswith("database_") and backup_name.endswith(".db"))
+                    or (backup_name.startswith("nemesis_backup_") and backup_name.endswith(".sqlite3")))):
+        return failure("invalid_backup_name")
+    try:
+        check_time()
+        bdir = Path(directory) if directory is not None else backup_dir(root)
+        if not bdir.is_dir() or bdir.is_symlink():
+            return failure("backup_directory_unavailable")
+        selected = bdir / backup_name
+        manifest = selected.with_suffix(".json")
+        info = regular(selected)
+        validated = 1
+        manifest_info = regular(manifest)
+        if manifest_info.st_size > 128 * 1024:
+            return failure("invalid_backup_manifest")
+        check_time()
+        with manifest.open("rb") as handle:
+            raw = handle.read(128 * 1024 + 1)
+        check_time()
+        if len(raw) > 128 * 1024:
+            return failure("invalid_backup_manifest")
+        metadata = json.loads(raw)
+        if not isinstance(metadata, dict):
+            return failure("invalid_backup_manifest")
+        claimed = metadata.get("sha256")
+        if (metadata.get("valid") is not True or not isinstance(claimed, str)
+                or len(claimed) != 64 or any(c not in "0123456789abcdef" for c in claimed)
+                or type(metadata.get("size_bytes")) is not int
+                or metadata["size_bytes"] != info.st_size):
+            return failure("invalid_backup_manifest")
+        expected = claimed
+        stage = "VALIDATION_HASH"
+        actual = sha256_file(selected, deadline=deadline)
+        check_time()
+        if actual != expected:
+            return failure("backup_hash_mismatch")
+        stage = "VALIDATION_INTEGRITY"
+        with closing(connect_readonly(selected)) as conn:
+            check_time()
+            remaining_ms = max(1, min(50, int((deadline - time.monotonic()) * 1000)))
+            conn.execute(f"PRAGMA busy_timeout={remaining_ms}")
+            conn.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
+            rows = conn.execute("PRAGMA integrity_check").fetchall()
+            check_time()
+            if [row[0] for row in rows] != ["ok"]:
+                return failure("backup_integrity_check_failed")
+        check_time()
+        if identity(regular(selected)) != identity(info) or identity(regular(manifest)) != identity(manifest_info):
+            return failure("backup_changed_during_validation")
+        check_time()
+        return {"ok": True, "validated": 1,
+                "results": [{"name": backup_name, "ok": True, "expected": expected, "actual": actual}],
+                "file_identity": identity(info)}
+    except TimeoutError:
+        return failure("backup_validation_timeout")
+    except sqlite3.Error as exc:
+        expired_interrupt = (getattr(exc, "sqlite_errorname", "") == "SQLITE_INTERRUPT"
+                             or str(exc) == "backup_snapshot_timeout") and time.monotonic() >= deadline
+        return failure("backup_validation_timeout" if expired_interrupt else "backup_validation_failed",
+                       error_type=type(exc).__name__, sqlite_error_code=getattr(exc, "sqlite_errorname", ""))
+    except (OSError, ValueError, TypeError) as exc:
+        return failure("backup_validation_failed", error_type=type(exc).__name__)
+
+
+def validate_backup(root: str | Path, backup_name: str = "", *, directory: str | Path | None = None, deadline: float | None = None) -> dict:
+    if deadline is not None:
+        return _validate_named_backup_until(root, backup_name, directory=directory, deadline=deadline)
     backups = list_backups(root, directory=directory)
     if backup_name:
         backups = [b for b in backups if b["name"] == backup_name]
