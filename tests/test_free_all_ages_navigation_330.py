@@ -37,6 +37,8 @@ def test_explore_is_informational_for_anonymous_and_free(app_module, scope):
     }
     assert ADULT_TARGETS.isdisjoint(targets), (scope, targets)
     assert "/competiciones" in targets
+    if scope == "client":
+        assert "/shark" in targets, "FREE retains sports-only SHARK discovery"
 
 
 def test_free_plan_description_has_no_betting_upsell():
