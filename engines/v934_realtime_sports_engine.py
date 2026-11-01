@@ -260,7 +260,9 @@ def build_realtime_snapshot(summary: dict[str, Any], now: datetime | None = None
     # A match leaving LIVE must still reach open consumers as a final update.
     for raw in (list(summary.get("valid_matches_today") or [])
                 + list(summary.get("valid_upcoming_matches") or [])
-                + list(summary.get("finished_matches") or [])):
+                + list(summary.get("finished_matches") or [])
+                # Own current LIVE can remain valid across the Madrid day boundary.
+                + list(summary.get("valid_live_events") or [])):
         # Keep the same first-valid-record policy, but do not normalize a match
         # again just because it is also present in another summary section.
         raw_id = _text(raw.get("id") or raw.get("match_id") or raw.get("external_id"), 90) if isinstance(raw, dict) else ""
