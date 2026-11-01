@@ -67,7 +67,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='founder-os.css') }}?v={{ app_version }}-core-founder-2-surfaces-1-obligations-1">
   <script defer src="{{ url_for('static', filename='founder-os.js') }}?v={{ app_version }}-obligations-1"></script>
   {% endif %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='v1000-client-refinement.css') }}?v={{ app_version }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='v1000-client-refinement.css') }}?v={{ app_version }}-brand-presence-1">
   {% if request.path.startswith('/admin') and request.path != '/admin-login' %}<link rel="stylesheet" href="{{ url_for('static', filename='v1000-admin-navigation.css') }}?v={{ app_version }}-keyboard-scroll-1">{% endif %}
   {% block head_extra %}{% endblock %}
 </head>

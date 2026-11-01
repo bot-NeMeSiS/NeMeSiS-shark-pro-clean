@@ -1,3 +1,30 @@
+/* Scene emphasis uses the existing approved scene and canonical tokens only.
+   No extra image, stylesheet, animation, geometry or reading-surface opacity.
+   VIS-2026-10-29-01: announce changes before editing; see docs/VISUAL_CHANGELOG.md. */
+body.ns-app:not(.ns-admin) {
+  --ns-scene-ocean-opacity: .64;
+  --ns-scene-mark-opacity: .16;
+  --ns-scene-ocean-mobile-opacity: .56;
+  --ns-scene-mark-mobile-opacity: .12;
+}
+body.ns-app:not(.ns-admin):is([data-ns-route="/"],[data-ns-route="/app"]) {
+  --ns-scene-ocean-opacity: .72;
+  --ns-scene-mark-opacity: .30;
+  --ns-scene-ocean-mobile-opacity: .62;
+  --ns-scene-mark-mobile-opacity: .22;
+}
+body.ns-app:not(.ns-admin)[data-ns-route="/shark"] {
+  --ns-scene-ocean-opacity: .68;
+  --ns-scene-mark-opacity: .34;
+  --ns-scene-ocean-mobile-opacity: .60;
+  --ns-scene-mark-mobile-opacity: .26;
+}
+body.ns-app:not(.ns-admin):is([data-ns-route="/cliente-login"],[data-ns-route="/login"],[data-ns-route="/registro"]) {
+  --ns-scene-ocean-opacity: .70;
+  --ns-scene-ocean-mobile-opacity: .60;
+  --ns-scene-mark-auth-opacity: .34;
+}
+
 /* Canonical surfaces; decoration never changes text/control opacity. */
 body.ns-app .ns-marine-light{background:radial-gradient(ellipse at 50% 0,rgba(94,203,230,.11),transparent 64%);height:56vh;left:-8vw;opacity:0;pointer-events:none;position:absolute;top:0;transform:translateX(-3vw);width:116vw}
 body.ns-app .ns-marine-light.is-running{animation:ns-marine-drift 28s ease-in-out infinite alternate;opacity:1}
