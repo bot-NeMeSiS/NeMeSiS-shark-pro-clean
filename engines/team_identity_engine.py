@@ -9,17 +9,15 @@ from __future__ import annotations
 
 import hashlib
 import re
-import unicodedata
 import urllib.parse
 from typing import Any
 
 
+from engines.display_name_normalization import display_name_key
+
+
 def _norm(value: Any) -> str:
-    text = str(value or "").strip().lower()
-    text = unicodedata.normalize("NFKD", text)
-    text = "".join(ch for ch in text if not unicodedata.combining(ch))
-    text = re.sub(r"[^a-z0-9]+", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
+    return display_name_key(value)
 
 
 _PROVIDER_TEAM_IDENTITY_ALIASES = {
