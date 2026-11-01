@@ -364,6 +364,8 @@ def test_continuous_evolution_web_endpoint_auth_safe_mode_and_storage(client, mo
 
 
 def test_continuous_evolution_web_endpoint_runs_idempotently_without_external_actions(client, monkeypatch, tmp_path):
+    # Deadline handling has controlled-clock tests; isolate HTTP/idempotency from CI CPU contention.
+    monkeypatch.setattr(ce_engine, "NATIVE_WORKFORCE_BUDGET_SECONDS", 10.0)
     secret = "pytest-continuous-evolution-secret"
     endpoint = "/api/automation/continuous-evolution/tick"
     storage = tmp_path / "ceos"
