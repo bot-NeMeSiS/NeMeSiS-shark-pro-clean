@@ -27,6 +27,9 @@ from engines.data_vault_engine import (  # noqa: E402
     backup_directory_lock,
     backup_dir,
     connect_readonly,
+    connect_archive_readonly,
+    assert_archive_standalone,
+    sha256_file,
     create_sqlite_backup,
     validate_backup,
 )
@@ -98,9 +101,7 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int) -> dic
             raise TimeoutError("isolated_restore_timeout")
 
     def fingerprint(path):
-        info = path.lstat()
-        return {"size": info.st_size, "mtime_ns": info.st_mtime_ns,
-                "device": info.st_dev, "inode": info.st_ino}
+        return assert_archive_standalone(path)
 
     if (not isinstance(name, str) or Path(name).name != name or "/" in name or "\\" in name
             or not name.startswith("database_") or not name.endswith(".db")):
@@ -134,13 +135,17 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int) -> dic
             with tempfile.TemporaryDirectory(prefix=".isolated_restore_327_", dir=directory) as temp:
                 check_time()
                 destination_path = Path(temp) / "restoration-test.db"
-                with closing(connect_readonly(selected)) as original, closing(
+                with closing(connect_archive_readonly(selected)) as original, closing(
                     sqlite3.connect(str(destination_path), timeout=min(.05, max(.001, deadline - time.monotonic())))
                 ) as restored:
                     check_time()
                     remaining_ms = max(1, min(50, int((deadline - time.monotonic()) * 1000)))
                     original.execute(f"PRAGMA busy_timeout={remaining_ms}")
                     restored.execute(f"PRAGMA busy_timeout={remaining_ms}")
+                    if (sha256_file(selected, deadline=deadline) != checked["results"][0]["actual"]
+                            or fingerprint(selected) != archive_identity):
+                        return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
+                    check_time()
                     original.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
                     restored.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
                     def progress(_status: int, _remaining: int, _total: int) -> None:
@@ -163,6 +168,8 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int) -> dic
                             if a is None or b is None or tuple(a) != tuple(b):
                                 return {"ok": False, "code": "SCHEMA_MISMATCH"}
                     check_time()
+                    if fingerprint(selected) != archive_identity:
+                        return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
             stage = "FINAL_CHECK"
             if fingerprint(selected) != archive_identity:
                 return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}

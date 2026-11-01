@@ -153,6 +153,59 @@ def connect_readonly(db_path: str | Path) -> sqlite3.Connection:
     return conn
 
 
+
+class BackupArchiveStateError(sqlite3.DatabaseError):
+    """The standalone archive has unsafe or unsealed auxiliary state."""
+
+
+def assert_archive_standalone(db_path: str | Path) -> dict:
+    """Inspect archive metadata only; never recover, checkpoint or remove files."""
+    path = Path(db_path)
+    info = path.lstat()
+    if (not stat.S_ISREG(info.st_mode) or path.is_symlink()
+            or getattr(info, "st_file_attributes", 0) & 0x400 or info.st_nlink != 1):
+        raise BackupArchiveStateError("backup_archive_unsafe_file")
+    for suffix in ("-wal", "-journal"):
+        sidecar = path.with_name(path.name + suffix)
+        try:
+            auxiliary = sidecar.lstat()
+        except FileNotFoundError:
+            continue
+        if (not stat.S_ISREG(auxiliary.st_mode) or sidecar.is_symlink()
+                or getattr(auxiliary, "st_file_attributes", 0) & 0x400
+                or auxiliary.st_nlink != 1 or auxiliary.st_size != 0):
+            raise BackupArchiveStateError("backup_archive_unsealed_auxiliary_state")
+    shm = path.with_name(path.name + "-shm")
+    try:
+        cache = shm.lstat()
+    except FileNotFoundError:
+        cache = None
+    if cache is not None and (
+            not stat.S_ISREG(cache.st_mode) or shm.is_symlink()
+            or getattr(cache, "st_file_attributes", 0) & 0x400
+            or cache.st_nlink != 1 or cache.st_size % 32768 != 0):
+        raise BackupArchiveStateError("backup_archive_unsafe_shared_index")
+    return {"size": info.st_size, "mtime_ns": info.st_mtime_ns,
+            "device": info.st_dev, "inode": info.st_ino}
+
+
+def connect_archive_readonly(db_path: str | Path) -> sqlite3.Connection:
+    """Pin a readonly archive snapshot with SQLite locking, never a live source."""
+    assert_archive_standalone(db_path)
+    conn = connect_readonly(db_path)
+    try:
+        conn.execute("PRAGMA busy_timeout=50")
+        conn.execute("BEGIN")
+        # Materialize the read snapshot before checking its auxiliary state.
+        with closing(conn.execute("SELECT rootpage FROM sqlite_master LIMIT 1")) as cursor:
+            cursor.fetchall()
+        assert_archive_standalone(db_path)
+        return conn
+    except Exception:
+        conn.close()
+        raise
+
+
 def _competition_reference_keys(keys):
     if not isinstance(keys, tuple):
         raise TypeError("reference keys must be an immutable tuple")
@@ -669,6 +722,11 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
             # slow snapshot indistinguishable from a slow integrity_check.
             advance_stage("INTEGRITY")
             dest.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
+            # Normalize only the private snapshot, never the live source.
+            # The published digest must describe a self-contained SQLite file.
+            journal_mode = dest.execute("PRAGMA journal_mode=DELETE").fetchone()[0]
+            if str(journal_mode).lower() != "delete":
+                raise sqlite3.DatabaseError("backup_snapshot_not_standalone")
             if dest.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
                 raise sqlite3.DatabaseError("backup_integrity_check_failed")
             # Inspect the verified snapshot on this same deadline-bound connection.
@@ -816,6 +874,7 @@ def _validate_named_backup_until(root: str | Path, backup_name: str, *, director
         manifest = selected.with_suffix(".json")
         info = regular(selected)
         validated = 1
+        assert_archive_standalone(selected)
         manifest_info = regular(manifest)
         if manifest_info.st_size > 128 * 1024:
             return failure("invalid_backup_manifest")
@@ -841,24 +900,34 @@ def _validate_named_backup_until(root: str | Path, backup_name: str, *, director
         if actual != expected:
             return failure("backup_hash_mismatch")
         stage = "VALIDATION_INTEGRITY"
-        with closing(connect_readonly(selected)) as conn:
+        with closing(connect_archive_readonly(selected)) as conn:
             check_time()
             remaining_ms = max(1, min(50, int((deadline - time.monotonic()) * 1000)))
             conn.execute(f"PRAGMA busy_timeout={remaining_ms}")
             conn.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
+            # Rebind the digest after pinning: a write could occur after the
+            # first hash but before SQLite acquires its read transaction.
+            stage = "VALIDATION_HASH"
+            pinned_digest = sha256_file(selected, deadline=deadline)
+            check_time()
+            if pinned_digest != expected:
+                actual = pinned_digest
+                return failure("backup_hash_mismatch")
+            stage = "VALIDATION_INTEGRITY"
             rows = conn.execute("PRAGMA integrity_check").fetchall()
             check_time()
             if [row[0] for row in rows] != ["ok"]:
                 return failure("backup_integrity_check_failed")
-        check_time()
-        if identity(regular(selected)) != identity(info) or identity(regular(manifest)) != identity(manifest_info):
-            return failure("backup_changed_during_validation")
-        check_time()
+            if assert_archive_standalone(selected) != identity(info) or identity(regular(manifest)) != identity(manifest_info):
+                return failure("backup_changed_during_validation")
+            check_time()
         return {"ok": True, "validated": 1,
                 "results": [{"name": backup_name, "ok": True, "expected": expected, "actual": actual}],
                 "file_identity": identity(info)}
     except TimeoutError:
         return failure("backup_validation_timeout")
+    except BackupArchiveStateError as exc:
+        return failure("backup_archive_not_standalone", error_type=type(exc).__name__)
     except sqlite3.Error as exc:
         expired_interrupt = (getattr(exc, "sqlite_errorname", "") == "SQLITE_INTERRUPT"
                              or str(exc) == "backup_snapshot_timeout") and time.monotonic() >= deadline
@@ -878,14 +947,19 @@ def validate_backup(root: str | Path, backup_name: str = "", *, directory: str |
     for item in backups:
         path = Path(item["path"])
         expected = item.get("sha256")
-        actual = sha256_file(path) if path.exists() else ""
+        actual = ""
         integrity = False
-        if actual and item.get("valid") and expected == actual:
-            try:
-                with closing(connect_readonly(path)) as conn:
-                    integrity = [row[0] for row in conn.execute("PRAGMA integrity_check")] == ["ok"]
-            except sqlite3.Error:
-                integrity = False
+        try:
+            archive_identity = assert_archive_standalone(path)
+            actual = sha256_file(path)
+            if actual and item.get("valid") and expected == actual:
+                with closing(connect_archive_readonly(path)) as conn:
+                    pinned_digest = sha256_file(path)
+                    integrity = (pinned_digest == expected
+                                 and [row[0] for row in conn.execute("PRAGMA integrity_check")] == ["ok"]
+                                 and assert_archive_standalone(path) == archive_identity)
+        except (OSError, ValueError, sqlite3.Error):
+            integrity = False
         results.append({"name": item["name"], "ok": integrity, "expected": expected, "actual": actual})
     return {"ok": all(r["ok"] for r in results) if results else False, "validated": len(results), "results": results}
 
@@ -935,7 +1009,7 @@ def restore_sqlite_backup(db_path: str | Path, root: str | Path, backup_name: st
         # Recheck copied bytes; subsequent retention may remove the selected original.
         if sha256_file(staged) != selected["sha256"]:
             return {"ok": False, "error": "backup_validation_failed"}
-        with closing(connect_readonly(staged)) as source:
+        with closing(connect_archive_readonly(staged)) as source:
             if [row[0] for row in source.execute("PRAGMA integrity_check")] != ["ok"]:
                 return {"ok": False, "error": "backup_validation_failed"}
             safety = create_sqlite_backup(target, root, app_version, backup_type="pre_restore_" + backup_name,
@@ -956,7 +1030,11 @@ def restore_sqlite_backup(db_path: str | Path, root: str | Path, backup_name: st
                 "safety_backup": safety.get("backup_file")}
     finally:
         if staged is not None:
-            staged.unlink(missing_ok=True)
+            # SQLite may create empty WAL/cache files while reading a legacy
+            # WAL-mode staged copy. Remove only this unique private staging
+            # file and its exact auxiliaries, never the selected archive.
+            for suffix in ("-wal", "-shm", "-journal", ""):
+                staged.with_name(staged.name + suffix).unlink(missing_ok=True)
 
 
 def export_table_csv(db_path: str | Path, root: str | Path, table: str) -> dict:

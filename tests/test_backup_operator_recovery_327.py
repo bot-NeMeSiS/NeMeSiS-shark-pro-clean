@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import closing
 import json
+import hashlib
 import sqlite3
 import subprocess
 import sys
@@ -87,6 +88,51 @@ class BackupOperatorRecovery327Tests(unittest.TestCase):
         process, result = self.cli("--verify-existing", "../outside.db")
         self.assertEqual(process.returncode, 2, process.stderr)
         self.assertEqual(result["code"], "INVALID_BACKUP_NAME")
+
+
+    def test_recheck_rejects_unsealed_legacy_wal_state(self):
+        self.backups.mkdir()
+        selected = self.backups / "database_20000101_000000_legacy.db"
+        with closing(sqlite3.connect(self.source)) as live:
+            live.execute("PRAGMA journal_mode=WAL")
+            with closing(sqlite3.connect(selected)) as archive:
+                live.backup(archive)
+        digest = hashlib.sha256(selected.read_bytes()).hexdigest()
+        manifest = selected.with_suffix(".json")
+        manifest.write_text(json.dumps({"valid": True, "sha256": digest,
+                                       "size_bytes": selected.stat().st_size}), encoding="utf-8")
+        manifest_before = manifest.read_bytes()
+        with closing(sqlite3.connect(selected)) as writer:
+            writer.execute("PRAGMA wal_autocheckpoint=0")
+            writer.execute("UPDATE sample SET value='SYNTHETIC_UNSEALED' WHERE id=1")
+            writer.commit()
+            self.assertEqual(hashlib.sha256(selected.read_bytes()).hexdigest(), digest)
+            process, result = self.cli("--verify-existing", selected.name)
+            self.assertEqual(process.returncode, 2, process.stderr)
+            self.assertFalse(result["ok"])
+            self.assertEqual(result["code"], "HASH_OR_INTEGRITY_FAILED")
+            self.assertEqual(hashlib.sha256(selected.read_bytes()).hexdigest(), digest)
+            self.assertEqual(manifest.read_bytes(), manifest_before)
+            self.assertTrue(selected.with_name(selected.name+"-wal").is_file())
+            self.assertFalse(list(self.backups.glob(".isolated_restore_327_*")))
+
+    def test_live_wal_commits_are_captured_without_changing_live_mode(self):
+        with closing(sqlite3.connect(self.source)) as live:
+            live.execute("PRAGMA journal_mode=WAL")
+            live.execute("PRAGMA wal_autocheckpoint=0")
+            live.execute("UPDATE sample SET value='SYNTHETIC_COMMITTED' WHERE id=1")
+            live.commit()
+            source_before = hashlib.sha256(self.source.read_bytes()).hexdigest()
+            process, result = self.cli("--execute")
+            self.assertEqual(process.returncode, 0, process.stderr)
+            self.assertEqual(result["code"], "RESTORE_VERIFIED")
+            selected = self.backups / result["backup_name"]
+            self.assertEqual(selected.read_bytes()[18:20], b"\x01\x01")
+            with closing(sqlite3.connect(selected)) as archive:
+                self.assertEqual(archive.execute("SELECT value FROM sample WHERE id=1").fetchone()[0],
+                                 "SYNTHETIC_COMMITTED")
+            self.assertEqual(live.execute("PRAGMA journal_mode").fetchone()[0], "wal")
+            self.assertEqual(hashlib.sha256(self.source.read_bytes()).hexdigest(), source_before)
 
 
 if __name__ == "__main__":

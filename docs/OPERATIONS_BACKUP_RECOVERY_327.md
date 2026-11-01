@@ -118,3 +118,31 @@ and a matching regular JSON manifest (at most 128 KiB) with valid=true, exact
 size and full SHA256. Schema comparison includes every sqlite_master row
 (type, name, table, SQL), rather than only the number of tables. No user rows
 or secret values are printed. Previous archives and live data remain intact.
+
+## Standalone archive binding
+
+Only the private snapshot is normalized to DELETE journal mode before
+integrity checking, hashing and publication. The live WAL source remains
+read-only and WAL-aware. Older self-contained WAL-mode archive files are
+supported without rewriting them.
+
+Archive readers reject a nonempty WAL or rollback journal, links and unsafe
+auxiliary paths. They never delete, recover, checkpoint or reseal these files.
+The named and legacy validators, isolated verifier and staged restore use
+an archive-only readonly transaction that pins SQLite's read snapshot.
+The digest is checked again under that transaction, and auxiliary state is
+checked before releasing it. Normal SQLite locking remains enabled; this is
+not immutable=1 on a potentially writable filesystem. The live-DB reader is
+unchanged. Empty WAL/cache files do not add committed data. SQLite may create
+or update its ordinary empty WAL/shared-index cache for a legacy WAL archive;
+this is not a change to sealed database or manifest bytes. Unsafe links and
+malformed shared-index sizes are refused before SQLite opens the archive.
+
+An archive with unsealed auxiliary state requires operator investigation;
+do not remove sidecars or regenerate its manifest to force a green result.
+This correction does not fix the automatic snapshot deadline or certify a
+real restore. Additional tests are in test_backup_archive_state_binding.py.
+
+The unique staged restore copy may acquire SQLite cache sidecars. Its finalizer
+removes only its exact private filenames after closing SQLite, including on
+a failed safety backup; it preserves unrelated files and the selected archive.

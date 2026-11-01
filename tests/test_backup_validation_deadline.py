@@ -94,7 +94,7 @@ def test_invalid_manifest_never_reaches_sqlite(archive,field,value,monkeypatch):
     manifest=selected.with_suffix('.json');data=json.loads(manifest.read_text(encoding='utf-8'))
     data[field]=value;manifest.write_text(json.dumps(data),encoding='utf-8')
     before=contents(folder)
-    monkeypatch.setattr(vault,'connect_readonly',lambda *a,**k:(_ for _ in ()).throw(AssertionError('SQLite before valid metadata')))
+    monkeypatch.setattr(vault,'connect_archive_readonly',lambda *a,**k:(_ for _ in ()).throw(AssertionError('SQLite before valid metadata')))
     result=vault.validate_backup(ROOT,selected.name,directory=folder,deadline=time.monotonic()+30)
     assert not result['ok'] and result['error']=='invalid_backup_manifest'
     assert contents(folder)==before
@@ -123,7 +123,7 @@ def test_hash_mismatch_stops_before_sqlite(archive,monkeypatch):
     with selected.open('r+b') as out:
         out.seek(100);out.write(b'X')
     before=contents(folder)
-    monkeypatch.setattr(vault,'connect_readonly',lambda *a,**k:(_ for _ in ()).throw(AssertionError('SQLite after bad hash')))
+    monkeypatch.setattr(vault,'connect_archive_readonly',lambda *a,**k:(_ for _ in ()).throw(AssertionError('SQLite after bad hash')))
     result=vault.validate_backup(ROOT,selected.name,directory=folder,deadline=time.monotonic()+30)
     assert not result['ok'] and result['error']=='backup_hash_mismatch'
     assert contents(folder)==before
@@ -150,7 +150,7 @@ def test_real_hash_io_error_is_not_masked_as_timeout(archive):
 
 def test_small_integrity_query_is_checked_even_without_progress_callback(archive):
     _,folder,selected,_=archive
-    real=vault.connect_readonly;clock=[1.0]
+    real=vault.connect_archive_readonly;clock=[1.0]
     class LateConnection:
         def __init__(self,c):self.c=c
         def __getattr__(self,n):return getattr(self.c,n)
@@ -159,7 +159,7 @@ def test_small_integrity_query_is_checked_even_without_progress_callback(archive
             cursor=self.c.execute(sql,*args)
             if sql=='PRAGMA integrity_check':clock[0]=12.0
             return cursor
-    with patch.object(vault.time,'monotonic',lambda:clock[0]),patch.object(vault,'connect_readonly',lambda p:LateConnection(real(p))):
+    with patch.object(vault.time,'monotonic',lambda:clock[0]),patch.object(vault,'connect_archive_readonly',lambda p:LateConnection(real(p))):
         result=vault.validate_backup(ROOT,selected.name,directory=folder,deadline=10.0)
     assert not result['ok'] and result['error']=='backup_validation_timeout'
     assert result['failure_stage']=='VALIDATION_INTEGRITY'
@@ -236,7 +236,7 @@ def test_archive_change_after_validation_is_rejected(archive,monkeypatch):
 
 def test_restore_callback_timeout_removes_only_own_temporary(archive,monkeypatch):
     _,folder,selected,_=archive
-    before=contents(folder);real=GLOBALS['connect_readonly'];clock=[1.0]
+    before=contents(folder);real=GLOBALS['connect_archive_readonly'];clock=[1.0]
     class ExpiringCopy:
         def __init__(self,c):self.c=c
         def __getattr__(self,n):return getattr(self.c,n)
@@ -245,7 +245,7 @@ def test_restore_callback_timeout_removes_only_own_temporary(archive,monkeypatch
             def expire(status,remaining,total):
                 clock[0]=12.0;progress(status,remaining,total)
             return self.c.backup(target,pages=pages,progress=expire,sleep=sleep)
-    monkeypatch.setitem(GLOBALS,'connect_readonly',lambda p:ExpiringCopy(real(p)))
+    monkeypatch.setitem(GLOBALS,'connect_archive_readonly',lambda p:ExpiringCopy(real(p)))
     with patch.object(vault.time,'monotonic',lambda:clock[0]):
         result=VERIFY(folder,selected.name,9)
     assert not result['ok'] and result['code']=='VERIFICATION_TIMEOUT'
@@ -269,7 +269,7 @@ def test_expiry_during_cleanup_cannot_report_success(archive,monkeypatch):
 
 def test_same_table_count_but_changed_restored_index_is_rejected(archive,monkeypatch):
     _,folder,selected,_=archive
-    before=contents(folder);real=GLOBALS['connect_readonly']
+    before=contents(folder);real=GLOBALS['connect_archive_readonly']
     class ChangedSchema:
         def __init__(self,c):self.c=c
         def __getattr__(self,n):return getattr(self.c,n)
@@ -278,7 +278,7 @@ def test_same_table_count_but_changed_restored_index_is_rejected(archive,monkeyp
             self.c.backup(target,**kwargs)
             target.execute('CREATE INDEX restore_only_index ON users(id,name)')
             target.commit()
-    monkeypatch.setitem(GLOBALS,'connect_readonly',lambda p:ChangedSchema(real(p)))
+    monkeypatch.setitem(GLOBALS,'connect_archive_readonly',lambda p:ChangedSchema(real(p)))
     result=VERIFY(folder,selected.name,30)
     assert not result['ok'] and result['code']=='SCHEMA_MISMATCH',result
     assert contents(folder)==before and not list(folder.glob('.isolated_restore_327_*'))
