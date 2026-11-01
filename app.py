@@ -37477,13 +37477,13 @@ def api_v808_telegram_enqueue_recommendations():
 def v809_client_navigation_items():
     return [
         {"group":"Inicio y uso diario","title":"Inicio","body":"Resumen cliente con partidos, directo, pronósticos y SHARK.","href":"/app","icon":"Inicio"},
-        {"group":"Inicio y uso diario","title":"Partidos","body":"Calendario real por días, ligas y búsqueda.","href":"/calendar?lane=today","icon":"Partidos"},
-        {"group":"Inicio y uso diario","title":"Directo","body":"Marcador, minuto y contexto disponible cuando exista información confirmada.","href":"/live","icon":"Directo"},
+        {"group":"Inicio y uso diario","title":"Partidos","body":"Calendario real por días, ligas y búsqueda.","href":"/calendario?lane=today","icon":"Partidos"},
+        {"group":"Inicio y uso diario","title":"Directo","body":"Marcador, minuto y contexto disponible cuando exista información confirmada.","href":"/directo","icon":"Directo"},
         {"group":"Inicio y uso diario","title":"Pronósticos","body":"Pronósticos publicados con cuota, unidades, riesgo y explicación.","href":"/picks","icon":"Pronósticos"},
         {"group":"SHARK y análisis","title":"SHARK","body":"Preguntar por partido, pronóstico, riesgo o combinada responsable.","href":"/shark","icon":"SHARK"},
         {"group":"SHARK y análisis","title":"SHARK Core","body":"Resumen basado en datos disponibles, sin convertir indicadores en garantías.","href":"/shark-core","icon":"SHARK Core"},
         {"group":"Seguimiento","title":"Historial","body":"Resultados y rendimiento solo cuando están cerrados con datos reales.","href":"/track-record","icon":"Historial"},
-        {"group":"Seguimiento","title":"Favoritos","body":"Tus equipos, partidos o focos guardados.","href":"/favorites","icon":"Favoritos"},
+        {"group":"Seguimiento","title":"Favoritos","body":"Tus equipos, partidos o focos guardados.","href":"/favoritos","icon":"Favoritos"},
         {"group":"Alertas y cuenta","title":"Telegram","body":"Conexión, alertas y canal sin inventar envíos.","href":"/telegram","icon":"Telegram"},
         {"group":"Alertas y cuenta","title":"Mi cuenta","body":"Plan, sesión, ajustes y cierre de sesión.","href":"/mi-cuenta","icon":"Cuenta"},
         {"group":"Alertas y cuenta","title":"Soporte","body":"Ayuda y contacto para el cliente.","href":"/soporte","icon":"?"},
