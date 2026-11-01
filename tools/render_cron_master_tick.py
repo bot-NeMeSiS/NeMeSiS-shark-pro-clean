@@ -891,9 +891,23 @@ def continuous_evolution_tick(base_url: str, secret: str) -> dict:
             result = "RUN" if upstream_result == "PASS" else upstream_result
             ok = http_status == 200 and payload.get("ok") is not False and result in CONTINUOUS_VALID_RESULTS
             native = compact_native_workforce(payload.get("native_workforce"), secret)
+            # Controlled CPU/time-budget deferral is visible PARTIAL, not a
+            # technical failure of unrelated sports or Telegram lanes. Only
+            # accept a bounded, verifiable incomplete native review receipt.
+            native_budget_partial = (
+                http_status == 200 and result == "PARTIAL"
+                and payload.get("ok") is False
+                and payload.get("dangerous_actions_executed") is False
+                and payload.get("daily_result") in {"PASS", "SKIPPED_NOT_DUE"}
+                and native is not None and native.get("result") == "PARTIAL"
+                and native.get("review_kind") == "STATIC_PARTIAL"
+                and type(native.get("executed_count")) is int
+                and type(native.get("expected_count")) is int
+                and 0 <= native["executed_count"] < native["expected_count"] == 22
+            )
             return {
                 "continuous_http": http_status,
-                "continuous_status": "PASS" if ok else "FAIL",
+                "continuous_status": "PASS" if ok else "PARTIAL" if native_budget_partial else "FAIL",
                 "continuous_result": result,
                 "continuous_duration_ms": max(0, round((time.perf_counter() - started) * 1000)),
                 **({"native_workforce": native} if native is not None else {}),

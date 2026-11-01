@@ -72,7 +72,7 @@ El recibo registra identidad de ejecución, fechas, duración, archivos observad
 hashes, cobertura y propuestas. El SHA anunciado por el entorno se identifica
 como anunciado y no como verificado. Si cambia entre el recibo y la lectura,
 el panel trata la evidencia anterior como obsoleta. Las fechas futuras fuera
-de una tolerancia de dos segundos quedan sin verificar.
+de una tolerancia de quince segundos quedan sin verificar.
 
 Se utiliza el almacenamiento existente de Continuous Evolution. Bajo su raíz,
 `native_workforce/state.json` conserva el último recibo, hasta 48 recibos de
@@ -87,7 +87,7 @@ Las revisiones nativas tienen contadores separados de los ciclos completos.
 
 ## Límites de recursos y concurrencia
 
-- Presupuesto cooperativo de dos segundos por pasada, ocho MiB de fuentes en
+- Presupuesto cooperativo de quince segundos por pasada, ocho MiB de fuentes en
   total y tres MiB como máximo por archivo en el lector común.
 - La lectura o el parseo de un archivo ya empezado no se interrumpen a mitad;
   los controles que no alcancen a ejecutarse quedan sin acreditar.
@@ -136,7 +136,7 @@ real, con I/O temporal. Esas pruebas no sustituyen la integración en CI.
 
 Los tests HTTP de cadencia usan un presupuesto de prueba mayor para aislar sus
 aserciones de la carga de CPU de CI. Las pruebas específicas de agotamiento
-controlan el reloj; el presupuesto del código productivo sigue en dos segundos.
+controlan el reloj; el presupuesto del código productivo es de quince segundos.
 Las capturas y el resultado de CI de la revisión publicada deben evaluarse antes
 de integrar el cambio. Este documento no certifica un despliegue.
 
@@ -153,3 +153,20 @@ La pausa existente detiene nuevas ejecuciones programadas. Revertir el cambio
 restaura el comportamiento previo del endpoint y Company OS; la memoria propia
 permanece en disco para inspección. No se necesita borrar datos de negocio,
 cambiar secretos, contratar infraestructura ni crear otro Cron.
+
+
+## Ajuste por evidencia Render 01/11/2026
+
+En el primer Cron posterior a la integración de Company OS, la revisión nativa
+se agotó en 2.175 ms con solo 2/22 comprobaciones ejecutadas. El Cron reportó
+FAIL aunque deportes, Telegram y los otros canales HTTP continuaron
+funcionando. Este ajuste aumenta el límite cooperativo a **15 segundos**,
+por debajo del límite HTTP del Cron de 90 segundos y del intervalo de cinco
+minutos. No añade peticiones a proveedores ni dispara revisiones adicionales.
+
+Si la revisión sigue incompleta (22 esperadas, menos ejecutadas), se informa
+`PARTIAL` expresamente y se conserva el recibo y el siguiente horario; solo
+la combinación estricta de 200, respuesta segura, recuento nativo acotado y
+resultado diario controlado permite que el Cron trate el caso como aplazamiento.
+Las fallas de seguridad, resultados desconocidos y HTTP distinto de 200 siguen
+clasificados como `FAIL`. La evidencia productiva de 22/22 queda pendiente.

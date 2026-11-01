@@ -2299,7 +2299,7 @@ def record_continuous_evolution_decision(project_root: str | Path | None, recomm
 # A bounded reviewer inside Continuous Evolution, not a new business executor.
 NATIVE_WORKFORCE_REVIEW_CONTRACT = "NEMESIS-NATIVE-WORKFORCE-REVIEW-V1"
 NATIVE_WORKFORCE_MEMORY_CONTRACT = "NEMESIS-NATIVE-WORKFORCE-MEMORY-V1"
-NATIVE_WORKFORCE_BUDGET_SECONDS = 2.0
+NATIVE_WORKFORCE_BUDGET_SECONDS = 15.0
 NATIVE_WORKFORCE_MAX_SOURCE_BYTES = 8 * 1024 * 1024
 NATIVE_WORKFORCE_MAX_FILE_BYTES = 3 * 1024 * 1024
 NATIVE_WORKFORCE_MAX_STORE_BYTES = 4 * 1024 * 1024
@@ -2506,9 +2506,21 @@ def _nw_static_check(kind: str, sources: list[str]) -> tuple[str, str]:
         order, features, limits = [values.get(key) for key in ("PLAN_ORDER", "FEATURE_MIN_PLAN", "MEMBERSHIP_LIMITS")]
         if not all(isinstance(value, dict) for value in (order, features, limits)):
             return "UNKNOWN", "MEMBERSHIP_CONTRACT_NOT_LITERAL"
-        valid = set(order) == {"FREE", "PRO", "ELITE", "ADMIN"} and set(limits) == set(order)
-        valid = valid and all(type(value) is int for value in order.values()) and len(set(order.values())) == len(order)
-        valid = valid and bool(features) and all(value in order for value in features.values())
+        # Both the deployed four-plan catalog and the six-price Revenue OS
+        # candidate are valid source schemas. ELITE+ is optional during rollout,
+        # but must remain a distinct tier between ELITE and ADMIN when present.
+        allowed_core = {"FREE", "PRO", "ELITE", "ADMIN"}
+        actual = set(order)
+        valid = actual in (allowed_core, allowed_core | {"ELITE+"}) and set(limits) == actual
+        valid = valid and all(type(value) is int for value in order.values())
+        valid = valid and len(set(order.values())) == len(order)
+        if valid:
+            hierarchy = ["FREE", "PRO", "ELITE"]
+            if "ELITE+" in order:
+                hierarchy.append("ELITE+")
+            hierarchy.append("ADMIN")
+            valid = all(order[left] < order[right] for left, right in zip(hierarchy, hierarchy[1:]))
+        valid = valid and bool(features) and all(isinstance(value, str) and value in actual for value in features.values())
         return ("PASS", "PLAN_REFERENCES_CONSISTENT") if valid else ("FAIL", "PLAN_REFERENCE_MISMATCH")
     if kind in {"request_contract", "finite_json_contract"}:
         tree, _ = _nw_literals(sources[0])
@@ -2756,7 +2768,7 @@ def _nw_lock_owned(storage: Path, job_id: str) -> bool:
 
 
 def run_native_workforce_review(project_root: str | Path | None = None, app_version: str = "LOCAL", *, now: str | datetime | None = None, storage_root: str | Path | None = None, job_id: str = "", scheduled_for: str = "", trigger: str = "SCHEDULED_PRODUCTION", write: bool = True) -> dict[str, Any]:
-    """Run at most 2 seconds of cooperative static analysis under scheduler lock.
+    """Run at most 15 seconds of cooperative static analysis under scheduler lock.
 
     PASS means all 22 evaluations finished. Receipt outcome separately reports
     FAIL/UNKNOWN; it never certifies the 15 business responsibilities as active.
