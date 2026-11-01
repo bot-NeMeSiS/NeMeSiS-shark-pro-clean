@@ -2299,7 +2299,7 @@ def record_continuous_evolution_decision(project_root: str | Path | None, recomm
 # A bounded reviewer inside Continuous Evolution, not a new business executor.
 NATIVE_WORKFORCE_REVIEW_CONTRACT = "NEMESIS-NATIVE-WORKFORCE-REVIEW-V1"
 NATIVE_WORKFORCE_MEMORY_CONTRACT = "NEMESIS-NATIVE-WORKFORCE-MEMORY-V1"
-NATIVE_WORKFORCE_BUDGET_SECONDS = 2.0
+NATIVE_WORKFORCE_BUDGET_SECONDS = 15.0
 NATIVE_WORKFORCE_MAX_SOURCE_BYTES = 8 * 1024 * 1024
 NATIVE_WORKFORCE_MAX_FILE_BYTES = 3 * 1024 * 1024
 NATIVE_WORKFORCE_MAX_STORE_BYTES = 4 * 1024 * 1024
@@ -2756,7 +2756,7 @@ def _nw_lock_owned(storage: Path, job_id: str) -> bool:
 
 
 def run_native_workforce_review(project_root: str | Path | None = None, app_version: str = "LOCAL", *, now: str | datetime | None = None, storage_root: str | Path | None = None, job_id: str = "", scheduled_for: str = "", trigger: str = "SCHEDULED_PRODUCTION", write: bool = True) -> dict[str, Any]:
-    """Run at most 2 seconds of cooperative static analysis under scheduler lock.
+    """Run at most 15 seconds of cooperative static analysis under scheduler lock.
 
     PASS means all 22 evaluations finished. Receipt outcome separately reports
     FAIL/UNKNOWN; it never certifies the 15 business responsibilities as active.

@@ -113,14 +113,14 @@ def test_native_review_source_bounds_and_symlink_escape(tmp_path, monkeypatch):
 
 
 def test_native_budget_exhaustion_never_credits_unattempted_reviews(tmp_path, monkeypatch):
-    ticks = iter([0.0] + [10.0] * 200)
+    ticks = iter([0.0] + [100.0] * 200)
     monkeypatch.setattr(ce, "_nw_clock", lambda: next(ticks))
     result = _readonly(tmp_path)
     assert result["result"] == "PARTIAL"
     assert result["receipt"]["expected_count"] == 22
     assert result["receipt"]["executed_count"] == 0
     assert not any(row["executed"] for row in result["receipt"]["results"])
-    assert result["duration_ms"] == 10000
+    assert result["duration_ms"] == 100000
     assert result["receipt"]["limits"]["budget_exhausted"] is True
 
 

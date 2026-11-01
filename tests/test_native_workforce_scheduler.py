@@ -259,13 +259,43 @@ class NativeWorkforceTransportTests(unittest.TestCase):
         self.assertEqual(result["continuous_status"], "PASS")
         self.assertEqual(result["continuous_result"], "SKIPPED_PAUSED")
 
-    def test_native_failure_is_not_masked_by_daily_not_due(self):
-        payload = {"ok": False, "result": "PARTIAL", "daily_result": "SKIPPED_NOT_DUE",
-                   "native_workforce": {"result": "PARTIAL", "review_kind": "STATIC_PARTIAL", "outcome": "UNKNOWN"}}
+    def test_bounded_native_budget_partial_is_reported_without_failing_unrelated_lanes(self):
+        payload = {
+            "ok": False, "result": "PARTIAL", "daily_result": "SKIPPED_NOT_DUE",
+            "dangerous_actions_executed": False,
+            "native_workforce": {
+                "result": "PARTIAL", "review_kind": "STATIC_PARTIAL", "outcome": "UNKNOWN",
+                "executed_count": 2, "expected_count": 22,
+            },
+        }
         with patch.object(master.urllib.request, "urlopen", return_value=self.Response(payload)):
             result = master.continuous_evolution_tick("https://example.invalid", "test-secret")
-        self.assertEqual(result["continuous_status"], "FAIL")
-        self.assertEqual(result["native_workforce"]["result"], "PARTIAL")
+        self.assertEqual(result["continuous_status"], "PARTIAL")
+        self.assertEqual(result["continuous_result"], "PARTIAL")
+        self.assertEqual(result["native_workforce"]["executed_count"], 2)
+        self.assertEqual(master.exit_code_for_overall("PARTIAL"), 0)
+
+    def test_unbounded_or_unsafe_partial_stays_technical_failure(self):
+        native = {
+            "result": "PARTIAL", "review_kind": "STATIC_PARTIAL",
+            "executed_count": 2, "expected_count": 22,
+        }
+        for modification in (
+            {"dangerous_actions_executed": True},
+            {"daily_result": "PARTIAL"},
+            {"native_workforce": {"result": "PARTIAL", "executed_count": 2, "expected_count": 22}},
+            {"native_workforce": {**native, "executed_count": 22}},
+        ):
+            payload = {
+                "ok": False, "result": "PARTIAL",
+                "daily_result": "SKIPPED_NOT_DUE",
+                "dangerous_actions_executed": False,
+                "native_workforce": native,
+                **modification,
+            }
+            with patch.object(master.urllib.request, "urlopen", return_value=self.Response(payload)):
+                result = master.continuous_evolution_tick("https://example.invalid", "test-secret")
+            self.assertEqual(result["continuous_status"], "FAIL")
 
     def test_only_closed_native_receipt_fields_are_logged(self):
         secret = "synthetic-private-secret"
