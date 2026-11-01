@@ -232,3 +232,52 @@ def test_native_invalid_persisted_receipt_never_promotes_or_overwrites_history(t
     receipt["production_certified"] = True
     path.write_text(json.dumps({"contract": ce.NATIVE_WORKFORCE_MEMORY_CONTRACT, "latest": receipt}))
     assert ce.load_native_workforce_receipt(tmp_path, storage_root=storage, now=NOW)["state"] == "UNAVAILABLE"
+
+
+def test_native_membership_accepts_elite_plus_without_confusing_it_with_elite():
+    def outcome(order, features=None, limits=None):
+        if features is None:
+            features = {"advanced_stats": "ELITE"}
+        if limits is None:
+            limits = {key: {"daily_picks": 1} for key in order}
+        literal = (
+            f"PLAN_ORDER = {order!r}\n"
+            f"FEATURE_MIN_PLAN = {features!r}\n"
+            f"MEMBERSHIP_LIMITS = {limits!r}\n"
+        )
+        return ce._nw_static_check("membership", [literal])
+
+    old = {"FREE": 0, "PRO": 1, "ELITE": 2, "ADMIN": 3}
+    future = {"FREE": 0, "PRO": 1, "ELITE": 2, "ELITE+": 3, "ADMIN": 4}
+    assert outcome(old) == ("PASS", "PLAN_REFERENCES_CONSISTENT")
+    assert outcome(future) == ("PASS", "PLAN_REFERENCES_CONSISTENT")
+    assert outcome(future, features={"next": "ELITE+"})[0] == "PASS"
+    assert outcome({**future, "ELITE+": 2})[0] == "FAIL"
+    assert outcome({**future, "ELITE+": 5})[0] == "FAIL"
+    assert outcome({**future, "UNKNOWN": 6})[0] == "FAIL"
+    assert outcome(future, limits={key: {} for key in future if key != "ELITE+"})[0] == "FAIL"
+    assert outcome(future, features={"unknown": "SUPERPRO"})[0] == "FAIL"
+    assert outcome({**future, "ADMIN": "4"})[0] == "FAIL"
+
+
+def test_native_real_repo_review_completes_all_22_checks_without_external_actions():
+    """CI executes the actual checked-out source, not an empty fake fixture.
+
+    An offline 22/22 run proves only the deterministic static review budget:
+    it is not evidence of autonomous workers, browser QA or Render certification.
+    """
+    root = Path(__file__).resolve().parents[1]
+    result = ce.run_native_workforce_review(root, "CI", now=NOW, write=False)
+    receipt = result["receipt"]
+    assert receipt["expected_count"] == 22
+    assert receipt["executed_count"] == 22, {
+        "executed": receipt["executed_count"],
+        "duration_ms": receipt["duration_ms"],
+        "budget_exhausted": receipt["limits"]["budget_exhausted"],
+    }
+    assert result["result"] == "PASS"
+    assert receipt["browser_executed"] is False
+    assert receipt["external_calls"] == 0
+    assert receipt["business_execution_certified"] is False
+    assert receipt["production_certified"] is False
+    assert receipt["autonomous_agents_started"] == 0
