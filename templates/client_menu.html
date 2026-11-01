@@ -5,7 +5,7 @@
    Content authorization still requires its own server-side release gate. #}
 {% set paid_product_plan = current_user and (current_user.membership|default('FREE')|upper) in ['PRO', 'ELITE', 'ELITE+'] %}
 {# Positive allowlist: new destinations do not automatically appear in FREE. #}
-{% set free_allowed_hrefs = ['/app', '/calendar?lane=today', '/live', '/highlights', '/shark', '/favoritos', '/mi-cuenta', '/ayuda', '/legal'] %}
+{% set free_allowed_hrefs = ['/app', '/calendario?lane=today', '/directo', '/highlights', '/shark', '/favoritos', '/mi-cuenta', '/ayuda', '/legal'] %}
 {% set visible_items = all_items if paid_product_plan else all_items|selectattr('href', 'in', free_allowed_hrefs)|list %}
 {% set free_descriptions = {
   '/app': 'Centro de partidos, directo, resultados y favoritos.',

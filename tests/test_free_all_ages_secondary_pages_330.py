@@ -60,6 +60,12 @@ def test_profile_actions_do_not_upsell_betting_to_free(app_module, tier):
         assert 'href="/membresias"' in content
 
 
+
+def test_menu_source_uses_canonical_sport_routes(app_module):
+    entries = {item["title"]: item["href"] for item in app_module.v566_client_menu_items()}
+    assert entries["Partidos de hoy"] == "/calendario?lane=today"
+    assert entries["Directo ahora"] == "/directo"
+
 def test_free_page_only_uses_explicit_whitelisted_sports_destinations():
     source = (ROOT / 'templates/client_menu.html').read_text(encoding='utf-8')
     assert "all_items|selectattr('href', 'in', free_allowed_hrefs)|list" in source

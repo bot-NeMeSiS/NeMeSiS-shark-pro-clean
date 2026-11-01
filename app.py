@@ -35084,8 +35084,8 @@ def v566_client_menu_items():
     # V777: mapa cliente final por intención. No esconder funciones clave ni mezclar páginas sueltas.
     return [
         {"group": "01 - Empezar", "title": "Inicio inteligente", "body": "Centro de mando con hoy, directo, pronósticos, resultados, Telegram y SHARK.", "href": "/app", "intent": "start"},
-        {"group": "01 - Empezar", "title": "Partidos de hoy", "body": "Agenda clara con día, liga, estado y hora Madrid.", "href": "/calendar?lane=today", "intent": "matches"},
-        {"group": "01 - Empezar", "title": "Directo ahora", "body": "Marcador, minuto y estado cuando exista dato real.", "href": "/live", "intent": "live"},
+        {"group": "01 - Empezar", "title": "Partidos de hoy", "body": "Agenda clara con día, liga, estado y hora Madrid.", "href": "/calendario?lane=today", "intent": "matches"},
+        {"group": "01 - Empezar", "title": "Directo ahora", "body": "Marcador, minuto y estado cuando exista dato real.", "href": "/directo", "intent": "live"},
         {"group": "02 - Pronósticos", "title": "Pronósticos SHARK", "body": "Selección publicada, mercado, cuota, unidades, riesgo y motivo.", "href": "/picks", "intent": "bet"},
         {"group": "02 - Pronósticos", "title": "Combinadas", "body": "Constructor y borradores privados con selecciones disponibles.", "href": "/combinadas", "intent": "bet"},
         {"group": "02 - Pronósticos", "title": "Mercados básicos", "body": "1X2, doble oportunidad, DNB, goles y ambos marcan explicado simple.", "href": "/mercados", "intent": "learn"},
