@@ -12,7 +12,7 @@
     {{ nemesis_brand('/', 'topbar') }}
     <nav aria-label="{{ ui("Navegación pública") }}">
       {% for label, href, icon_name in links %}
-      {% set active = nav_contracts.is_active(href, request.path, 'public') %}
+      {% set active = nav_contracts.is_active(href, request.path, 'public', request.args.get('lane', '')) %}
       <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
       {% endfor %}
     </nav>
@@ -36,7 +36,7 @@
     {{ nemesis_brand('/app', 'topbar') }}
     <nav aria-label="{{ ui("Navegación cliente") }}">
       {% for label, href, icon_name in links %}
-      {% set active = nav_contracts.is_active(href, request.path, 'client') %}
+      {% set active = nav_contracts.is_active(href, request.path, 'client', request.args.get('lane', '')) %}
       <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
       {% endfor %}
     </nav>
@@ -102,7 +102,7 @@
 {% set links = (nav_contracts.CLIENT_ADULT_MOBILE_LINKS if plan in ['PRO','ELITE','ELITE+'] else nav_contracts.CLIENT_MOBILE_LINKS) if authenticated else nav_contracts.PUBLIC_MOBILE_LINKS %}
 <nav class="v933-mobile-bottom-nav" aria-label="{{ ui("Navegación móvil") }}" data-nav-zone="client-bottom" data-nav-items="{{ links|length }}">
   {% for label, href, icon_name in links %}
-  {% set active = nav_contracts.is_active(href, request.path, 'client' if authenticated else 'public') %}
+  {% set active = nav_contracts.is_active(href, request.path, 'client' if authenticated else 'public', request.args.get('lane', '')) %}
   <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
   {% endfor %}
 </nav>

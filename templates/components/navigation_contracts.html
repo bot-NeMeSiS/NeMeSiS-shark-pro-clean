@@ -130,7 +130,7 @@
   ('Redacción / noticias','/admin/newsroom','newspaper')
 ] %}
 
-{% macro is_active(href, path, scope='client') -%}
+{% macro is_active(href, path, scope='client', lane='') -%}
 {%- set contextual = '#' in href or '?' in href -%}
 {%- set clean_href = href.split('#')[0].split('?')[0] -%}
 {%- set calendar_aliases = ['/calendar','/calendario-global','/partidos','/partidos/calendario'] -%}
@@ -139,7 +139,13 @@
 {%- set picks_aliases = ['/combis','/combinadas'] -%}
 {%- set account_aliases = ['/profile','/perfil'] -%}
 {%- set results_center = clean_href == '/calendario' and ('lane=finished' in href or 'lane=today' in href) -%}
-{%- if (not contextual or results_center) and (
+{# Only one of Partidos/Resultados can be current. The selected lane is
+   supplied by the renderer, while direct calls default to today's calendar. #}
+{%- set finished_selected = lane == 'finished' or (not lane and path == '/resultados') -%}
+{%- set calendar_lane_ok = not results_center or (('lane=finished' in href) if finished_selected else ('lane=today' in href)) -%}
+{# Public competitions has its own visible destination; avoid double-active. #}
+{%- set explicit_public_section = scope == 'public' and path == '/competiciones' and clean_href == '/calendario' -%}
+{%- if calendar_lane_ok and not explicit_public_section and (not contextual or results_center) and (
        path == clean_href
        or (clean_href == '/calendario' and (path in calendar_aliases or path in ['/resultados','/equipos','/competiciones','/mercados','/highlights','/resumenes','/resumenes-partidos'] or path.startswith(('/team/','/equipo/','/competition/','/competicion/','/match/','/resumen/','/resumenes/','/highlight/'))))
        or (clean_href == '/directo' and path in live_aliases)
