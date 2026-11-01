@@ -18760,6 +18760,9 @@ def _v931_read_table_rows(table, limit=600):
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA query_only=ON")
         conn.execute("PRAGMA busy_timeout=250")
+        if table == "matches":
+            # Bind metadata, admission and full selected rows to one snapshot.
+            conn.execute("BEGIN")
         exists = conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)
         ).fetchone()
@@ -18876,13 +18879,17 @@ def _v931_read_table_rows(table, limit=600):
                     f" {history_value} DESC"
                 )
                 query_params = recent_live_params + [today] * (6 if admission_order else 4) + [int(limit)]
-        records = [
-            dict(row)
-            for row in conn.execute(
-                f'SELECT * FROM "{table}"{order_sql} LIMIT ?',
-                tuple(query_params),
-            ).fetchall()
-        ]
+        if table == "matches":
+            from engines.bounded_fixture_read import read_match_rows
+            records = read_match_rows(conn, order_sql, query_params)
+        else:
+            records = [
+                dict(row)
+                for row in conn.execute(
+                    f'SELECT * FROM "{table}"{order_sql} LIMIT ?',
+                    tuple(query_params),
+                ).fetchall()
+            ]
         return records, {
             "status": "ok",
             "error_type": "",
