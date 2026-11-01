@@ -250,3 +250,27 @@ def test_native_sqlite_interrupt_is_not_hidden_or_retried():
     finally:
         db.set_progress_handler(None,0)
         db.close()
+
+
+@pytest.mark.parametrize('columns,column_limit,optimized', [
+    (7, 7, False), (7, 8, True), (2000, 2000, False),
+])
+def test_full_row_at_sqlite_column_limit_keeps_original_result(columns, column_limit, optimized):
+    db = sqlite3.connect(':memory:')
+    db.row_factory = sqlite3.Row
+    db.execute('CREATE TABLE matches(' + ','.join('c' + str(i) + ' TEXT' for i in range(columns)) + ')')
+    db.executemany('INSERT INTO matches(c0) VALUES(?)', [('b',), ('a',), ('c',)])
+    db.commit()
+    db.setlimit(sqlite3.SQLITE_LIMIT_COLUMN, column_limit)
+    db.execute('PRAGMA query_only=ON')
+    db.execute('BEGIN')
+    try:
+        original = 'SELECT * FROM matches ORDER BY c0 LIMIT ?'
+        expected = [dict(row) for row in db.execute(original, (2,))]
+        assert len(expected) == 2 and all(len(row) == columns for row in expected)
+        proxy = Proxy(db)
+        assert selected_match_rows(proxy, ' ORDER BY c0', [2]) == expected
+        assert any('NOT INDEXED' in sql for sql in proxy.sql) is optimized
+        assert db.total_changes == 3
+    finally:
+        db.close()

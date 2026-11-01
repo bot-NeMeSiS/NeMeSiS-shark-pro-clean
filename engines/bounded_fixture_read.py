@@ -36,6 +36,10 @@ def read_match_rows(conn, order_sql: str, query_params) -> list[dict]:
     if (len(table) < 5 or table[0] != "main" or table[1] != "matches"
             or table[2] != "table" or table[4] != 0):
         return original_rows()
+    # Materialization adds one result column for the physical key. A valid
+    # SELECT * at SQLite's column limit must retain the original read path.
+    if int(table[3]) + 1 > getlimit(sqlite3.SQLITE_LIMIT_COLUMN):
+        return original_rows()
     # table_xinfo includes generated columns that could shadow a hidden alias.
     columns = {
         str(row[1]).casefold()
