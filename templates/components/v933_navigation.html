@@ -45,7 +45,7 @@
 </header>
 <header class="v933-mobile-header v933-client-mobile-header" data-nav-zone="client-mobile">
   {{ nemesis_brand('/app', 'topbar', True) }}
-  <div class="v933-mobile-header-actions">{{ explore_link() }}<a class="v933-icon-button" href="/telegram" aria-label="{{ ui("Abrir Telegram") }}" title="Telegram">{{ nav_icon('telegram') }}</a><details class="product-account-menu"><summary class="v933-icon-button" aria-label="{{ ui('Abrir opciones de cuenta') }}">{{ nav_icon('user') }}</summary><nav aria-label="{{ ui('Opciones de cuenta') }}"><a href="/mi-cuenta">{{ ui('Mi cuenta') }}</a>{% if plan in ['PRO','ELITE','ELITE+'] %}<a href="/membresias">{{ ui('Membresías') }}</a>{% endif %}<a href="/soporte">{{ ui('Soporte') }}</a></nav></details></div>
+  <div class="v933-mobile-header-actions">{{ explore_link() }}{% if plan in ['PRO','ELITE','ELITE+'] %}<a class="v933-icon-button" href="/telegram" aria-label="{{ ui("Abrir Telegram") }}" title="Telegram">{{ nav_icon('telegram') }}</a>{% else %}<a class="v933-icon-button" href="/favoritos" aria-label="{{ ui('Abrir favoritos') }}" title="{{ ui('Favoritos') }}">{{ nav_icon('star') }}</a>{% endif %}<details class="product-account-menu"><summary class="v933-icon-button" aria-label="{{ ui('Abrir opciones de cuenta') }}">{{ nav_icon('user') }}</summary><nav aria-label="{{ ui('Opciones de cuenta') }}"><a href="/mi-cuenta">{{ ui('Mi cuenta') }}</a>{% if plan in ['PRO','ELITE','ELITE+'] %}<a href="/membresias">{{ ui('Membresías') }}</a>{% endif %}<a href="/soporte">{{ ui('Soporte') }}</a></nav></details></div>
 </header>
 {%- endmacro %}
 
