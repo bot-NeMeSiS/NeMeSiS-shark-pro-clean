@@ -7,13 +7,32 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from functools import lru_cache
 
 from engines.match_sync_engine import IMPORTANT_COMPETITIONS
 from engines.spanish_localization_engine import provider_competition_facts, spanish_competition_name, spanish_country_name
 
 
+_NORMALIZED_NON_WORDS = re.compile(r"[^a-z0-9]+")
+
+
+def _normalized_text(text):
+    return _NORMALIZED_NON_WORDS.sub("-", unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode().lower()).strip("-")
+
+
+@lru_cache(maxsize=2048)
+def _normalized_short_text(text):
+    return _normalized_text(text)
+
+
 def normalized(value):
-    return re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKD", str(value or "")).encode("ascii", "ignore").decode().lower()).strip("-")
+    # Preserve each input's current truth/string conversion, including custom
+    # objects and errors. Cache only the resulting bounded immutable text; no
+    # competition, provider, identity, reference or selection is retained.
+    text = str(value or "")
+    if type(text) is str and len(text) <= 128:
+        return _normalized_short_text(text)
+    return _normalized_text(text)
 
 
 def provider_family(value):

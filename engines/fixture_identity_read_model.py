@@ -28,6 +28,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from itertools import combinations, product
+from functools import lru_cache
 import json
 import hashlib
 from math import isfinite
@@ -107,7 +108,20 @@ def _category(value):
 
 def _name_forms(value):
     # Reuse the existing curated provider aliases and Spanish translations.
+    # Resolve them on every call, before memoizing only the resulting short
+    # text's comparison forms. No row, team ID or identity proof is cached.
     key = provider_team_identity_key(spanish_team_name(value))
+    if type(key) is str and len(key) <= 128:
+        return _short_name_forms(key)
+    return _name_forms_key(key)
+
+
+@lru_cache(maxsize=4096)
+def _short_name_forms(key):
+    return _name_forms_key(key)
+
+
+def _name_forms_key(key):
     # Punctuation normalization makes C.F. into "c f". Recover the known
     # designator before detecting category C, so C.F. B still means reserve B.
     key = re.sub(r"\b(?:f c|c f|c d|u d|s d|a c|s c)\b",

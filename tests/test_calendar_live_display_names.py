@@ -17,43 +17,45 @@ from tests.test_calendar_facet_batch_counts import _unique_primary
 from engines import display_name_normalization as names
 
 
-if _owned_supervisor:
-    def _same_calendar_tree(left, right, windows, elapsed):
-        """Only independently checked evaluation metadata may differ."""
-        assert type(left) is type(right)
-        if isinstance(left, dict):
-            assert left.keys()==right.keys()
-            if "sports_relevance" in left or "realtime_state" in left:
-                l,r=deepcopy(left),deepcopy(right)
-                if "sports_relevance" in l:
-                    lp,rp=l["sports_relevance"],r["sports_relevance"]
+def _same_calendar_tree(left, right, windows, elapsed):
+    """Only independently checked evaluation metadata may differ."""
+    assert type(left) is type(right)
+    if isinstance(left, dict):
+        assert left.keys()==right.keys()
+        if "sports_relevance" in left or "realtime_state" in left:
+            l,r=deepcopy(left),deepcopy(right)
+            if "sports_relevance" in l:
+                lp,rp=l["sports_relevance"],r["sports_relevance"]
+                assert lp.keys()==rp.keys()
+                if lp["kickoff_delta_minutes"]!=rp["kickoff_delta_minutes"]:
+                    for row,profile,window in ((l,lp,windows[0]),(r,rp,windows[1])):
+                        kickoff=datetime.fromisoformat(row["kickoff_iso"])
+                        assert kickoff.tzinfo is not None and type(profile["kickoff_delta_minutes"]) is int
+                        minimum=int((kickoff-window[1]).total_seconds()//60)
+                        maximum=int((kickoff-window[0]).total_seconds()//60)
+                        assert minimum<=profile["kickoff_delta_minutes"]<=maximum
+                    lp.pop("kickoff_delta_minutes");rp.pop("kickoff_delta_minutes")
+            # These Calendar-specific ages are calculated from the same
+            # untouched observations; freshness/status decisions stay exact.
+            for family,field in (("v935_freshness","age_seconds"),
+                                 ("v935_status_truth","live_age_seconds"),
+                                 ("status_info","live_age_seconds")):
+                lp,rp=l.get(family),r.get(family)
+                if isinstance(lp,dict) and isinstance(rp,dict):
                     assert lp.keys()==rp.keys()
-                    if lp["kickoff_delta_minutes"]!=rp["kickoff_delta_minutes"]:
-                        for row,profile,window in ((l,lp,windows[0]),(r,rp,windows[1])):
-                            kickoff=datetime.fromisoformat(row["kickoff_iso"])
-                            assert kickoff.tzinfo is not None and type(profile["kickoff_delta_minutes"]) is int
-                            minimum=int((kickoff-window[1]).total_seconds()//60)
-                            maximum=int((kickoff-window[0]).total_seconds()//60)
-                            assert minimum<=profile["kickoff_delta_minutes"]<=maximum
-                        lp.pop("kickoff_delta_minutes");rp.pop("kickoff_delta_minutes")
-                # These Calendar-specific ages are calculated from the same
-                # untouched observations; freshness/status decisions stay exact.
-                for family,field in (("v935_freshness","age_seconds"),
-                                     ("v935_status_truth","live_age_seconds"),
-                                     ("status_info","live_age_seconds")):
-                    lp,rp=l.get(family),r.get(family)
-                    if isinstance(lp,dict) and isinstance(rp,dict):
-                        assert lp.keys()==rp.keys()
-                        if field in lp and lp[field]!=rp[field]:
-                            same_age(lp[field],rp[field],elapsed)
-                            lp.pop(field);rp.pop(field)
-                same_realtime({"matches":[l]},{"matches":[r]},windows,elapsed)
-                return
-            for key in left:_same_calendar_tree(left[key],right[key],windows,elapsed)
-        elif isinstance(left,list):
-            assert len(left)==len(right)
-            for l,r in zip(left,right):_same_calendar_tree(l,r,windows,elapsed)
-        else:assert left==right
+                    if field in lp and lp[field]!=rp[field]:
+                        same_age(lp[field],rp[field],elapsed)
+                        lp.pop(field);rp.pop(field)
+            same_realtime({"matches":[l]},{"matches":[r]},windows,elapsed)
+            return
+        for key in left:_same_calendar_tree(left[key],right[key],windows,elapsed)
+    elif isinstance(left,list):
+        assert len(left)==len(right)
+        for l,r in zip(left,right):_same_calendar_tree(l,r,windows,elapsed)
+    else:assert left==right
+
+
+if _owned_supervisor:
 
     @pytest.mark.parametrize("principal", ("ANONYMOUS", "FREE", "PRO", "ELITE"))
     @pytest.mark.parametrize("route", ("/calendar", "/live"))
