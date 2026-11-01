@@ -8,6 +8,13 @@ from tools.run_production_quality_browser_gate import (
     build_post_deploy_result,
 )
 from tools.run_production_quality_browser_gate import classify_browser_resources
+from tools.run_production_quality_browser_gate import _read_only_evidence
+
+
+def guarded_evidence(**extra):
+    # A unit witness, not evidence about a real browser or production.
+    return {"read_only_browser": _read_only_evidence(
+        ["public-desktop", "public-mobile", "admin-protection"], {}), **extra}
 
 
 CHECKS = {
@@ -129,12 +136,16 @@ def test_production_quality_gate_reports_public_pass_with_admin_review_pending()
         expected_sha="a" * 40,
         actual_sha="a" * 40,
         checks=CHECKS,
-        evidence={},
+        evidence=guarded_evidence(),
     )
     assert result["result"] == "PUBLIC_SURFACE_VERIFIED_ADMIN_REVIEW_PENDING"
     assert result["admin_sentinel_review"] == "NOT_CHECKED_REQUIRES_AUTHENTICATED_ADMIN"
     assert result["rollback_recommended"] is False
-    assert result["production_mutations"] == 0
+    assert result["outbound_write_requests"] == 0
+    assert result["production_mutations"] is None
+    assert result["telegram_sends"] is None
+    assert result["stripe_actions"] is None
+    assert result["new_external_service_cost"] is None
 
 
 def test_production_quality_gate_recommends_rollback_for_regression():
@@ -144,7 +155,7 @@ def test_production_quality_gate_recommends_rollback_for_regression():
         expected_sha="a" * 40,
         actual_sha="a" * 40,
         checks=checks,
-        evidence={},
+        evidence=guarded_evidence(),
     )
     assert result["result"] == "REGRESSION_DETECTED"
     assert result["rollback_recommended"] is True
@@ -157,7 +168,7 @@ def test_production_quality_gate_blocks_missing_evidence():
         expected_sha="a" * 40,
         actual_sha="a" * 40,
         checks=checks,
-        evidence={},
+        evidence=guarded_evidence(),
     )
     assert result["result"] == "BLOCKED"
     assert result["missing_checks"] == ["browser_runtime_errors"]
@@ -395,7 +406,8 @@ def test_real_missing_sports_image_records_degradation_with_verified_fallback(st
     assert result["images"][0]["http_statuses"] == [status]
     assert "classification" not in image
     report = build_post_deploy_result(expected_sha="a" * 40, actual_sha="a" * 40,
-        checks={**CHECKS, "subresources_and_fallbacks": "PASS"}, evidence={"resource_classification": result})
+        checks={**CHECKS, "subresources_and_fallbacks": "PASS"},
+        evidence=guarded_evidence(resource_classification=result))
     assert report["result"] == "PUBLIC_SURFACE_VERIFIED_ADMIN_REVIEW_PENDING"
     assert report["external_image_degradation_count"] == 1
 

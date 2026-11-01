@@ -28,6 +28,81 @@ TECHNICAL_COPY = re.compile(
     re.IGNORECASE,
 )
 
+
+def _read_only_context(browser: Any, base_url: str, name: str,
+                       contexts: list[str], intercepted: dict[Any, dict[str, Any]],
+                       **kwargs: Any) -> Any:
+    """Guard every HTTP request, including scripts, workers and new pages.
+
+    The one known analytics POST gets an explicitly recorded LOCAL 204, never
+    a server response or evidence of telemetry delivery. Other write attempts
+    are aborted and fail the gate. GET/HEAD use fallback so offline interceptors
+    remain authoritative in tests. No real account/browser state is loaded.
+    """
+    kwargs["service_workers"] = "block"
+    context = browser.new_context(**kwargs)
+    telemetry_url = base_url.rstrip("/") + "/api/growth/funnel-event"
+
+    def read_only(route: Any) -> None:
+        request = route.request
+        if request.method in {"GET", "HEAD"}:
+            route.fallback()
+            return
+        telemetry = request.method == "POST" and request.url == telemetry_url
+        # Never collect request bodies, credentials, cookies or headers.
+        intercepted[request] = {
+            "context": name, "method": request.method, "url": request.url,
+            "network_forwarded": False,
+            "disposition": "LOCAL_TELEMETRY_204" if telemetry else "ABORTED_UNEXPECTED_WRITE",
+        }
+        if telemetry:
+            route.fulfill(status=204, body="", headers={
+                "cache-control": "no-store", "x-nemesis-qa-write-suppressed": "1"})
+        else:
+            route.abort("blockedbyclient")
+
+    context.route("**/*", read_only)
+    contexts.append(name)
+    return context
+
+
+def _read_only_evidence(contexts: list[str], intercepted: dict[Any, dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "contract": "PUBLIC_BROWSER_HTTP_READ_ONLY_V1",
+        "guarded_contexts": list(contexts),
+        "service_workers": "blocked",
+        "intercepted_writes": [dict(row) for row in intercepted.values()],
+        "outbound_write_requests": 0,
+        "unexpected_write_attempts": sum(
+            row["disposition"] != "LOCAL_TELEMETRY_204" for row in intercepted.values()),
+        "telemetry_delivery": "NOT_TESTED_QA_SUPPRESSED",
+        "scope": "HTTP(S) browser traffic; no business delivery or authenticated operations certified.",
+    }
+
+
+def _read_only_check(evidence: dict[str, Any]) -> str:
+    proof = evidence.get("read_only_browser") or {}
+    if (not isinstance(proof, dict) or proof.get("contract") != "PUBLIC_BROWSER_HTTP_READ_ONLY_V1"
+            or proof.get("guarded_contexts") != ["public-desktop", "public-mobile", "admin-protection"]
+            or proof.get("service_workers") != "blocked"
+            or type(proof.get("outbound_write_requests")) is not int
+            or proof["outbound_write_requests"] != 0
+            or type(proof.get("unexpected_write_attempts")) is not int
+            or not isinstance(proof.get("intercepted_writes"), list)):
+        return "NOT_RUN"
+    rows = proof["intercepted_writes"]
+    if any(not isinstance(row, dict) or row.get("network_forwarded") is not False
+           or type(row.get("method")) is not str or row["method"] in {"", "GET", "HEAD"}
+           or type(row.get("context")) is not str
+           or row.get("context") not in proof["guarded_contexts"]
+           or type(row.get("disposition")) is not str
+           or row.get("disposition") not in {"LOCAL_TELEMETRY_204", "ABORTED_UNEXPECTED_WRITE"}
+           for row in rows):
+        return "NOT_RUN"
+    if proof["unexpected_write_attempts"] != sum(row["disposition"] != "LOCAL_TELEMETRY_204" for row in rows):
+        return "NOT_RUN"
+    return "PASS" if proof["unexpected_write_attempts"] == 0 else "FAIL"
+
 # The component owns the fallback; a provider hostname or URL shape cannot prove
 # that an image is optional. Keep brand/icon checks ahead of sports semantics.
 IMAGE_FAILURES_SCRIPT = """() => [...document.images]
@@ -418,6 +493,7 @@ def build_post_deploy_result(
     evidence: dict[str, Any],
 ) -> dict[str, Any]:
     normalized = {key: str(value or "NOT_RUN").upper() for key, value in checks.items()}
+    normalized["read_only_browser"] = _read_only_check(evidence)
     failed = [key for key, value in normalized.items() if value == "FAIL"]
     missing = [key for key, value in normalized.items() if value not in {"PASS", "FAIL"}]
     if failed:
@@ -438,11 +514,14 @@ def build_post_deploy_result(
         "rollback_recommended": bool(failed),
         "external_image_degradation_count": len((evidence.get("resource_classification") or {}).get("external_degradations") or []),
         "evidence": evidence,
-        "read_only": True,
-        "production_mutations": 0,
-        "telegram_sends": 0,
-        "stripe_actions": 0,
-        "new_external_service_cost": 0,
+        "read_only": normalized["read_only_browser"] == "PASS",
+        "read_only_scope": "HTTP(S) request-method guard; server-internal effects are not measured.",
+        "outbound_write_requests": 0 if normalized["read_only_browser"] == "PASS" else None,
+        "production_mutations": None,
+        "telegram_sends": None,
+        "stripe_actions": None,
+        "new_external_service_cost": None,
+        "cost_scope": "No service purchases or configuration changes; bandwidth billing is not measured.",
     }
 
 
@@ -575,8 +654,21 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
     finally:
         page.remove_listener("response", record_stylesheet_response)
     elapsed_ms = int((time.perf_counter() - started) * 1000)
+    sample_scope = dict(getattr(page, '_sentinel_resource_scope', {}))
+    sample_url = page.url
     metrics = page.evaluate(
         """() => ({
+          navigationTiming: (() => {
+            const n = performance.getEntriesByType('navigation')[0];
+            return n ? {name:n.name, startTime:n.startTime, duration:n.duration,
+              requestStart:n.requestStart, responseStart:n.responseStart, responseEnd:n.responseEnd,
+              domInteractive:n.domInteractive, domContentLoadedEventEnd:n.domContentLoadedEventEnd,
+              loadEventEnd:n.loadEventEnd, transferSize:n.transferSize,
+              encodedBodySize:n.encodedBodySize, decodedBodySize:n.decodedBodySize,
+              serverTiming:[...(n.serverTiming || [])].map(e => ({
+                name:e.name, duration:e.duration, description:e.description}))} : null;
+          })(),
+          paintTiming: performance.getEntriesByType('paint').map(e => ({name:e.name, startTime:e.startTime})),
           overflow: document.documentElement.scrollWidth > window.innerWidth + 2,
           text: document.body ? document.body.innerText : '',
           shell: Boolean(document.querySelector('[data-v933-surface]')),
@@ -613,6 +705,13 @@ def _page_evidence(page: Any, base_url: str, path: str) -> dict[str, Any]:
         })"""
     )
     metrics['approvedScene'] = _capture_approved_scene(page)
+    metrics['navigation_scope'] = sample_scope
+    metrics['timing_document_matches_sample'] = bool(
+        (metrics.get('navigationTiming') or {}).get('name') == sample_url
+        and page.url == sample_url
+        and dict(getattr(page, '_sentinel_resource_scope', {})) == sample_scope)
+    metrics['response_timing_headers'] = {key: response.headers.get(key) if response else None
+        for key in ('server-timing', 'content-encoding', 'content-length')}
     metrics["imageFailures"] = _remember_image_failures(page)
     metrics["brokenImages"] = [row["url"] for row in metrics["imageFailures"]]
     from engines.canonical_assets import template_css_href
@@ -680,6 +779,8 @@ def run_gate(
     navigation_events: list[dict[str, Any]] = []
     request_starts: dict[Any, dict[str, Any]] = {}
     image_observations: dict[tuple[Any, Any], list[dict[str, Any]]] = {}
+    guarded_contexts: list[str] = []
+    intercepted_writes: dict[Any, dict[str, Any]] = {}
     page_errors: list[str] = []
 
     def attach_observers(page: Any) -> None:
@@ -728,18 +829,24 @@ def run_gate(
             "phase": getattr(page, "_sentinel_phase", "UNKNOWN"), "failed_at": time.perf_counter(),
             **request_starts.get(req, {}),
         }))
-        page.on("response", lambda response: successful_resources.append({
-            "url": response.url, "status": response.status, "received_at": time.perf_counter(),
-            "method": response.request.method, "type": response.request.resource_type,
-            **request_starts.get(response.request, {}),
-        }))
+        def on_response(response: Any) -> None:
+            row = {"url": response.url, "status": response.status, "received_at": time.perf_counter(),
+                   "method": response.request.method, "type": response.request.resource_type,
+                   **request_starts.get(response.request, {})}
+            if response.request in intercepted_writes:
+                row.update(qa_local_response=True, network_forwarded=False,
+                           disposition=intercepted_writes[response.request]["disposition"])
+            successful_resources.append(row)
+
+        page.on("response", on_response)
     playwright_module = __import__("playwright.sync_api", fromlist=["sync_playwright"])
     with playwright_module.sync_playwright() as playwright:
         launch_options: dict[str, Any] = {"headless": True}
         if browser_executable:
             launch_options["executable_path"] = str(Path(browser_executable).resolve())
         browser = playwright.chromium.launch(**launch_options)
-        desktop = browser.new_context(viewport={"width": 1366, "height": 768})
+        desktop = _read_only_context(browser, base_url, "public-desktop", guarded_contexts,
+                                     intercepted_writes, viewport={"width": 1366, "height": 768})
         desktop_page = desktop.new_page()
         attach_observers(desktop_page)
         topbar = _click_journey(desktop_page, base_url, "public-desktop", PUBLIC_NAV)
@@ -751,7 +858,7 @@ def run_gate(
         desktop_page.screenshot(path=str(output_dir / "home_desktop.png"), full_page=False)
         desktop.close()
 
-        mobile = browser.new_context(
+        mobile = _read_only_context(browser, base_url, "public-mobile", guarded_contexts, intercepted_writes,
             viewport={"width": 390, "height": 844},
             is_mobile=True,
             has_touch=True,
@@ -776,7 +883,8 @@ def run_gate(
         mobile_page.screenshot(path=str(output_dir / "home_mobile.png"), full_page=False)
         mobile.close()
 
-        protection_context = browser.new_context(viewport={"width": 1366, "height": 768})
+        protection_context = _read_only_context(browser, base_url, "admin-protection", guarded_contexts,
+                                                intercepted_writes, viewport={"width": 1366, "height": 768})
         protection = protection_context.new_page()
         protection.goto(
             urllib.parse.urljoin(base_url.rstrip("/") + "/", "admin/dashboard"),
@@ -861,6 +969,7 @@ def run_gate(
         "client_admin_protection": "PASS" if admin_final_path == "/admin-login" else "FAIL",
     }
     evidence = {
+        "read_only_browser": _read_only_evidence(guarded_contexts, intercepted_writes),
         "runtime_http": runtime_http,
         "health_http": health_http,
         "sports_http": sports_http,
