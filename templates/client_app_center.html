@@ -19,6 +19,8 @@
 {% set featured_matches = (important_matches|rejectattr('id', 'in', visible_live_ids)|list) or (upcoming_matches|rejectattr('id', 'in', visible_live_ids)|list) %}
 {% set last_result = (recent_results|rejectattr('id', 'in', featured_matches|map(attribute='id')|list)|rejectattr('id', 'in', visible_live_ids)|list)|first %}
 {% set picks = (data.get('v925_picks') or {}).get('picks') or [] %}
+{# Product tier is only an interim presentation split. Independent adult verification remains gate #330. #}
+{% set adult_product_plan = current_user and (current_user.membership|default('FREE')|upper) in ['PRO','ELITE','ELITE+'] %}
 {% set sports_metrics = data.get('sports_metrics') or {} %}
 {% set safe = data.get('v925_calendar') or {} %}
 {# Count the same request-local lane rendered below, including undisplayed rows. #}
@@ -47,7 +49,7 @@
   <section class="v933-kpi-grid ns16-kpi-strip" aria-label="{{ ui('Resumen de la jornada') }}">
     {{ kpi_card('Partidos hoy', '—' if safe.get('storage_status') == 'database_locked' else sports_metrics.get('matches_today', sports_metrics.get('matches_available', 0)), 'Agenda', 'blue', 'calendar', '/calendario') }}
     {{ kpi_card('En directo', '—' if safe.get('storage_status') == 'database_locked' else sports_metrics.get('live_confirmed', 0), 'Ahora', 'live' if sports_metrics.get('live_confirmed', 0) else 'neutral', 'live', '/directo') }}
-    {{ kpi_card('Pronósticos activos', '—' if safe.get('storage_status') == 'database_locked' else sports_metrics.get('picks_ready', 0), 'SHARK', 'cyan', 'target', '/picks') }}
+    {% if adult_product_plan %}{{ kpi_card('Pronósticos activos', '—' if safe.get('storage_status') == 'database_locked' else sports_metrics.get('picks_ready', 0), 'SHARK', 'cyan', 'target', '/picks') }}{% else %}{{ kpi_card('Competiciones', '—' if safe.get('storage_status') == 'database_locked' else 'Explorar', 'Ligas y torneos', 'blue', 'trophy', '/competiciones') }}{% endif %}
   </section>
 
   <section class="ns16-home-command" data-v939-layout-contract="bounded-rail">
@@ -87,6 +89,7 @@
         {% elif recent_results or favorite_matches %}<div class="ns16-match-row is-two">{% for match in (recent_results + favorite_matches)[:4] %}{{ match_card(match, true, true) }}{% endfor %}</div>{% endif %}
       </section>
     </div>
+    {% if adult_product_plan %}
     <section class="ns16-section ns16-featured-pick">
       {{ section_header('Pronóstico destacado', '', 'Combinadas', '/combinadas') }}
       {% if picks %}{{ pick_card(picks[0], true) }}{% else %}
@@ -95,6 +98,12 @@
         </div>
       {% endif %}
     </section>
+    {% else %}
+    <section class="ns16-section ns16-free-sports" data-free-informational="true">
+      {{ section_header('Explora tus competiciones', 'Tu espacio deportivo informa de partidos, resultados y clasificaciones.', 'Competiciones', '/competiciones') }}
+      <p class="home-agenda-note">Consulta los próximos encuentros sin contenido ni promociones de apuestas.</p>
+    </section>
+    {% endif %}
     <nav class="ns16-home-actions" aria-label="{{ ui('Accesos rápidos') }}">
       {{ quick_action('Favoritos', 'Tu selección', '/favoritos', 'star') }}
       {{ quick_action('Mi cuenta', 'Plan y preferencias', '/mi-cuenta', 'user') }}

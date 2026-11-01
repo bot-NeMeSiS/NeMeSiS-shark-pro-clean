@@ -67,3 +67,19 @@ def test_sports_hub_template_does_not_advertise_betting():
     assert "Combinadas" not in source
     assert "Pronósticos" not in source
     assert 'href="/competiciones"' in source
+
+
+def test_free_client_dashboard_is_sport_only_when_picks_are_in_context():
+    from test_home_canonical_consistency import render
+
+    data = {
+        "v925_picks": {"picks": [{"id": "private-qa-pick"}]},
+        "sports_metrics": {"matches_today": 1, "picks_ready": 1},
+        "v925_calendar": {},
+    }
+    html = render("client_app_center.html", data)
+    assert "Explora tus competiciones" in html
+    assert 'href="/picks"' not in html
+    assert 'data-free-informational="true"' in html
+    assert "Pronósticos activos" not in html
+    assert "Pronóstico destacado" not in html
