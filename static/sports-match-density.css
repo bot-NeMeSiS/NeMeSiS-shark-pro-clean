@@ -207,3 +207,14 @@ body.ns-app .v933-match-card .v933-match-teams strong {
     --sports-crest-size: 32px;
   }
 }
+
+/* The canonical team link is the sole child of its parent grid cell. Let it
+   span the crest/name tracks; otherwise it is squeezed into the crest track,
+   wraps the name and keeps mobile cards tall even after kickoff is removed.
+   The unlinked crest/name fallback continues using the two-column parent. */
+body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete)
+  .v933-match-teams > div > .v933-entity-inline.is-team {
+  grid-column: 1 / -1;
+  min-width: 0;
+  width: 100%;
+}
