@@ -1,4 +1,8 @@
 {% extends "base.html" %}
+{% block head_extra %}
+  {{ super() }}
+  <link rel="stylesheet" href="{{ url_for('static', filename='membership-comparison-layout.css') }}?v={{ app_version }}" data-membership-layout="four-tier">
+{% endblock %}
 {% from "components/v933_ui.html" import page_header, section_header, status_chip, icon, action_button %}
 {% block content %}
 {% set pay = data.get('payments_client') or {} %}
