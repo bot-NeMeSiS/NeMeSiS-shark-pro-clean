@@ -20,8 +20,12 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+/* Both checkout submit buttons AND the ordinary login/disabled plan
+   actions are touch targets. The global action style was only 42px tall. */
+.v933-memberships-page > .v933-plan-grid .v933-plan-card .v933-action,
 .v933-memberships-page > .v933-plan-grid .v933-checkout-actions > button {
   min-height: 44px;
+  box-sizing: border-box;
   max-width: 100%;
   white-space: normal;
 }
