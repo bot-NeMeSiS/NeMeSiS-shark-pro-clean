@@ -192,10 +192,21 @@
     </div>
 
     <aside class="v933-side-stack sports-priority-side">
+      {# Only the request-owned, re-authorized pick projection can render premium
+         advice; shared sports summary counts and cache must never authorize it. #}
+      {% set authorized_home_picks = (data.get('v925_picks') or {}).get('picks') or [] %}
+      {% set paid_home_tier = current_user and (current_user.membership|default('FREE')|upper) in ['PRO', 'ELITE', 'ELITE+'] %}
+      {% if paid_home_tier and authorized_home_picks %}
+      <section class="v933-panel" data-sports-priority="shark-opportunities" data-premium-advice="true">
+        {{ section_header('Pronóstico destacado', 'Solo selecciones publicadas autorizadas para este plan.', 'Ver pronósticos', '/picks', 'SHARK') }}
+        {{ pick_card(authorized_home_picks[0], true) }}
+      </section>
+      {% else %}
       <section class="v933-panel" data-sports-priority="shark-opportunities" data-free-informational="true">
         {{ section_header('SHARK deportivo', 'Consulta partidos, resultados y contexto basado en datos disponibles.', 'Abrir SHARK', '/shark', 'Análisis deportivo') }}
         <p class="v933-safe-copy">Explora información de fútbol en la portada. Los contenidos restringidos pertenecen a un espacio separado.</p>
       </section>
+      {% endif %}
 
       <section class="v933-panel" data-sports-priority="quick-actions">
         {{ section_header('Acciones rápidas', '') }}
