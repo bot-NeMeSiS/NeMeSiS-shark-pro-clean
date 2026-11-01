@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import re
-import unicodedata
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -19,15 +18,14 @@ from engines.madrid_time_engine import (
     to_madrid_time,
 )
 
+from engines.display_name_normalization import display_name_key
+
+
 MADRID_TZ = ZoneInfo("Europe/Madrid")
 
 
 def _norm(value: object) -> str:
-    text = str(value or "").strip().lower()
-    text = unicodedata.normalize("NFKD", text)
-    text = "".join(ch for ch in text if not unicodedata.combining(ch))
-    text = re.sub(r"[^a-z0-9]+", " ", text)
-    return re.sub(r"\s+", " ", text).strip()
+    return display_name_key(value)
 
 
 SPANISH_TEAM_OVERRIDES = {
@@ -286,17 +284,22 @@ SPANISH_MARKET_OVERRIDES = {
 }
 
 
+_TITLE_SUBSTITUTIONS = tuple(
+    (re.compile(r"\b" + re.escape(source) + r"\b", flags=re.I), replacement)
+    for source, replacement in (
+        ("Atletico", "Atlético"),
+        ("Mexico", "México"),
+        ("Copa America", "Copa América"),
+        ("Division", "División"),
+        ("Brasileirao", "Brasileirão"),
+    )
+)
+
+
 def _title_preserving_acronyms(text: str) -> str:
-    replacements = {
-        "Atletico": "Atlético",
-        "Mexico": "México",
-        "Copa America": "Copa América",
-        "Division": "División",
-        "Brasileirao": "Brasileirão",
-    }
     out = str(text or "").strip()
-    for src, dst in replacements.items():
-        out = re.sub(rf"\b{re.escape(src)}\b", dst, out, flags=re.I)
+    for pattern, replacement in _TITLE_SUBSTITUTIONS:
+        out = pattern.sub(replacement, out)
     return out
 
 
