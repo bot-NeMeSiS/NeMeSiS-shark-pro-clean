@@ -191,5 +191,6 @@ def test_full_collector_preserves_each_navigation_and_reports_degradation(monkey
     assert not resources["unexplained_console"]
     assert {row["document_url"] for row in resources["external_degradations"]} >= {BASE + "/live", BASE + "/directo"}
     assert len({(row["page_id"], row["document_id"]) for row in resources["external_degradations"]}) >= 2
-    assert report["production_mutations"] == 0
+    assert report["outbound_write_requests"] == 0
+    assert report["production_mutations"] is None
     assert not unexpected, unexpected
