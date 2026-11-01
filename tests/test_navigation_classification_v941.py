@@ -58,7 +58,8 @@ def test_client_menu_groups_follow_runtime_data_and_hide_internal_copy():
     root=Path(__file__).resolve().parents[1]
     menu=(root/"templates/client_menu.html").read_text(encoding="utf-8")
     nav=(root/"templates/client_navigation_map.html").read_text(encoding="utf-8")
-    assert "all_items|groupby('group')" in menu
+    assert "visible_items|groupby('group')" in menu
+    assert "free_allowed_hrefs" in menu
     assert "01 · Empezar" not in menu
     assert "super app completa" not in menu
     assert "/mapa, /navegacion y /todo" not in menu
@@ -74,7 +75,7 @@ def test_client_menu_runtime_groups_match_template_contract(app_module):
         "04 - Asistente","05 - Cuenta","06 - Ayuda",
     }
     template=(__import__("pathlib").Path(__file__).resolve().parents[1]/"templates/client_menu.html").read_text(encoding="utf-8")
-    assert "group_items in all_items|groupby('group')" in template
+    assert "group_items in visible_items|groupby('group')" in template
 
     combinadas=[item for item in app_module.v566_client_menu_items() if item["title"]=="Combinadas"]
     assert len(combinadas)==1 and combinadas[0]["href"]=="/combinadas"

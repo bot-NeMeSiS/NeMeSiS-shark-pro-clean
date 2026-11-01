@@ -4,8 +4,9 @@
 {# Interim tier presentation split (#330). A paid tier is NOT age verification.
    Content authorization still requires its own server-side release gate. #}
 {% set paid_product_plan = current_user and (current_user.membership|default('FREE')|upper) in ['PRO', 'ELITE', 'ELITE+'] %}
-{% set free_hidden_hrefs = ['/picks', '/combinadas', '/mercados', '/track-record', '/membresias', '/juego-responsable', '/telegram'] %}
-{% set visible_items = all_items if paid_product_plan else all_items|rejectattr('href', 'in', free_hidden_hrefs)|list %}
+{# Positive allowlist: new destinations do not automatically appear in FREE. #}
+{% set free_allowed_hrefs = ['/app', '/calendar?lane=today', '/live', '/highlights', '/shark', '/favoritos', '/mi-cuenta', '/ayuda', '/legal'] %}
+{% set visible_items = all_items if paid_product_plan else all_items|selectattr('href', 'in', free_allowed_hrefs)|list %}
 {% set free_descriptions = {
   '/app': 'Centro de partidos, directo, resultados y favoritos.',
   '/shark': 'Consulta partidos, competiciones y resultados con datos disponibles.',
@@ -36,7 +37,7 @@
   {% if paid_product_plan %}
   <a class="v778-section-card" href="/picks"><strong>Pronósticos</strong><span>Selecciones publicadas y su contexto.</span><small>Cuota, unidades, riesgo y explicación cuando estén disponibles.</small></a>
   <a class="v778-section-card" href="/combinadas"><strong>Combinadas</strong><span>Constructor y borradores privados.</span><small>Revisa las selecciones y las cuotas antes de guardar.</small></a>
-  <a class="v778-section-card" href="/historico"><strong>Historial de pronósticos</strong><span>Resultados y rendimiento cerrado.</span><small>Solo datos evaluables y resultados registrados.</small></a>
+  <a class="v778-section-card" href="/historico"><strong>Historial</strong><span>Resultados y rendimiento cerrado.</span><small>Solo datos evaluables y resultados registrados.</small></a>
   {% else %}
   <a class="v778-section-card" href="/competiciones"><strong>Competiciones</strong><span>Ligas, torneos y clasificaciones.</span><small>Solo información deportiva registrada.</small></a>
   <a class="v778-section-card" href="/calendario?lane=finished"><strong>Resultados</strong><span>Marcadores finales confirmados.</span><small>Consulta datos deportivos confirmados.</small></a>

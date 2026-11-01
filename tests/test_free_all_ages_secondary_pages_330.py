@@ -62,6 +62,6 @@ def test_profile_actions_do_not_upsell_betting_to_free(app_module, tier):
 
 def test_free_page_only_uses_explicit_whitelisted_sports_destinations():
     source = (ROOT / 'templates/client_menu.html').read_text(encoding='utf-8')
-    assert "all_items|rejectattr('href', 'in', free_hidden_hrefs)|list" in source
+    assert "all_items|selectattr('href', 'in', free_allowed_hrefs)|list" in source
     assert "visible_items|groupby('group')" in source
     assert 'paid_product_plan' in source
