@@ -21,6 +21,7 @@ import urllib.request
 from zoneinfo import ZoneInfo
 
 from engines.postmatch_store import BudgetStopped, StaleLease
+from engines.sportsdb_pause_engine import sportsdb_paused
 
 STAT_NAMES = {
     'total shots': ('shots_total', 'Tiros', 200, False),
@@ -251,6 +252,10 @@ class OfficialSources:
             self.cache[cache_key] = cached['payload']
             self.receipts[receipt_key] = cached['observed_at']
             return deepcopy(cached['payload'])
+        # Pause new provider I/O, while retaining the existing credential- and
+        # identity-scoped cache reads above. A paused request spends no attempt.
+        if provider == 'thesportsdb' and sportsdb_paused():
+            raise SourceError('SOURCE_DISABLED')
         if provider=='api_football' and not usage_guard()['network_enabled']:
             raise SourceError('SOURCE_DISABLED')
         if self.calls >= 6:

@@ -16,6 +16,7 @@ PRIMARY_FOOTBALL_DATA_PROVIDER=api_football
 - El fallback de calendario TheSportsDB no se ejecuta si falla la vía primaria API-FOOTBALL.
 - Los endpoints de sincronización de highlights devuelven `status=PAUSED`, `reason=provider_paused`, `external_calls=0`; los resúmenes existentes continúan legibles desde SQLite.
 - El master cron omite la llamada a media sin afectar a los demás canales. Un runner legacy de media también se salta la tarea.
+- El adaptador Postmatch impide nuevas consultas TheSportsDB antes de reservar presupuesto y devuelve `SOURCE_DISABLED`. Conserva las lecturas de su caché vigente, ligada a la credencial y la identidad; no habilita otras fuentes, no reinicia contadores ni altera los derechos de publicación.
 - El inventario mantiene `configured=true` si la clave está guardada, pero marca `paused=true` y `enabled=false`; API-FOOTBALL figura primera.
 
 ## Validación tras desplegar
