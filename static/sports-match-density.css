@@ -194,7 +194,7 @@ body.ns-app .v933-match-card .v933-match-teams strong {
   }
   body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-teams > div,
   body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-teams .v933-entity-inline.is-team {
-    grid-template-columns: var(--sports-crest-size) minmax(0, 1fr); gap: 6px;
+    grid-template-columns: var(--sports-crest-size, 28px) minmax(0, 1fr); gap: 6px;
   }
   body.ns-app .ns16-live .v933-match-card .v933-team-logo { --sports-crest-size: 36px; }
 }
