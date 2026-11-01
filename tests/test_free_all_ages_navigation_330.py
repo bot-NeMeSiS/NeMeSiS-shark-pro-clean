@@ -47,3 +47,23 @@ def test_free_plan_description_has_no_betting_upsell():
     assert "Pronósticos" not in free
     assert "apuestas" not in free.lower()
     assert "Resultados" in free
+
+
+def test_anonymous_sports_home_has_no_betting_promotion():
+    from test_home_canonical_consistency import data_for, render
+
+    markup = render("home.html", data_for([]))
+    assert 'data-free-informational="true"' in markup
+    assert "SHARK deportivo" in markup
+    assert 'href="/competiciones"' in markup
+    for restricted in ("/picks", "/combinadas", "/historico", "/membresias", "/precios"):
+        assert f'href="{restricted}"' not in markup, restricted
+    assert "pronósticos SHARK" not in markup.lower()
+
+
+def test_sports_hub_template_does_not_advertise_betting():
+    source = (ROOT / "templates/sports_hub.html").read_text(encoding="utf-8")
+    assert 'href="/picks"' not in source
+    assert "Combinadas" not in source
+    assert "Pronósticos" not in source
+    assert 'href="/competiciones"' in source
