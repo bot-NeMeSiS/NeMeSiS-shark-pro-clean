@@ -3,7 +3,11 @@
 {% macro navigation_content(scope, inline=false, query='') -%}
 {% set prefix = 'explore-page' if inline else 'explore-dialog' %}
 {% set admin = scope == 'admin' %}
-{% set groups = navigation.ADMIN_GROUPS if admin else [('Deporte', [('Inicio', '/app' if scope == 'client' else '/', 'home')] + navigation.DISCOVERY_SPORTS), ('Análisis', navigation.DISCOVERY_ANALYSIS), ('Tu espacio', navigation.DISCOVERY_ACCOUNT if scope == 'client' else [('Entrar', '/cliente-login', 'user'), ('Crear cuenta', '/registro', 'user'), ('Planes', '/membresias', 'star')]), ('Ayuda', navigation.DISCOVERY_HELP)] %}
+{# Anonymous/FREE Explore never advertises betting. Paid labels alone do not verify age. #}
+{% set paid_client = scope == 'client' and current_user is defined and current_user and (current_user.membership|default('FREE')|upper) in ['PRO','ELITE','ELITE+'] %}
+{% set account_links = navigation.DISCOVERY_ACCOUNT if paid_client else (navigation.DISCOVERY_ACCOUNT_ALL_AGES if scope == 'client' else [('Entrar', '/cliente-login', 'user'), ('Crear cuenta', '/registro', 'user')]) %}
+{% set sport_group = ('Deporte', [('Inicio', '/app' if scope == 'client' else '/', 'home')] + navigation.DISCOVERY_SPORTS) %}
+{% set groups = navigation.ADMIN_GROUPS if admin else ([sport_group] + ([('Análisis', navigation.DISCOVERY_ANALYSIS)] if paid_client else []) + [('Tu espacio', account_links), ('Ayuda', navigation.DISCOVERY_HELP)]) %}
 <div class="app-explore" data-app-explore data-scope="{{ scope }}">
   <form method="get" action="{{ '/admin/explorar' if admin else '/explorar' }}" role="search" aria-label="{{ ui('Buscar secciones') }}" data-explore-form>
     <label for="{{ prefix }}-query">{{ ui('Buscar en Admin' if admin else '¿Dónde quieres ir?') }}</label>

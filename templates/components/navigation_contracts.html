@@ -3,14 +3,22 @@
 
 {% set PUBLIC_LINKS = [
   ('Inicio','/','home'),
-  ('Resultados','/calendario?lane=finished','history'),
+  ('Partidos','/calendario?lane=today','calendar'),
   ('Directo','/directo','live'),
-  ('Pronósticos','/picks','target'),
-  ('Historial','/historico','history'),
-  ('SHARK','/shark','shark')
+  ('Resultados','/calendario?lane=finished','history'),
+  ('Competiciones','/competiciones','trophy'),
+  ('Noticias','/noticias','newspaper')
 ] %}
 
+{# Safe destinations for a general audience (including FREE). #}
 {% set CLIENT_LINKS = [
+  ('En directo','/directo','live'),
+  ('Calendario','/calendario?lane=today','calendar'),
+  ('Competiciones','/competiciones','trophy'),
+  ('Mi cuenta','/mi-cuenta','user')
+] %}
+{# Paid-tier navigation is not age verification; server gate remains #330. #}
+{% set CLIENT_ADULT_LINKS = [
   ('En directo','/directo','live'),
   ('Calendario','/calendario?lane=today','calendar'),
   ('Pronósticos','/picks','target'),
@@ -67,11 +75,12 @@
 ] %}
 
 {% set CLIENT_MOBILE_LINKS = CLIENT_LINKS %}
+{% set CLIENT_ADULT_MOBILE_LINKS = CLIENT_ADULT_LINKS %}
 {% set PUBLIC_MOBILE_LINKS = [
   ('Inicio','/','home'),
-  ('Resultados','/calendario?lane=finished','history'),
+  ('Partidos','/calendario?lane=today','calendar'),
   ('Directo','/directo','live'),
-  ('Pronósticos','/picks','target'),
+  ('Resultados','/calendario?lane=finished','history'),
   ('Entrar','/cliente-login','user')
 ] %}
 
@@ -104,6 +113,13 @@
   ('Telegram','/telegram','telegram'),
   ('Mi cuenta','/mi-cuenta','user'),
   ('Membresías','/membresias','star')
+] %}
+{% set DISCOVERY_ACCOUNT_ALL_AGES = [
+  ('Favoritos','/favoritos','star'),
+  ('Actividad','/actividad','history'),
+  ('Notificaciones','/notificaciones','bell'),
+  ('Telegram','/telegram','telegram'),
+  ('Mi cuenta','/mi-cuenta','user')
 ] %}
 {% set DISCOVERY_HELP = [('Ayuda y preguntas','/faq','help'),('Soporte','/soporte','help'),('Estado del servicio','/service-status','shield')] %}
 {% set DISCOVERY_ADMIN_EXTRA = [
