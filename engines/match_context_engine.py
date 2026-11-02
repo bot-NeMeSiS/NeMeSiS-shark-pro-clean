@@ -447,8 +447,9 @@ def _head_to_head_context(
         _text(away_team).casefold(),
     }
     expected_pair.discard("")
+    cutoff_requested = bool(before_kickoff)
     context_kickoff = (
-        parse_datetime_to_madrid(before_kickoff) if before_kickoff else None
+        parse_datetime_to_madrid(before_kickoff) if cutoff_requested else None
     )
     normalized = []
     for item in items:
@@ -466,7 +467,9 @@ def _head_to_head_context(
             or status not in {"FT", "FINISHED", "FINAL", "AET", "PEN"}
         ):
             continue
-        if context_kickoff and (not item_kickoff or item_kickoff >= context_kickoff):
+        if cutoff_requested and (
+            context_kickoff is None or not item_kickoff or item_kickoff >= context_kickoff
+        ):
             continue
         if expected_pair and {home.casefold(), away.casefold()} != expected_pair:
             continue
@@ -707,8 +710,11 @@ def _standings_context(
         normalized = []
     updated_at = raw.get("updated_at")
     snapshot_time = parse_datetime_to_madrid(updated_at) if updated_at else None
-    match_time = parse_datetime_to_madrid(kickoff_iso) if kickoff_iso else None
-    if snapshot_time and match_time and snapshot_time > match_time:
+    cutoff_requested = bool(kickoff_iso)
+    match_time = parse_datetime_to_madrid(kickoff_iso) if cutoff_requested else None
+    if cutoff_requested and match_time is None:
+        temporal_state = "unknown"
+    elif snapshot_time and match_time and snapshot_time > match_time:
         temporal_state = "post_match_snapshot"
     elif snapshot_time:
         temporal_state = "observed_snapshot"
@@ -788,8 +794,9 @@ def _recent_form_side(
     raw_team = _text(raw.get("team"))
     expected_season_key = _text(expected_season).casefold()
     expected_competition_key = _text(expected_competition_id).casefold()
+    cutoff_requested = bool(before_kickoff)
     context_kickoff = (
-        parse_datetime_to_madrid(before_kickoff) if before_kickoff else None
+        parse_datetime_to_madrid(before_kickoff) if cutoff_requested else None
     )
     normalized = []
     for item in _items(raw.get("matches")):
@@ -802,7 +809,9 @@ def _recent_form_side(
             continue
         kickoff_iso = _text(item.get("kickoff_iso"))
         item_kickoff = parse_datetime_to_madrid(kickoff_iso) if kickoff_iso else None
-        if context_kickoff and (not item_kickoff or item_kickoff >= context_kickoff):
+        if cutoff_requested and (
+            context_kickoff is None or not item_kickoff or item_kickoff >= context_kickoff
+        ):
             continue
         home_score = _optional_int(item.get("home_score"))
         away_score = _optional_int(item.get("away_score"))
