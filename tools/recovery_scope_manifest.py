@@ -3,6 +3,8 @@
 Only explicit application state roots are inspected. Secret-like names are not
 opened or hashed; unclassified entries make the inventory incomplete. A complete
 inventory is not an application recovery certificate or permission to copy data.
+Use --metadata-only to omit all state-content reads and hashes. Backup integrity
+verification is separate and is never replaced by this inventory.
 """
 from __future__ import annotations
 
@@ -154,9 +156,22 @@ def _classification(role: str, relative: str):
     return "STATE_POLICY_REQUIRED"
 
 
+def _directory_priority(role: str, relative: str):
+    """Visit primary-state ancestors before history within the same limits."""
+    if role == "legacy_runtime" and relative == "continuous_evolution_os":
+        return 0
+    if role == "legacy_runtime" and relative.startswith("continuous_evolution_os/"):
+        role, relative = "ce", relative.removeprefix("continuous_evolution_os/")
+    names = CE_PRIMARY if role == "ce" else RUNTIME_PRIMARY
+    return 0 if any(name.startswith(relative + "/") for name in names) else 1
+
+
 def collect_manifest(*, database: Path, roots: Mapping[str, Path],
-                     environment: Mapping[str, str], limits: Limits = Limits()) -> dict:
+                     environment: Mapping[str, str], limits: Limits = Limits(),
+                     metadata_only: bool = False) -> dict:
     """Inspect existing files only. Does not connect to SQLite or import App."""
+    if type(metadata_only) is not bool:
+        raise ValueError("INVALID_CONTENT_MODE")
     if not roots or set(roots) - {"ce", "legacy_runtime"}:
         raise ValueError("INVALID_SCOPE_ROOTS")
     if not isinstance(database, Path) or any(not isinstance(root, Path) for root in roots.values()):
@@ -168,6 +183,7 @@ def collect_manifest(*, database: Path, roots: Mapping[str, Path],
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "operation": "READ_ONLY_INVENTORY", "backup_created": False,
         "restore_created": False, "recovery_certified": False,
+        "content_mode": "METADATA_ONLY" if metadata_only else "HASH_KNOWN_STATE",
         "configuration": {name: {"present": bool(environment.get(name))}
                           for name in CONFIG_NAMES},
         "configuration_custody": "NOT_ATTESTED",
@@ -221,6 +237,8 @@ def collect_manifest(*, database: Path, roots: Mapping[str, Path],
             root_fact["state"] = "OBSERVED_DIRECTORY"
             stack = [(root, 0)]
             while stack:
+                stack.sort(key=lambda item: (_directory_priority(role, item[0].relative_to(root).as_posix()),
+                                              item[0].relative_to(root).as_posix()), reverse=True)
                 directory, depth = stack.pop()
                 check_time()
                 directory_info = _checked_path(directory)
@@ -286,6 +304,11 @@ def collect_manifest(*, database: Path, roots: Mapping[str, Path],
                     fact["mtime_ns"] = info.st_mtime_ns
                     if category == "TRANSIENT_NOT_RESTORED":
                         continue
+                    if metadata_only:
+                        if _identity(_checked_path(path)) != _identity(info):
+                            raise InventoryError("STATE_FILE_CHANGED")
+                        fact["hash_state"] = "NOT_REQUESTED_METADATA_ONLY"
+                        continue
                     if info.st_size > limits.hash_bytes - hashed_bytes:
                         issue("INVENTORY_HASH_BUDGET", role, path_id)
                         continue
@@ -334,8 +357,16 @@ def main(argv=None):
     parser.add_argument("--db", required=True, type=Path)
     parser.add_argument("--ce-root", required=True, type=Path)
     parser.add_argument("--runtime-root", required=True, type=Path)
+    parser.add_argument("--metadata-only", action="store_true",
+                        help="Observe names and file metadata without opening state content; not an integrity check.")
+    parser.add_argument("--scope", choices=("both", "ce", "legacy_runtime"), default="both",
+                        help="Restrict the declared roots for this bounded observation (default: both).")
     args = parser.parse_args(argv)
-    report = collect_manifest(database=args.db, roots={"ce": args.ce_root, "legacy_runtime": args.runtime_root}, environment=os.environ)
+    roots = {"ce": args.ce_root, "legacy_runtime": args.runtime_root}
+    if args.scope != "both":
+        roots = {args.scope: roots[args.scope]}
+    report = collect_manifest(database=args.db, roots=roots, environment=os.environ,
+                              metadata_only=args.metadata_only)
     print(json.dumps(report, ensure_ascii=True, sort_keys=True))
     return 0 if report["inventory_status"] == "OBSERVED_DECLARED_ROOTS_ONLY" else 2
 
