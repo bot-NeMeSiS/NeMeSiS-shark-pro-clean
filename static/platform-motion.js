@@ -158,6 +158,7 @@
       timer = null;
     }
     function updateToggle() {
+      toggle.disabled = reduce.matches || !globalMotionAllowed();
       toggle.textContent = toggle.getAttribute(wantsPlay ? 'data-pause' : 'data-play') || (wantsPlay ? 'Pausar' : 'Reanudar');
       toggle.setAttribute('aria-pressed', String(!wantsPlay));
     }
@@ -235,7 +236,7 @@
       if (event.persisted) pause();
       else schedule();
     });
-    function reducedMotionChanged() { if (reduce.matches) pause(); }
+    function reducedMotionChanged() { if (reduce.matches) pause(); else updateToggle(); }
     if (reduce.addEventListener) reduce.addEventListener('change', reducedMotionChanged);
     else if (reduce.addListener) reduce.addListener(reducedMotionChanged);
     if ('IntersectionObserver' in window) {
@@ -251,6 +252,7 @@
       if (globalToggle) {
         new MutationObserver(function () {
           if (!globalMotionAllowed()) pause();
+          else updateToggle();
         }).observe(globalToggle, {attributes:true, attributeFilter:['aria-pressed', 'disabled']});
       }
       new MutationObserver(function (entries) {

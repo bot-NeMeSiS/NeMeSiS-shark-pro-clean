@@ -15,6 +15,7 @@ import re
 from urllib.parse import urlsplit
 
 import pytest
+from playwright.sync_api import expect
 
 from test_app_navigation_browser import browser
 from test_home_canonical_consistency import NOW, data_for, row
@@ -338,14 +339,15 @@ def test_browser_visibility_and_reduced_motion_pause_without_removing_manual_acc
         toggle = page.locator("[data-home-featured-toggle]")
         assert toggle.get_attribute("aria-pressed") == "true"
         page.emulate_media(reduced_motion="reduce")
+        expect(toggle).to_be_disabled()
         page.locator("[data-home-featured-next]").click()
         second = _visible_id(page)
         assert second != first
-        toggle.click()
         assert toggle.get_attribute("aria-pressed") == "true"
         page.clock.run_for(27000)
         assert _visible_id(page) == second
         page.emulate_media(reduced_motion="no-preference")
+        expect(toggle).to_be_enabled()
         page.clock.run_for(18000)
         assert _visible_id(page) == second
         page.locator("[data-home-featured-prev]").click()

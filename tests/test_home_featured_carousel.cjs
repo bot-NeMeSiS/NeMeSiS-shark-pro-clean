@@ -345,6 +345,45 @@ test('optional global motion pause is respected without reading storage or requi
   assert.equal(h.timers.size, 1);
 });
 
+test('reduced motion disables the native Play control and restoration enables it without autoplay', () => {
+  const h = harness();
+  assert.equal(h.toggle.disabled, false);
+  h.reduced(true);
+  assert.equal(h.toggle.disabled, true);
+  assert.equal(h.toggle.textContent, 'Reanudar');
+  assert.equal(h.toggle.getAttribute('aria-pressed'), 'true');
+  assert.equal(h.timers.size, 0);
+  h.dispatch(h.next, 'click');
+  assert.equal(h.visible()[0], h.slides[1], 'Manual arrows remain usable');
+  assert.equal(h.toggle.disabled, true);
+  h.reduced(false);
+  assert.equal(h.toggle.disabled, false);
+  assert.equal(h.toggle.textContent, 'Reanudar');
+  assert.equal(h.timers.size, 0, 'Restored permission is not Play intent');
+  h.dispatch(h.toggle, 'click');
+  assert.equal(h.toggle.getAttribute('aria-pressed'), 'false');
+  assert.equal(h.timers.size, 1);
+});
+
+test('global motion pause disables native Play and restoration leaves manual Play available but idle', () => {
+  const h = harness({globalPreference:true});
+  assert.equal(h.toggle.disabled, false);
+  h.preference(true);
+  assert.equal(h.toggle.disabled, true);
+  assert.equal(h.toggle.textContent, 'Reanudar');
+  assert.equal(h.timers.size, 0);
+  h.dispatch(h.previous, 'click');
+  assert.equal(h.visible()[0], h.slides[1], 'Global motion pause does not disable manual arrows');
+  assert.equal(h.toggle.disabled, true);
+  h.preference(false);
+  assert.equal(h.toggle.disabled, false);
+  assert.equal(h.toggle.getAttribute('aria-pressed'), 'true');
+  assert.equal(h.timers.size, 0);
+  h.dispatch(h.toggle, 'click');
+  assert.equal(h.toggle.textContent, 'Pausar');
+  assert.equal(h.timers.size, 1);
+});
+
 test('writing elsewhere suspends autoplay without moving focus', () => {
   const h = harness();
   const editor = new Element('textarea'); editor.parent = h.document.body;
