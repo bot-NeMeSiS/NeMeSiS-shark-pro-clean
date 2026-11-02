@@ -38,6 +38,7 @@ CE_PRIMARY = frozenset((
     "automation_control.json", "product_memory.json", "scheduler_state.json",
     "native_workforce/state.json", "market_reviews.json",
     "autonomous_product_qa/control.json", "autonomous_product_qa/memory.json",
+    "sentinel_issues_memory.json",
 ))
 CE_EVIDENCE = frozenset((
     "latest_snapshot.json", "latest_run.json", "latest_founder_brief.md",
@@ -53,7 +54,25 @@ RUNTIME_EVIDENCE = frozenset((
     "not_found_events.json", "sentinel_client_route_issues.json",
     "sentinel_authenticated_issues.json", "navigation_integrity/latest_run.json",
     "v938_company_operations/latest_scan.json",
+    "automation_workforce/latest_run.json", "automation_workforce/v935_latest_run.json",
+    "autonomous_company_sentinel/latest_run.json", "autonomous_company_sentinel/state.json",
+    "autonomous_company_sentinel/issues.json", "autonomous_company_sentinel/autofix_plan.json",
+    "autonomous_company_sentinel/reference_gap_report.json",
+    "autonomous_company_sentinel/render_alignment.json",
+    "autonomous_company_sentinel/telegram_quality_watch.json",
+    "autonomous_company_sentinel/post_deploy_latest.json",
+    "autonomous_sentinel/latest_run.json", "autonomous_sentinel/state.json",
+    "autonomous_sentinel/issues.json", "autonomous_sentinel/autofix_plan.json",
+    "autonomous_sentinel/reference_gap_report.json",
+    "autonomous_sentinel/outbox/codex_prompts.md",
 ))
+# Only producer-defined history names qualify for hashing. Other entries in
+# these directories still receive opaque metadata and require their own policy.
+RUNTIME_HISTORY = {
+    "autonomous_company_sentinel/history": re.compile(r"ACS-[0-9]{14}\.json\Z"),
+    "autonomous_sentinel/history": re.compile(r"ASW-[0-9]{14}\.json\Z"),
+}
+RUNTIME_METADATA_DIRECTORIES = frozenset(("autonomous_company_sentinel/outbox",))
 
 
 class InventoryError(ValueError):
@@ -133,6 +152,8 @@ def _known_directory(role: str, relative: str):
         return True
     if role == "legacy_runtime" and relative.startswith("continuous_evolution_os/"):
         role, relative = "ce", relative.removeprefix("continuous_evolution_os/")
+    if role == "legacy_runtime" and (relative in RUNTIME_HISTORY or relative in RUNTIME_METADATA_DIRECTORIES):
+        return True
     names = CE_PRIMARY | CE_EVIDENCE if role == "ce" else RUNTIME_PRIMARY | RUNTIME_EVIDENCE
     return (any(name.startswith(relative + "/") for name in names)
             or (role == "ce" and any(relative + "/" == prefix or relative.startswith(prefix)
@@ -143,7 +164,7 @@ def _classification(role: str, relative: str):
     if role == "legacy_runtime" and relative.startswith("continuous_evolution_os/"):
         relative = relative.removeprefix("continuous_evolution_os/")
         role = "ce"
-    if relative == "scheduler.lock" or relative.endswith(".tmp"):
+    if relative in ("scheduler.lock", "sentinel_issues_memory.json.lock") or relative.endswith(".tmp"):
         return "TRANSIENT_NOT_RESTORED"
     primary, evidence = ((CE_PRIMARY, CE_EVIDENCE) if role == "ce"
                          else (RUNTIME_PRIMARY, RUNTIME_EVIDENCE))
@@ -153,17 +174,32 @@ def _classification(role: str, relative: str):
         return "EVIDENCE"
     if role == "ce" and relative.startswith(CE_HISTORY) and Path(relative).suffix in (".json", ".jsonl", ".md", ".txt", ".log"):
         return "EVIDENCE"
+    if role == "legacy_runtime" and "/" in relative:
+        parent, name = relative.rsplit("/", 1)
+        pattern = RUNTIME_HISTORY.get(parent)
+        if pattern is not None and pattern.fullmatch(name):
+            return "EVIDENCE"
     return "STATE_POLICY_REQUIRED"
 
 
 def _directory_priority(role: str, relative: str):
-    """Visit primary-state ancestors before history within the same limits."""
+    """Visit primary and static-evidence ancestors before history, within caps."""
     if role == "legacy_runtime" and relative == "continuous_evolution_os":
         return 0
     if role == "legacy_runtime" and relative.startswith("continuous_evolution_os/"):
         role, relative = "ce", relative.removeprefix("continuous_evolution_os/")
     names = CE_PRIMARY if role == "ce" else RUNTIME_PRIMARY
-    return 0 if any(name.startswith(relative + "/") for name in names) else 1
+    if any(name.startswith(relative + "/") for name in names):
+        return 0
+    evidence = CE_EVIDENCE if role == "ce" else RUNTIME_EVIDENCE
+    if any(name.startswith(relative + "/") for name in evidence):
+        return 1
+    if role == "ce" and any(relative + "/" == prefix or relative.startswith(prefix)
+                             or prefix.startswith(relative + "/") for prefix in CE_HISTORY):
+        return 3
+    if role == "legacy_runtime" and relative in RUNTIME_HISTORY:
+        return 3
+    return 2
 
 
 def collect_manifest(*, database: Path, roots: Mapping[str, Path],
@@ -288,6 +324,20 @@ def collect_manifest(*, database: Path, roots: Mapping[str, Path],
                     if not all(SAFE_COMPONENT.fullmatch(part) for part in path.relative_to(root).parts):
                         issue("PRIVATE_OR_UNCLASSIFIED_NAME", role, path_id)
                         continue
+                    if metadata_only:
+                        # Unknown entries still require an explicit policy. Their
+                        # type and size help prepare that policy without opening
+                        # content or treating a filefact as proof of regularity.
+                        if _identity(_checked_path(path)) != _identity(info):
+                            raise InventoryError("STATE_FILE_CHANGED")
+                        entry_type = ("REGULAR_FILE" if stat.S_ISREG(info.st_mode)
+                                      else "FIFO" if stat.S_ISFIFO(info.st_mode)
+                                      else "SOCKET" if stat.S_ISSOCK(info.st_mode)
+                                      else "CHARACTER_DEVICE" if stat.S_ISCHR(info.st_mode)
+                                      else "BLOCK_DEVICE" if stat.S_ISBLK(info.st_mode)
+                                      else "OTHER")
+                        fact.update(entry_type=entry_type, link_count=info.st_nlink,
+                                    bytes=info.st_size, mtime_ns=info.st_mtime_ns)
                     if category == "STATE_POLICY_REQUIRED":
                         issue(category, role, path_id)
                         continue
@@ -305,8 +355,6 @@ def collect_manifest(*, database: Path, roots: Mapping[str, Path],
                     if category == "TRANSIENT_NOT_RESTORED":
                         continue
                     if metadata_only:
-                        if _identity(_checked_path(path)) != _identity(info):
-                            raise InventoryError("STATE_FILE_CHANGED")
                         fact["hash_state"] = "NOT_REQUESTED_METADATA_ONLY"
                         continue
                     if info.st_size > limits.hash_bytes - hashed_bytes:

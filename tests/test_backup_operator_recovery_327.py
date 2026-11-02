@@ -76,6 +76,52 @@ class BackupOperatorRecovery327Tests(unittest.TestCase):
         self.assertTrue(result["ok"])
         self.assertEqual(old.read_bytes(), b"historical-copy")
 
+    def app_cli(self, mode):
+        process = subprocess.run(
+            [sys.executable, "-I", "-B", str(SCRIPT), "--db", str(self.source),
+             "--backup-dir", str(self.backups), "--timeout", "60", "--execute", "--app-probe-mode", mode],
+            capture_output=True, text=True, check=False, timeout=75,
+            env={key: value for key, value in __import__('os').environ.items()
+                 if key.upper() in ("SYSTEMROOT", "WINDIR", "PATH", "TMP", "TEMP", "TMPDIR")},
+        )
+        self.assertTrue(process.stdout.strip(), process.stderr)
+        return process, json.loads(process.stdout.splitlines()[-1])
+
+    def test_same_owned_restoration_runs_genuine_guest_app_boot(self):
+        before = hashlib.sha256(self.source.read_bytes()).hexdigest()
+        process, result = self.app_cli("normal_boot")
+        self.assertEqual(process.returncode, 0, process.stderr + json.dumps(result))
+        self.assertEqual(result["code"], "SQLITE_RESTORE_AND_GUEST_APP_SMOKE_VERIFIED", json.dumps(result))
+        self.assertTrue(result["app_probe"]["ok"])
+        child = result["app_probe"]["child"]
+        self.assertTrue(child["initialized"])
+        self.assertFalse(child["initialization_error_present"])
+        self.assertEqual(len(child["routes"]), 6)
+        self.assertTrue(all(row["ok"] and row["completed_read_fetches"] > 0 for row in child["routes"]))
+        self.assertFalse(child["boundary_denials"])
+        self.assertEqual(child["timezone_data"]["source"], "DECLARED_TZDATA_PACKAGE")
+        self.assertTrue(child["timezone_data"]["both_zones_observed_inside_guard"], json.dumps(result))
+        self.assertFalse(child["timezone_data"]["production_timezone_source_attested"])
+        self.assertFalse(result["full_application_recovery_certified"])
+        self.assertFalse(child["authenticated_client_verified"])
+        self.assertEqual(hashlib.sha256(self.source.read_bytes()).hexdigest(), before)
+        self.assertEqual(len(list(self.backups.glob("database_*.db"))), 1)
+        self.assertFalse(list(self.backups.glob(".isolated_restore_327_*")))
+
+    def test_readonly_diagnostic_does_not_hide_normal_boot_write_attempts(self):
+        before = hashlib.sha256(self.source.read_bytes()).hexdigest()
+        process, result = self.app_cli("read_only")
+        self.assertEqual(process.returncode, 3, process.stderr)
+        self.assertEqual(result["code"], "SQLITE_RESTORED_APP_NOT_VERIFIED")
+        self.assertFalse(result["app_probe"]["ok"])
+        self.assertIn("readonly_database_identity_unchanged", result["app_probe"], json.dumps(result["app_probe"]))
+        self.assertTrue(result["app_probe"]["readonly_database_identity_unchanged"])
+        self.assertTrue(result["app_probe"]["child"]["seed_entries_observed"] > 0, json.dumps(result))
+        self.assertTrue(result["app_probe"]["child"]["boundary_denials"])
+        self.assertFalse(result["full_application_recovery_certified"])
+        self.assertEqual(hashlib.sha256(self.source.read_bytes()).hexdigest(), before)
+        self.assertFalse(list(self.backups.glob(".isolated_restore_327_*")))
+
     def test_missing_source_refuses_execution_without_writes(self):
         self.source.unlink()
         process, result = self.cli("--execute")

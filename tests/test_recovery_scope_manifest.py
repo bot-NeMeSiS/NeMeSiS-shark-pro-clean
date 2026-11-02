@@ -183,6 +183,101 @@ class RecoveryScopeTests(unittest.TestCase):
         self.assertIsNone(report["files"][0]["sha256"])
         self.assertEqual(report["bytes_hashed"], 0)
 
+    def test_unknown_metadata_reports_type_without_reading_or_admitting_content(self):
+        state = self.write("unclassified.json", b"SYNTHETIC_UNCLASSIFIED_CONTENT")
+        with patch.object(scope, "_open_for_hash", side_effect=AssertionError("unknown content read")):
+            report = self.collect(metadata_only=True)
+        fact = report["files"][0]
+        self.assertEqual(fact["classification"], "STATE_POLICY_REQUIRED")
+        self.assertEqual(fact["entry_type"], "REGULAR_FILE")
+        self.assertEqual(fact["link_count"], 1)
+        self.assertEqual(fact["bytes"], state.stat().st_size)
+        self.assertEqual(fact["mtime_ns"], state.stat().st_mtime_ns)
+        self.assertIsNone(fact["sha256"])
+        self.assertEqual(report["bytes_hashed"], 0)
+        self.assertEqual(report["inventory_status"], "INCOMPLETE")
+        for private in (state.name, "SYNTHETIC_UNCLASSIFIED_CONTENT"):
+            self.assertNotIn(private, json.dumps(report))
+        default_report = self.collect()
+        self.assertNotIn("entry_type", default_report["files"][0])
+        self.assertIsNone(default_report["files"][0]["sha256"])
+
+    def test_unknown_fifo_and_hardlink_are_not_claimed_single_regular_files(self):
+        other = self.write("unclassified.json", b"synthetic")
+        os.link(other, self.ce / "unclassified-second.json")
+        os.mkfifo(self.ce / "unclassified-pipe")
+        with patch.object(scope, "_open_for_hash", side_effect=AssertionError("special file open")):
+            report = self.collect(metadata_only=True)
+        regular = [f for f in report["files"] if f["entry_type"] == "REGULAR_FILE"]
+        self.assertEqual(len(regular), 2)
+        self.assertTrue(all(f["link_count"] == 2 for f in regular))
+        self.assertEqual(len([f for f in report["files"] if f["entry_type"] == "FIFO"]), 1)
+        self.assertTrue(all(f["sha256"] is None for f in report["files"]))
+        self.assertEqual(report["bytes_hashed"], 0)
+        self.assertEqual(report["inventory_status"], "INCOMPLETE")
+
+    def test_private_names_gain_no_type_or_size_disclosure(self):
+        self.write("owned@example.json", b"synthetic")
+        self.write("private-token.json", b"synthetic secret")
+        with patch.object(scope, "_open_for_hash", side_effect=AssertionError("private content read")):
+            report = self.collect(metadata_only=True)
+        self.assertEqual(len(report["files"]), 1)
+        fact = report["files"][0]
+        for key in ("entry_type", "bytes", "mtime_ns", "relative_path"):
+            self.assertNotIn(key, fact)
+        self.assertIn("PRIVATE_OR_UNCLASSIFIED_NAME", self.codes(report))
+        self.assertIn("SECRET_CUSTODY_NOT_ATTESTED", self.codes(report))
+        self.assertNotIn("owned@example", json.dumps(report))
+        self.assertEqual(report["bytes_hashed"], 0)
+
+    def test_static_legacy_evidence_precedes_history_at_same_entry_limit(self):
+        names = ("automation_workforce/latest_run.json", "autonomous_company_sentinel/state.json",
+                 "autonomous_sentinel/state.json")
+        for name in names:
+            self.write(name, root=self.runtime)
+        for index in range(8):
+            self.write(f"autonomous_company_sentinel/history/ACS-202611021200{index:02}.json", root=self.runtime)
+        report = scope.collect_manifest(database=self.db, roots={"legacy_runtime": self.runtime},
+                                        environment={}, metadata_only=True, limits=scope.Limits(files=9))
+        self.assertIn("INVENTORY_ENTRY_BUDGET", self.codes(report))
+        self.assertEqual(report["entries_inspected"], 10)
+        observed = {f.get("relative_path") for f in report["files"]}
+        self.assertTrue(set(names).issubset(observed))
+        self.assertTrue(all(f["classification"] == "EVIDENCE" for f in report["files"]))
+        self.assertEqual(report["bytes_hashed"], 0)
+        self.assertFalse(report["recovery_certified"])
+
+    def test_legacy_history_hashes_only_closed_producer_ids_not_private_prompts(self):
+        valid = self.write("autonomous_sentinel/history/ASW-20261102123456.json", root=self.runtime)
+        self.write("autonomous_sentinel/history/private-person-123.json", root=self.runtime)
+        self.write("autonomous_sentinel/outbox/private-person-123_codex_prompt.md", root=self.runtime)
+        self.write("autonomous_company_sentinel/browser_qa_status.json", root=self.runtime)
+        self.write("autonomous_company_sentinel/outbox/codex_outbox.md", root=self.runtime)
+        native, opened = scope._open_for_hash, []
+
+        def observe(path):
+            opened.append(path)
+            self.assertEqual(path, valid)
+            return native(path)
+
+        with patch.object(scope, "_open_for_hash", side_effect=observe):
+            report = scope.collect_manifest(database=self.db, roots={"legacy_runtime": self.runtime}, environment={})
+        self.assertEqual(opened, [valid])
+        fact = next(f for f in report["files"] if f["classification"] == "EVIDENCE")
+        self.assertEqual(fact["sha256"], hashlib.sha256(valid.read_bytes()).hexdigest())
+        self.assertNotIn("relative_path", fact)
+        self.assertEqual(report["inventory_status"], "INCOMPLETE")
+        self.assertNotIn("private-person-123", json.dumps(report))
+        self.assertIn("STATE_POLICY_REQUIRED", self.codes(report))
+
+    def test_packaging_only_directory_is_not_implicitly_admitted(self):
+        self.write("automation_workforce/v935_workers/private.json", root=self.runtime)
+        with patch.object(scope, "_open_for_hash", side_effect=AssertionError("packaged private state read")):
+            report = scope.collect_manifest(database=self.db, roots={"legacy_runtime": self.runtime}, environment={})
+        self.assertEqual(report["files"], [])
+        self.assertIn("STATE_POLICY_REQUIRED", self.codes(report))
+        self.assertEqual(report["bytes_hashed"], 0)
+
     def test_primary_directory_precedes_history_at_same_entry_limit(self):
         self.write("native_workforce/state.json")
         for index in range(8):
@@ -370,15 +465,36 @@ class RecoveryScopePortableBoundaryTests(unittest.TestCase):
 
     def test_primary_directory_priority_is_consistent_for_ce_and_legacy(self):
         for relative, priority in (("native_workforce", 0), ("autonomous_product_qa", 0),
-                                    ("runs", 1), ("runs/owned", 1), ("autonomous_product_qa/history", 1)):
+                                    ("runs", 3), ("runs/owned", 3), ("autonomous_product_qa/history", 3)):
             with self.subTest(relative=relative):
                 self.assertEqual(scope._directory_priority("ce", relative), priority)
                 self.assertEqual(scope._directory_priority("legacy_runtime", "continuous_evolution_os/" + relative), priority)
         self.assertEqual(scope._directory_priority("legacy_runtime", "continuous_evolution_os"), 0)
         self.assertEqual(scope._directory_priority("legacy_runtime", "v938_company_operations"), 0)
+        self.assertEqual(scope._directory_priority("legacy_runtime", "automation_workforce"), 1)
+        self.assertEqual(scope._directory_priority("legacy_runtime", "autonomous_company_sentinel"), 1)
+        self.assertEqual(scope._directory_priority("legacy_runtime", "autonomous_company_sentinel/history"), 3)
+        self.assertEqual(scope._directory_priority("legacy_runtime", "autonomous_company_sentinel/outbox"), 2)
+
+    def test_runtime_history_and_derived_state_contracts_are_closed(self):
+        for relative, expected in (
+            ("autonomous_company_sentinel/history/ACS-20261102123456.json", "EVIDENCE"),
+            ("autonomous_sentinel/history/ASW-20261102123456.json", "EVIDENCE"),
+            ("autonomous_company_sentinel/history/ACS-private.json", "STATE_POLICY_REQUIRED"),
+            ("autonomous_company_sentinel/history/ACS-202611021234567.json", "STATE_POLICY_REQUIRED"),
+            ("autonomous_company_sentinel/history/ASW-20261102123456.json", "STATE_POLICY_REQUIRED"),
+            ("autonomous_sentinel/outbox/codex_prompts.md", "EVIDENCE"),
+            ("autonomous_sentinel/outbox/private_codex_prompt.md", "STATE_POLICY_REQUIRED"),
+            ("autonomous_sentinel/state.json", "EVIDENCE"),
+            ("autonomous_company_sentinel/browser_qa_status.json", "STATE_POLICY_REQUIRED"),
+        ):
+            with self.subTest(relative=relative):
+                self.assertEqual(scope._classification("legacy_runtime", relative), expected)
 
     def test_legacy_and_explicit_ce_classification_have_the_same_contract(self):
         for relative, category in (("scheduler.lock", "TRANSIENT_NOT_RESTORED"),
+                                   ("sentinel_issues_memory.json.lock", "TRANSIENT_NOT_RESTORED"),
+                                   ("sentinel_issues_memory.json", "PRIMARY_STATE"),
                                    ("automation_control.json", "PRIMARY_STATE"),
                                    ("native_workforce/state.json", "PRIMARY_STATE"),
                                    ("runs/owned.json", "EVIDENCE"),
