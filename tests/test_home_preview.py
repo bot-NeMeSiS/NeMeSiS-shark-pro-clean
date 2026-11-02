@@ -285,3 +285,158 @@ def test_featured_groups_pair_with_original_rows_without_new_group_objects(count
     assert result['featured_groups'][0]['date'] == '2026-11-03'
     assert len(featured_selection(result)) == result['featured_count'] == count
     assert day == before
+
+
+def active_day_fixture():
+    day = day_fixture()
+    day['date'] = '2026-11-03'
+    day['metadata'] = {'owner': 'accepted-home-snapshot'}
+    for lane in ('live', 'today', 'upcoming', 'results'):
+        group = day[lane]['groups'][0]
+        fixture_date = ('2026-11-02' if lane == 'results' else
+                        '2026-11-04' if lane == 'upcoming' else day['date'])
+        group.update(competition='Accepted league ' + lane, country='Spain',
+                     date=fixture_date, metadata={'lane': lane})
+        day[lane]['total'] = 6
+        for row in group['matches']:
+            row.update(home_team='Home ' + row['id'], away_team='Away ' + row['id'],
+                       competition_name=group['competition'], match_date=fixture_date,
+                       calendar_time='18:00', source='SIMULATED_QA',
+                       metadata={'fixture': row['id']}, status_info={
+                           'key': 'LIVE' if lane == 'live' else
+                                  'FINISHED' if lane == 'results' else 'UPCOMING',
+                           'is_live': lane == 'live', 'is_finished': lane == 'results',
+                           'is_upcoming': lane in ('today', 'upcoming'),
+                       })
+    return day
+
+
+@pytest.mark.parametrize('with_hero', [True, False])
+@pytest.mark.parametrize('featured_limit', [1, 2])
+def test_active_first_default_retains_favorite_priority_and_exact_output_shape(with_hero, featured_limit):
+    day = active_day_fixture()
+    day['live'].update(total=0, shown=0, groups=[])
+    before = deepcopy(day)
+    default = home_preview(day, with_hero=with_hero, featured_limit=featured_limit)
+    explicit = home_preview(day, with_hero=with_hero, featured_limit=featured_limit,
+                            active_first=False)
+    assert explicit == default
+    assert set(explicit) == set(default) and 'active_first' not in explicit
+    rows = (featured_selection(default) if with_hero and featured_limit == 2
+            else selected(default))
+    assert {row['id'] for row in rows} == {
+        'today4', 'upcoming4', 'results4', 'today0', 'today1',
+    }
+    if not with_hero or featured_limit == 1:
+        assert not {'featured_items', 'featured_groups', 'featured_lane'} & set(explicit)
+    assert day == before
+
+
+@pytest.mark.parametrize('winning_lane', ['live', 'today', 'upcoming'])
+def test_active_phase_nonfavorites_cannot_be_displaced_by_later_phase_favorites(winning_lane):
+    day = active_day_fixture()
+    lanes = ('live', 'today', 'upcoming', 'results')
+    winning_index = lanes.index(winning_lane)
+    for lane in lanes[:winning_index]:
+        day[lane].update(total=0, shown=0, groups=[])
+    for lane in lanes[winning_index:]:
+        for row in day[lane]['groups'][0]['matches']:
+            row['is_favorite'] = lane != winning_lane
+    before = deepcopy(day)
+    group = day[winning_lane]['groups'][0]
+    result = home_preview(day, featured_limit=2, active_first=True)
+    rows = featured_selection(result)
+    assert result['hero'] is group['matches'][0]
+    assert result['hero_lane'] == result['featured_lane'] == winning_lane
+    assert [row['id'] for row in result['featured_items']] == [winning_lane + '0', winning_lane + '1']
+    assert len(rows) == result['featured_count'] == 5
+    assert {row['id'] for row in rows} == {winning_lane + str(i) for i in range(5)}
+    assert all(row['is_favorite'] is False for row in rows)
+    assert {id(row) for row in rows} == {id(row) for row in group['matches'][:5]}
+    assert all(row['metadata'] is group['matches'][int(row['id'][-1])]['metadata'] for row in rows)
+    assert all(featured_group is group for featured_group in result['featured_groups'])
+    assert result['metadata'] is day['metadata']
+    assert result[winning_lane]['shown'] == 3
+    assert result[winning_lane]['preview_displayed'] == 5
+    assert all(result[lane]['total'] == day[lane]['total'] for lane in lanes)
+    assert day == before
+
+
+def test_active_first_keeps_favorites_and_stable_competition_peer_order_inside_phase():
+    day = active_day_fixture()
+    for lane in ('live', 'upcoming', 'results'):
+        day[lane].update(total=0, shown=0, groups=[])
+    template = day['today']['groups'][0]
+    groups = [dict(template, key=key, competition='Accepted league ' + key,
+                   metadata={'competition': key}, matches=[
+                       dict(template['matches'][i], id=key + str(i), is_favorite=i == 2,
+                            metadata={'fixture': key + str(i)}) for i in range(3)])
+              for key in ('a', 'b', 'c')]
+    day['today'].update(total=9, shown=9, groups=groups)
+    before = deepcopy(day)
+    result = home_preview(day, with_hero=False, active_first=True)
+    assert [group['key'] for group in result['today']['groups']] == ['a', 'b', 'c']
+    assert [[row['id'] for row in group['matches']] for group in result['today']['groups']] == [
+        ['a2', 'a0'], ['b2', 'b0'], ['c2'],
+    ]
+    assert result['hero'] is None and result['featured_count'] == 5
+    for source_group, output_group in zip(groups, result['today']['groups']):
+        assert output_group['metadata'] is source_group['metadata']
+        assert all(any(row is source for source in source_group['matches'])
+                   for row in output_group['matches'])
+    assert day == before
+
+
+def test_active_first_with_only_results_preserves_one_static_hero_and_original_rows():
+    day = active_day_fixture()
+    for lane in ('live', 'today', 'upcoming'):
+        day[lane].update(total=0, shown=0, groups=[])
+    before = deepcopy(day)
+    baseline = home_preview(day, featured_limit=2)
+    result = home_preview(day, featured_limit=2, active_first=True)
+    assert result == baseline
+    assert result['hero'] is day['results']['groups'][0]['matches'][4]
+    assert result['featured_items'] == [result['hero']]
+    assert result['featured_groups'][0] is day['results']['groups'][0]
+    assert len(featured_selection(result)) == result['featured_count'] == 5
+    assert result['results']['preview_displayed'] == 5
+    assert result['results_href'] == '/calendario?lane=finished&date=2026-11-02'
+    assert day == before
+
+
+@pytest.mark.parametrize('selected_date', ['2026-11-03', '"><script>alert(1)</script>'])
+def test_active_first_retains_id_filters_dates_and_global_cap_without_mutation(selected_date):
+    day = active_day_fixture()
+    for lane in ('live', 'today'):
+        day[lane].update(total=0, shown=0, groups=[])
+    day['date'] = selected_date
+    source = day['upcoming']['groups'][0]['matches']
+    source[0]['id'] = ''
+    source[1]['id'] = source[4]['id']
+    before = deepcopy(day)
+    result = home_preview(day, limit=99, featured_limit=2, active_first=True)
+    rows = featured_selection(result)
+    assert len(rows) == len({row['id'] for row in rows}) == result['featured_count'] == 5
+    assert {row['id'] for row in rows} == {'upcoming2', 'upcoming3', 'upcoming4', 'upcoming5', 'results4'}
+    assert result['hero'] is source[4]
+    assert result['upcoming']['preview_displayed'] == 4
+    assert result['results']['preview_displayed'] == 1
+    date_query = '&date=2026-11-03' if selected_date == '2026-11-03' else ''
+    assert result['agenda_href'] == ('/calendario?date=2026-11-03' if date_query else '/calendario')
+    assert result['upcoming_href'] == '/calendario?lane=week' + date_query
+    assert result['results_href'] == '/calendario?lane=finished&date=2026-11-02'
+    source_rows = source + day['results']['groups'][0]['matches']
+    assert all(any(row is original for original in source_rows) for row in rows)
+    assert all(row['home_score'] == 0 and row['source'] == 'SIMULATED_QA' for row in rows)
+    assert day == before
+
+
+@pytest.mark.parametrize('invalid', [None, 0, 1, 'true', [], {}])
+def test_active_first_rejects_non_bool_values_without_mutating_input(invalid):
+    day = active_day_fixture()
+    before = deepcopy(day)
+    with pytest.raises(ValueError, match='active_first must be a bool'):
+        home_preview(day, active_first=invalid)
+    with pytest.raises(ValueError, match='active_first must be a bool'):
+        home_preview(None, active_first=invalid)
+    assert day == before

@@ -274,6 +274,26 @@ test('page visibility never silently resumes a paused carousel', () => {
   assert.equal(initiallyHidden.timers.size, 0);
 });
 
+test('visibility ends an interrupted pointer gesture before explicit keyboard Play', () => {
+  const h = harness();
+  h.root.emit('mouseenter');
+  h.dispatch(h.toggle, 'pointerdown');
+  h.focus(h.toggle);
+  // The gesture can finish elsewhere while the page is hidden, without this
+  // document receiving pointerup or pointercancel. No automatic resume follows.
+  h.visibility(true);
+  h.visibility(false);
+  assert.equal(h.timers.size, 0);
+  h.dispatch(h.toggle, 'keydown', {key:'Enter'});
+  h.dispatch(h.toggle, 'click');
+  assert.equal(h.toggle.textContent, 'Pausar');
+  assert.equal(h.timers.size, 0, 'Focused controls still prevent retargeting');
+  h.focus(h.document.body);
+  assert.equal(h.timers.size, 1, 'Explicit Play can resume after focus leaves');
+  h.tick();
+  assert.equal(h.visible()[0], h.slides[1]);
+});
+
 test('bfcache return remains paused until explicit Play', () => {
   const h = harness();
   h.dispatch(h.toggle, 'pointerdown'); // Navigation can interrupt a gesture before pointerup.

@@ -8,7 +8,7 @@
 {% set home_summary = data.get('home_summary') or {} %}
 {% set sports_home = home_summary.get('sports_home') if home_summary.get('sports_home') is mapping else (hub.get('sports_home') or {}) %}
 {% set matches = data.get('available_matches') or [] %}
-{% set day = data.get('home_matchday')|home_preview(featured_limit=2) %}
+{% set day = data.get('home_matchday')|home_preview(featured_limit=2, active_first=true) %}
 {% set agenda_href = day.agenda_href if day else '/calendario' %}
 {% set upcoming_href = day.upcoming_href if day else '/calendario?lane=week' %}
 {% set results_href = day.results_href if day else '/calendario?lane=finished' %}

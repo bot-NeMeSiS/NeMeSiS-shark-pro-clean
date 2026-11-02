@@ -5,7 +5,7 @@
 {% from "components/home_featured.html" import home_featured with context %}
 {% block head_extra %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='home-featured.css') }}?v=1">{% endblock %}
 {% block content %}
-{% set day = data.get("home_matchday")|home_preview(featured_limit=2) %}
+{% set day = data.get("home_matchday")|home_preview(featured_limit=2, active_first=true) %}
 {% set agenda_href = day.agenda_href if day else '/calendario' %}
 {% set upcoming_href = day.upcoming_href if day else '/calendario?lane=week' %}
 {% set results_href = day.results_href if day else '/calendario?lane=finished' %}

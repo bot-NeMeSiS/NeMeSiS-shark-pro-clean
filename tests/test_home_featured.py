@@ -1,5 +1,6 @@
 """One SSR featured block reuses canonical Home admission, not a new data feed."""
 from copy import deepcopy
+from datetime import datetime, timedelta
 from html.parser import HTMLParser
 from pathlib import Path
 import re
@@ -94,6 +95,34 @@ def test_real_application_filter_supports_featured_opt_in(app_module, template):
         markup = render(template, data_for([row('one', 'LIVE'), row('two', 'LIVE')]), env)
     assert Cards(markup).blocks == 1
     assert len(Cards(markup).slides) == 2
+
+
+@pytest.mark.parametrize('template', ['home.html', 'client_app_center.html'])
+@pytest.mark.parametrize('lane', ['live', 'today', 'upcoming'])
+def test_real_home_prioritizes_active_phase_over_favorite_results(app_module, template, lane):
+    from jinja2 import ChoiceLoader, DictLoader
+    active = [row('active-' + str(i), 'LIVE' if lane == 'live' else 'UPCOMING')
+              for i in range(5)]
+    if lane == 'upcoming':
+        for match in active:
+            match['kickoff_iso'] = (datetime.fromisoformat(match['kickoff_iso'])
+                                    + timedelta(days=1)).isoformat()
+    finished = dict(row('favorite-result', 'FINISHED'), is_favorite=True)
+    data = data_for(active + [finished])
+    before = deepcopy(data)
+    env = app_module.app.jinja_env.overlay(loader=ChoiceLoader([
+        DictLoader({'base.html': '{% block content %}{% endblock %}'}),
+        app_module.app.jinja_env.loader]))
+    with app_module.app.test_request_context('/' if template == 'home.html' else '/app'):
+        markup = render(template, data, env)
+    cards = Cards(markup)
+    assert cards.blocks == 1 and len(cards.slides) == 2
+    assert set(cards.ids) == {'active-' + str(i) for i in range(5)}
+    assert len(cards.ids) == len(set(cards.ids)) == 5
+    assert 'data-v934-match-id="favorite-result"' not in markup
+    assert all('href="/match/active-' + str(i) + '"' in markup for i in range(5))
+    assert data['home_matchday']['results']['total'] == 1
+    assert data == before
 
 
 def test_featured_assets_are_bound_without_a_new_polling_transport():

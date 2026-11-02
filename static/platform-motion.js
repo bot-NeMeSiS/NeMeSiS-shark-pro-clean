@@ -228,7 +228,7 @@
     window.addEventListener('pointerup', function () { pointerHeld = false; schedule(); });
     window.addEventListener('pointercancel', function () { pointerHeld = false; schedule(); });
     document.addEventListener('focusin', function () { if (writing()) stopTimer(); else schedule(); });
-    document.addEventListener('visibilitychange', function () { if (document.hidden) pause(); });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) { pointerHeld = false; hovering = false; pause(); } });
     window.addEventListener('pagehide', function () { pageAway = true; pointerHeld = false; hovering = false; pause(); });
     window.addEventListener('pageshow', function (event) {
       pageAway = false;

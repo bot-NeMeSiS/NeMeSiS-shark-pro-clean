@@ -6,14 +6,18 @@ from urllib.parse import urlencode
 LANES = ('live', 'today', 'upcoming', 'results')
 
 
-def home_preview(day, with_hero=True, limit=5, *, featured_limit=1):
+def home_preview(day, with_hero=True, limit=5, *, featured_limit=1, active_first=False):
     """Keep counts and source truth; never fetch, refresh or mutate the snapshot.
 
-    LIVE wins, then explicit favorites, then the existing canonical lane order.
+    By default LIVE wins, then favorites, then the existing canonical lane order.
     The hero consumes one of the same five slots, rather than duplicating a card.
     Opting into two featured items reallocates only the winning lane's already
     chosen rows. Results retain one static hero; other lanes keep their slots.
+    Active-first presentation exhausts LIVE, today and upcoming in that order
+    before results, with favorites ranked only within their existing lane.
     """
+    if type(active_first) is not bool:
+        raise ValueError('active_first must be a bool')
     if not isinstance(day, Mapping):
         return day
     if type(featured_limit) is not int or featured_limit not in (1, 2):
@@ -23,12 +27,13 @@ def home_preview(day, with_hero=True, limit=5, *, featured_limit=1):
         for group in day.get(lane, {}).get('groups', ()):
             positions = {}
             for row in group.get('matches', ()):
-                tier = (lane != 'live', row.get('is_favorite') is not True, lane_index)
+                tier = ((lane_index, row.get('is_favorite') is not True) if active_first
+                        else (lane != 'live', row.get('is_favorite') is not True, lane_index))
                 position = positions.get(tier, 0)
                 positions[tier] = position + 1
                 candidates.append((tier, position, lane, group, row))
     # Keep canonical group order, but reserve a slot across peers before taking
-    # a second fixture from one league. Favorites and LIVE still win first.
+    # a second fixture from one league within the selected phase/favorite tier.
     candidates.sort(key=lambda item: (item[0], item[1]))
     chosen, seen = [], set()
     for _, _, lane, group, row in candidates:

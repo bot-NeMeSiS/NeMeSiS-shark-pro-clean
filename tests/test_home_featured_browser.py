@@ -352,3 +352,65 @@ def test_browser_visibility_and_reduced_motion_pause_without_removing_manual_acc
         assert _visible_id(page) == first
         assert page.locator(FEATURED + ' ' + SLIDE + ':visible a[href="/match/' + first + '"]').last.is_visible()
         _assert_clean(page, trace)
+
+
+@pytest.mark.parametrize("path", ROUTES)
+@pytest.mark.parametrize("width", WIDTHS)
+def test_interrupted_dom_pointer_can_resume_only_after_visible_explicit_play(
+    browser, app_module, path, width,
+):
+    with _screen(browser, app_module, path, width) as screen:
+        page, trace, _ = screen
+        _arm_auto_by_native_mouse_exit(page)
+        root = page.locator(FEATURED)
+        first = _visible_id(page)
+        identities = root.locator(CARD).evaluate_all(
+            "nodes => nodes.map(node => node.dataset.v934MatchId)")
+        hrefs = root.locator('a[href^="/match/"]').evaluate_all(
+            "nodes => nodes.map(node => node.getAttribute('href'))")
+        toggle = root.locator("[data-home-featured-toggle]")
+        # Explicit DOM simulation of an interrupted gesture: no pointerup or
+        # pointercancel is delivered. This is not an OS/tab-switch gesture test.
+        toggle.dispatch_event("pointerdown", {
+            "bubbles": True, "pointerId": 73, "pointerType": "mouse",
+            "isPrimary": True, "button": 0, "buttons": 1,
+        })
+        # Reuse the owned-document visibility signal of the existing check;
+        # neither App clocks nor production visibility functions are replaced.
+        page.evaluate("""() => {
+          Object.defineProperty(document, 'hidden', {configurable:true, get:() => true});
+          document.dispatchEvent(new Event('visibilitychange'));
+        }""")
+        assert toggle.get_attribute("aria-pressed") == "true"
+        page.clock.run_for(18000)
+        assert _visible_id(page) == first
+        page.evaluate("""() => {
+          delete document.hidden;
+          document.dispatchEvent(new Event('visibilitychange'));
+        }""")
+        page.clock.run_for(18000)
+        assert _visible_id(page) == first
+        assert toggle.get_attribute("aria-pressed") == "true"
+        toggle.focus()
+        page.keyboard.press("Enter")
+        assert toggle.get_attribute("aria-pressed") == "false"
+        status = root.locator("[data-home-featured-status]")
+        play_announcement = status.inner_text()
+        assert play_announcement.strip()
+        # Native focus exit and mouse enter/leave establish a fresh full delay,
+        # without manufacturing a pointerup to clear the interrupted gesture.
+        _arm_auto_by_native_mouse_exit(page)
+        page.clock.run_for(8999)
+        assert _visible_id(page) == first
+        page.clock.run_for(1)
+        second = _visible_id(page)
+        assert second != first and second in identities
+        assert root.locator(CARD).evaluate_all(
+            "nodes => nodes.map(node => node.dataset.v934MatchId)") == identities
+        assert root.locator('a[href^="/match/"]').evaluate_all(
+            "nodes => nodes.map(node => node.getAttribute('href'))") == hrefs
+        link = root.locator(SLIDE + ':visible a[href="/match/' + second + '"]').last
+        assert link.is_visible() and link.get_attribute("href") == "/match/" + second
+        assert status.get_attribute("aria-live") == "polite"
+        assert status.inner_text() == play_announcement
+        _assert_clean(page, trace)

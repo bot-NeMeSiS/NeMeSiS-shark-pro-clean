@@ -53,7 +53,9 @@ def test_personal_home_get_navigation_and_layout(browser,app_module,width):
     with app_module.app.test_request_context('/app'):
         markup=render_template('client_app_center.html',data=data,current_user={'id':'qa','membership':'FREE'},greeting={'label':'Hola','name':'QA'})
     markup=re.sub(r'<script\b[^>]*>.*?</script>','',markup,flags=re.S|re.I)
-    context=browser.new_context(viewport={'width':width,'height':850})
+    # This check deliberately removes scripts: exercise the real no-JS fallback,
+    # rather than a JS-enabled document whose controller was removed by the test.
+    context=browser.new_context(viewport={'width':width,'height':850},java_script_enabled=False)
     page=context.new_page()
     calls=[]
     def serve(route):
@@ -69,26 +71,57 @@ def test_personal_home_get_navigation_and_layout(browser,app_module,width):
         page.goto('https://personal.invalid/app')
         assert page.locator('[data-personal-home]').count()==0
         panel=page.locator('[data-sports-priority="upcoming"]')
-        assert panel.locator('[data-v934-match-id]').count()==3
+        cards=panel.locator('[data-v934-match-id]')
+        expected_ids={f'personal-qa-{i}' for i in range(3)}
+        ids=cards.evaluate_all('(nodes)=>nodes.map(node=>node.dataset.v934MatchId)')
+        assert len(ids)==len(set(ids))==3 and set(ids)==expected_ids
+        featured=panel.locator('[data-home-featured]')
+        assert featured.count()==1
+        assert featured.locator('[data-v934-match-id]').count()==2
+        visible_feature=featured.locator('[data-home-featured-slide]:not([hidden]) [data-v934-match-id]')
+        hidden_feature=featured.locator('[data-home-featured-slide][hidden] [data-v934-match-id]')
+        assert visible_feature.count()==hidden_feature.count()==1
+        assert visible_feature.is_visible() and not hidden_feature.is_visible()
+        hidden_id=hidden_feature.get_attribute('data-v934-match-id')
+        fallback=featured.locator('noscript a[href="/match/'+hidden_id+'"]')
+        assert fallback.count()==1 and fallback.is_visible()
+        assert featured.locator('[data-home-featured-controls]:visible').count()==0
         # The owner now asks for secondary leagues to start folded. This fixture
         # is deliberately unknown, not a major league or an explicit favorite.
+        # Featured slots are outside that disclosure; the remaining league is
+        # still folded, and every original fixture retains a native route.
         assert panel.locator('[data-home-importance="primary"]').count()==0
-        more=panel.locator('[data-home-more-leagues]')
+        agenda=panel.locator('[data-home-league-agenda="upcoming"]')
+        assert agenda.count()==1 and agenda.locator('[data-v934-match-id]').count()==1
+        more=agenda.locator('[data-home-more-leagues]')
         assert more.count()==1 and more.get_attribute('open') is None
-        assert panel.locator('[data-v934-match-id]:visible').count()==0
+        assert agenda.locator('[data-v934-match-id]:visible').count()==0
+        assert panel.locator('[data-v934-match-id]:visible').count()==1
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
         more.locator(':scope > summary').focus();page.keyboard.press('Enter')
+        assert more.get_attribute('open') is not None
         league=more.locator('[data-home-importance="secondary"]')
         assert league.count()==1 and league.get_attribute('open') is None
-        assert panel.locator('[data-v934-match-id]:visible').count()==0
+        assert agenda.locator('[data-v934-match-id]:visible').count()==0
+        assert panel.locator('[data-v934-match-id]:visible').count()==1
         league.locator(':scope > summary').focus();page.keyboard.press('Space')
-        assert panel.locator('[data-v934-match-id]:visible').count()==3
+        assert league.get_attribute('open') is not None
+        assert agenda.locator('[data-v934-match-id]:visible').count()==1
+        assert panel.locator('[data-v934-match-id]:visible').count()==2
+        for identity in expected_ids:
+            link=panel.locator('[data-v934-match-id="'+identity+'"] a[href="/match/'+identity+'"]').last
+            if not link.is_visible():
+                link=featured.locator('noscript a[href="/match/'+identity+'"]')
+            assert link.count()==1 and link.is_visible()
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
         if width in (390,1440):
             output=ROOT/'data/local_dev/personal-home-qa'
             output.mkdir(parents=True,exist_ok=True)
             page.screenshot(path=str(output/f'home-{width}.png'))
-        panel.locator('a[href="/match/personal-qa-0"]').last.click()
-        page.wait_for_url('**/match/personal-qa-0')
+        link=panel.locator('[data-v934-match-id="personal-qa-0"] a[href="/match/personal-qa-0"]').last
+        if not link.is_visible():
+            link=featured.locator('noscript a[href="/match/personal-qa-0"]')
+        link.click()
+        page.wait_for_url('https://personal.invalid/match/personal-qa-0')
         assert all(method=='GET' for method in calls)
     finally: context.close()
