@@ -43,6 +43,7 @@ class ProbeBoundary:
         self.degraded_calls = 0
         self.connected = 0
         self.read_executions, self.read_fetches = 0, 0
+        self.timezone_reads = {"UTC": 0, "Europe/Madrid": 0}
         self._connecting, self._configuring = False, False
         self._native_connect = sqlite3.connect
         boundary = self
@@ -287,6 +288,10 @@ class ProbeBoundary:
             if path == self.database or self._under(path, self.source) or self._under(path, self.scratch):
                 return
             if any(self._under(path, root) for root in self.libraries) or self._under(path, Path("/usr/share/zoneinfo")):
+                if path.parts[-3:] == ("tzdata", "zoneinfo", "UTC"):
+                    self.timezone_reads["UTC"] += 1
+                elif path.parts[-4:] == ("tzdata", "zoneinfo", "Europe", "Madrid"):
+                    self.timezone_reads["Europe/Madrid"] += 1
                 return
             self.deny("FILE_READ")
         if event in MUTATION_EVENTS:

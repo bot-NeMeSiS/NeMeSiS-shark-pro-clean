@@ -50,6 +50,13 @@ normal boot, a full journal allowance. The parent's source-copy deadline remains
 cooperative; the child process has an enforced wall timeout. Unsupported long
 Windows workspace paths are refused before copying or launching.
 
+The child deliberately uses the already-declared `tzdata` package for UTC/Madrid
+through the standard `zoneinfo` path configuration, with caches cleared before
+App import. This avoids admitting filesystem symlinks merely because some Linux
+timezone aliases use them. No timezone object is prebuilt before the guard. The
+receipt records the installed data version; this is an isolated probe input,
+not attestation of production's OS timezone source. Link/secret guards remain.
+
 `SQLITE_RESTORE_AND_GUEST_APP_SMOKE_VERIFIED` is deliberately narrower than full
 recovery. It does **not** certify authenticated client/Admin sessions, secrets and
 configuration custody, external providers, Telegram, payments, automation,

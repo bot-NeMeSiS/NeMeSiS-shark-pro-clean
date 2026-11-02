@@ -75,6 +75,29 @@ def _progress_events(raw, nonce):
     return events
 
 
+def _use_packaged_timezones():
+    """Use the already-declared tzdata input, without granting OS symlinks.
+
+    Linux's UTC entry may be a symlink. The fixed probe deliberately refuses
+    filesystem links; a dependency-provided timezone database avoids making a
+    blanket exception. No zone is constructed/cached before the App guard.
+    """
+    import zoneinfo
+    from importlib.metadata import version, PackageNotFoundError
+    try:
+        installed = version("tzdata")
+    except PackageNotFoundError:
+        raise ProbeError("APP_TIMEZONE_DATA_MISSING") from None
+    if not re.fullmatch(r"[0-9]{4}\.[0-9]+", installed):
+        raise ProbeError("APP_TIMEZONE_DATA_VERSION_UNSUPPORTED")
+    zoneinfo.reset_tzpath(())
+    zoneinfo.ZoneInfo.clear_cache()
+    if zoneinfo.TZPATH:
+        raise ProbeError("APP_TIMEZONE_SOURCE_NOT_CONFINED")
+    return {"source": "DECLARED_TZDATA_PACKAGE", "version": installed, "system_paths_enabled": False,
+            "production_timezone_source_attested": False}
+
+
 class ProbeError(ValueError):
     """Closed codes only: no paths, SQL, rows or exception messages in receipts."""
 
@@ -416,6 +439,7 @@ def _run_child(payload):
         raise ProbeError("APP_PROCESS_LIMIT_UNAVAILABLE")
     clean = {k: os.environ[k] for k in ("SYSTEMROOT", "WINDIR", "PATH") if k in os.environ}
     clean.update(DB_PATH=str(database), SECRET_KEY=secrets.token_urlsafe(32),
+                 PYTHONTZPATH="",
                  CONTINUOUS_EVOLUTION_STORAGE_ROOT=str(source / "data/runtime/continuous_evolution_os"),
                  PUBLIC_BASE_URL="https://probe.nemesis.invalid", PYTHON_DOTENV_DISABLED="1",
                  BACKUP_DIR=str(source / "data/backups"), DATA_BACKUP_DIR=str(source / "data/backups"),
@@ -426,6 +450,7 @@ def _run_child(payload):
                  AUTO_SEND_TELEGRAM_PICKS="0", DATA_BACKUP_ENABLED="0", OPENBLAS_NUM_THREADS="1", OMP_NUM_THREADS="1")
     os.environ.clear()
     os.environ.update(clean)
+    report["timezone_data"] = _use_packaged_timezones()
     os.chdir(source)
     sys.dont_write_bytecode = True
     guard_path = Path(__file__).with_name("recovery_probe_guard.py")
@@ -522,6 +547,12 @@ def _run_child(payload):
                   degraded_handler_entries_observed=boundary.degraded_calls,
                   discarded_log_characters=sink.characters, inherited_credentials=False,
                   external_state_restoration_verified=False)
+    report["timezone_data"]["guarded_file_reads"] = boundary.timezone_reads
+    report["timezone_data"]["both_zones_observed_inside_guard"] = all(boundary.timezone_reads.values())
+    report["timezone_data"]["resource_origin"] = ("INSTALLED_LIBRARY_TZDATA"
+        if report["timezone_data"]["both_zones_observed_inside_guard"] else "NOT_OBSERVED")
+    report["timezone_data"]["library_resource_hashes_verified"] = False
+    report["ok"] = report["ok"] and report["timezone_data"]["both_zones_observed_inside_guard"]
     report["ok"] = report["ok"] and not boundary.denials
     return report
 

@@ -27,6 +27,22 @@ src, scratch = w / "source", w / "scratch"
 b = ProbeBoundary(database=db, source=src, scratch=scratch,
     libraries=(pathlib.Path(sys.prefix), pathlib.Path(sys.base_prefix)),
     mode="read_only" if case.startswith("ro_") else "normal_boot", deadline=time.monotonic()+10)
+if case == "timezone_package":
+    from tools.recovery_app_probe import _use_packaged_timezones
+    timezone_input = _use_packaged_timezones()
+elif case == "timezone_alias":
+    import zoneinfo
+    from importlib.resources import files
+    tzroot = src / "owned_zoneinfo"
+    (tzroot / "Etc").mkdir(parents=True)
+    (tzroot / "Etc/UTC").write_bytes(files("tzdata.zoneinfo").joinpath("Etc/UTC").read_bytes())
+    try:
+        (tzroot / "UTC").symlink_to("Etc/UTC")
+    except OSError:
+        print(json.dumps({"case":case,"skip":"owned symlink unavailable"}))
+        raise SystemExit(77)
+    zoneinfo.reset_tzpath((str(tzroot),))
+    zoneinfo.ZoneInfo.clear_cache()
 b.install()
 expected = None
 try:
@@ -86,6 +102,24 @@ try:
     elif case == "normal_state":
         (src / "data").mkdir()
         (src / "data/state.json").write_text("{}")
+    elif case == "timezone_alias":
+        expected = "FILE_LINK"
+        zoneinfo.ZoneInfo("UTC")
+    elif case == "timezone_package":
+        import zoneinfo
+        from datetime import datetime, timedelta
+        assert timezone_input["source"] == "DECLARED_TZDATA_PACKAGE" and not zoneinfo.TZPATH
+        utc, madrid = zoneinfo.ZoneInfo("UTC"), zoneinfo.ZoneInfo("Europe/Madrid")
+        assert utc.key == "UTC" and madrid.key == "Europe/Madrid"
+        assert all(b.timezone_reads.values()), "both zones must be read under guard"
+        assert datetime(2026,1,1,tzinfo=utc).astimezone(madrid).utcoffset() == timedelta(hours=1)
+        assert datetime(2026,7,1,tzinfo=utc).astimezone(madrid).utcoffset() == timedelta(hours=2)
+        assert datetime(2026,1,31,23,30,tzinfo=utc).astimezone(madrid).day == 1
+        assert datetime(2026,3,29,0,30,tzinfo=utc).astimezone(madrid).hour == 1
+        assert datetime(2026,3,29,1,30,tzinfo=utc).astimezone(madrid).hour == 3
+        early = datetime(2026,10,25,0,30,tzinfo=utc).astimezone(madrid)
+        late = datetime(2026,10,25,1,30,tzinfo=utc).astimezone(madrid)
+        assert early.hour == late.hour == 2 and early.fold == 0 and late.fold == 1
     else:
         raise AssertionError("unknown test")
 except (ProbeBoundaryViolation, sqlite3.DatabaseError):
@@ -116,6 +150,8 @@ class RecoveryProbeGuardTests(unittest.TestCase):
         env = {k: os.environ[k] for k in ("SYSTEMROOT", "WINDIR") if k in os.environ}
         p = subprocess.run([sys.executable, "-I", "-B", "-c", CHILD, str(ROOT), str(self.root), case],
                            cwd=self.root, env=env, capture_output=True, timeout=15)
+        if p.returncode == 77:
+            self.skipTest("Owned timezone alias requires file symlink support")
         self.assertEqual(p.returncode, 0, p.stderr.decode(errors="replace"))
         result = json.loads(p.stdout)
         self.assertTrue(result["ok"])
@@ -182,6 +218,12 @@ class RecoveryProbeGuardTests(unittest.TestCase):
 
     def test_normal_boot_state_writes_stay_in_own_source_data(self):
         self.run_case("normal_state")
+
+    def test_system_style_timezone_alias_is_still_rejected(self):
+        self.run_case("timezone_alias")
+
+    def test_declared_timezone_package_works_without_link_exception(self):
+        self.run_case("timezone_package")
 
 
 class RecoveryAppProbePreflightTests(unittest.TestCase):
