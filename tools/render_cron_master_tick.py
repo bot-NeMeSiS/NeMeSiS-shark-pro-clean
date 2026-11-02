@@ -179,6 +179,10 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
     raw = payload.get("sports_pipeline")
     if not isinstance(raw, dict):
         return {}
+    history_read = None
+    if "history_read" in raw:
+        from engines.api_exploitation_engine import project_sports_history_read_state
+        history_read = project_sports_history_read_state(raw["history_read"])
     raw_quota = raw.get("quota") if isinstance(raw.get("quota"), dict) else {}
     quota = {
         key: safe_count(raw_quota.get(key))
@@ -238,6 +242,7 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
         }
     return {
         "status": safe_label(raw.get("status"), secret),
+        **({"history_read": history_read} if "history_read" in raw else {}),
         "deep_status": safe_label(raw.get("deep_status"), secret),
         "deep_external_calls": safe_count(raw.get("deep_external_calls")),
         "provider_access_is_current": bool(raw.get("provider_access_is_current")),

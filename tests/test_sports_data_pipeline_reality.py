@@ -352,7 +352,7 @@ def test_sports_lane_reuses_persisted_pipeline_evidence_when_deep_sample_is_not_
     monkeypatch.setattr(
         app_module,
         "api_exploitation_summary",
-        lambda _db_path: {
+        lambda _db_path, sports_budget=None: {
             "latest_account": {
                 "ok": True,
                 "plan": "Free",
@@ -402,7 +402,7 @@ def test_sports_cron_endpoint_preserves_sanitized_pipeline_evidence(client, app_
     monkeypatch.setattr(
         app_module,
         "api_exploitation_summary",
-        lambda _db_path: {
+        lambda _db_path, sports_budget=None: {
             "latest_account": {
                 "ok": True,
                 "plan": "Free",
