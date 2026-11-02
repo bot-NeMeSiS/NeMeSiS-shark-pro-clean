@@ -19331,16 +19331,21 @@ def _v991_finish_summary(summary, *, selected_date=None, _prepare_only=False, _h
     return summary, operation
 
 
-def _v991_legacy_sports_metrics_contract(summary):
+def _v991_legacy_sports_metrics_contract(summary, *, _live_emission=None):
     """Canonical public counts shared by every sports product surface."""
     summary = summary if isinstance(summary, dict) else {}
     today_matches = _dedupe_sports_matches(summary.get("valid_matches_today") or [])
     upcoming_matches = _dedupe_sports_matches(summary.get("valid_upcoming_matches") or [])
     available_matches = _dedupe_sports_matches(today_matches + upcoming_matches)
-    live_matches = [
-        item for item in _dedupe_sports_matches(summary.get("valid_live_events") or [])
-        if canonical_match_status(item).get("is_live")
-    ]
+    # A plain realtime snapshot already evaluated its own LIVE observations.
+    # Bind this result's count and membership fingerprint to that same emission;
+    # never reclassify it at a later clock or reuse it as authority elsewhere.
+    live_matches = (
+        list(_live_emission) if _live_emission is not None else [
+            item for item in _dedupe_sports_matches(summary.get("valid_live_events") or [])
+            if canonical_match_status(item).get("is_live")
+        ]
+    )
     picks = [item for item in summary.get("valid_active_picks") or [] if isinstance(item, dict)]
     pick_match_ids = sorted({
         str(item.get("match_id") or "").strip()
@@ -30034,7 +30039,9 @@ def _v991_legacy_get_v934_realtime_context(summary=None, force=False) -> dict:
     def _builder():
         source = summary if isinstance(summary, dict) else get_public_home_sports_summary()
         snapshot = build_v934_realtime_snapshot(source)
-        sports_metrics = _v991_legacy_sports_metrics_contract(source)
+        sports_metrics = _v991_legacy_sports_metrics_contract(
+            source, _live_emission=snapshot["live"],
+        )
         counts = dict(snapshot.get("counts") or {})
         counts.update({
             "matches": sports_metrics["matches_available"],
