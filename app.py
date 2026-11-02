@@ -169,6 +169,7 @@ from engines.api_sports_provider_engine import (
 )
 from engines.api_exploitation_engine import (
     api_exploitation_summary,
+    project_sports_history_read_state,
     probe_api_football_account,
     run_api_exploitation_if_due,
 )
@@ -2131,6 +2132,9 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
     deep = sports_result.get("deep_enrichment")
     deep = dict(deep) if isinstance(deep, dict) else {}
     deep_history = dict(deep_history or {})
+    history_read = deep_history.get("sports_read_state")
+    history_read = history_read if isinstance(history_read, dict) else {}
+    history_read_state = history_read.get("state")
     entity_freshness = (
         dict(entity_freshness)
         if isinstance(entity_freshness, dict)
@@ -2246,13 +2250,22 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
         received_scope = "CURRENT_DEEP_RUN_RESPONSE"
         persisted_scope = "CURRENT_DEEP_RUN_WRITES"
     elif continuity:
-        coverage_source = "LAST_PERSISTED_DEEP_SAMPLE"
+        coverage_source = (
+            "PARTIAL_PERSISTED_DEEP_SAMPLE"
+            if history_read_state in {"PARTIAL", "DEFERRED", "UNAVAILABLE"}
+            else "LAST_PERSISTED_DEEP_SAMPLE"
+        )
         coverage_observed_at = latest_run.get("finished_at")
         coverage_values = continuity
         received_scope = "LAST_PERSISTED_DEEP_SAMPLE_RESPONSE"
         persisted_scope = "STORE_TOTAL"
     else:
-        coverage_source = "NONE"
+        coverage_source = (
+            "HISTORY_READ_DEFERRED" if history_read_state == "DEFERRED"
+            else "HISTORY_READ_UNAVAILABLE"
+            if history_read_state in {"PARTIAL", "UNAVAILABLE"}
+            else "NONE"
+        )
         coverage_observed_at = ""
         coverage_values = {}
         received_scope = "UNKNOWN"
@@ -2266,7 +2279,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
         received = as_int(value.get("received"), 0)
         persisted = as_int(value.get("persisted"), 0)
         reason = _sports_diagnostic_text(value.get("reason"), 100)
-        if coverage_source == "LAST_PERSISTED_DEEP_SAMPLE":
+        if coverage_source in {"LAST_PERSISTED_DEEP_SAMPLE", "PARTIAL_PERSISTED_DEEP_SAMPLE"}:
             state = "LAST_OBSERVED"
         elif not requested:
             state = (
@@ -2470,6 +2483,7 @@ def _build_sports_pipeline_diagnostics(sports_result, deep_history=None, entity_
         "status": _sports_diagnostic_text(sports_result.get("status"), 80) or "UNKNOWN",
         "current_sync": current_sync,
         "provider_access_is_current": provider_access_is_current,
+        **({"history_read": project_sports_history_read_state(history_read)} if history_read else {}),
         "provider_access_freshness": provider_access_freshness,
         "deep_status": deep_status_text,
         "deep_external_calls": as_int(sports_result.get("deep_external_calls"), 0),
@@ -2719,13 +2733,14 @@ def bounded_sports_sync(force=False):
             if not deep.get("account") or not deep.get("capabilities"):
                 try:
                     with timed_phase("sports_sync", "exploitation_summary"):
-                        history = api_exploitation_summary(DB_PATH) or {}
+                        history = api_exploitation_summary(DB_PATH, budget) or {}
                 except Exception:
-                    history = {}
+                    history = {"sports_read_state": {"state": "UNAVAILABLE", "reason": "CONTROLLED_READ_ERROR"}}
             # Bounded read-only sample of canonical matches; never calls a provider.
             try:
                 with timed_phase("sports_sync", "entity_freshness"):
-                    entity_freshness = _sports_entity_freshness_snapshot(limit=200)
+                    entity_freshness = (_sports_entity_freshness_snapshot(limit=200)
+                                        if budget.remaining() >= 1 else {})
                 with timed_phase("sports_sync", "pipeline_diagnostics"):
                     result["sports_pipeline"] = _build_sports_pipeline_diagnostics(
                         result, history, entity_freshness
@@ -2734,6 +2749,11 @@ def bounded_sports_sync(force=False):
                 result["sports_pipeline"] = {
                     "status": "CONTROLLED_ERROR", "safe_error": type(exc).__name__,
                 }
+        if budget.deferred:
+            result["status"] = "PARTIAL"
+            result["ok"] = not technical
+            if "TIME_BUDGET" not in result["controlled_deferrals"]:
+                result["controlled_deferrals"].append("TIME_BUDGET")
         return result
 
 
@@ -2819,6 +2839,8 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
         raw_current_sync = raw_pipeline.get("current_sync") if isinstance(raw_pipeline.get("current_sync"), dict) else {}
         compact["sports_pipeline"] = {
             "status": _sports_diagnostic_text(raw_pipeline.get("status"), 80) or "UNKNOWN",
+            **({"history_read": project_sports_history_read_state(raw_pipeline["history_read"])}
+               if "history_read" in raw_pipeline else {}),
             "deep_status": _sports_diagnostic_text(raw_pipeline.get("deep_status"), 80) or "UNKNOWN",
             "deep_external_calls": as_int(raw_pipeline.get("deep_external_calls"), 0),
             "provider_access_is_current": bool(raw_pipeline.get("provider_access_is_current")),
