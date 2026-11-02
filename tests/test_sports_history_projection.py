@@ -14,7 +14,7 @@ from unittest.mock import Mock, patch
 from engines import api_exploitation_engine as engine
 from engines.cron_request_budget import CronRequestBudget
 
-RUN_ROOT=Path(os.environ["OWNED_SPORTS_LEAF_ROOT"])
+RUN_ROOT=Path(os.environ["OWNED_SPORTS_LEAF_ROOT"]) if "OWNED_SPORTS_LEAF_ROOT" in os.environ else None
 CAPABILITIES=("fixtures","events","lineups","players","stats","standings","h2h","injuries")
 TABLES={"fixtures":"api_football_fixture_index","events":"api_football_live_events",
         "lineups":"api_football_lineups_deep","stats":"api_football_match_stats_history",
