@@ -135,34 +135,104 @@ def test_partial_must_not_invent_zero_score():
     assert observation_failures(row)
 
 
-@pytest.mark.parametrize("status", [200,404])
-def test_image_readiness_waits_for_pending_responses_and_preserves_broken_detection(status):
+def _exercise_delayed_image_wait(status, duplicate_release_signal, waiter):
     import os
     from playwright.sync_api import sync_playwright
-    from tools.run_v944_match_center_browser_qa import INSPECT_JS, wait_for_rendered_images
+    from tools.run_v944_match_center_browser_qa import INSPECT_JS
     with sync_playwright() as pw:
         options={"headless":True}
         if os.getenv("NEMESIS_QA_CHROMIUM"):
             options["executable_path"]=os.environ["NEMESIS_QA_CHROMIUM"]
         browser=pw.chromium.launch(**options)
         page=browser.new_page()
+        fixture_url="http://localhost/qa-crest.svg"
         pending=[]
+        release_attempts=[]
+        release_completed=[]
+        release_during_wait=[]
+        response_status=[]
+        signals=[]
+        waiting=[False]
+        entered=[]
         page.route("**/*",lambda route:pending.append(route))
+        page.expose_function("qa_pending_image_count",lambda:len(pending))
+        release_image=None
+        release_registered=[False]
+        def observe_response(response):
+            if response.url==fixture_url:
+                response_status.append(response.status)
+        def observe_signal(message):
+            if message.text=="QA_RELEASE_IMAGE":
+                signals.append(message.text)
+        page.on("response",observe_response)
+        page.on("console",observe_signal)
         try:
             page.set_content('<img src="http://localhost/qa-crest.svg">',wait_until="domcontentloaded")
+            page.wait_for_function("async () => (await window.qa_pending_image_count()) === 1")
+            assert len(pending)==1 and pending[0].request.url==fixture_url
+            held_route=pending[0]
             page.wait_for_function("() => document.images.length === 1 && !document.images[0].complete")
-            page.on("console",lambda message:pending.pop().fulfill(status=status,content_type="image/svg+xml",
-                body='<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24"/></svg>' if status==200 else "missing")
-                if message.text=="QA_RELEASE_IMAGE" else None)
-            page.evaluate("() => setTimeout(() => console.log('QA_RELEASE_IMAGE'), 100)")
-            wait_for_rendered_images(page)
+            def release_image(message):
+                if message.text!="QA_RELEASE_IMAGE" or not release_registered[0]:
+                    return
+                release_registered[0]=False
+                page.remove_listener("console",release_image)
+                release_attempts.append(fixture_url)
+                release_during_wait.append(waiting[0])
+                held_route.fulfill(status=status,content_type="image/svg+xml",
+                    body='<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect width="24" height="24"/></svg>' if status==200 else "missing")
+                release_completed.append(fixture_url)
+            page.on("console",release_image)
+            release_registered[0]=True
+
+            class DelayedResponsePage:
+                # Forward the real native wait. Arm the response only after the
+                # helper enters it: a no-op helper can never release the image.
+                def wait_for_function(self,*args,**kwargs):
+                    entered.append(True)
+                    waiting[0]=True
+                    try:
+                        page.evaluate("(duplicate) => setTimeout(() => { console.log('QA_RELEASE_IMAGE'); if (duplicate) console.log('QA_RELEASE_IMAGE'); }, 100)",duplicate_release_signal)
+                        return page.wait_for_function(*args,**kwargs)
+                    finally:
+                        waiting[0]=False
+                def __getattr__(self,name):
+                    return getattr(page,name)
+
+            waiter(DelayedResponsePage())
+            # These checks precede any extra wait which might mask a no-op.
+            assert entered,"image_wait_not_entered"
+            assert release_attempts==release_completed==[fixture_url]
+            assert release_during_wait==[True]
+            assert response_status==[status]
+            image=page.evaluate("() => ({complete:document.images[0].complete,src:document.images[0].currentSrc,width:document.images[0].naturalWidth})")
+            assert image["complete"] and image["src"]==fixture_url
+            assert (image["width"]>0)==(status==200)
             observed=page.evaluate(INSPECT_JS)
+            assert len(signals)==(2 if duplicate_release_signal else 1)
             assert bool(observed["broken_images"])==(status==404)
             row=capture("partial","mobile")
             row["broken_images"]=observed["broken_images"]
             assert ("broken_images" in observation_failures(row))==(status==404)
         finally:
+            if release_registered[0]:
+                release_registered[0]=False
+                page.remove_listener("console",release_image)
+            page.remove_listener("console",observe_signal)
+            page.remove_listener("response",observe_response)
             browser.close()
+
+
+@pytest.mark.parametrize("status", [200,404])
+@pytest.mark.parametrize("duplicate_release_signal", [False,True])
+def test_image_readiness_waits_for_pending_responses_and_preserves_broken_detection(status, duplicate_release_signal):
+    from tools.run_v944_match_center_browser_qa import wait_for_rendered_images
+    _exercise_delayed_image_wait(status,duplicate_release_signal,wait_for_rendered_images)
+
+
+def test_delayed_image_fixture_rejects_a_noop_waiter():
+    with pytest.raises(AssertionError,match="image_wait_not_entered"):
+        _exercise_delayed_image_wait(404,True,lambda page:None)
 
 
 def test_isolation_accepts_only_owned_sqlite_uri_and_browser_driver(tmp_path, monkeypatch):
