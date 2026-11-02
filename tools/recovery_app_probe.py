@@ -244,7 +244,7 @@ def _render_memory_gate(limit: int) -> dict:
 
 def run_app_probe(*, project_root: Path, restored_database: Path, workspace: Path,
                   deadline: float, mode: str = "read_only", routes=DEFAULT_ROUTES,
-                  memory_bytes: int = 256 * MIB) -> dict:
+                  memory_bytes: int = 256 * MIB, state_bundle=None) -> dict:
     """Explicit smoke only. Does not capture, restore, delete or certify a backup."""
     report = {"schema": "NEMESIS_ISOLATED_APP_PROBE_V1", "mode": mode, "ok": False,
               "full_application_recovery_certified": False, "authenticated_client_verified": False,
@@ -272,7 +272,22 @@ def run_app_probe(*, project_root: Path, restored_database: Path, workspace: Pat
             raise ProbeError("ISOLATED_DATABASE_NOT_STANDALONE")
         if not isinstance(routes, (tuple, list)) or not routes or len(routes) > 12 or any(not _admitted_route(r) for r in routes):
             raise ProbeError("INVALID_APP_PROBE_ROUTES")
+        if state_bundle is not None:
+            from tools.recovery_state_adapter import BoundStateBundle
+            if type(state_bundle) is not BoundStateBundle:
+                raise ProbeError("TYPED_STATE_BUNDLE_REQUIRED")
         source = prepare_source(project_root, workspace, deadline=deadline)
+        if state_bundle is not None:
+            from tools.recovery_state_adapter import restore_before_app
+            state_report = restore_before_app(state_bundle, source=source["path"],
+                                              restored_database=restored_database, workspace=workspace,
+                                              database_info=db, deadline=deadline)
+            report["state_restore"] = state_report
+            if state_report.get("ok") is not True or state_report.get("state_ready_before_app") is not True:
+                raise ProbeError("STATE_NOT_READY_BEFORE_APP")
+            report["state_scope_roles"] = list(state_bundle.scope_roles)
+            report["state_proposal_sha256"] = state_bundle.proposal_sha256
+            report["continuous_cross_store_consistency_certified"] = False
         scratch = workspace / "scratch"
         scratch.mkdir()
         memory = _render_memory_gate(memory_bytes)
@@ -283,6 +298,8 @@ def run_app_probe(*, project_root: Path, restored_database: Path, workspace: Pat
         payload = {"nonce": nonce, "source": str(source["path"]), "database": str(restored_database), "workspace": str(workspace),
                    "scratch": str(scratch), "deadline": deadline, "mode": mode, "routes": list(routes),
                    "memory_bytes": memory_bytes}
+        if state_bundle is not None:
+            payload["restored_state_layout"] = "DISJOINT_CE_LEGACY_V1"
         env = {k: os.environ[k] for k in ("SYSTEMROOT", "WINDIR") if k in os.environ}
         env.update(PATH=str(Path(sys.executable).parent), TMP=str(scratch), TEMP=str(scratch), TMPDIR=str(scratch),
                    PYTHONDONTWRITEBYTECODE="1", PYTHONNOUSERSITE="1", OPENBLAS_NUM_THREADS="1", OMP_NUM_THREADS="1")
@@ -437,10 +454,15 @@ def _run_child(payload):
                                    "active_process_limit_including_venv_launcher": 2, "reservation_certified": False}
     else:
         raise ProbeError("APP_PROCESS_LIMIT_UNAVAILABLE")
+    layout = payload.get("restored_state_layout")
+    if layout not in (None, "DISJOINT_CE_LEGACY_V1"):
+        raise ProbeError("INVALID_RESTORED_STATE_LAYOUT")
+    ce_root = source / ("data/continuous_evolution_os" if layout == "DISJOINT_CE_LEGACY_V1"
+                        else "data/runtime/continuous_evolution_os")
     clean = {k: os.environ[k] for k in ("SYSTEMROOT", "WINDIR", "PATH") if k in os.environ}
     clean.update(DB_PATH=str(database), SECRET_KEY=secrets.token_urlsafe(32),
                  PYTHONTZPATH="",
-                 CONTINUOUS_EVOLUTION_STORAGE_ROOT=str(source / "data/runtime/continuous_evolution_os"),
+                 CONTINUOUS_EVOLUTION_STORAGE_ROOT=str(ce_root),
                  PUBLIC_BASE_URL="https://probe.nemesis.invalid", PYTHON_DOTENV_DISABLED="1",
                  BACKUP_DIR=str(source / "data/backups"), DATA_BACKUP_DIR=str(source / "data/backups"),
                  TMP=str(scratch), TEMP=str(scratch), TMPDIR=str(scratch),
