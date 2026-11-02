@@ -10436,6 +10436,12 @@ def _cached_h2h_for_match(match, limit=6):
     ).strip()
     current_kickoff = _context_match_datetime(match)
     current_kickoff = _context_match_datetime(match)
+    if current_kickoff is None and (
+        match.get("kickoff_iso") or (
+            match.get("match_date") and (match.get("kickoff_time") or match.get("match_time"))
+        )
+    ):
+        return empty
     items = []
     seen = set()
     if db_table_exists("api_football_h2h_history"):
@@ -11717,6 +11723,8 @@ def recent_team_form(
 
     excluded = str(exclude_match_id or "").strip()
     context_kickoff = _context_match_datetime(before_kickoff)
+    if before_kickoff and context_kickoff is None:
+        return base
     fetch_limit = max(requested_limit * 12, 60)
     candidates = rows(
         """SELECT * FROM matches

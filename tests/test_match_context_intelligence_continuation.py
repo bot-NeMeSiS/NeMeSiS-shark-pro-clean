@@ -687,3 +687,123 @@ def test_match_center_template_exposes_context_without_generic_shark_copy(
     assert "muestra 1" in html
     assert 'data-standings-season="2026"' in html
     assert "No se utiliza para explicar retrospectivamente" not in html
+
+
+@pytest.mark.parametrize("invalid_cutoff", ["2026-02-30", "not-a-date", "   "])
+def test_unresolvable_requested_cutoff_never_grants_prior_match_evidence(invalid_cutoff):
+    detail = _detail()
+    detail["match"]["kickoff_iso"] = invalid_cutoff
+    detail["standings"]["updated_at"] = "2026-08-31T09:00:00+02:00"
+    original = copy.deepcopy(detail)
+    context = _context(detail)
+    assert context["standings"]["available"] is True
+    assert context["standings"]["context_eligible"] is False
+    assert context["standings"]["temporal_state"] == "unknown"
+    assert context["head_to_head"]["items"] == []
+    assert context["recent_form"]["sample_size"] == 0
+    assert context["context_intelligence"]["evidence"] == []
+    assert detail == original
+
+
+@pytest.mark.parametrize("no_cutoff", ["", None])
+def test_intentional_unbounded_history_keeps_its_existing_contract(no_cutoff):
+    from engines.match_context_engine import (
+        _head_to_head_context, _recent_form_context, _standings_context,
+    )
+    detail = _detail()
+    h2h = _head_to_head_context(
+        detail["head_to_head"], home_team="Club Norte", away_team="Club Sur",
+        before_kickoff=no_cutoff,
+    )
+    form = _recent_form_context(
+        detail["recent_form"], home_team="Club Norte", away_team="Club Sur",
+        expected_season="2026", expected_competition_id="140",
+        before_kickoff=no_cutoff,
+    )
+    standings = _standings_context(
+        detail["standings"], expected_season="2026", expected_competition_id="140",
+        kickoff_iso=no_cutoff,
+    )
+    assert h2h["count"] == 1
+    assert form["sample_size"] == 3
+    assert standings["context_eligible"] is True
+    assert standings["temporal_state"] == "observed_snapshot"
+
+
+@pytest.mark.parametrize("invalid_observation", ["2026-02-30", "not-a-date"])
+def test_invalid_observation_dates_cannot_enter_a_valid_bounded_context(invalid_observation):
+    detail = _detail()
+    detail["standings"]["updated_at"] = invalid_observation
+    for item in detail["head_to_head"]["items"]:
+        item["kickoff_iso"] = invalid_observation
+    for side in ("home", "away"):
+        for item in detail["recent_form"][side]["matches"]:
+            item["kickoff_iso"] = invalid_observation
+    original = copy.deepcopy(detail)
+    context = _context(detail)
+    assert context["standings"]["context_eligible"] is False
+    assert context["head_to_head"]["count"] == 0
+    assert context["recent_form"]["sample_size"] == 0
+    assert context["context_intelligence"]["evidence"] == []
+    assert detail == original
+
+
+def test_valid_cutoff_preserves_past_rows_and_excludes_confirmed_future_rows():
+    detail = _detail()
+    detail["standings"]["updated_at"] = "2026-08-31T09:00:00+02:00"
+    future_h2h = copy.deepcopy(detail["head_to_head"]["items"][0])
+    future_h2h.update(fixture_id="owned-future-h2h", kickoff_iso="2026-08-31T20:00:00+02:00")
+    detail["head_to_head"]["items"].append(future_h2h)
+    future_form = copy.deepcopy(detail["recent_form"]["home"]["matches"][0])
+    future_form.update(match_id="owned-future-form", kickoff_iso="2026-08-31T20:00:00+02:00")
+    detail["recent_form"]["home"]["matches"].append(future_form)
+    original = copy.deepcopy(detail)
+    context = _context(detail)
+    assert context["standings"]["temporal_state"] == "post_match_snapshot"
+    assert context["standings"]["context_eligible"] is False
+    assert context["head_to_head"]["count"] == 1
+    assert context["recent_form"]["home"]["sample_size"] == 2
+    assert context["recent_form"]["away"]["sample_size"] == 1
+    assert {item["kind"] for item in context["context_intelligence"]["evidence"]} == {
+        "head_to_head", "recent_form",
+    }
+    assert detail == original
+
+
+@pytest.mark.parametrize("provider_history", [False, True])
+@pytest.mark.parametrize("invalid_cutoff", ["2026-02-30", "not-a-date"])
+def test_app_context_readers_do_not_turn_bad_requested_cutoffs_into_unbounded_queries(
+    app_module, monkeypatch, provider_history, invalid_cutoff
+):
+    app = app_module
+    current = _detail()["match"]
+    current["kickoff_iso"] = invalid_cutoff
+    candidates = [
+        dict(current, id="owned-future", fixture_id="8012", kickoff_iso="2026-08-31T20:30:00+02:00",
+             match_date="2026-08-31", home_score=2, away_score=1, status="FT", source="api-football"),
+        dict(current, id="owned-past", fixture_id="8011", kickoff_iso="2026-08-20T20:30:00+02:00",
+             match_date="2026-08-20", home_score=2, away_score=1, status="FT", source="api-football"),
+    ]
+    monkeypatch.setattr(app, "rows", lambda *_a, **_k: copy.deepcopy(candidates))
+    monkeypatch.setattr(app, "db_table_exists", lambda name: provider_history and name == "api_football_h2h_history")
+    monkeypatch.setattr(app, "_cached_fixture_identifiers", lambda _match: (
+        {"home_team_id": "10", "away_team_id": "20"}, ["current", "9001"],
+    ))
+    original = copy.deepcopy(current)
+    assert app.recent_team_form("Club Norte", before_kickoff=invalid_cutoff)["matches"] == []
+    assert app._cached_h2h_for_match(current)["items"] == []
+    assert current == original
+
+    valid = dict(current, kickoff_iso="2026-08-30T20:30:00+02:00")
+    valid_form = app.recent_team_form("Club Norte", before_kickoff=valid["kickoff_iso"])
+    valid_h2h = app._cached_h2h_for_match(valid)
+    assert {row["kickoff_iso"] for row in valid_form["matches"]} == {"2026-08-20T20:30:00+02:00"}
+    assert {row["kickoff_iso"] for row in valid_h2h["items"]} == {"2026-08-20T20:30:00+02:00"}
+
+    unbound = dict(current)
+    for key in ("kickoff_iso", "match_date", "kickoff_time", "match_time"):
+        unbound.pop(key, None)
+    assert len(app.recent_team_form("Club Norte", before_kickoff=None)["matches"]) == 2
+    assert {row["kickoff_iso"] for row in app._cached_h2h_for_match(unbound)["items"]} == {
+        "2026-08-20T20:30:00+02:00", "2026-08-31T20:30:00+02:00",
+    }

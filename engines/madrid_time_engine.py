@@ -69,7 +69,10 @@ def parse_madrid_local_datetime(value: object) -> datetime | None:
         if raw.endswith("Z") or _has_tz_suffix(raw):
             return to_madrid_time(raw)
         if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw):
-            dt = datetime.fromisoformat(raw)
+            try:
+                dt = datetime.fromisoformat(raw)
+            except ValueError:
+                return None
         else:
             iso = raw.replace(" ", "T")
             if re.match(r"^\d{4}-\d{2}-\d{2}T\d{1,2}:\d{2}$", iso):
@@ -113,7 +116,10 @@ def parse_match_datetime(value: object, *, source_timezone: str | None = None) -
         if not raw:
             return None
         if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw):
-            dt = datetime.fromisoformat(raw)
+            try:
+                dt = datetime.fromisoformat(raw)
+            except ValueError:
+                return None
         else:
             iso = raw.replace("Z", "+00:00")
             if re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$", iso):
