@@ -85,8 +85,10 @@ def preflight(source: Path, directory: Path) -> dict:
     }
 
 
-def verify_and_restore_isolated(directory: Path, name: str, timeout: int) -> dict:
+def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app_probe_mode=None) -> dict:
     started = time.monotonic()
+    if app_probe_mode not in (None, "read_only", "normal_boot"):
+        return {"ok": False, "code": "INVALID_APP_PROBE_MODE"}
     try:
         budget = float(timeout)
     except (ValueError, TypeError, OverflowError):
@@ -127,10 +129,17 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int) -> dic
                 return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
             stage = "RESTORE_CAPACITY"
             required = archive_identity["size"] + max(MIN_RESERVE, archive_identity["size"] // 5)
+            if app_probe_mode is not None:
+                # Source/scratch plus room for a full clone journal in normal
+                # boot. This is a conservative gate, never a quota increase.
+                required += MIN_RESERVE
+                if app_probe_mode == "normal_boot":
+                    required += archive_identity["size"]
             free = shutil.disk_usage(directory).free
             check_time()
             if free < required:
                 return {"ok": False, "code": "INSUFFICIENT_ISOLATED_RESTORE_SPACE"}
+            app_probe = None
             stage = "RESTORE_SNAPSHOT"
             with tempfile.TemporaryDirectory(prefix=".isolated_restore_327_", dir=directory) as temp:
                 check_time()
@@ -170,14 +179,33 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int) -> dic
                     check_time()
                     if fingerprint(selected) != archive_identity:
                         return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
+                if app_probe_mode is not None:
+                    # Same restoration, after both SQLite handles close, before
+                    # its existing disposable workspace is cleaned up. The App
+                    # shares this phase's deadline; it receives no extra budget.
+                    stage = "ISOLATED_APP_PROBE"
+                    check_time()
+                    from tools.recovery_app_probe import run_app_probe
+                    app_probe = run_app_probe(project_root=ROOT, restored_database=destination_path,
+                                              workspace=Path(temp), deadline=deadline, mode=app_probe_mode)
+                    if fingerprint(selected) != archive_identity:
+                        return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
+                    if not app_probe.get("ok"):
+                        return {"ok": False, "code": "SQLITE_RESTORED_APP_NOT_VERIFIED", "schema_match": True,
+                                "sqlite_restore_verified": True, "app_probe": app_probe,
+                                "full_application_recovery_certified": False}
             stage = "FINAL_CHECK"
             if fingerprint(selected) != archive_identity:
                 return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
             finished = time.monotonic()
             if finished >= deadline:
                 raise TimeoutError("isolated_restore_timeout")
-            return {"ok": True, "code": "RESTORE_VERIFIED", "sha256": checked["results"][0]["actual"],
-                    "schema_match": True, "verification_duration_ms": int((finished - started) * 1000)}
+            report = {"ok": True, "code": "RESTORE_VERIFIED", "sha256": checked["results"][0]["actual"],
+                      "schema_match": True, "verification_duration_ms": int((finished - started) * 1000)}
+            if app_probe is not None:
+                report.update(code="SQLITE_RESTORE_AND_GUEST_APP_SMOKE_VERIFIED", app_probe=app_probe,
+                              sqlite_restore_verified=True, full_application_recovery_certified=False)
+            return report
     except BackupInProgress:
         return {"ok": False, "code": "RECOVERY_LOCK_BUSY"}
     except TimeoutError:
@@ -200,7 +228,8 @@ def run(args: argparse.Namespace) -> int:
         if not directory.is_dir() or directory.is_symlink():
             emit({"ok": False, "stage": "VERIFY", "code": "DESTINATION_UNAVAILABLE"})
             return 2
-        checked = verify_and_restore_isolated(directory, args.verify_existing, args.timeout)
+        checked = verify_and_restore_isolated(directory, args.verify_existing, args.timeout,
+                                              app_probe_mode=getattr(args, "app_probe_mode", None))
         emit({"stage": "VERIFY", "backup_name": args.verify_existing, **checked})
         return 0 if checked.get("ok") else 2
 
@@ -240,7 +269,8 @@ def run(args: argparse.Namespace) -> int:
             "backup_created": bool(result.get("backup_created")),
         })
         return 2
-    restored = verify_and_restore_isolated(directory, name, args.timeout)
+    restored = verify_and_restore_isolated(directory, name, args.timeout,
+                                          app_probe_mode=getattr(args, "app_probe_mode", None))
     emit({
         "ok": bool(restored.get("ok")),
         "stage": "COMPLETE" if restored.get("ok") else "ISOLATED_RESTORE",
@@ -250,6 +280,8 @@ def run(args: argparse.Namespace) -> int:
         "sha256": result.get("sha256"),
         "snapshot_bytes": check["snapshot_bytes"],
         "isolated_restore_ok": bool(restored.get("ok")),
+        **({"app_probe": restored["app_probe"], "full_application_recovery_certified": False}
+           if "app_probe" in restored else {}),
     })
     return 0 if restored.get("ok") else 3
 
@@ -261,6 +293,8 @@ def main() -> int:
     parser.add_argument("--timeout", type=int, default=900, help="Shell-only budget in seconds (60-3600)")
     parser.add_argument("--execute", action="store_true", help="Create the backup; without it, read-only preflight")
     parser.add_argument("--verify-existing", default=None, help="Recheck a named operator_327 backup, without creating one")
+    parser.add_argument("--app-probe-mode", choices=("read_only", "normal_boot"), default=None,
+                        help="Explicit guest App check on the SAME disposable restore; normal_boot may initialize only that clone. No extra time budget.")
     args = parser.parse_args()
     if not 60 <= args.timeout <= 3600:
         parser.error("--timeout must be between 60 and 3600 seconds")
