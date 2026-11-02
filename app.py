@@ -19,6 +19,7 @@ import unicodedata
 import urllib.parse
 import urllib.request
 import urllib.error
+from contextlib import contextmanager
 from datetime import date, datetime, timedelta, timezone
 from email.message import EmailMessage
 from functools import lru_cache, wraps
@@ -4867,6 +4868,16 @@ def apply_security_headers_and_csrf(response):
                 )
     except Exception:
         pass
+    try:
+        if not (getattr(g, "v935_route_phase_namespace", None)
+                and getattr(g, "v935_route_phase_metrics", None)):
+            phase_header = _shark_context_timing_header(
+                getattr(g, "shark_context_subphase_metrics", None))
+            if phase_header:
+                current_timing = str(response.headers.get("Server-Timing") or "").strip()
+                response.headers["Server-Timing"] = ", ".join(filter(None, (current_timing, phase_header)))
+    except Exception:
+        pass  # Optional observation cannot replace the legacy header or response.
     return response
 
 
@@ -14339,8 +14350,10 @@ def _v998_shark_collections(summary, user):
     if summary.get("storage_status") != "ok":
         return result
     try:
-        projection = _v991_realtime_projection(summary, lane="live", query="")
-        live = v931_live_context(summary, lane="live", query="", fixture_projection=projection)
+        with _context_subphase("shark", "collection_projection"):
+            projection = _v991_realtime_projection(summary, lane="live", query="")
+        with _context_subphase("shark", "collection_live_context"):
+            live = v931_live_context(summary, lane="live", query="", fixture_projection=projection)
         # This exact call has just checked ownership and produced current metrics.
         # Reuse only within this operation; copied summaries still fail its proof.
         metrics = live.get("sports_metrics") or {}
@@ -14356,23 +14369,133 @@ def _v998_shark_collections(summary, user):
                               "stale_excluded": (projection.get("counts") or {}).get("stale_live"),
                               "source_read_state": projection.get("source_read_state"),
                               "generated_at_madrid": projection.get("generated_at_madrid")}
-            agenda = _v991_selected(summary, summary.get("all_valid_matches") or [], limit=6)
-            result["agenda"] = {"state": "AVAILABLE" if agenda.count else "EMPTY", "total": agenda.count,
-                                "matches": [_v998_shark_match(row) for row in agenda.rows]}
-        saved = get_favorites(user_id=user["id"]) if user.get("id") else []
-        if not saved:
-            result["favorites"] = {"state": "EMPTY", "matches": [], "total": 0, "saved_count": 0}
-        elif established:
-            favorites = _normalized_sports_favorites(favorite_sets(user_id=user["id"], favorites=saved))
-            selected = _v991_selected(summary, summary.get("all_valid_matches") or [],
-                predicate=lambda row: _sports_match_favorite({**row, "is_favorite": False}, favorites), limit=6)
-            result["favorites"] = {"state": "AVAILABLE" if selected.count else "NO_MATCHES",
-                                   "matches": [_v998_shark_match(row) for row in selected.rows],
-                                   "total": selected.count, "saved_count": len(saved)}
+            with _context_subphase("shark", "collection_agenda"):
+                agenda = _v991_selected(summary, summary.get("all_valid_matches") or [], limit=6)
+                result["agenda"] = {"state": "AVAILABLE" if agenda.count else "EMPTY", "total": agenda.count,
+                                    "matches": [_v998_shark_match(row) for row in agenda.rows]}
+        with _context_subphase("shark", "collection_favorites"):
+            saved = get_favorites(user_id=user["id"]) if user.get("id") else []
+            if not saved:
+                result["favorites"] = {"state": "EMPTY", "matches": [], "total": 0, "saved_count": 0}
+            elif established:
+                favorites = _normalized_sports_favorites(favorite_sets(user_id=user["id"], favorites=saved))
+                selected = _v991_selected(summary, summary.get("all_valid_matches") or [],
+                    predicate=lambda row: _sports_match_favorite({**row, "is_favorite": False}, favorites), limit=6)
+                result["favorites"] = {"state": "AVAILABLE" if selected.count else "NO_MATCHES",
+                                       "matches": [_v998_shark_match(row) for row in selected.rows],
+                                       "total": selected.count, "saved_count": len(saved)}
     except Exception:
         # Unknown is distinct from an empty successful read; no provider retry.
         app.logger.warning("SHARK local collection context unavailable")
     return result
+
+
+
+_CALENDAR_CONTEXT_PHASES = (
+    "context_metrics", "context_prepare_rows", "context_source_selection",
+    "context_filtered_selection", "context_grouping", "context_date_lane_counts",
+    "context_facets",
+)
+_SHARK_COLLECTION_PHASES = (
+    "collection_projection", "collection_live_context", "collection_agenda",
+    "collection_favorites",
+)
+
+
+def _context_subphase_started(surface, name):
+    allowed = (_CALENDAR_CONTEXT_PHASES if surface == "calendar"
+               else _SHARK_COLLECTION_PHASES if surface == "shark" else ())
+    if not has_request_context() or name not in allowed:
+        return None
+    if surface == "calendar" and getattr(g, "_calendar_context_phase_collector", None) is None:
+        return None
+    return time.perf_counter()
+
+
+def _context_subphase_record(surface, name, started):
+    allowed = (_CALENDAR_CONTEXT_PHASES if surface == "calendar"
+               else _SHARK_COLLECTION_PHASES if surface == "shark" else ())
+    if not has_request_context() or name not in allowed:
+        return
+    elapsed = (time.perf_counter() - started) * 1000.0
+    if not math.isfinite(elapsed):
+        return
+    if surface == "calendar":
+        metrics = getattr(g, "_calendar_context_phase_collector", None)
+    else:
+        metrics = getattr(g, "shark_context_subphase_metrics", None)
+        if metrics is None:
+            metrics = g.shark_context_subphase_metrics = {}
+    if metrics is not None:
+        metrics[name] = round(max(0.0, elapsed), 1)
+
+
+@contextmanager
+def _context_subphase(surface, name):
+    """Fixed request-local durations; children overlap their existing parent."""
+    started = None
+    try:
+        started = _context_subphase_started(surface, name)
+    except Exception:
+        pass
+    try:
+        yield
+    finally:
+        if started is not None:
+            try:
+                _context_subphase_record(surface, name, started)
+            except Exception:
+                pass  # Observation never replaces the result or business error.
+
+
+@contextmanager
+def _calendar_context_phase_collection(metrics):
+    """Bind only this caller's collector, restoring a reentrant parent's."""
+    missing = object()
+    previous = missing
+    bound = False
+    try:
+        if has_request_context():
+            previous = getattr(g, "_calendar_context_phase_collector", missing)
+            g._calendar_context_phase_collector = metrics
+            bound = True
+    except Exception:
+        pass
+    try:
+        yield
+    finally:
+        if bound:
+            try:
+                if previous is missing:
+                    del g._calendar_context_phase_collector
+                else:
+                    g._calendar_context_phase_collector = previous
+            except Exception:
+                pass
+
+
+def _calendar_route_phase_values(parents, children):
+    published = dict(parents)
+    try:
+        for name in _CALENDAR_CONTEXT_PHASES:
+            if name in children:
+                duration = children[name]
+                if type(duration) in (int, float) and math.isfinite(duration) and duration >= 0:
+                    published[name] = duration
+    except Exception:
+        pass
+    return published
+
+def _shark_context_timing_header(metrics):
+    """Only reached collection children; separate from the 19 legacy phases."""
+    if not isinstance(metrics, dict):
+        return ""
+    values = []
+    for name in _SHARK_COLLECTION_PHASES:
+        duration = metrics.get(name)
+        if type(duration) in (int, float) and math.isfinite(duration) and duration >= 0:
+            values.append(f"sharkctx_{name};dur={duration:.1f}")
+    return ", ".join(values)
 
 
 _V999_SHARK_PHASES = frozenset({
@@ -23518,14 +23641,16 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
     summary = summary if isinstance(summary,dict) else {}
     filters = _v940_calendar_filters(lane,date_value)
     operation = _v991_operation_for(summary,fixture_operation,filters['date']) or False
-    sports_metrics = get_sports_metrics_contract(summary,fixture_operation=operation)
-    pick_ids={str(row.get('match_id') or '').strip() for row in summary.get('valid_active_picks') or ()}
-    favorites=favorite_sets() if has_request_context() and current_session_user() else {'team':set(),'league':set(),'match':set(),'all':[]}
-    raw_all=_v991_unique_objects(summary.get('all_valid_matches') or summary.get('valid_upcoming_matches') or ())
-    prepared={id(row):_v940_calendar_prepare_match(row,pick_ids,favorites) for row in raw_all}
-    approved_live_objects={id(row) for row in summary.get('valid_live_events') or ()}
-    raw_all=[row for row in raw_all if id(row) in approved_live_objects or not prepared[id(row)]['status_info'].get('is_live')]
-    original_for_projection={id(value):row for row in raw_all for value in (prepared[id(row)],)}
+    with _context_subphase("calendar", "context_metrics"):
+        sports_metrics = get_sports_metrics_contract(summary,fixture_operation=operation)
+    with _context_subphase("calendar", "context_prepare_rows"):
+        pick_ids={str(row.get('match_id') or '').strip() for row in summary.get('valid_active_picks') or ()}
+        favorites=favorite_sets() if has_request_context() and current_session_user() else {'team':set(),'league':set(),'match':set(),'all':[]}
+        raw_all=_v991_unique_objects(summary.get('all_valid_matches') or summary.get('valid_upcoming_matches') or ())
+        prepared={id(row):_v940_calendar_prepare_match(row,pick_ids,favorites) for row in raw_all}
+        approved_live_objects={id(row) for row in summary.get('valid_live_events') or ()}
+        raw_all=[row for row in raw_all if id(row) in approved_live_objects or not prepared[id(row)]['status_info'].get('is_live')]
+        original_for_projection={id(value):row for row in raw_all for value in (prepared[id(row)],)}
     def member_rows(key):
         members={id(row) for row in summary.get(key) or ()}
         return [row for row in raw_all if id(row) in members]
@@ -23547,44 +23672,48 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
         return _v991_selected(summary,rows,fixture_operation=operation,
             rank_for=lambda row:(bool(prepared[id(row)].get('has_pick')),bool(prepared[id(row)].get('is_favorite')),
                 provider_family(row.get('source'))=='api-football',match_quality_score(row)))
-    source_rows=lane_rows(filters['lane'])
-    source_selection=select(source_rows)
-    source_matches=[prepared[id(row)] for row in source_selection.rows]
-    filtered_projections=_calendar_apply_filters([prepared[id(row)] for row in source_rows],filters)
-    filtered_rows=[original_for_projection[id(row)] for row in filtered_projections]
-    selection=select(filtered_rows)
-    sorted_matches=_calendar_sort([prepared[id(row)] for row in selection.rows],filters.get('sort'))
-    if filters.get('lane')=='results' or str(filters.get('date') or '')<today_iso():
-        sorted_matches=v766_enrich_matches_with_highlights(sorted_matches)
-    day_groups=_calendar_group(sorted_matches,filters.get('sort'),match_dates_prepared=True)
-    day_navigation=_v940_calendar_group_navigation(day_groups)
-    today=today_iso();tomorrow=today_iso(1);week_end=today_iso(7)
-    # Count the original date/lane cohorts as one owned batch. Ranked source
-    # and filtered representatives above remain separate presentation decisions.
-    # Every subset still performs its own fresh identity projection.
-    calendar_dates = [day for day in sorted({str(row.get('match_date') or '') for row in raw_all}) if day]
-    count_cohorts = {
-        ('date', day): [row for row in raw_all if str(row.get('match_date') or '') == day]
-        for day in calendar_dates
-    }
-    count_cohorts.update({
-        ('lane', 'today'): member_rows('valid_matches_today'),
-        ('lane', 'week'): [row for row in raw_all if today <= str(row.get('match_date') or '') <= week_end],
-        ('lane', 'live'): lane_rows('live'),
-        ('lane', 'picks'): lane_rows('with_pick'),
-        ('lane', 'favorites'): lane_rows('favorites'),
-        ('lane', 'finished'): lane_rows('finished'),
-        ('lane', 'incidents'): lane_rows('incidents'),
-    })
-    count_batch = _v991_count_cohorts(summary, count_cohorts, fixture_operation=operation)
-    date_counts = {day: count_batch.counts[('date', day)] for day in calendar_dates}
-    counts = {
-        'all': source_selection.count, 'visible': selection.count, 'days': len(day_groups),
-        'leagues': len({canonical_competition_surface_contract(row)['group_key'] for row in sorted_matches}),
-        'today': count_batch.counts[('lane', 'today')], 'tomorrow': date_counts.get(tomorrow, 0),
-        **{name: count_batch.counts[('lane', name)]
-           for name in ('week', 'live', 'picks', 'favorites', 'finished', 'incidents')},
-    }
+    with _context_subphase("calendar", "context_source_selection"):
+        source_rows=lane_rows(filters['lane'])
+        source_selection=select(source_rows)
+        source_matches=[prepared[id(row)] for row in source_selection.rows]
+    with _context_subphase("calendar", "context_filtered_selection"):
+        filtered_projections=_calendar_apply_filters([prepared[id(row)] for row in source_rows],filters)
+        filtered_rows=[original_for_projection[id(row)] for row in filtered_projections]
+        selection=select(filtered_rows)
+        sorted_matches=_calendar_sort([prepared[id(row)] for row in selection.rows],filters.get('sort'))
+        if filters.get('lane')=='results' or str(filters.get('date') or '')<today_iso():
+            sorted_matches=v766_enrich_matches_with_highlights(sorted_matches)
+    with _context_subphase("calendar", "context_grouping"):
+        day_groups=_calendar_group(sorted_matches,filters.get('sort'),match_dates_prepared=True)
+        day_navigation=_v940_calendar_group_navigation(day_groups)
+    with _context_subphase("calendar", "context_date_lane_counts"):
+        today=today_iso();tomorrow=today_iso(1);week_end=today_iso(7)
+        # Count the original date/lane cohorts as one owned batch. Ranked source
+        # and filtered representatives above remain separate presentation decisions.
+        # Every subset still performs its own fresh identity projection.
+        calendar_dates = [day for day in sorted({str(row.get('match_date') or '') for row in raw_all}) if day]
+        count_cohorts = {
+            ('date', day): [row for row in raw_all if str(row.get('match_date') or '') == day]
+            for day in calendar_dates
+        }
+        count_cohorts.update({
+            ('lane', 'today'): member_rows('valid_matches_today'),
+            ('lane', 'week'): [row for row in raw_all if today <= str(row.get('match_date') or '') <= week_end],
+            ('lane', 'live'): lane_rows('live'),
+            ('lane', 'picks'): lane_rows('with_pick'),
+            ('lane', 'favorites'): lane_rows('favorites'),
+            ('lane', 'finished'): lane_rows('finished'),
+            ('lane', 'incidents'): lane_rows('incidents'),
+        })
+        count_batch = _v991_count_cohorts(summary, count_cohorts, fixture_operation=operation)
+        date_counts = {day: count_batch.counts[('date', day)] for day in calendar_dates}
+        counts = {
+            'all': source_selection.count, 'visible': selection.count, 'days': len(day_groups),
+            'leagues': len({canonical_competition_surface_contract(row)['group_key'] for row in sorted_matches}),
+            'today': count_batch.counts[('lane', 'today')], 'tomorrow': date_counts.get(tomorrow, 0),
+            **{name: count_batch.counts[('lane', name)]
+               for name in ('week', 'live', 'picks', 'favorites', 'finished', 'incidents')},
+        }
     active=_v940_calendar_active_filters(filters)
     selected_label=CALENDAR_LANE_LABELS.get(filters['lane'],'Calendario')
     title=date_display_label(filters['date']) if filters['lane'] in {'today','tomorrow'} else selected_label
@@ -23592,30 +23721,31 @@ def v940_calendar_context(summary, lane="today", date_value=None, fixture_operat
                       'source':'Datos reales confirmados' if counts['visible'] else 'Sin partidos confirmados para estas capas'}
     # Option labels come from every eligible original, including a secondary
     # member's alias. Counts select that option's own cohort before grouping.
-    facet_rows = {'leagues': {}, 'teams': {}, 'countries': {}}
-    for row in source_rows:
-        item = prepared[id(row)]
-        for family, labels in (
-            ('leagues', (item.get('calendar_competition') or 'Competición',)),
-            ('countries', (item.get('calendar_country') or 'Global',)),
-            ('teams', (item.get('safe_home') or item.get('home_team'), item.get('safe_away') or item.get('away_team'))),
-        ):
-            for label in dict.fromkeys(str(label or '').strip() for label in labels):
-                if label:
-                    facet_rows[family].setdefault(label, []).append(row)
-    facet_batch = _v991_count_cohorts(summary,
-        {(family,label):rows for family,values in facet_rows.items() for label,rows in values.items()},
-        fixture_operation=operation)
-    facets = {}
-    for family, values in facet_rows.items():
-        options = []
-        for label, values_for_label in values.items():
-            option = {'label':label,'value':label,'count':facet_batch.counts[(family,label)]}
-            if family == 'leagues':
-                option['rank'] = min(int(prepared[id(row)].get('calendar_rank') or 80) for row in values_for_label)
-            options.append(option)
-        facets[family] = sorted(options,key=(lambda item:(item['rank'],-item['count'],item['label']))
-            if family == 'leagues' else (lambda item:(-item['count'],item['label'])))[:{'leagues':28,'teams':32,'countries':18}[family]]
+    with _context_subphase("calendar", "context_facets"):
+        facet_rows = {'leagues': {}, 'teams': {}, 'countries': {}}
+        for row in source_rows:
+            item = prepared[id(row)]
+            for family, labels in (
+                ('leagues', (item.get('calendar_competition') or 'Competición',)),
+                ('countries', (item.get('calendar_country') or 'Global',)),
+                ('teams', (item.get('safe_home') or item.get('home_team'), item.get('safe_away') or item.get('away_team'))),
+            ):
+                for label in dict.fromkeys(str(label or '').strip() for label in labels):
+                    if label:
+                        facet_rows[family].setdefault(label, []).append(row)
+        facet_batch = _v991_count_cohorts(summary,
+            {(family,label):rows for family,values in facet_rows.items() for label,rows in values.items()},
+            fixture_operation=operation)
+        facets = {}
+        for family, values in facet_rows.items():
+            options = []
+            for label, values_for_label in values.items():
+                option = {'label':label,'value':label,'count':facet_batch.counts[(family,label)]}
+                if family == 'leagues':
+                    option['rank'] = min(int(prepared[id(row)].get('calendar_rank') or 80) for row in values_for_label)
+                options.append(option)
+            facets[family] = sorted(options,key=(lambda item:(item['rank'],-item['count'],item['label']))
+                if family == 'leagues' else (lambda item:(-item['count'],item['label'])))[:{'leagues':28,'teams':32,'countries':18}[family]]
     source_summary = ('Partidos disponibles por día y competición. Horarios de Madrid.' if counts['visible']
         else 'Ningún partido confirmado coincide con todas las capas activas.' if counts['all']
         else summary.get('safe_message') or 'Sin agenda real completa disponible.')
@@ -23773,16 +23903,24 @@ def _v940_calendar_provider_context(summary):
 @timed_operation('calendar_read')
 def calendar_page():
     phase_metrics = {}
+    context_phase_metrics = {}
 
     def calendar_timed_phase(name, callback):
         with timed_phase('calendar_read', name):
             started = time.perf_counter()
             try:
-                return callback()
+                with _calendar_context_phase_collection(
+                    context_phase_metrics if name == "calendar_context" else None
+                ):
+                    return callback()
             finally:
                 phase_metrics[name] = round((time.perf_counter() - started) * 1000.0, 1)
                 g.v935_route_phase_namespace = "calendar"
-                g.v935_route_phase_metrics = dict(phase_metrics)
+                try:
+                    published = _calendar_route_phase_values(phase_metrics, context_phase_metrics)
+                except Exception:
+                    published = dict(phase_metrics)
+                g.v935_route_phase_metrics = published
 
     lane = request.args.get("lane") or "today"
     date_value = request.args.get("date") or (today_iso(1) if lane == "tomorrow" else today_iso())
@@ -27563,6 +27701,7 @@ def membership_page():
 def shark_page():
     view_started = time.perf_counter()
     g.v937_shark_phase_metrics = {}
+    g.shark_context_subphase_metrics = {}
     session_user = current_session_user()
     user = session_user or {"membership": "FREE", "role": "FREE"}
     question_error = ""
