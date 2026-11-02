@@ -1,5 +1,6 @@
 """Preview changes presentation only; accepted fixture truth stays intact."""
 from copy import deepcopy
+import pytest
 from engines.home_preview import home_preview
 
 
@@ -98,3 +99,189 @@ def test_invalid_snapshot_date_never_becomes_navigation_markup_or_query():
     result=home_preview(day)
     assert result['agenda_href']=='/calendario'
     assert result['results_href']=='/calendario?lane=finished'
+
+
+def featured_selection(result):
+    return result['featured_items'] + [
+        row for lane in ('live', 'today', 'upcoming', 'results')
+        for group in result[lane]['groups'] for row in group['matches']]
+
+
+def test_default_keeps_original_shape_and_featured_limit_is_explicit():
+    day = day_fixture()
+    result = home_preview(day)
+    assert result == home_preview(day, featured_limit=1)
+    assert set(result) == set(day) | {
+        'hero', 'hero_lane', 'featured_count',
+        'agenda_href', 'upcoming_href', 'results_href',
+    }
+    assert [row['id'] for row in selected(result)] == [
+        'live4', 'live0', 'live1', 'live2', 'live3',
+    ]
+    assert 'featured_items' not in result and 'featured_lane' not in result
+    assert 'featured_groups' not in result
+    without_hero = home_preview(day, with_hero=False, featured_limit=2)
+    assert without_hero == home_preview(day, with_hero=False)
+    assert 'featured_items' not in without_hero
+    assert 'featured_lane' not in without_hero
+    assert 'featured_groups' not in without_hero
+
+
+def test_two_live_featured_rows_reuse_the_same_five_slots_and_original_objects():
+    day = day_fixture()
+    before = deepcopy(day)
+    baseline = home_preview(day)
+    result = home_preview(day, featured_limit=2)
+    assert [row['id'] for row in result['featured_items']] == ['live4', 'live0']
+    assert result['hero'] is result['featured_items'][0]
+    assert result['featured_items'][0] is day['live']['groups'][0]['matches'][4]
+    assert result['featured_items'][1] is day['live']['groups'][0]['matches'][0]
+    assert len(result['featured_groups']) == len(result['featured_items']) == 2
+    assert result['featured_groups'][0] is day['live']['groups'][0]
+    assert result['featured_groups'][1] is result['featured_groups'][0]
+    assert result['featured_lane'] == result['hero_lane'] == 'live'
+    rows = featured_selection(result)
+    assert len(rows) == len({row['id'] for row in rows}) == result['featured_count'] == 5
+    assert {id(row) for row in rows} == {id(row) for row in selected(baseline)}
+    assert all(row['home_score'] == 0 for row in rows)
+    assert result['live']['shown'] == 3
+    assert result['live']['preview_displayed'] == 5
+    for lane in day:
+        assert result[lane]['total'] == baseline[lane]['total'] == 60
+        assert result[lane]['has_more'] == baseline[lane]['has_more']
+        assert result[lane]['preview_displayed'] == baseline[lane]['preview_displayed']
+    assert day == before
+
+
+def test_second_featured_row_can_follow_other_lanes_without_taking_their_slots():
+    day = day_fixture()
+    day['live'].update(total=0, shown=0, groups=[])
+    baseline = home_preview(day)
+    result = home_preview(day, featured_limit=2)
+    assert {row['id'] for row in selected(baseline)} == {
+        'today4', 'upcoming4', 'results4', 'today0', 'today1',
+    }
+    assert [row['id'] for group in baseline['today']['groups']
+            for row in group['matches']] == ['today0', 'today1']
+    assert [row['id'] for row in result['featured_items']] == ['today4', 'today0']
+    assert result['featured_lane'] == 'today'
+    assert [row['id'] for row in result['today']['groups'][0]['matches']] == ['today1']
+    for lane in ('upcoming', 'results'):
+        assert result[lane] == baseline[lane]
+    assert result['today']['shown'] == 1
+    assert result['today']['preview_displayed'] == 3
+    assert {id(row) for row in featured_selection(result)} == {
+        id(row) for row in selected(baseline)}
+
+
+def test_single_winning_live_row_does_not_backfill_from_other_lanes():
+    day = day_fixture()
+    day['live']['groups'][0]['matches'] = [day['live']['groups'][0]['matches'][0]]
+    day['live']['total'] = 1
+    baseline = home_preview(day)
+    result = home_preview(day, featured_limit=2)
+    assert [row['id'] for row in result['featured_items']] == ['live0']
+    assert result['featured_count'] == 5
+    assert result['live']['shown'] == 0
+    assert result['live']['preview_displayed'] == 1
+    assert result['live']['has_more'] is False
+    for lane in ('today', 'upcoming', 'results'):
+        assert result[lane] == baseline[lane]
+    assert {row['id'] for row in featured_selection(result)} == {
+        row['id'] for row in selected(baseline)}
+
+
+def test_upcoming_pair_keeps_results_and_complete_agenda_dates():
+    day = day_fixture()
+    for lane in ('live', 'today'):
+        day[lane].update(total=0, shown=0, groups=[])
+    day['date'] = '2026-11-03'
+    day['results']['groups'][0]['date'] = '2026-11-02'
+    baseline = home_preview(day)
+    result = home_preview(day, featured_limit=2)
+    assert [row['id'] for row in result['featured_items']] == ['upcoming4', 'upcoming0']
+    assert result['featured_lane'] == result['hero_lane'] == 'upcoming'
+    assert result['upcoming']['shown'] == 2
+    assert result['upcoming']['preview_displayed'] == 4
+    assert result['results'] == baseline['results']
+    assert {id(row) for row in featured_selection(result)} == {
+        id(row) for row in selected(baseline)}
+    assert result['featured_count'] == 5
+    assert result['agenda_href'] == '/calendario?date=2026-11-03'
+    assert result['upcoming_href'] == '/calendario?lane=week&date=2026-11-03'
+    assert result['results_href'] == '/calendario?lane=finished&date=2026-11-02'
+
+
+def test_results_keep_one_static_hero_in_featured_opt_in():
+    day = day_fixture()
+    for lane in ('live', 'today', 'upcoming'):
+        day[lane].update(total=0, shown=0, groups=[])
+    baseline = home_preview(day)
+    result = home_preview(day, featured_limit=2)
+    assert result['featured_items'] == [result['hero']]
+    assert len(result['featured_groups']) == 1
+    assert result['featured_groups'][0] is day['results']['groups'][0]
+    assert result['hero'] is baseline['hero']
+    assert result['featured_lane'] == result['hero_lane'] == 'results'
+    assert result['results'] == baseline['results']
+    assert len(featured_selection(result)) == result['featured_count'] == 5
+
+
+@pytest.mark.parametrize('limit', [1, 3, 5])
+def test_featured_opt_in_never_expands_the_existing_global_limit(limit):
+    day = day_fixture()
+    baseline = home_preview(day, limit=limit)
+    result = home_preview(day, limit=limit, featured_limit=2)
+    rows = featured_selection(result)
+    assert len(rows) == len({row['id'] for row in rows}) == result['featured_count'] == limit
+    assert len(result['featured_items']) == min(2, limit)
+    assert {id(row) for row in rows} == {id(row) for row in selected(baseline)}
+
+
+def test_empty_featured_opt_in_keeps_canonical_empty_and_passthrough_distinct():
+    result = home_preview({}, featured_limit=2)
+    assert result['hero'] is None and result['hero_lane'] == ''
+    assert result['featured_items'] == [] and result['featured_lane'] == ''
+    assert result['featured_groups'] == []
+    assert result['featured_count'] == 0
+    assert all(result[lane]['preview_displayed'] == 0 for lane in ('live', 'today', 'upcoming', 'results'))
+    assert home_preview(None, featured_limit=2) is None
+    marker = object()
+    assert home_preview(marker, featured_limit=2) is marker
+
+
+@pytest.mark.parametrize('invalid', [None, True, False, 0, 3, 1.5, '2'])
+def test_featured_limit_rejects_other_values_without_mutating_input(invalid):
+    day = day_fixture()
+    before = deepcopy(day)
+    with pytest.raises(ValueError, match='featured_limit must be 1 or 2'):
+        home_preview(day, featured_limit=invalid)
+    assert day == before
+
+
+@pytest.mark.parametrize('count', [1, 3])
+def test_featured_groups_pair_with_original_rows_without_new_group_objects(count):
+    day = day_fixture()
+    for lane in ('today', 'upcoming', 'results'):
+        day[lane].update(total=0, shown=0, groups=[])
+    groups = [dict(
+        key='accepted-' + str(number), competition='League ' + str(number),
+        country='Japan' if number == 0 else 'Spain',
+        date='2026-11-03', metadata={'source': 'accepted'},
+        matches=[dict(id='paired-' + str(number), home_score=0,
+                      is_favorite=False, status_info={'is_live': True})],
+        shown=1,
+    ) for number in range(count)]
+    day['live'].update(total=count, shown=count, groups=groups)
+    before = deepcopy(day)
+    result = home_preview(day, featured_limit=2)
+    assert len(result['featured_items']) == len(result['featured_groups']) == min(2, count)
+    for position, (row, group) in enumerate(zip(result['featured_items'], result['featured_groups'])):
+        assert group is groups[position]
+        assert row is group['matches'][0]
+        assert group['metadata'] is groups[position]['metadata']
+    assert {id(group) for group in result['featured_groups']} <= {id(group) for group in groups}
+    assert result['featured_groups'][0]['country'] == 'Japan'
+    assert result['featured_groups'][0]['date'] == '2026-11-03'
+    assert len(featured_selection(result)) == result['featured_count'] == count
+    assert day == before

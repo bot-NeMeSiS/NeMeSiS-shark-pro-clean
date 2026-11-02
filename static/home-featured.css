@@ -1,0 +1,13 @@
+/* The featured block only changes presentation of the existing five-card Home budget. */
+.home-match-featured{min-width:0;max-width:100%;margin-block:0 10px}
+.home-match-featured-slides,.home-match-featured-slide{min-width:0}
+.home-match-featured-slide[hidden],.home-match-featured-controls[hidden]{display:none!important}
+.home-match-featured-slide>.v933-match-card{width:100%;box-sizing:border-box;margin:0;min-width:0}
+.home-match-featured-controls{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px;margin-block-start:8px}
+.home-match-featured-controls .v933-action{min-width:44px;min-height:44px;justify-content:center}
+.home-match-featured-counter{font-variant-numeric:tabular-nums;white-space:nowrap;min-width:38px;text-align:center;font-size:.82rem}
+.home-match-featured-toggle{min-width:84px!important}
+.home-match-featured-fallback{display:block;margin-block-start:8px;font-size:.82rem;overflow-wrap:anywhere}
+.home-match-featured :focus-visible{outline:2px solid #64d8fa;outline-offset:3px}
+@media(max-width:600px){.home-match-featured-controls{gap:4px}.home-match-featured-controls .v933-action{padding:6px 10px}}
+@media(prefers-reduced-motion:reduce){.home-match-featured *{animation:none!important;transition:none!important}}

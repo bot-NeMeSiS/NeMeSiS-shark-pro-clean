@@ -113,9 +113,15 @@ def test_more_today_grouped_with_logos_and_native_league_navigation(browser, app
     try:
         page.goto('https://league-home.invalid'+page_path)
         agenda=page.locator('[data-home-league-agenda="'+('public-today' if public else 'today')+'"]')
-        preview_count=4 if public else 5
+        # Both Homes allocate two of the existing five slots to the same
+        # featured lane; its remaining three competition cards stay grouped.
+        preview_count=3
+        featured=page.locator('[data-home-featured] [data-v934-match-id]')
+        assert featured.count()==2
         assert agenda.locator('[data-v934-match-id]').count() == preview_count
         assert page.locator('[data-v934-match-id]').count() == 5
+        assert len(set(page.locator('[data-v934-match-id]').evaluate_all(
+            '(nodes)=>nodes.map(node=>node.dataset.v934MatchId)')))==5
         assert agenda.locator('.home-competition-group').count() == preview_count
         assert agenda.locator('.home-competition-header img').count() == preview_count
         assert agenda.locator('details').count() == 0
@@ -189,8 +195,11 @@ def test_public_hero_and_grouped_preview_share_global_budget_with_complete_agend
     dom=Structure(markup_for(app_module,public=True))
     agenda=next(n for n in dom.nodes if n['attrs'].get('data-home-league-agenda')=='public-today')
     cards=[n for n in dom.nodes if 'data-v934-match-id' in n['attrs'] and agenda in n['parents']]
-    assert len(cards)==4
-    assert len([n for n in dom.nodes if 'home-competition-group' in n['attrs'].get('class','') and agenda in n['parents']])==4
+    assert len(cards)==3
+    assert len([n for n in dom.nodes if 'home-competition-group' in n['attrs'].get('class','') and agenda in n['parents']])==3
+    featured=[n for n in dom.nodes if 'data-v934-match-id' in n['attrs'] and
+              any('data-home-featured' in parent['attrs'] for parent in n['parents'])]
+    assert len(featured)==2
     ids=[n['attrs']['data-v934-match-id'] for n in dom.nodes if 'data-v934-match-id' in n['attrs']]
     assert len(ids)==len(set(ids))==5
     assert day_fixture()['today']['total']==30

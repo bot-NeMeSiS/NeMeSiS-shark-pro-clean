@@ -310,14 +310,20 @@ def test_home_shows_three_secondary_live_competitions_without_opening_a_disclosu
     dom=Structure(render_home(app_module,{'home_matchday':build(rows)},language))
     cards=[node for node in dom.nodes if 'data-v934-match-id' in node['attrs']]
     visible={node['attrs']['data-v934-match-id'] for node in cards
-             if not any(parent['tag']=='details' for parent in node['parents'])}
+             if not any(parent['tag']=='details' or 'hidden' in parent['attrs']
+                        for parent in node['parents'])}
+    carousel_hidden={node['attrs']['data-v934-match-id'] for node in cards
+                     if any('data-home-featured-slide' in parent['attrs'] and
+                            'hidden' in parent['attrs'] for parent in node['parents'])}
     disclosed={node['attrs']['data-v934-match-id'] for node in cards
                 if any(parent['tag']=='details' for parent in node['parents'])}
 
     assert len(cards)==5
     assert len(visible)==3
-    assert len(disclosed)==2
+    assert len(disclosed)==1 and len(carousel_hidden)==1
     assert visible.isdisjoint(disclosed)
+    assert carousel_hidden.isdisjoint(visible | disclosed)
+    assert visible | disclosed | carousel_hidden == {row['id'] for row in rows}
 
 
 @pytest.mark.parametrize('language',['es','en','fr'])

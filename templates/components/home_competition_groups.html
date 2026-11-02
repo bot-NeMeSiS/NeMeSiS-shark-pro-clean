@@ -12,13 +12,13 @@
 {% macro league_matches(group) -%}
 <div class="home-agenda-matches">{% for match in group.matches %}{{ match_card(match, true, true) }}{% endfor %}</div>
 {%- endmacro %}
-{% macro competition_groups(groups, show_date=false, section='agenda') -%}
+{% macro competition_groups(groups, show_date=false, section='agenda', live_visible_limit=3) -%}
 {% set primary = groups|selectattr('home_primary', 'sameas', true)|list %}
 {% set secondary = groups|rejectattr('home_primary', 'sameas', true)|list %}
 {# Live matches are time-sensitive: show a small cross-competition sample immediately,
    while keeping the rest progressive and preserving the canonical league ranking. #}
 {% if section == 'live' and secondary %}
-  {% set visible_live_groups = secondary[:3] %}
+  {% set visible_live_groups = secondary[:live_visible_limit] %}
   {% set primary = primary + visible_live_groups %}
   {% set secondary = secondary[visible_live_groups|length:] %}
 {% endif %}

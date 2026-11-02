@@ -2,8 +2,10 @@
 {% from "components/v933_ui.html" import icon, status_chip, action_button, section_header, kpi_card, quick_action, empty_state, match_card, live_card, pick_card, provider_state, realtime_state_bar, sports_contract_attributes with context %}
 {% from "components/v936_product.html" import value_ladder, evidence_receipt, decision_radar, data_trust_meter %}
 {% from "components/home_competition_groups.html" import competition_groups, remaining with context %}
+{% from "components/home_featured.html" import home_featured with context %}
+{% block head_extra %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='home-featured.css') }}?v=1">{% endblock %}
 {% block content %}
-{% set day = data.get("home_matchday")|home_preview %}
+{% set day = data.get("home_matchday")|home_preview(featured_limit=2) %}
 {% set agenda_href = day.agenda_href if day else '/calendario' %}
 {% set upcoming_href = day.upcoming_href if day else '/calendario?lane=week' %}
 {% set results_href = day.results_href if day else '/calendario?lane=finished' %}
@@ -125,7 +127,7 @@
         {{ status_chip('QA local' if simulated_evidence else ('Datos disponibles' if summary.get('has_real_data') else 'Agenda pendiente'), 'info' if simulated_evidence else ('success' if summary.get('has_real_data') else 'warning')) }}
       </header>
       {% if hero_match %}
-        {{ match_card(hero_match, true, true) }}
+        {{ home_featured([hero_match] + (day.featured_items[1:] if day is mapping and day.featured_items is defined else []), hero_board_title, day.featured_groups if day is mapping and day.featured_groups is defined else []) }}
       {% else %}
         <div class="v933-safe-copy">{{ safe_message }}</div>
         {{ action_button('Ver próximos partidos', '/calendario?lane=week', true, 'blue', false, 'calendar') }}
@@ -134,7 +136,7 @@
   </section>
 
 
-  {% if day or live_matches or not original_sections.live %}<section class="v933-panel sports-priority-section" data-sports-priority="live-now">
+  {% if (day and (day.live.shown or day.live.has_more or not day.live.total)) or (not day and (live_matches or not original_sections.live)) %}<section class="v933-panel sports-priority-section" data-sports-priority="live-now">
     {{ section_header('En directo ahora', '', 'Abrir Directo', '/directo', 'Directo') }}
 {% if day and day.live.shown %}{{ competition_groups(day.live.groups, false, section='public-live') }}{{ remaining(day.live, '/directo') }}
     {% elif day and day.live.total %}{{ remaining(day.live, '/directo') }}
@@ -150,7 +152,7 @@
   {% endif %}
   <section class="v933-two-col sports-priority-layout">
     <div class="v933-main-stack">
-      {% if day or important_matches or not original_sections.important %}<section class="v933-panel sports-priority-section" data-sports-priority="important-today">
+      {% if (day and (day.today.shown or day.today.has_more or not day.today.total)) or (not day and (important_matches or not original_sections.important)) %}<section class="v933-panel sports-priority-section" data-sports-priority="important-today">
         {{ section_header('Partidos de hoy' if day else 'Importantes hoy', 'Por liga · Hora Madrid' if day else '', 'Todos los partidos', agenda_href) }}
 {% if day and day.today.shown %}{{ competition_groups(day.today.groups, false, section='public-today') }}{{ remaining(day.today, agenda_href) }}
         {% elif day and day.today.total %}{{ remaining(day.today, agenda_href) }}
@@ -164,7 +166,7 @@
       </section>
 
       {% endif %}
-      {% if day or upcoming_matches or not original_sections.upcoming %}<section class="v933-panel sports-priority-section" data-sports-priority="upcoming">
+      {% if (day and (day.upcoming.shown or day.upcoming.has_more or not day.upcoming.total)) or (not day and (upcoming_matches or not original_sections.upcoming)) %}<section class="v933-panel sports-priority-section" data-sports-priority="upcoming">
         {{ section_header('Próximos partidos', '', 'Explorar semana', upcoming_href, 'Agenda') }}
 {% if day and day.upcoming.shown %}{{ competition_groups(day.upcoming.groups, true, section='public-upcoming') }}{{ remaining(day.upcoming, upcoming_href) }}
         {% elif day and day.upcoming.total %}{{ remaining(day.upcoming, upcoming_href) }}
@@ -178,7 +180,7 @@
       </section>
 
       {% endif %}
-      {% if day or recent_results or not original_sections.results %}<section class="v933-panel sports-priority-section" data-sports-priority="recent-results">
+      {% if (day and (day.results.shown or day.results.has_more or not day.results.total)) or (not day and (recent_results or not original_sections.results)) %}<section class="v933-panel sports-priority-section" data-sports-priority="recent-results">
         {{ section_header('Resultados recientes', '', 'Ver finalizados', results_href, 'Resultados') }}
 {% if day and day.results.shown %}{{ competition_groups(day.results.groups, true, section='public-results') }}{{ remaining(day.results, results_href) }}
         {% elif day and day.results.total %}{{ remaining(day.results, results_href) }}
