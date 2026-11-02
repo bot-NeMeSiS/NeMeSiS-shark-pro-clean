@@ -1,5 +1,21 @@
 {
   "platform_refinement": {
+    "Anterior": {
+      "en": "Previous",
+      "fr": "Précédent"
+    },
+    "Siguiente": {
+      "en": "Next",
+      "fr": "Suivant"
+    },
+    "Pausar": {
+      "en": "Pause",
+      "fr": "Pause"
+    },
+    "Reanudar": {
+      "en": "Resume",
+      "fr": "Reprendre"
+    },
     "Economía / costes": {
       "en": "Finance / costs",
       "fr": "Finances / coûts"

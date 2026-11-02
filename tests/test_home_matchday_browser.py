@@ -31,7 +31,7 @@ def test_matchday_is_visible_diverse_and_navigable(browser,app_module,width,lang
             current_user={'id':'qa-home','name':'María','membership':'FREE'},
             greeting=madrid_greeting('María',username='qa-home',locale=language))
     markup=re.sub(r'<script\b([^>]*)>.*?</script>',lambda m:m.group(0) if any(
-        name in m[1] for name in ('application/json','ui-localization.js','v930-icons.js')) else '',markup,flags=re.S|re.I)
+        name in m[1] for name in ('application/json','ui-localization.js','v930-icons.js','platform-motion.js')) else '',markup,flags=re.S|re.I)
     context=browser.new_context(viewport={'width':width,'height':1000},java_script_enabled=javascript,locale=language,service_workers='block')
     page=context.new_page(); calls=[];errors=[]
     page.on('pageerror',lambda error:errors.append(str(error)))
@@ -87,7 +87,15 @@ def test_matchday_is_visible_diverse_and_navigable(browser,app_module,width,lang
         assert page.locator('[data-v934-match-id]').count()==5
         for identity in expected_ids:
             card=page.locator('[data-v934-match-id="'+identity+'"]')
-            assert card.count()==1 and card.is_visible()
+            assert card.count()==1
+            if not card.is_visible():
+                assert card.locator('xpath=ancestor::*[@data-home-featured-slide and @hidden]').count()==1
+                if javascript:
+                    page.locator('[data-home-featured-next]').click()
+                    assert card.is_visible()
+                else:
+                    fallback=page.locator('[data-home-featured] noscript a[href="/match/'+identity+'"]')
+                    assert fallback.count()==1 and fallback.is_visible()
         assert day['upcoming']['total']==6
         assert page.locator('[data-sports-priority="upcoming"] a[href^="/calendario?lane=week&date="]').count()>=1
         assert page.locator('[data-v934-match-id="qa-laliga"] .fav-star').get_attribute('aria-pressed')=='true'
@@ -97,6 +105,9 @@ def test_matchday_is_visible_diverse_and_navigable(browser,app_module,width,lang
             page.screenshot(path=str(tmp_path/f'home-{width}.png'),full_page=True)
             page.screenshot(path=str(tmp_path/f'home-{width}-viewport.png'))
         link=page.locator('[data-v934-match-id="qa-laliga"] a[href="/match/qa-laliga"]').last
+        if not link.is_visible():
+            if javascript:page.locator('[data-home-featured-next]').click()
+            else:link=page.locator('[data-home-featured] noscript a[href="/match/qa-laliga"]')
         # Native focus scrolls the link into view and works with scripts disabled;
         # avoid Playwright's animation/stability scroll polling in no-JS contexts.
         link.focus();page.keyboard.press('Enter')

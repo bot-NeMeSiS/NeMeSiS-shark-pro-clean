@@ -1,0 +1,28 @@
+{% from "components/v933_ui.html" import match_card with context %}
+{% macro home_featured(matches, label='Partidos destacados', groups=()) -%}
+{% if matches %}
+<div class="home-match-featured" data-home-featured role="region" aria-label="{{ ui(label) }}">
+  <div class="home-match-featured-slides">
+    {% for match in matches %}
+    <div class="home-match-featured-slide" data-home-featured-slide{% if not loop.first %} hidden{% endif %} role="group" aria-label="{{ loop.index }} / {{ loop.length }}">
+      {% if groups|length > loop.index0 %}
+      {% set group = groups[loop.index0] %}
+      <h3 class="home-presentation-section-heading">{% if group.presentation_group_kind == 'international' %}{{ ui('Torneos internacionales') }}{% elif group.presentation_group_kind == 'unknown' %}{{ ui('País sin confirmar') }}{% else %}{{ ui_country(group.presentation_group_label or group.display_country or group.country) }}{% endif %}</h3>
+      {% endif %}
+      {{ match_card(match, true, true) }}
+    </div>
+    {% endfor %}
+  </div>
+  {% if matches|length > 1 %}
+  <div class="home-match-featured-controls" data-home-featured-controls hidden>
+    <button type="button" class="v933-action" data-home-featured-prev aria-label="{{ ui('Anterior') }}"><span aria-hidden="true">‹</span></button>
+    <span class="home-match-featured-counter" data-home-featured-counter>1 / {{ matches|length }}</span>
+    <button type="button" class="v933-action" data-home-featured-next aria-label="{{ ui('Siguiente') }}"><span aria-hidden="true">›</span></button>
+    <button type="button" class="v933-action home-match-featured-toggle" data-home-featured-toggle data-pause="{{ ui('Pausar') }}" data-play="{{ ui('Reanudar') }}" aria-pressed="false">{{ ui('Pausar') }}</button>
+  </div>
+  <span class="sr-only" data-home-featured-status role="status" aria-live="polite" aria-atomic="true"></span>
+  <noscript><div class="home-match-featured-fallback">{{ ui('Ver todos') }}: {% for match in matches[1:] %}<a href="{{ '/match/' ~ match.get('id') }}">{{ match.get('safe_home') or match.get('client_home') or match.get('home_team') }} · {{ match.get('safe_away') or match.get('client_away') or match.get('away_team') }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</div></noscript>
+  {% endif %}
+</div>
+{% endif %}
+{%- endmacro %}

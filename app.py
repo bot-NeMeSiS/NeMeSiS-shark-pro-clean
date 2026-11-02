@@ -12580,9 +12580,9 @@ def current_user_id():
 
 
 @app.template_filter("home_preview")
-def jinja_home_preview(value, with_hero=True):
+def jinja_home_preview(value, with_hero=True, featured_limit=1, active_first=False):
     from engines.home_preview import home_preview
-    return home_preview(value, with_hero=with_hero)
+    return home_preview(value, with_hero=with_hero, featured_limit=featured_limit, active_first=active_first)
 
 
 @app.template_filter("competition_es")
