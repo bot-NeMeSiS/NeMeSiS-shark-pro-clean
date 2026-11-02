@@ -402,20 +402,22 @@ _KICKOFF_FIELDS = (
 _CLOCK_FIELDS = ("live_updated_at", "provider_updated_at", "last_synced_at")
 _ENTITY_LABELS = ("official_name", "display_name", "name")
 _ENTITY_SCALARS = ("gender", "category", "age_group", "provider_team_id", "canonical_team_id")
+_IDENTITY_SCALAR_TYPES = frozenset((str, int, float, bool, type(None)))
 
 class _IdentityLimit(ValueError):
     pass
 
 def _identity_scalar(value, limit=256, *, identifier=False):
-    if type(value) not in {str, int, float, bool, type(None)}:
+    kind = type(value)
+    if kind not in _IDENTITY_SCALAR_TYPES:
         raise _IdentityLimit("unsupported identity scalar")
-    if identifier and type(value) is bool:
+    if identifier and kind is bool:
         raise _IdentityLimit("unsupported identity identifier")
     if isinstance(value, str) and len(value) > limit:
         raise _IdentityLimit("identity scalar too long")
-    if type(value) is int and value.bit_length() > 850:
+    if kind is int and value.bit_length() > 850:
         raise _IdentityLimit("identity integer too long")
-    if type(value) is float and not isfinite(value):
+    if kind is float and not isfinite(value):
         raise _IdentityLimit("nonfinite identity scalar")
     return value
 
