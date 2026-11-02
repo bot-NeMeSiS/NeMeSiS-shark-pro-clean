@@ -85,8 +85,10 @@ def preflight(source: Path, directory: Path) -> dict:
     }
 
 
-def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app_probe_mode=None) -> dict:
+def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app_probe_mode=None, state_bundle=None) -> dict:
     started = time.monotonic()
+    if state_bundle is not None and app_probe_mode is None:
+        return {"ok": False, "code": "STATE_REQUIRES_EXPLICIT_APP_PROBE"}
     if app_probe_mode not in (None, "read_only", "normal_boot"):
         return {"ok": False, "code": "INVALID_APP_PROBE_MODE"}
     try:
@@ -127,6 +129,10 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app
             archive_identity = checked.get("file_identity")
             if archive_identity != fingerprint(selected):
                 return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
+            if state_bundle is not None:
+                from tools.recovery_state_adapter import bind_verified_sqlite
+                bind_verified_sqlite(state_bundle, backup_name=name,
+                                     sqlite_sha256=checked["results"][0]["actual"], deadline=deadline)
             stage = "RESTORE_CAPACITY"
             required = archive_identity["size"] + max(MIN_RESERVE, archive_identity["size"] // 5)
             if app_probe_mode is not None:
@@ -135,6 +141,8 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app
                 required += MIN_RESERVE
                 if app_probe_mode == "normal_boot":
                     required += archive_identity["size"]
+            if state_bundle is not None:
+                required += state_bundle.limits.bytes
             free = shutil.disk_usage(directory).free
             check_time()
             if free < required:
@@ -186,8 +194,10 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app
                     stage = "ISOLATED_APP_PROBE"
                     check_time()
                     from tools.recovery_app_probe import run_app_probe
+                    state_options = {} if state_bundle is None else {"state_bundle": state_bundle}
                     app_probe = run_app_probe(project_root=ROOT, restored_database=destination_path,
-                                              workspace=Path(temp), deadline=deadline, mode=app_probe_mode)
+                                              workspace=Path(temp), deadline=deadline, mode=app_probe_mode,
+                                              **state_options)
                     if fingerprint(selected) != archive_identity:
                         return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
                     if not app_probe.get("ok"):
@@ -219,11 +229,16 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app
         return {"ok": False, "code": "ISOLATED_RESTORE_FAILED", "error_type": type(exc).__name__}
 
 
-def run(args: argparse.Namespace) -> int:
+def run(args: argparse.Namespace, *, state_plan=None) -> int:
     source = Path(args.db).expanduser()
     # Dedicated directory: never prune or reclaim the normal backup archive.
     directory = (Path(args.backup_dir).expanduser() if args.backup_dir
                  else backup_dir(ROOT) / "operator_327")
+    # A plan is supplied only by a separately reviewed code/data invocation.
+    # main() supplies none; no CLI flag or manifest can enable state capture.
+    if state_plan is not None and args.verify_existing:
+        emit({"ok": False, "stage": "PREFLIGHT", "code": "STATE_VERIFY_EXISTING_NOT_ADMITTED"})
+        return 2
     if args.verify_existing:
         if not directory.is_dir() or directory.is_symlink():
             emit({"ok": False, "stage": "VERIFY", "code": "DESTINATION_UNAVAILABLE"})
@@ -233,32 +248,78 @@ def run(args: argparse.Namespace) -> int:
         emit({"stage": "VERIFY", "backup_name": args.verify_existing, **checked})
         return 0 if checked.get("ok") else 2
 
+    if state_plan is not None:
+        from tools.recovery_state_adapter import operator_preflight, validate_operator_plan, HandoffError
+        try:
+            # Validate the code-supplied binding before even the SQLite-only
+            # read preflight. This does not create a plan from CLI/data.
+            validate_operator_plan(plan=state_plan, source=source, directory=directory,
+                                   app_probe_mode=getattr(args, "app_probe_mode", None),
+                                   verify_existing=args.verify_existing)
+        except (HandoffError, ValueError, TypeError):
+            emit({"ok": False, "stage": "PREFLIGHT", "code": "STATE_PLAN_NOT_ADMITTED", "backup_created": False})
+            return 2
     check = preflight(source, directory)
+    if state_plan is not None:
+        try:
+            check = operator_preflight(plan=state_plan, source=source, directory=directory,
+                                       app_probe_mode=getattr(args, "app_probe_mode", None),
+                                       verify_existing=args.verify_existing, storage=check)
+        except (HandoffError, ValueError, TypeError):
+            emit({"ok": False, "stage": "PREFLIGHT", "code": "STATE_PLAN_NOT_ADMITTED", "backup_created": False})
+            return 2
     if not check["ok"] or not args.execute:
         emit({**check, "execute_requested": bool(args.execute), "backup_created": False})
         return 0 if check["ok"] else 2
 
     # Double-check just before a write; no retention of other backups.
     check = preflight(source, directory)
+    if state_plan is not None:
+        check = operator_preflight(plan=state_plan, source=source, directory=directory,
+                                   app_probe_mode=getattr(args, "app_probe_mode", None),
+                                   verify_existing=args.verify_existing, storage=check)
     if not check["ok"]:
         emit({**check, "backup_created": False})
         return 2
+    state_handoff = None
+    state_bundle = None
     try:
         version_path = ROOT / "VERSION.txt"
         version = version_path.read_text(encoding="utf-8").strip() if version_path.is_file() else "OPERATOR_327"
-        result = create_sqlite_backup(
-            source,
-            ROOT,
-            version,
-            backup_type="operator_recovery_327",
-            created_by="render_web_shell",
-            directory=directory,
-            max_files=0,
-            preserve_existing_backups=True,
-            snapshot_timeout=float(args.timeout),
-        )
+        def capture_sqlite(**deadline_cap):
+            return create_sqlite_backup(
+                source,
+                ROOT,
+                version,
+                backup_type="operator_recovery_327",
+                created_by="render_web_shell",
+                directory=directory,
+                max_files=0,
+                preserve_existing_backups=True,
+                snapshot_timeout=float(args.timeout),
+                **deadline_cap,
+            )
+        if state_plan is None:
+            result = capture_sqlite()
+        else:
+            from tools.recovery_state_adapter import capture_with_state, public_state_receipt, public_sqlite_disposition
+            # One aggregate phase A: state copy -> ONE SQLite -> state recheck
+            # -> state publication. Substeps do not restart this deadline.
+            capture_deadline = time.monotonic() + float(args.timeout)
+            state_handoff = capture_with_state(plan=state_plan, source=source,
+                                               create_snapshot=capture_sqlite, deadline=capture_deadline)
+            result = state_handoff.sqlite_result or {}
+            state_bundle = state_handoff.bundle
+            if not state_handoff.ok:
+                emit({"ok": False, "stage": "STATE_CAPTURE", "code": "STATE_CAPTURE_NOT_VERIFIED",
+                      **public_sqlite_disposition(state_handoff),
+                      "state": public_state_receipt(state_handoff),
+                      "full_application_recovery_certified": False})
+                return 2
     except (OSError, sqlite3.Error, ValueError):
-        emit({"ok": False, "stage": "BACKUP", "code": "SNAPSHOT_FAILED", "backup_created": False})
+        emit({"ok": False, "stage": "BACKUP", "code": "SNAPSHOT_FAILED",
+              "backup_created": None if state_plan is not None else False,
+              **({"sqlite_disposition": "UNKNOWN_PRESERVE_AND_DO_NOT_RETRY"} if state_plan is not None else {})})
         return 2
     name = result.get("backup_file", "")
     if result.get("ok") is not True or result.get("backup_created") is not True or not name:
@@ -269,8 +330,9 @@ def run(args: argparse.Namespace) -> int:
             "backup_created": bool(result.get("backup_created")),
         })
         return 2
+    state_options = {} if state_bundle is None else {"state_bundle": state_bundle}
     restored = verify_and_restore_isolated(directory, name, args.timeout,
-                                          app_probe_mode=getattr(args, "app_probe_mode", None))
+                                          app_probe_mode=getattr(args, "app_probe_mode", None), **state_options)
     emit({
         "ok": bool(restored.get("ok")),
         "stage": "COMPLETE" if restored.get("ok") else "ISOLATED_RESTORE",
@@ -280,6 +342,11 @@ def run(args: argparse.Namespace) -> int:
         "sha256": result.get("sha256"),
         "snapshot_bytes": check["snapshot_bytes"],
         "isolated_restore_ok": bool(restored.get("ok")),
+        **({"state": public_state_receipt(state_handoff), "state_operation_id": state_bundle.operation_id,
+            "state_proposal_sha256": state_bundle.proposal_sha256,
+            "continuous_cross_store_consistency_certified": False,
+            "full_application_recovery_certified": False}
+           if state_handoff is not None else {}),
         **({"app_probe": restored["app_probe"], "full_application_recovery_certified": False}
            if "app_probe" in restored else {}),
     })

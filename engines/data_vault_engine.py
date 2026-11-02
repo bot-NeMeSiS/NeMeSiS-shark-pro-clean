@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import math
 import os
 import shutil
 import sqlite3
@@ -600,8 +601,31 @@ def _backup_with_wal_snapshot(source, destination, *, progress) -> None:
             source.rollback()
 
 
-def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str, backup_type: str = "manual", created_by: str = "admin", *, directory: str | Path | None = None, max_files: int | None = None, snapshot_timeout: float = 15.0, preserve_existing_backups: bool = False) -> dict:
-    """Serialize capacity, crash recovery, snapshot publication and retention."""
+def _bounded_backup_deadline(snapshot_timeout, absolute_deadline=None, *, now=None):
+    """Optional caller cap; never extends the existing snapshot timeout."""
+    if absolute_deadline is not None and (
+            type(absolute_deadline) not in (int, float)
+            or not math.isfinite(absolute_deadline) or absolute_deadline <= 0):
+        raise ValueError("invalid_absolute_backup_deadline")
+    local = (time.monotonic() if now is None else now) + max(0.01, float(snapshot_timeout))
+    return local if absolute_deadline is None else min(local, absolute_deadline)
+
+
+def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str, backup_type: str = "manual", created_by: str = "admin", *, directory: str | Path | None = None, max_files: int | None = None, snapshot_timeout: float = 15.0, preserve_existing_backups: bool = False, absolute_deadline: float | None = None) -> dict:
+    """Serialize capacity, crash recovery, snapshot publication and retention.
+
+    absolute_deadline is an optional cooperative monotonic cap supplied by an
+    operator. It cannot enlarge snapshot_timeout (whose default remains 15s).
+    """
+    if absolute_deadline is not None:
+        try:
+            _bounded_backup_deadline(snapshot_timeout, absolute_deadline)
+        except (ValueError, TypeError, OverflowError):
+            return {"ok": False, "backup_created": False, "error": "invalid_absolute_backup_deadline",
+                    "failure_stage": "PREPARATION"}
+        if time.monotonic() >= absolute_deadline:
+            return {"ok": False, "backup_created": False, "error": "backup_snapshot_timeout",
+                    "failure_stage": "PREPARATION"}
     src = Path(db_path)
     if not src.exists():
         return {"ok": False, "backup_created": False, "error": "DB no encontrada", "db_path": str(src)}
@@ -619,10 +643,14 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
     _emit_backup_stage("ATTEMPT", "started")
     try:
         try:
+            if absolute_deadline is not None and time.monotonic() >= absolute_deadline:
+                raise OSError("backup_snapshot_timeout")
             bdir.mkdir(parents=True, exist_ok=True)
             lock_started = time.monotonic()
             _emit_backup_stage("LOCK", "started")
             with backup_directory_lock(bdir):
+                if absolute_deadline is not None and time.monotonic() >= absolute_deadline:
+                    raise OSError("backup_snapshot_timeout")
                 _emit_backup_stage("LOCK", "finished", started_at=lock_started)
                 recovery_started = time.monotonic()
                 _emit_backup_stage("RECOVERY", "started")
@@ -636,7 +664,11 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
                     return with_diagnostics({"ok": False, "backup_created": False,
                             "error": "backup_temporary_recovery_failed", "failure_stage": "RECOVERY",
                             "storage": {"temporary_recovery": recovery}})
+                if absolute_deadline is not None and time.monotonic() >= absolute_deadline:
+                    raise OSError("backup_snapshot_timeout")
                 preservation = {"preserve_existing_backups": True} if preserve_existing_backups else {}
+                if absolute_deadline is not None:
+                    preservation["absolute_deadline"] = absolute_deadline
                 result = _create_sqlite_backup_locked(src, root, app_version, backup_type, created_by,
                                                       directory=bdir, max_files=max_files,
                                                       snapshot_timeout=snapshot_timeout, **preservation)
@@ -660,7 +692,12 @@ def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str
         _BACKUP_DIAGNOSTIC_EVENTS.reset(context_token)
 
 
-def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_version: str, backup_type: str, created_by: str, *, directory: Path, max_files: int | None, snapshot_timeout: float, preserve_existing_backups: bool = False) -> dict:
+def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_version: str, backup_type: str, created_by: str, *, directory: Path, max_files: int | None, snapshot_timeout: float, preserve_existing_backups: bool = False, absolute_deadline: float | None = None) -> dict:
+    if absolute_deadline is not None:
+        _bounded_backup_deadline(snapshot_timeout, absolute_deadline)
+        if time.monotonic() >= absolute_deadline:
+            return {"ok": False, "backup_created": False, "error": "backup_snapshot_timeout",
+                    "failure_stage": "CAPACITY"}
     src = Path(db_path)
     if not src.exists():
         return {"ok": False, "backup_created": False, "error": "DB no encontrada", "db_path": str(src)}
@@ -701,6 +738,9 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
                        snapshot_bytes=candidate["compact_snapshot_bytes"],
                        required_bytes=candidate["required_bytes"],
                        free_after=candidate["free_bytes"])
+    if absolute_deadline is not None and time.monotonic() >= absolute_deadline:
+        return {"ok": False, "backup_created": False, "error": "backup_snapshot_timeout",
+                "failure_stage": "CAPACITY", "storage": storage}
     stamp = now_stamp() + "_" + uuid.uuid4().hex[:12]
     out = bdir / f"database_{stamp}.db"
     manifest_path = out.with_suffix(".json")
@@ -715,6 +755,8 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
 
     def advance_stage(next_stage: str) -> None:
         nonlocal stage, stage_started_at
+        if absolute_deadline is not None and time.monotonic() >= absolute_deadline:
+            raise sqlite3.OperationalError("backup_snapshot_timeout")
         if stage_started_at is not None:
             _emit_backup_stage(stage, "finished", started_at=stage_started_at)
         stage = next_stage
@@ -726,7 +768,7 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
         workspace = new_workspace(bdir)
         temporary = workspace / "snapshot.partial"
         temporary.touch(mode=0o600, exist_ok=False)
-        deadline = time.monotonic() + max(0.01, float(snapshot_timeout))
+        deadline = _bounded_backup_deadline(snapshot_timeout, absolute_deadline)
         advance_stage("SNAPSHOT")
         if compact:
             # The source connection is read-only. No VACUUM, checkpoints or
@@ -827,6 +869,8 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
         retention = apply_backup_retention(root, directory=bdir,
                                            max_files=0 if preserve_existing_backups else max_files)
         result = {"ok": bool(retention.get("ok")), "backup_created": True, "backup_file": out.name, "path": str(out), "sha256": digest, "manifest": manifest_path.name, "records_summary": counts, "retention": retention, "storage": storage}
+        if absolute_deadline is not None and time.monotonic() >= absolute_deadline:
+            raise sqlite3.OperationalError("backup_snapshot_timeout")
         if not result["ok"]:
             result["failure_stage"] = stage
         _emit_backup_stage(stage, "finished", started_at=stage_started_at)
