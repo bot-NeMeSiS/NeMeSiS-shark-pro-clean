@@ -1800,7 +1800,8 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
         limit=500,
         apply=True,
     )
-    invalidate_v934_realtime_cache("v934:sports:")
+    with timed_phase("sports_sync", "realtime_invalidation"):
+        invalidate_v934_realtime_cache("v934:sports:")
 
     primary_ok = bool(fixtures.get("ok") or fallback.get("ok"))
     errors = []
@@ -1852,27 +1853,28 @@ def run_sports_sync_cycle(force=False, trigger_type="sports_cron", include_odds=
         "no_payments": True,
         "no_fake_data": True,
     }
-    automation_safe_set("sports_sync_operational_state", {
-        "status": status,
-        "ok": primary_ok,
-        "processed": processed,
-        "matches_synced": result["matches_synced"],
-        "live_synced": result["live_synced"],
-        "statistics_refreshed": result["statistics_refreshed"],
-        "statistics_status": str(statistics.get("status") or "UNKNOWN")[:80],
-        "deep_status": result["deep_status"],
-        "deep_fixture_ids": result["deep_fixture_ids"],
-        "deep_external_calls": result["deep_external_calls"],
-        "picks_checked": result["picks_checked"],
-        "picks_graded": result["picks_graded"],
-        "external_calls": external_calls,
-        "started_at": started_at,
-        "finished_at": finished_at,
-        "trigger_type": str(trigger_type or "sports_cron")[:80],
-        "next_action": result["next_action"],
-        "live_refresh_required": bool(after_fixtures.get("live_refresh_required")),
-        "errors_count": len(errors),
-    })
+    with timed_phase("sports_sync", "operational_state"):
+        automation_safe_set("sports_sync_operational_state", {
+            "status": status,
+            "ok": primary_ok,
+            "processed": processed,
+            "matches_synced": result["matches_synced"],
+            "live_synced": result["live_synced"],
+            "statistics_refreshed": result["statistics_refreshed"],
+            "statistics_status": str(statistics.get("status") or "UNKNOWN")[:80],
+            "deep_status": result["deep_status"],
+            "deep_fixture_ids": result["deep_fixture_ids"],
+            "deep_external_calls": result["deep_external_calls"],
+            "picks_checked": result["picks_checked"],
+            "picks_graded": result["picks_graded"],
+            "external_calls": external_calls,
+            "started_at": started_at,
+            "finished_at": finished_at,
+            "trigger_type": str(trigger_type or "sports_cron")[:80],
+            "next_action": result["next_action"],
+            "live_refresh_required": bool(after_fixtures.get("live_refresh_required")),
+            "errors_count": len(errors),
+        })
     return result
 
 
@@ -2716,15 +2718,18 @@ def bounded_sports_sync(force=False):
             history = {}
             if not deep.get("account") or not deep.get("capabilities"):
                 try:
-                    history = api_exploitation_summary(DB_PATH) or {}
+                    with timed_phase("sports_sync", "exploitation_summary"):
+                        history = api_exploitation_summary(DB_PATH) or {}
                 except Exception:
                     history = {}
             # Bounded read-only sample of canonical matches; never calls a provider.
             try:
-                entity_freshness = _sports_entity_freshness_snapshot(limit=200)
-                result["sports_pipeline"] = _build_sports_pipeline_diagnostics(
-                    result, history, entity_freshness
-                )
+                with timed_phase("sports_sync", "entity_freshness"):
+                    entity_freshness = _sports_entity_freshness_snapshot(limit=200)
+                with timed_phase("sports_sync", "pipeline_diagnostics"):
+                    result["sports_pipeline"] = _build_sports_pipeline_diagnostics(
+                        result, history, entity_freshness
+                    )
             except Exception as exc:
                 result["sports_pipeline"] = {
                     "status": "CONTROLLED_ERROR", "safe_error": type(exc).__name__,
@@ -3246,58 +3251,61 @@ def automation_cron_result(endpoint, state_keys, runner, force=False):
             "message": "El cron se autenticó correctamente, pero la automatización falló de forma controlada. Revisa Incidencias y el historial de automatización.",
             "detail": str(exc)[:500],
         }
-    finished_at = now_iso()
-    compact = _cron_compact_payload(endpoint, result, called_at, finished_at, force=force)
-    compact["cron_runner_detected"] = bool(cron_runner_detected)
-    compact["last_cron_source"] = "automatic_cron"
-    compact["last_cron_runner_at"] = called_at if cron_runner_detected else ""
-    compact["last_cron_http_status"] = 200
-    compact["last_cron_result"] = compact.get("status")
-    compact["last_cron_sent_count"] = compact.get("sent_count", 0)
-    compact["last_cron_delivery_id"] = compact.get("last_delivery_id", "")
-    compact["last_cron_madrid_time"] = compact.get("now_madrid")
-    compact["last_cron_utc_time"] = datetime.utcnow().isoformat(timespec="seconds") + "Z"
-    compact["state_saved"] = all(item.get("ok") for item in state_results)
-    try:
-        safe_memory_call(
-            DB_PATH,
-            f"cron_{endpoint}",
-            record_api_sync_run,
-            source=endpoint,
-            status=compact.get("status") or ("OK" if compact.get("ok") else "ERROR"),
-            counts={
-                "started_at": called_at,
-                "finished_at": finished_at,
-                "matches_synced": compact.get("matches_synced", 0),
-                "picks_generated": compact.get("picks_generated", 0),
-                "picks_sent": compact.get("picks_sent", compact.get("sent", 0)),
-                "sent": compact.get("sent", 0),
-            },
-            error=compact.get("error"),
-            meta={"compact": compact, "force": bool(force)},
-        )
-        if endpoint == "daily_run":
-            try:
-                for match in rows("SELECT * FROM matches ORDER BY COALESCE(updated_at, kickoff_iso, match_date) DESC LIMIT 80"):
-                    safe_memory_call(DB_PATH, "match_snapshot", remember_match_snapshot, match=match, source="daily_run_cache")
-                    from engines.sports_history_engine import remember_sports_match
-                    safe_memory_call(DB_PATH, "sports_history", remember_sports_match, match=match, source="daily_run_cache")
-                    if match.get("home_team"):
-                        safe_memory_call(DB_PATH, "team_identity", remember_team_identity, team_name=match.get("home_team"), logo_url=match.get("home_logo") or "", country=match.get("country") or "", source="daily_run_cache")
-                    if match.get("away_team"):
-                        safe_memory_call(DB_PATH, "team_identity", remember_team_identity, team_name=match.get("away_team"), logo_url=match.get("away_logo") or "", country=match.get("country") or "", source="daily_run_cache")
-            except Exception:
-                pass
-    except Exception:
-        pass
+    with timed_phase("sports_sync", "cron_compact"):
+        finished_at = now_iso()
+        compact = _cron_compact_payload(endpoint, result, called_at, finished_at, force=force)
+        compact["cron_runner_detected"] = bool(cron_runner_detected)
+        compact["last_cron_source"] = "automatic_cron"
+        compact["last_cron_runner_at"] = called_at if cron_runner_detected else ""
+        compact["last_cron_http_status"] = 200
+        compact["last_cron_result"] = compact.get("status")
+        compact["last_cron_sent_count"] = compact.get("sent_count", 0)
+        compact["last_cron_delivery_id"] = compact.get("last_delivery_id", "")
+        compact["last_cron_madrid_time"] = compact.get("now_madrid")
+        compact["last_cron_utc_time"] = datetime.utcnow().isoformat(timespec="seconds") + "Z"
+        compact["state_saved"] = all(item.get("ok") for item in state_results)
+    with timed_phase("sports_sync", "cron_history"):
+        try:
+            safe_memory_call(
+                DB_PATH,
+                f"cron_{endpoint}",
+                record_api_sync_run,
+                source=endpoint,
+                status=compact.get("status") or ("OK" if compact.get("ok") else "ERROR"),
+                counts={
+                    "started_at": called_at,
+                    "finished_at": finished_at,
+                    "matches_synced": compact.get("matches_synced", 0),
+                    "picks_generated": compact.get("picks_generated", 0),
+                    "picks_sent": compact.get("picks_sent", compact.get("sent", 0)),
+                    "sent": compact.get("sent", 0),
+                },
+                error=compact.get("error"),
+                meta={"compact": compact, "force": bool(force)},
+            )
+            if endpoint == "daily_run":
+                try:
+                    for match in rows("SELECT * FROM matches ORDER BY COALESCE(updated_at, kickoff_iso, match_date) DESC LIMIT 80"):
+                        safe_memory_call(DB_PATH, "match_snapshot", remember_match_snapshot, match=match, source="daily_run_cache")
+                        from engines.sports_history_engine import remember_sports_match
+                        safe_memory_call(DB_PATH, "sports_history", remember_sports_match, match=match, source="daily_run_cache")
+                        if match.get("home_team"):
+                            safe_memory_call(DB_PATH, "team_identity", remember_team_identity, team_name=match.get("home_team"), logo_url=match.get("home_logo") or "", country=match.get("country") or "", source="daily_run_cache")
+                        if match.get("away_team"):
+                            safe_memory_call(DB_PATH, "team_identity", remember_team_identity, team_name=match.get("away_team"), logo_url=match.get("away_logo") or "", country=match.get("country") or "", source="daily_run_cache")
+                except Exception:
+                    pass
+        except Exception:
+            pass
     # El detalle largo queda solo para admin/diagnóstico interno, no en la respuesta pública del Cron.
-    automation_safe_set(f"{endpoint}_last_detail", {
-        "called_at": called_at,
-        "finished_at": finished_at,
-        "compact": compact,
-        "result": result,
-        "state_save_results": state_results,
-    })
+    with timed_phase("sports_sync", "cron_detail_state"):
+        automation_safe_set(f"{endpoint}_last_detail", {
+            "called_at": called_at,
+            "finished_at": finished_at,
+            "compact": compact,
+            "result": result,
+            "state_save_results": state_results,
+        })
     if endpoint == "telegram_tick":
         automation_safe_set("last_automation_tick_at", called_at)
         automation_safe_set("last_automation_tick_madrid", compact.get("now_madrid"))
@@ -3310,7 +3318,8 @@ def automation_cron_result(endpoint, state_keys, runner, force=False):
         automation_safe_set("last_cron_delivery_id", compact.get("last_cron_delivery_id"))
         automation_safe_set("last_cron_madrid_time", compact.get("last_cron_madrid_time"))
         automation_safe_set("last_cron_utc_time", compact.get("last_cron_utc_time"))
-    return jsonify(compact), 200
+    with timed_phase("sports_sync", "response_json"):
+        return jsonify(compact), 200
 
 def telegram_env_ready():
     return env_present("TELEGRAM_BOT_TOKEN") and env_present("TELEGRAM_CHAT_ID")
@@ -33213,6 +33222,7 @@ def api_automation_daily_run():
 
 
 @app.route("/api/automation/sports/sync", methods=["POST"])
+@timed_operation("sports_sync")
 def api_automation_sports_sync():
     if not automation_header_secret_status().get("ok"):
         return automation_header_json_forbidden()

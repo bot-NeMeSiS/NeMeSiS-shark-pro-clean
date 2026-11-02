@@ -8,6 +8,9 @@ import sqlite3
 import time
 
 PHASES = {
+    'sports_sync': frozenset({'operation', 'realtime_invalidation', 'operational_state',
+        'exploitation_summary', 'entity_freshness', 'pipeline_diagnostics',
+        'cron_compact', 'cron_history', 'cron_detail_state', 'response_json'}),
     'media_request': frozenset({'operation', 'receipt'}),
     'media': frozenset({'operation', 'ledger_start_connect', 'ledger_start_write',
         'ledger_start_commit', 'profile_cache', 'v2_candidates', 'reserve_call',
@@ -78,7 +81,11 @@ def phase(domain, label, conn=None):
     if trace_id(domain) is None or label not in PHASES.get(domain, ()):
         yield
         return
-    began = time.monotonic()
+    try:
+        began = time.monotonic()
+    except Exception:
+        yield
+        return
     _emit(domain, label, 'begin', None, conn, None)
     error = None
     try:
@@ -87,7 +94,12 @@ def phase(domain, label, conn=None):
         error = exc
         raise
     finally:
-        _emit(domain, label, 'end', max(0, round((time.monotonic()-began)*1000)), conn, error)
+        try:
+            elapsed = max(0, round((time.monotonic()-began)*1000))
+        except Exception:
+            pass  # Missing observation is preferable to a false zero or changed error.
+        else:
+            _emit(domain, label, 'end', elapsed, conn, error)
 
 
 def operation(domain):
@@ -97,8 +109,11 @@ def operation(domain):
         @wraps(function)
         def observed(*args, **kwargs):
             active = _ACTIVE.get()
-            state = [domain, secrets.token_hex(8), active[-1][1] if active else None,
-                     [], time.monotonic(), 0]
+            try:
+                state = [domain, secrets.token_hex(8), active[-1][1] if active else None,
+                         [], time.monotonic(), 0]
+            except Exception:
+                return function(*args, **kwargs)
             token = _ACTIVE.set(active + (state,))
             try:
                 with phase(domain, 'operation'):
