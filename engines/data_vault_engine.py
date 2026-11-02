@@ -558,6 +558,48 @@ def ensure_backup_capacity(
     return result
 
 
+def _backup_with_wal_snapshot(source, destination, *, progress) -> None:
+    """Copy from a fresh read-only connection; release our WAL pin before verification."""
+    pinned = False
+    release_before_copy = False
+    try:
+        try:
+            with closing(source.execute("PRAGMA journal_mode")) as cursor:
+                wal = str(cursor.fetchone()[0]).lower() == "wal"
+            if wal:
+                source.execute("BEGIN")
+                pinned = True
+                # BEGIN alone does not fix a read snapshot. Consume the read.
+                with closing(source.execute("SELECT rootpage FROM sqlite_master LIMIT 1")) as cursor:
+                    cursor.fetchall()
+                with closing(source.execute("PRAGMA journal_mode")) as cursor:
+                    release_before_copy = str(cursor.fetchone()[0]).lower() != "wal"
+        except sqlite3.OperationalError as exc:
+            # A transient preparation lock must retain backup()'s own retry
+            # behavior. Never retry a failure from backup or its progress callback.
+            code = getattr(exc, "sqlite_errorcode", None)
+            if not isinstance(code, int) or code & 255 not in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED):
+                raise
+            release_before_copy = pinned
+        if release_before_copy:
+            source.rollback()
+            pinned = False
+        # DELETE sources retain incremental reads so their writers can commit.
+        source.backup(destination, pages=256, progress=progress, sleep=0.05)
+    except BaseException:
+        if pinned:
+            try:
+                source.rollback()
+            except BaseException:
+                # Preserve the copy/preparation error; the caller closes source.
+                pass
+        raise
+    else:
+        if pinned:
+            # A failed release after a successful copy prevents publication.
+            source.rollback()
+
+
 def create_sqlite_backup(db_path: str | Path, root: str | Path, app_version: str, backup_type: str = "manual", created_by: str = "admin", *, directory: str | Path | None = None, max_files: int | None = None, snapshot_timeout: float = 15.0, preserve_existing_backups: bool = False) -> dict:
     """Serialize capacity, crash recovery, snapshot publication and retention."""
     src = Path(db_path)
@@ -716,7 +758,7 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
                 if time.monotonic() >= deadline:
                     raise sqlite3.OperationalError("backup_snapshot_timeout")
             if not compact:
-                source.backup(dest, pages=256, progress=progress, sleep=0.05)
+                _backup_with_wal_snapshot(source, dest, progress=progress)
             # Keep the SQLite copy separate from verification in production
             # timings. Previously source.backup ran under INTEGRITY, making a
             # slow snapshot indistinguishable from a slow integrity_check.
