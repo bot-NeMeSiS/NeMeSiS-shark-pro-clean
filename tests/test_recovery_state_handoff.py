@@ -314,7 +314,7 @@ class OperatorWiringContracts(unittest.TestCase):
 class ProbeHookContracts(unittest.TestCase):
     def test_failed_state_prevents_child_after_real_owned_source_preparation(self):
         with tempfile.TemporaryDirectory(dir=RUN_ROOT,prefix="p") as tmp:
-            base=Path(tmp); project=base/"p"; project.mkdir(); (project/"App.py").write_text("# owned marker NEVER executed\n")
+            base=Path(tmp); project=base/"p"; project.mkdir(); (project/"app.py").write_text("# owned marker NEVER executed\n")
             workspace=base/".isolated_restore_327_x"; workspace.mkdir()
             db=workspace/"restoration-test.db"; db.write_bytes(b"OWNED NON SQLITE MARKER")
             bundle=bundle_for(base)
@@ -324,7 +324,7 @@ class ProbeHookContracts(unittest.TestCase):
                                            deadline=time.monotonic()+30,mode="normal_boot",state_bundle=bundle)
             self.assertFalse(result["ok"])
             self.assertEqual(result["code"],"STATE_NOT_READY_BEFORE_APP")
-            self.assertTrue((workspace/"source"/"App.py").is_file())
+            self.assertTrue((workspace/"source"/"app.py").is_file())
             restore.assert_called_once(); child.assert_not_called()
             self.assertEqual(restore.call_args.kwargs["expected_database_identity"], state._identity(db.stat()))
             self.assertFalse((workspace/"source"/"data").exists())
