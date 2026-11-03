@@ -50,10 +50,10 @@ def _rows(slides):
     return [row("owned-live-" + str(index), "LIVE") for index in range(9)]
 
 
-def _markup(a, path, slides):
+def _markup(a, path, slides, *, rows=None, language='es'):
     from flask import render_template
 
-    rows = _rows(slides)
+    rows = _rows(slides) if rows is None else rows
     data = data_for(rows)
     before = deepcopy(data)
     user = None if path == "/" else {
@@ -61,7 +61,7 @@ def _markup(a, path, slides):
         "membership": "FREE",
     }
     with a.app.test_request_context(
-        path, base_url=ORIGIN, headers={"Accept-Language": "es"},
+        path, base_url=ORIGIN, headers={"Accept-Language": language},
     ):
         markup = render_template(
             "home.html" if path == "/" else "client_app_center.html",
@@ -85,12 +85,12 @@ def _markup(a, path, slides):
 
 
 @contextmanager
-def _screen(browser, a, path, width, slides=2, *, javascript=True):
-    markup, owned_ids = _markup(a, path, slides)
+def _screen(browser, a, path, width, slides=2, *, javascript=True, rows=None, language='es'):
+    markup, owned_ids = _markup(a, path, slides, rows=rows, language=language)
     context = browser.new_context(
         viewport={"width": width, "height": 1000},
         java_script_enabled=javascript, reduced_motion="no-preference",
-        locale="es-ES", timezone_id="Europe/Madrid", service_workers="block",
+        locale={"es": "es-ES", "en": "en-GB", "fr": "fr-FR"}[language], timezone_id="Europe/Madrid", service_workers="block",
     )
     # Observe browser storage calls, without replacing any application function.
     # Existing optional decoration may use its established keys; carousel state
@@ -272,7 +272,7 @@ def test_nine_second_rotation_then_manual_keyboard_keeps_the_exact_fixture_link(
         page.keyboard.press("Enter")
         assert _visible_id(page) == ids[1]
         assert previous.evaluate("node => node === document.activeElement")
-        assert root.locator("[data-home-featured-status]").inner_text() == "2 / 2"
+        assert root.locator("[data-home-featured-status]").inner_text() == "Partido 2 de 2"
         page.clock.run_for(18000)
         assert _visible_id(page) == ids[1]
         assert page.evaluate("window.__ownedSlides.every((node, index) => node === document.querySelectorAll('[data-home-featured-slide]')[index])")
@@ -415,4 +415,208 @@ def test_interrupted_dom_pointer_can_resume_only_after_visible_explicit_play(
         assert link.is_visible() and link.get_attribute("href") == "/match/" + second
         assert status.get_attribute("aria-live") == "polite"
         assert status.inner_text() == play_announcement
+        _assert_clean(page, trace)
+
+
+def _rich_featured_rows():
+    fixtures = [row('owned-short', 'LIVE'), row('owned-long', 'LIVE')]
+    fixtures[0].update(home_team='QA Local', away_team='QA Visitante')
+    fixtures[1].update(
+        home_team='Club Deportivo de la Ciudad de Nombre Muy Largo para la Prueba',
+        away_team='Unión Deportiva Visitante de Nombre Completo para la Prueba')
+    for fixture in fixtures:
+        fixture.update(home_logo='', away_logo='', home_score=0, away_score=0,
+                       client_live_minute=None)
+    return fixtures
+
+
+@pytest.mark.parametrize('path', ROUTES)
+@pytest.mark.parametrize('width', [360, 390, 768, 1440])
+def test_professional_feature_keeps_controls_and_height_stable_with_long_real_fields(
+    browser, app_module, path, width,
+):
+    with _screen(browser, app_module, path, width, rows=_rich_featured_rows()) as screen:
+        page, trace, _ = screen
+        root = page.locator(FEATURED)
+        root.scroll_into_view_if_needed()
+        buttons = root.locator('[data-home-featured-controls] button')
+        assert buttons.count() == 3
+        for button in buttons.all():
+            box = button.bounding_box()
+            assert box and box['width'] >= 44 and box['height'] >= 44
+            assert box['x'] >= -1 and box['x'] + box['width'] <= width + 1
+        # The max of actual slide heights reserves only the space required by
+        # this pair, including the wrapped full names; it is not a fixed spacer.
+        page.wait_for_function("""() => {
+          const track = document.querySelector('.home-match-featured-slides');
+          return parseFloat(track.style.getPropertyValue('--home-featured-min-height')) > 0;
+        }""")
+        before = root.bounding_box()
+        control_before = buttons.first.bounding_box()
+        assert before and control_before
+        assert root.locator(SLIDE + ':visible [data-v934-score]').inner_text() == '0 - 0'
+        assert root.locator(SLIDE + ':visible [data-v934-minute]:visible').count() == 0
+        root.locator('[data-home-featured-next]').click()
+        during = root.bounding_box()
+        page.clock.run_for(250)
+        after = root.bounding_box()
+        control_after = buttons.first.bounding_box()
+        assert abs(before['height'] - during['height']) <= 1
+        assert abs(before['height'] - after['height']) <= 1
+        assert abs(control_before['y'] - control_after['y']) <= 1
+        assert 'Club Deportivo de la Ciudad' in root.locator(SLIDE + ':visible').inner_text()
+        for name in root.locator(SLIDE + ':visible .v933-match-teams strong').all():
+            assert name.evaluate('node => node.scrollHeight <= node.clientHeight + 1')
+            assert name.evaluate('node => getComputedStyle(node).webkitLineClamp') in ('none', 'unset')
+        counter = root.locator('[data-home-featured-counter]')
+        expect(counter).to_be_visible()
+        assert counter.inner_text() == '2 / 2'
+        assert root.locator(SLIDE + ':visible a[href="/match/owned-long"]').count() == 1
+        assert root.locator(SLIDE + ':visible').count() == 1
+        assert root.locator(SLIDE + '[hidden]').evaluate_all('nodes => nodes.every(node => node.inert)')
+        root.locator('[data-home-featured-prev]').click()
+        page.clock.run_for(250)
+        assert abs(root.bounding_box()['height'] - before['height']) <= 1
+        _assert_clean(page, trace)
+
+
+@pytest.mark.parametrize('path', ROUTES)
+@pytest.mark.parametrize('language,labels', [
+    ('es', ('Anterior', 'Siguiente', 'Pausar', 'Reanudar', 'Avance automático pausado', 'Avance automático activado')),
+    ('en', ('Previous', 'Next', 'Pause', 'Resume', 'Automatic advance paused', 'Automatic advance enabled')),
+    ('fr', ('Précédent', 'Suivant', 'Pause', 'Reprendre', 'Défilement automatique en pause', 'Défilement automatique activé')),
+])
+def test_featured_icon_controls_keep_nodes_and_explicit_localized_accessible_state(
+    browser, app_module, path, language, labels,
+):
+    with _screen(browser, app_module, path, 390, language=language) as screen:
+        page, trace, _ = screen
+        root = page.locator(FEATURED)
+        previous = root.locator('[data-home-featured-prev]')
+        next_button = root.locator('[data-home-featured-next]')
+        toggle = root.locator('[data-home-featured-toggle]')
+        assert page.locator('html').get_attribute('lang') == language
+        expect(previous).to_have_attribute('aria-label', labels[0])
+        expect(next_button).to_have_attribute('aria-label', labels[1])
+        expect(toggle).to_have_attribute('aria-label', labels[2])
+        page.evaluate("""() => {
+          const toggle = document.querySelector('[data-home-featured-toggle]');
+          window.__ownedFeaturedIconNodes = Array.from(toggle.querySelectorAll('svg,g,span'));
+        }""")
+        page.keyboard.press('Tab')
+        previous.focus()
+        assert previous.evaluate("node => node.matches(':focus-visible')")
+        assert previous.evaluate("node => getComputedStyle(node, '::after').visibility") == 'visible'
+        assert previous.evaluate("node => getComputedStyle(node).outlineStyle") != 'none'
+        previous.evaluate('node => node.blur()')
+        previous.hover()
+        assert previous.evaluate("node => getComputedStyle(node, '::after').visibility") == 'visible'
+        page.mouse.move(1, 1)
+        assert previous.evaluate("node => getComputedStyle(node, '::after').visibility") == 'hidden'
+        # Arrow focus latches pause. Explicit Play then Pause exercises both
+        # existing icon groups without rebuilding the button or its children.
+        expect(toggle).to_have_attribute('aria-pressed', 'true')
+        expect(toggle).to_have_attribute('aria-label', labels[3])
+        toggle.click()
+        expect(toggle).to_have_attribute('aria-label', labels[2])
+        assert root.locator('[data-home-featured-status]').inner_text() == labels[5]
+        toggle.click()
+        expect(toggle).to_have_attribute('aria-label', labels[3])
+        assert root.locator('[data-home-featured-status]').inner_text() == labels[4]
+        assert toggle.get_attribute('data-home-featured-tooltip') == labels[3]
+        assert page.evaluate("""() => {
+          const nodes = document.querySelector('[data-home-featured-toggle]').querySelectorAll('svg,g,span');
+          return window.__ownedFeaturedIconNodes.every((node, index) => node === nodes[index]);
+        }""")
+        _assert_clean(page, trace)
+
+
+@pytest.mark.parametrize('path', ROUTES)
+def test_actual_entry_is_finite_noninitial_and_manual_changes_honor_all_motion_permissions(
+    browser, app_module, path,
+):
+    with _screen(browser, app_module, path, 390) as screen:
+        page, trace, _ = screen
+        root = page.locator(FEATURED)
+        first = _visible_id(page)
+        assert root.locator(SLIDE + ':visible').evaluate('node => node.getAnimations().length') == 0
+        root.locator('[data-home-featured-next]').click()
+        visible = root.locator(SLIDE + ':visible')
+        assert _visible_id(page) != first
+        animations = visible.evaluate("""node => node.getAnimations().map(animation => ({
+          name: animation.animationName,
+          duration: animation.effect.getTiming().duration,
+          frames: animation.effect.getKeyframes().map(frame => ({opacity:frame.opacity,transform:frame.transform}))
+        }))""")
+        assert len(animations) == 1 and animations[0]['name'] == 'home-featured-enter'
+        assert animations[0]['duration'] == 200
+        assert animations[0]['frames'][0]['opacity'] == '0'
+        assert animations[0]['frames'][-1]['opacity'] == '1'
+        page.clock.run_for(100)
+        y = visible.evaluate("node => new DOMMatrix(getComputedStyle(node).transform).m42")
+        assert 0 <= y <= 4
+        page.emulate_media(reduced_motion='reduce')
+        expect(root.locator('[data-home-featured-toggle]')).to_be_disabled()
+        root.locator('[data-home-featured-next]').click()
+        assert _visible_id(page) == first
+        assert root.locator(SLIDE + ':visible').evaluate('node => node.getAnimations().length') == 0
+        assert root.locator(SLIDE + ':visible').get_attribute('data-home-featured-enter') == 'false'
+        page.emulate_media(reduced_motion='no-preference')
+        global_toggle = page.locator('[data-motion-preferences] [data-motion-toggle]')
+        expect(global_toggle).to_be_enabled()
+        preferences = page.locator('[data-motion-preferences]')
+        if preferences.get_attribute('open') is None:
+            preferences.locator('summary').click()
+        expect(global_toggle).to_be_visible()
+        global_toggle.click()
+        expect(global_toggle).to_have_attribute('aria-pressed', 'true')
+        root.locator('[data-home-featured-next]').click()
+        assert _visible_id(page) != first
+        assert root.locator(SLIDE + ':visible').evaluate('node => node.getAnimations().length') == 0
+        global_toggle.click()
+        expect(global_toggle).to_have_attribute('aria-pressed', 'false')
+        unchanged = _visible_id(page)
+        page.mouse.move(1, 1)
+        page.evaluate('document.activeElement.blur()')
+        page.clock.run_for(18000)
+        assert _visible_id(page) == unchanged
+        _assert_clean(page, trace)
+
+
+@pytest.mark.parametrize('path', ROUTES)
+def test_second_nine_second_cycle_does_not_gain_another_timer(browser, app_module, path):
+    with _screen(browser, app_module, path, 390) as screen:
+        page, trace, _ = screen
+        _arm_auto_by_native_mouse_exit(page)
+        ids = page.locator(FEATURED + ' ' + CARD).evaluate_all(
+            'nodes => nodes.map(node => node.dataset.v934MatchId)')
+        for current, following in ((ids[0], ids[1]), (ids[1], ids[0])):
+            page.clock.run_for(8999)
+            assert _visible_id(page) == current
+            page.clock.run_for(1)
+            assert _visible_id(page) == following
+        assert page.locator('[data-home-featured-status]').inner_text() == ''
+        _assert_clean(page, trace)
+
+
+@pytest.mark.parametrize('slides', [1, 2])
+def test_featured_badge_reflects_same_card_favorite_control_including_static_feature(
+    browser, app_module, slides,
+):
+    # Owned DOM-boundary test, not an API/authentication test: the unchanged
+    # real handler sets this attribute only after its accepted server response.
+    with _screen(browser, app_module, '/app', 390, slides=slides) as screen:
+        page, trace, _ = screen
+        card = page.locator(FEATURED + ' ' + SLIDE + ':visible')
+        button = card.locator('.fav-star[data-kind="match"]')
+        badge = card.locator('[data-home-featured-favorite]')
+        identity = card.locator(CARD).get_attribute('data-v934-match-id')
+        assert button.get_attribute('data-value') == identity
+        expect(badge).to_be_hidden()
+        button.evaluate("node => node.setAttribute('aria-pressed', 'true')")
+        expect(badge).to_be_visible()
+        button.evaluate("node => node.setAttribute('aria-pressed', 'false')")
+        expect(badge).to_be_hidden()
+        assert button.get_attribute('data-value') == identity
+        assert card.locator('a[href="/match/' + identity + '"]').count() == 1
         _assert_clean(page, trace)

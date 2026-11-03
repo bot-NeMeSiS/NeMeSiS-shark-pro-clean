@@ -1,5 +1,17 @@
 {
   "platform_refinement": {
+    "Avance automático pausado": {
+      "en": "Automatic advance paused",
+      "fr": "Défilement automatique en pause"
+    },
+    "Avance automático activado": {
+      "en": "Automatic advance enabled",
+      "fr": "Défilement automatique activé"
+    },
+    "Partido {actual} de {total}": {
+      "en": "Match {actual} of {total}",
+      "fr": "Match {actual} sur {total}"
+    },
     "Anterior": {
       "en": "Previous",
       "fr": "Précédent"

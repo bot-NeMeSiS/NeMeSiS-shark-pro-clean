@@ -131,6 +131,26 @@
     if (root.getAttribute('data-home-featured-ready') === 'true') return;
     var slides = Array.prototype.slice.call(root.querySelectorAll('[data-home-featured-slide]'));
     var controls = root.querySelector('[data-home-featured-controls]');
+    // The existing favorite handler changes aria-pressed only after an accepted
+    // response. Reflect that SAME card's control; never toggle or request here.
+    // This binding also applies to a single, static featured result.
+    if (root.getAttribute('data-home-featured-favorites-ready') !== 'true') {
+      slides.forEach(function (slide) {
+        var badge = slide.querySelector('[data-home-featured-favorite]');
+        var card = slide.querySelector('[data-v934-match-card]');
+        var button = card && card.querySelector('.fav-star[data-kind="match"]');
+        if (!badge || !card || !button ||
+            button.getAttribute('data-value') !== card.getAttribute('data-v934-match-id')) return;
+        function reflectFavorite() {
+          badge.hidden = button.getAttribute('aria-pressed') !== 'true';
+        }
+        reflectFavorite();
+        if (typeof MutationObserver !== 'undefined') {
+          new MutationObserver(reflectFavorite).observe(button, {attributes:true, attributeFilter:['aria-pressed']});
+        }
+      });
+      root.setAttribute('data-home-featured-favorites-ready', 'true');
+    }
     if (slides.length < 2) {
       if (controls) controls.hidden = true;
       return;
@@ -140,6 +160,10 @@
     var toggle = root.querySelector('[data-home-featured-toggle]');
     var counter = root.querySelector('[data-home-featured-counter]');
     var status = root.querySelector('[data-home-featured-status]');
+    var track = root.querySelector('.home-match-featured-slides');
+    var toggleLabel = toggle && toggle.querySelector('[data-home-featured-toggle-label]');
+    var pauseIcon = toggle && toggle.querySelector('[data-home-featured-pause-icon]');
+    var playIcon = toggle && toggle.querySelector('[data-home-featured-play-icon]');
     if (!controls || !previous || !next || !toggle || !counter) return;
     root.setAttribute('data-home-featured-ready', 'true');
 
@@ -157,14 +181,46 @@
       if (timer !== null) window.clearTimeout(timer);
       timer = null;
     }
+    function motionAllowed() {
+      return !reduce.matches && globalMotionAllowed() && !document.hidden && !pageAway;
+    }
+    function cancelEntrance() {
+      slides.forEach(function (slide) { slide.setAttribute('data-home-featured-enter', 'false'); });
+    }
+    function hideIcon(icon, hidden) {
+      if (!icon) return;
+      if (hidden) icon.setAttribute('hidden', '');
+      else icon.removeAttribute('hidden');
+    }
     function updateToggle() {
+      var label = toggle.getAttribute(wantsPlay ? 'data-pause' : 'data-play') || (wantsPlay ? 'Pausar' : 'Reanudar');
       toggle.disabled = reduce.matches || !globalMotionAllowed();
-      toggle.textContent = toggle.getAttribute(wantsPlay ? 'data-pause' : 'data-play') || (wantsPlay ? 'Pausar' : 'Reanudar');
+      if (toggleLabel) toggleLabel.textContent = label;
+      toggle.setAttribute('aria-label', label);
+      toggle.setAttribute('data-home-featured-tooltip', label);
       toggle.setAttribute('aria-pressed', String(!wantsPlay));
+      hideIcon(pauseIcon, !wantsPlay);
+      hideIcon(playIcon, wantsPlay);
+      root.setAttribute('data-home-featured-motion', String(motionAllowed()));
+      if (!motionAllowed()) cancelEntrance();
+    }
+    function fitFeaturedHeight() {
+      if (!track || document.hidden || pageAway || root.isConnected === false) return;
+      var height = 0;
+      track.classList.add('is-measuring');
+      try {
+        slides.forEach(function (slide) { height = Math.max(height, slide.getBoundingClientRect().height); });
+      } finally { track.classList.remove('is-measuring'); }
+      if (height > 0) track.style.setProperty('--home-featured-min-height', Math.ceil(height) + 'px');
+    }
+    function positionLabel() {
+      return (root.getAttribute('data-position-label') || 'Partido {actual} de {total}')
+        .replace('{actual}', String(index + 1)).replace('{total}', String(slides.length));
     }
     function pause() {
       wantsPlay = false;
       stopTimer();
+      cancelEntrance();
       updateToggle();
     }
     function writing() {
@@ -178,13 +234,22 @@
         !document.querySelector('dialog[open], [role="dialog"][aria-modal="true"]:not([hidden])');
     }
     function show(position, manual) {
+      var previousIndex = index;
       index = (position + slides.length) % slides.length;
+      cancelEntrance();
       slides.forEach(function (slide, offset) {
         slide.hidden = offset !== index;
         if ('inert' in slide) slide.inert = offset !== index;
+        slide.setAttribute('aria-hidden', String(offset !== index));
       });
       counter.textContent = (index + 1) + ' / ' + slides.length;
-      if (manual && status) status.textContent = counter.textContent;
+      if (manual && status) status.textContent = positionLabel();
+      // Only the newly visible native card enters. No first-render animation,
+      // exiting duplicate, cloned fixture or changed navigation destination.
+      root.setAttribute('data-home-featured-motion', String(motionAllowed()));
+      if (index !== previousIndex && motionAllowed()) {
+        slides[index].setAttribute('data-home-featured-enter', 'true');
+      }
     }
     function schedule() {
       stopTimer();
@@ -208,7 +273,7 @@
       stopTimer();
       wantsPlay = !wantsPlay && !reduce.matches && !document.hidden && !pageAway && globalMotionAllowed();
       updateToggle();
-      if (status) status.textContent = toggle.textContent;
+      if (status) status.textContent = toggle.getAttribute(wantsPlay ? 'data-playing-status' : 'data-paused-status') || toggle.getAttribute('aria-label');
       schedule();
     });
     root.addEventListener('pointerdown', function (event) {
@@ -229,10 +294,11 @@
     window.addEventListener('pointerup', function () { pointerHeld = false; schedule(); });
     window.addEventListener('pointercancel', function () { pointerHeld = false; schedule(); });
     document.addEventListener('focusin', function () { if (writing()) stopTimer(); else schedule(); });
-    document.addEventListener('visibilitychange', function () { if (document.hidden) { pointerHeld = false; hovering = false; pause(); } });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) { pointerHeld = false; hovering = false; pause(); } else fitFeaturedHeight(); });
     window.addEventListener('pagehide', function () { pageAway = true; pointerHeld = false; hovering = false; pause(); });
     window.addEventListener('pageshow', function (event) {
       pageAway = false;
+      fitFeaturedHeight();
       if (event.persisted) pause();
       else schedule();
     });
@@ -261,9 +327,30 @@
         })) schedule();
       }).observe(document.body, {subtree:true, attributes:true, attributeFilter:['open', 'aria-modal', 'hidden']});
     }
-    controls.hidden = false;
+    ['animationend', 'animationcancel'].forEach(function (eventName) {
+      root.addEventListener(eventName, function (event) {
+        if (event.animationName === 'home-featured-enter' && slides.indexOf(event.target) !== -1) {
+          event.target.setAttribute('data-home-featured-enter', 'false');
+        }
+      });
+    });
+    if ('ResizeObserver' in window) {
+      var measuredWidth = 0;
+      new window.ResizeObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.target === root && Math.abs(entry.contentRect.width - measuredWidth) >= 1) {
+            measuredWidth = entry.contentRect.width;
+            fitFeaturedHeight();
+          }
+        });
+      }).observe(root);
+    } else window.addEventListener('resize', fitFeaturedHeight);
+    root.addEventListener('load', fitFeaturedHeight, true);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitFeaturedHeight);
     show(0, false);
     updateToggle();
+    fitFeaturedHeight();
+    controls.hidden = false;
     schedule();
   });
 })();
