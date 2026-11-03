@@ -23,6 +23,10 @@ MAX_BYTES = 16 * 1024 * 1024
 MAX_SECONDS = 5.0
 MAX_MANIFEST = 1024 * 1024
 MAX_ARCHIVE = MAX_BYTES + MAX_MANIFEST + MAX_ENTRIES * 1024 + 4096
+CE_RUNTIME_STATE_V1 = "CE_RUNTIME_STATE_V1"
+_PROFILE_CAPS = (
+    (CE_RUNTIME_STATE_V1, 32768, 6, 96 * 1024 * 1024, 5.0, 32 * 1024 * 1024),
+)
 ROLES = frozenset(("ce", "legacy_runtime"))
 DESTINATIONS = {"ce": "continuous_evolution_os", "legacy_runtime": "runtime"}
 LAYOUT_CE_COLOCATED_SENTINEL_AUTOPILOT_V1 = "CE_COLOCATED_SENTINEL_AND_RUNTIME_AUTOPILOT_V1"
@@ -38,7 +42,7 @@ HEX = re.compile(r"[0-9a-f]{64}\Z")
 REF = re.compile(r"[A-Z0-9_-]{1,96}\Z")
 
 
-_ERROR_CODES = frozenset(["ARCHIVE_BUDGET","ARCHIVE_HASH_MISMATCH","ARCHIVE_MEMBER_BUDGET","ARCHIVE_READ_BUDGET","BYTE_BUDGET","DEADLINE_EXPIRED","DUPLICATE_MANIFEST_KEY","DUPLICATE_STATE_PATH","ENTRY_BUDGET","FOREIGN_SQLITE_RECEIPT","INCOMPLETE_MANIFEST_NAMESPACE","INVALID_DEADLINE","INVALID_EXPECTED_DIGEST","INVALID_LIMIT","INVALID_LAYOUT_BINDING","INVALID_MANIFEST","INVALID_MANIFEST_ENTRY","INVALID_MANIFEST_IDENTITY","INVALID_MANIFEST_LIMITS","INVALID_MANIFEST_ROOTS","INVALID_SCOPES","INVALID_TAR_HEADER","LAYOUT_BINDING_MISMATCH","LAYOUT_BINDING_REQUIRED","LAYOUT_REQUIRED_ENTRY_MISSING","MANIFEST_BUDGET","MANIFEST_HASH_MISMATCH","NONCANONICAL_PADDING","OWNED_RESTORE_WORKSPACE_REQUIRED","PAYLOAD_MANIFEST_MISMATCH","PRIVATE_ARCHIVE_REQUIRED","PRIVATE_PUBLICATION_NAMESPACE_REQUIRED","PROTECTED_SQLITE_PATHS_REQUIRED","PUBLICATION_IDENTITY_CHANGED","PUBLICATION_ROOT_OVERLAP","RESTORED_DATABASE_CHANGED","RESTORED_DATABASE_IDENTITY_MISMATCH","RESTORED_STATE_VERIFY_FAILED","SECRET_CUSTODY_REQUIRED","SOURCE_CHANGED","SOURCE_ROOT_OVERLAP","SPECIFIC_DATA_AUTHORITY_REQUIRED","SQLITE_RECEIPT_NOT_VERIFIED","SQLITE_SCOPE_COLLISION","STATE_CHANGED_ACROSS_SQLITE_INTERVAL","STATE_LINK","STRONG_FD_PRIMITIVES_UNSUPPORTED","TRAILING_ARCHIVE","TRUNCATED_ARCHIVE","UNCLASSIFIED_STATE_ERROR","UNSAFE_MEMBER_PATH","UNSAFE_PATH","UNSAFE_STATE_FILE","UNSAFE_TAR_HEADER","UNSAFE_TAR_NAME","UNSAFE_TAR_TYPE"])
+_ERROR_CODES = frozenset(["ARCHIVE_BUDGET","ARCHIVE_HASH_MISMATCH","ARCHIVE_MEMBER_BUDGET","ARCHIVE_READ_BUDGET","BUDGET_PROFILE_MISMATCH","BUDGET_PROFILE_REQUIRED","BYTE_BUDGET","DEADLINE_EXPIRED","DUPLICATE_MANIFEST_KEY","DUPLICATE_STATE_PATH","ENTRY_BUDGET","FOREIGN_SQLITE_RECEIPT","INCOMPLETE_MANIFEST_NAMESPACE","INVALID_BUDGET_PROFILE","INVALID_DEADLINE","INVALID_EXPECTED_DIGEST","INVALID_LIMIT","INVALID_LAYOUT_BINDING","INVALID_MANIFEST","INVALID_MANIFEST_ENTRY","INVALID_MANIFEST_IDENTITY","INVALID_MANIFEST_LIMITS","INVALID_MANIFEST_ROOTS","INVALID_SCOPES","INVALID_TAR_HEADER","LAYOUT_BINDING_MISMATCH","LAYOUT_BINDING_REQUIRED","LAYOUT_REQUIRED_ENTRY_MISSING","MANIFEST_BUDGET","MANIFEST_COMPLEXITY_BUDGET","MANIFEST_HASH_MISMATCH","NONCANONICAL_PADDING","OWNED_RESTORE_WORKSPACE_REQUIRED","PAYLOAD_MANIFEST_MISMATCH","PRIVATE_ARCHIVE_REQUIRED","PRIVATE_PUBLICATION_NAMESPACE_REQUIRED","PROTECTED_SQLITE_PATHS_REQUIRED","PUBLICATION_IDENTITY_CHANGED","PUBLICATION_ROOT_OVERLAP","RESTORED_DATABASE_CHANGED","RESTORED_DATABASE_IDENTITY_MISMATCH","RESTORED_STATE_VERIFY_FAILED","SECRET_CUSTODY_REQUIRED","SOURCE_CHANGED","SOURCE_ROOT_OVERLAP","SPECIFIC_DATA_AUTHORITY_REQUIRED","SQLITE_RECEIPT_NOT_VERIFIED","SQLITE_SCOPE_COLLISION","STATE_CHANGED_ACROSS_SQLITE_INTERVAL","STATE_LINK","STRONG_FD_PRIMITIVES_UNSUPPORTED","TRAILING_ARCHIVE","TRUNCATED_ARCHIVE","UNCLASSIFIED_STATE_ERROR","UNSAFE_MEMBER_PATH","UNSAFE_PATH","UNSAFE_STATE_FILE","UNSAFE_TAR_HEADER","UNSAFE_TAR_NAME","UNSAFE_TAR_TYPE"])
 
 
 class StateError(ValueError):
@@ -61,6 +65,75 @@ class Limits:
                 raise StateError("INVALID_LIMIT")
         if type(self.seconds) not in (int, float) or not math.isfinite(self.seconds) or not 0 < self.seconds <= MAX_SECONDS:
             raise StateError("INVALID_LIMIT")
+
+
+@dataclass(frozen=True)
+class _BudgetPolicy:
+    profile_id: str | None
+    entries: int
+    depth: int
+    bytes: int
+    seconds: float
+    manifest_bytes: int
+    archive_bytes: int
+
+
+def _policy(profile_id=None, limits=Limits()):
+    if type(limits) is not Limits:
+        raise StateError("INVALID_LIMIT")
+    if profile_id is None:
+        return _BudgetPolicy(None, limits.entries, limits.depth, limits.bytes, limits.seconds,
+                             MAX_MANIFEST, MAX_ARCHIVE)
+    if type(profile_id) is not str or limits != Limits():
+        raise StateError("INVALID_BUDGET_PROFILE")
+    for profile, entries, depth, payload_bytes, seconds, manifest_bytes in _PROFILE_CAPS:
+        if profile == profile_id:
+            archive_bytes = payload_bytes + manifest_bytes + entries * 1024 + 4096
+            return _BudgetPolicy(profile, entries, depth, payload_bytes, seconds,
+                                 manifest_bytes, archive_bytes)
+    raise StateError("INVALID_BUDGET_PROFILE")
+
+
+def _manifest_limits_record(policy, legacy_limits=None):
+    if policy.profile_id is None:
+        if type(legacy_limits) is not Limits:
+            raise StateError("INVALID_LIMIT")
+        return asdict(legacy_limits)
+    return {
+        "profile_id": policy.profile_id,
+        "entries": policy.entries,
+        "depth": policy.depth,
+        "bytes": policy.bytes,
+        "seconds": policy.seconds,
+        "manifest_bytes": policy.manifest_bytes,
+        "archive_bytes": policy.archive_bytes,
+    }
+
+
+def _validate_manifest_limits(schema, raw, policy):
+    legacy_keys = {"entries", "depth", "bytes", "seconds"}
+    if schema in {"OPAQUE_STATE_BUNDLE_V1", "OPAQUE_STATE_BUNDLE_V2"}:
+        if policy.profile_id is not None:
+            raise StateError("BUDGET_PROFILE_MISMATCH")
+        if type(raw) is not dict or set(raw) != legacy_keys:
+            raise StateError("INVALID_MANIFEST_LIMITS")
+        try:
+            return Limits(**raw)
+        except (TypeError, ValueError):
+            raise StateError("INVALID_MANIFEST_LIMITS") from None
+    if schema == "OPAQUE_STATE_BUNDLE_V3":
+        if policy.profile_id is None:
+            raise StateError("BUDGET_PROFILE_REQUIRED")
+        expected = _manifest_limits_record(policy)
+        if (type(raw) is not dict or set(raw) != set(expected)
+                or type(raw.get("profile_id")) is not str
+                or any(type(raw.get(key)) is not int for key in
+                       ("entries", "depth", "bytes", "manifest_bytes", "archive_bytes"))
+                or type(raw.get("seconds")) is not float
+                or raw != expected):
+            raise StateError("BUDGET_PROFILE_MISMATCH")
+        return policy
+    raise StateError("INVALID_MANIFEST")
 
 
 @dataclass(frozen=True)
@@ -198,6 +271,120 @@ def _sqlite(receipt):
     return asdict(receipt)
 
 
+def _validate_profile_manifest_value(value, policy, deadline):
+    max_scalars = policy.entries * _PROFILE_MANIFEST_SCALARS_PER_ENTRY + _PROFILE_MANIFEST_FIXED_SCALARS
+    max_containers = policy.entries * _PROFILE_MANIFEST_CONTAINERS_PER_ENTRY + _PROFILE_MANIFEST_FIXED_CONTAINERS
+    counts = {"scalars": 0, "containers": 0, "visited": 0}
+
+    def string_size(text):
+        size = 2
+        for index, character in enumerate(text):
+            ordinal = ord(character)
+            if ordinal in (8, 9, 10, 12, 13, 34, 92):
+                size += 2
+            elif ordinal < 32 or ordinal >= 127:
+                size += 6 if ordinal <= 0xFFFF else 12
+            else:
+                size += 1
+            if size > _PROFILE_MANIFEST_MAX_STRING_BYTES:
+                raise StateError("MANIFEST_COMPLEXITY_BUDGET")
+            if index and index % 256 == 0:
+                _check_time(deadline)
+        _check_time(deadline)
+
+    def scalar():
+        counts["scalars"] += 1
+        counts["visited"] += 1
+        if counts["scalars"] > max_scalars:
+            raise StateError("MANIFEST_COMPLEXITY_BUDGET")
+        if counts["visited"] % 256 == 0:
+            _check_time(deadline)
+
+    def visit(item, depth):
+        if type(item) is dict:
+            depth += 1
+            counts["containers"] += 1
+            if (depth > _PROFILE_MANIFEST_MAX_DEPTH
+                    or counts["containers"] > max_containers
+                    or len(item) > _PROFILE_MANIFEST_MAX_OBJECT_KEYS):
+                raise StateError("MANIFEST_COMPLEXITY_BUDGET")
+            for key, child in item.items():
+                if type(key) is not str:
+                    raise StateError("INVALID_MANIFEST")
+                scalar()
+                string_size(key)
+                visit(child, depth)
+        elif type(item) is list:
+            depth += 1
+            counts["containers"] += 1
+            if (depth > _PROFILE_MANIFEST_MAX_DEPTH
+                    or counts["containers"] > max_containers
+                    or len(item) > policy.entries):
+                raise StateError("MANIFEST_COMPLEXITY_BUDGET")
+            for child in item:
+                visit(child, depth)
+        elif type(item) is str:
+            scalar()
+            string_size(item)
+        elif item is None or type(item) is bool:
+            scalar()
+        elif type(item) is int:
+            if item.bit_length() > 212 or len(str(item)) > _PROFILE_MANIFEST_MAX_ATOM_BYTES:
+                raise StateError("MANIFEST_COMPLEXITY_BUDGET")
+            scalar()
+        elif type(item) is float:
+            if not math.isfinite(item) or len(repr(item)) > _PROFILE_MANIFEST_MAX_ATOM_BYTES:
+                raise StateError("MANIFEST_COMPLEXITY_BUDGET")
+            scalar()
+        else:
+            raise StateError("INVALID_MANIFEST")
+
+    visit(value, 0)
+    _check_time(deadline)
+
+
+def _iter_profile_manifest_bytes(value, deadline):
+    encoder = json.JSONEncoder(sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    for text in encoder.iterencode(value):
+        _check_time(deadline)
+        yield text.encode("ascii")
+    _check_time(deadline)
+
+
+def _measure_profile_manifest(value, policy, deadline):
+    _validate_profile_manifest_value(value, policy, deadline)
+    digest, length = hashlib.sha256(), 0
+    for block in _iter_profile_manifest_bytes(value, deadline):
+        length += len(block)
+        if length > policy.manifest_bytes:
+            raise StateError("MANIFEST_BUDGET")
+        digest.update(block)
+    _check_time(deadline)
+    return length, digest.hexdigest()
+
+
+def _write_profile_manifest(value, policy, deadline, stream, expected_length, expected_digest):
+    _validate_profile_manifest_value(value, policy, deadline)
+    digest, length = hashlib.sha256(), 0
+    for block in _iter_profile_manifest_bytes(value, deadline):
+        length += len(block)
+        if length > policy.manifest_bytes:
+            raise StateError("MANIFEST_BUDGET")
+        digest.update(block)
+        stream.write(block)
+    _check_time(deadline)
+    if length != expected_length or digest.hexdigest() != expected_digest:
+        raise StateError("SOURCE_CHANGED")
+
+
+def _snapshot_after_profile_manifest_preflight(
+        manifest_template, policy, deadline, callback, before_callback):
+    size, _ = _measure_profile_manifest(manifest_template, policy, deadline)
+    _check_time(deadline)
+    before_callback()
+    return callback(deadline), size
+
+
 class _Writer:
     def __init__(self, stream, deadline):
         self.stream, self.deadline = stream, deadline
@@ -228,15 +415,30 @@ class _Writer:
         self.stream.write(b"\0" * (-length % 512))
         return name, digest.hexdigest()
 
-    def manifest(self, value):
-        raw = _canonical(value)
-        if len(raw) > MAX_MANIFEST:
-            raise StateError("MANIFEST_BUDGET")
-        self._header("manifest.json", len(raw))
-        self.stream.write(raw)
-        self.stream.write(b"\0" * (-len(raw) % 512))
+    def manifest(self, value, policy=None, expected_length=None):
+        if policy is None:
+            policy = _policy()
+        if policy.profile_id is None:
+            # Keep the legacy V1/V2 byte path exactly as it was.
+            raw = _canonical(value)
+            if len(raw) > policy.manifest_bytes:
+                raise StateError("MANIFEST_BUDGET")
+            self._header("manifest.json", len(raw))
+            self.stream.write(raw)
+            self.stream.write(b"\0" * (-len(raw) % 512))
+            self.stream.write(b"\0" * 1024)
+            return hashlib.sha256(raw).hexdigest()
+        length, digest = _measure_profile_manifest(value, policy, self.deadline)
+        if expected_length is not None and length != expected_length:
+            raise StateError("SOURCE_CHANGED")
+        _check_time(self.deadline)
+        self._header("manifest.json", length)
+        _write_profile_manifest(
+            value, policy, self.deadline, self.stream, length, digest
+        )
+        self.stream.write(b"\0" * (-length % 512))
         self.stream.write(b"\0" * 1024)
-        return hashlib.sha256(raw).hexdigest()
+        return digest
 
 
 def _canonical(value):
@@ -403,7 +605,8 @@ def _hash_fd(fd, deadline, maximum):
 
 
 def capture_state(*, scopes, authorization, publication: Path, deadline: float,
-                  sqlite_snapshot_callback, limits: Limits = Limits(), layout_binding=None):
+                  sqlite_snapshot_callback, limits: Limits = Limits(), layout_binding=None,
+                  profile_id=None):
     result = {"schema": "OWNED_STATE_CAPTURE_PROTOTYPE_V1", "ok": False,
               "state_published": False, "sqlite_callback_invoked": False,
               "sqlite_receipt": None, "recapture_attempted": False,
@@ -416,8 +619,13 @@ def capture_state(*, scopes, authorization, publication: Path, deadline: float,
         _native()
         if type(limits) is not Limits:
             raise StateError("INVALID_LIMIT")
+        policy = _policy(profile_id, limits)
         scopes = _scopes(scopes, authorization)
         layout_record = _layout_binding_record(layout_binding, scopes)
+        if policy.profile_id is not None and (
+                layout_record is None
+                or layout_record["layout_id"] != LAYOUT_CE_COLOCATED_SENTINEL_AUTOPILOT_V1):
+            raise StateError("LAYOUT_BINDING_REQUIRED")
         _path(publication)
         if any(publication == s.source or publication.is_relative_to(s.source)
                or s.source.is_relative_to(publication) for s in scopes):
@@ -432,32 +640,61 @@ def capture_state(*, scopes, authorization, publication: Path, deadline: float,
                      0o600, dir_fd=pfd)
         with os.fdopen(fd, "w+b") as stream:
             writer = _Writer(stream, deadline)
-            before = _scan(scopes, limits, deadline, writer, authorization.protected_sqlite_paths)
+            before = _scan(scopes, policy, deadline, writer, authorization.protected_sqlite_paths)
             _validate_required_layout_entries(layout_record, before["entries"])
             _check_time(deadline)
-            result["sqlite_callback_invoked"] = True
-            receipt = sqlite_snapshot_callback(deadline)
+            manifest_schema = ("OPAQUE_STATE_BUNDLE_V3" if policy.profile_id is not None else
+                               "OPAQUE_STATE_BUNDLE_V2" if layout_record is not None else
+                               "OPAQUE_STATE_BUNDLE_V1")
+            profile_manifest_size = None
+            if policy.profile_id is not None:
+                sizing_manifest = {
+                    "schema": manifest_schema,
+                    "authorization_ref": authorization.evidence_ref,
+                    # Shape sentinel only; null has the same JSON width as the final boolean.
+                    "sqlite": {"artifact_id": layout_record["operation_id"],
+                               "sha256": "0" * 64, "published_and_validated": None},
+                    "limits": _manifest_limits_record(policy, limits),
+                    "roots": before["roots"], "entries": before["entries"],
+                    "bracket_equal": True,
+                    "continuous_cross_store_consistency_certified": False,
+                    "layout_binding": layout_record,
+                }
+
+                def mark_sqlite_callback_invoked():
+                    result["sqlite_callback_invoked"] = True
+
+                receipt, profile_manifest_size = _snapshot_after_profile_manifest_preflight(
+                    sizing_manifest, policy, deadline, sqlite_snapshot_callback,
+                    mark_sqlite_callback_invoked,
+                )
+            else:
+                result["sqlite_callback_invoked"] = True
+                receipt = sqlite_snapshot_callback(deadline)
             result["sqlite_receipt"] = _sqlite(receipt)
             if (layout_record is not None
                     and result["sqlite_receipt"]["artifact_id"] != layout_record["operation_id"]):
                 raise StateError("LAYOUT_BINDING_MISMATCH")
             _check_time(deadline)
-            after = _scan(scopes, limits, deadline, protected=authorization.protected_sqlite_paths)
+            after = _scan(scopes, policy, deadline, protected=authorization.protected_sqlite_paths)
             if _comparable(before) != _comparable(after):
                 raise StateError("STATE_CHANGED_ACROSS_SQLITE_INTERVAL")
-            manifest = {"schema": "OPAQUE_STATE_BUNDLE_V2" if layout_record is not None else "OPAQUE_STATE_BUNDLE_V1",
+            manifest = {"schema": manifest_schema,
                         "authorization_ref": authorization.evidence_ref,
-                        "sqlite": result["sqlite_receipt"], "limits": asdict(limits),
+                        "sqlite": result["sqlite_receipt"],
+                        "limits": _manifest_limits_record(policy, limits),
                         "roots": before["roots"], "entries": before["entries"],
                         "bracket_equal": True,
                         "continuous_cross_store_consistency_certified": False}
             if layout_record is not None:
                 manifest["layout_binding"] = layout_record
-            mh = writer.manifest(manifest)
+            mh = writer.manifest(
+                manifest, policy, expected_length=profile_manifest_size
+            )
             stream.flush()
             os.fsync(stream.fileno())
             _check_time(deadline)
-            archive_sha = _hash_fd(stream.fileno(), deadline, MAX_ARCHIVE)
+            archive_sha = _hash_fd(stream.fileno(), deadline, policy.archive_bytes)
             prepared = os.fstat(stream.fileno())
         # link() publishes one complete private TAR without replacing any old file.
         _check_time(deadline)
@@ -482,6 +719,8 @@ def capture_state(*, scopes, authorization, publication: Path, deadline: float,
         if layout_record is not None:
             result.update(layout_id=layout_record["layout_id"],
                           scope_roles=layout_record["scope_roles"])
+        if policy.profile_id is not None:
+            result["profile_id"] = policy.profile_id
     except BaseException as exc:
         result.update(code=str(exc) if isinstance(exc, StateError) else "STATE_CAPTURE_FAILED",
                       error_type=type(exc).__name__)
@@ -518,33 +757,182 @@ def _valid_identity(value, kind):
         raise StateError("INVALID_MANIFEST_IDENTITY")
 
 
-def _manifest(raw, payloads, limits):
+_PROFILE_MANIFEST_MAX_DEPTH = 6
+_PROFILE_MANIFEST_MAX_STRING_BYTES = 16 * 1024
+_PROFILE_MANIFEST_MAX_ATOM_BYTES = 64
+_PROFILE_MANIFEST_MAX_OBJECT_KEYS = 32
+_PROFILE_MANIFEST_SCALARS_PER_ENTRY = 40
+_PROFILE_MANIFEST_FIXED_SCALARS = 1024
+_PROFILE_MANIFEST_CONTAINERS_PER_ENTRY = 3
+_PROFILE_MANIFEST_FIXED_CONTAINERS = 64
+
+
+def _preflight_profile_manifest(raw, policy, deadline=None):
+    """Bound V3 JSON allocation before the standard decoder allocates."""
+    if policy.profile_id is None:
+        return
+    _check_time(deadline)
+    if type(raw) is not bytes or len(raw) > policy.manifest_bytes:
+        raise StateError("MANIFEST_BUDGET")
+    max_scalars = policy.entries * _PROFILE_MANIFEST_SCALARS_PER_ENTRY + _PROFILE_MANIFEST_FIXED_SCALARS
+    max_containers = policy.entries * _PROFILE_MANIFEST_CONTAINERS_PER_ENTRY + _PROFILE_MANIFEST_FIXED_CONTAINERS
+    stack = []
+    in_string = escaped = atom = False
+    string_size = atom_size = depth = containers = scalars = 0
+
+    def array_item():
+        if stack and stack[-1]["kind"] == "array":
+            stack[-1]["items"] += 1
+            if stack[-1]["items"] > policy.entries:
+                raise StateError("MANIFEST_COMPLEXITY_BUDGET")
+
+    def object_value_started():
+        if stack and stack[-1]["kind"] == "object" and stack[-1]["state"] == "value":
+            stack[-1]["state"] = "done"
+
+    for block_start in range(0, len(raw), 65536):
+        _check_time(deadline)
+        block = raw[block_start:block_start + 65536]
+        for byte in block:
+            if in_string:
+                string_size += 1
+                if string_size > _PROFILE_MANIFEST_MAX_STRING_BYTES:
+                    raise StateError("MANIFEST_COMPLEXITY_BUDGET")
+                if escaped:
+                    escaped = False
+                elif byte == 92:
+                    escaped = True
+                elif byte == 34:
+                    in_string = False
+                    atom = False
+                elif byte < 32:
+                    raise StateError("INVALID_MANIFEST")
+                continue
+            if byte == 34:
+                scalars += 1
+                if stack and stack[-1]["kind"] == "array":
+                    array_item()
+                elif stack and stack[-1]["kind"] == "object":
+                    current = stack[-1]
+                    if current["state"] == "key":
+                        current["keys"] += 1
+                        if current["keys"] > _PROFILE_MANIFEST_MAX_OBJECT_KEYS:
+                            raise StateError("MANIFEST_COMPLEXITY_BUDGET")
+                        current["state"] = "colon"
+                    elif current["state"] == "value":
+                        current["state"] = "done"
+                in_string = True
+                escaped = False
+                string_size = 0
+                atom = False
+            elif byte in (9, 10, 13, 32):
+                atom = False
+            elif byte in (123, 91):
+                array_item()
+                object_value_started()
+                containers += 1
+                depth += 1
+                atom = False
+                if containers > max_containers or depth > _PROFILE_MANIFEST_MAX_DEPTH:
+                    raise StateError("MANIFEST_COMPLEXITY_BUDGET")
+                stack.append({"kind": "object", "keys": 0, "state": "key"}
+                             if byte == 123 else {"kind": "array", "items": 0})
+            elif byte in (125, 93):
+                expected_kind = "object" if byte == 125 else "array"
+                if depth < 1 or not stack or stack[-1]["kind"] != expected_kind:
+                    raise StateError("INVALID_MANIFEST")
+                stack.pop()
+                depth -= 1
+                atom = False
+            elif byte == 44:
+                if stack and stack[-1]["kind"] == "object":
+                    stack[-1]["state"] = "key"
+                atom = False
+            elif byte == 58:
+                if stack and stack[-1]["kind"] == "object" and stack[-1]["state"] == "colon":
+                    stack[-1]["state"] = "value"
+                atom = False
+            else:
+                if not atom:
+                    scalars += 1
+                    array_item()
+                    object_value_started()
+                    atom = True
+                    atom_size = 0
+                atom_size += 1
+                if atom_size > _PROFILE_MANIFEST_MAX_ATOM_BYTES:
+                    raise StateError("MANIFEST_COMPLEXITY_BUDGET")
+            if scalars > max_scalars:
+                raise StateError("MANIFEST_COMPLEXITY_BUDGET")
+    if in_string or escaped or depth != 0 or stack:
+        raise StateError("INVALID_MANIFEST")
+    _check_time(deadline)
+
+
+def _coerce_manifest_policy(value):
+    if type(value) is Limits:
+        return _policy(None, value)
+    if type(value) is not _BudgetPolicy:
+        raise StateError("INVALID_LIMIT")
+    if value.profile_id is None:
+        try:
+            limits = Limits(value.entries, value.depth, value.bytes, value.seconds)
+        except (TypeError, ValueError):
+            raise StateError("INVALID_LIMIT") from None
+        expected = _policy(None, limits)
+        if (value != expected
+                or type(value.entries) is not type(expected.entries)
+                or type(value.depth) is not type(expected.depth)
+                or type(value.bytes) is not type(expected.bytes)
+                or type(value.seconds) is not type(expected.seconds)
+                or type(value.manifest_bytes) is not type(expected.manifest_bytes)
+                or type(value.archive_bytes) is not type(expected.archive_bytes)):
+            raise StateError("INVALID_LIMIT")
+        return value
+    expected = _policy(value.profile_id, Limits())
+    if (value != expected
+            or type(value.entries) is not int
+            or type(value.depth) is not int
+            or type(value.bytes) is not int
+            or type(value.seconds) is not float
+            or type(value.manifest_bytes) is not int
+            or type(value.archive_bytes) is not int):
+        raise StateError("INVALID_BUDGET_PROFILE")
+    return value
+
+
+def _manifest(raw, payloads, policy, deadline=None):
+    policy = _coerce_manifest_policy(policy)
+    _preflight_profile_manifest(raw, policy, deadline)
+    if policy.profile_id is not None:
+        _check_time(deadline)
     try:
         value = json.loads(raw, object_pairs_hook=_no_duplicate_keys)
     except (ValueError, RecursionError, UnicodeError):
         raise StateError("INVALID_MANIFEST") from None
+    if policy.profile_id is not None:
+        _check_time(deadline)
     base_keys = {"schema", "authorization_ref", "sqlite", "limits", "roots", "entries",
                  "bracket_equal", "continuous_cross_store_consistency_certified"}
     schema = value.get("schema") if type(value) is dict else None
     if schema == "OPAQUE_STATE_BUNDLE_V1":
         expected_keys = base_keys
-    elif schema == "OPAQUE_STATE_BUNDLE_V2":
+    elif schema in {"OPAQUE_STATE_BUNDLE_V2", "OPAQUE_STATE_BUNDLE_V3"}:
         expected_keys = base_keys | {"layout_binding"}
     else:
         raise StateError("INVALID_MANIFEST")
+    if schema == "OPAQUE_STATE_BUNDLE_V3" and policy.profile_id is None:
+        raise StateError("BUDGET_PROFILE_REQUIRED")
+    if schema != "OPAQUE_STATE_BUNDLE_V3" and policy.profile_id is not None:
+        raise StateError("BUDGET_PROFILE_MISMATCH")
     if (type(value) is not dict or set(value) != expected_keys
             or value["bracket_equal"] is not True
             or value["continuous_cross_store_consistency_certified"] is not False
             or not isinstance(value["authorization_ref"], str) or not REF.fullmatch(value["authorization_ref"])
             or not isinstance(value["roots"], list) or not 1 <= len(value["roots"]) <= 2
-            or not isinstance(value["entries"], list) or len(value["entries"]) > limits.entries):
+            or not isinstance(value["entries"], list) or len(value["entries"]) > policy.entries):
         raise StateError("INVALID_MANIFEST")
-    try:
-        if type(value["limits"]) is not dict or set(value["limits"]) != {"entries", "depth", "bytes", "seconds"}:
-            raise StateError("INVALID_MANIFEST_LIMITS")
-        Limits(**value["limits"])
-    except (TypeError, ValueError):
-        raise StateError("INVALID_MANIFEST_LIMITS") from None
+    _validate_manifest_limits(schema, value["limits"], policy)
     for root in value["roots"]:
         if type(root) is not dict or set(root) != {"scope", "identity"} or not isinstance(root["scope"], str):
             raise StateError("INVALID_MANIFEST_ROOTS")
@@ -553,7 +941,7 @@ def _manifest(raw, payloads, limits):
     if len(roles) != len(value["roots"]) or len(set(roles)) != len(roles) or set(roles) - ROLES:
         raise StateError("INVALID_MANIFEST_ROOTS")
     layout_binding = value.get("layout_binding")
-    if schema == "OPAQUE_STATE_BUNDLE_V2":
+    if schema in {"OPAQUE_STATE_BUNDLE_V2", "OPAQUE_STATE_BUNDLE_V3"}:
         binding_keys = {"layout_id", "operation_id", "proposal_sha256", "scope_roles", "required_entries"}
         sqlite_value = value.get("sqlite")
         try:
@@ -584,7 +972,7 @@ def _manifest(raw, payloads, limits):
     for item in value["entries"]:
         if type(item) is not dict or not isinstance(item.get("scope"), str) or item.get("scope") not in roles:
             raise StateError("INVALID_MANIFEST_ENTRY")
-        _relative(item.get("relative"), limits.depth)
+        _relative(item.get("relative"), policy.depth)
         _valid_identity(item.get("identity"), item.get("kind"))
         key = (item["scope"], item["relative"])
         if key in seen:
@@ -607,24 +995,26 @@ def _manifest(raw, payloads, limits):
             raise StateError("INVALID_MANIFEST_ENTRY")
     directories = {(e["scope"], e["relative"]) for e in value["entries"] if e["kind"] == "directory"}
     for item in value["entries"]:
-        parts = _relative(item["relative"], limits.depth)
+        parts = _relative(item["relative"], policy.depth)
         for i in range(1, len(parts)):
             if (item["scope"], "/".join(parts[:i])) not in directories:
                 raise StateError("INCOMPLETE_MANIFEST_NAMESPACE")
-    if members != set(payloads) or total > limits.bytes:
+    if members != set(payloads) or total > policy.bytes:
         raise StateError("PAYLOAD_MANIFEST_MISMATCH")
-    if schema == "OPAQUE_STATE_BUNDLE_V2":
+    if schema in {"OPAQUE_STATE_BUNDLE_V2", "OPAQUE_STATE_BUNDLE_V3"}:
         _validate_required_layout_entries(layout_binding, value["entries"])
     return value
 
 
 def parse_bundle(stream, *, expected_archive_sha256, expected_manifest_sha256,
                  expected_sqlite: SqliteReceipt, deadline, limits=Limits(), payload_sink=None,
-                 expected_layout_id=None, expected_proposal_sha256=None, expected_scope_roles=None):
+                 expected_layout_id=None, expected_proposal_sha256=None, expected_scope_roles=None,
+                 expected_profile_id=None):
     """Bounded USTAR subset; no extract(), pickle, links, PAX or GNU extensions."""
     _check_time(deadline)
     if type(limits) is not Limits:
         raise StateError("INVALID_LIMIT")
+    policy = _policy(expected_profile_id, limits)
     sqlite = _sqlite(expected_sqlite)
     if not all(isinstance(v, str) and HEX.fullmatch(v) for v in
                (expected_archive_sha256, expected_manifest_sha256)):
@@ -634,13 +1024,13 @@ def parse_bundle(stream, *, expected_archive_sha256, expected_manifest_sha256,
     def read(length):
         nonlocal consumed
         _check_time(deadline)
-        if not 0 <= length <= MAX_MANIFEST:
+        if not 0 <= length <= policy.manifest_bytes:
             raise StateError("ARCHIVE_READ_BUDGET")
         block = stream.read(length)
         if len(block) != length:
             raise StateError("TRUNCATED_ARCHIVE")
         consumed += length
-        if consumed > MAX_ARCHIVE:
+        if consumed > policy.archive_bytes:
             raise StateError("ARCHIVE_BUDGET")
         digest.update(block)
         return block
@@ -651,7 +1041,7 @@ def parse_bundle(stream, *, expected_archive_sha256, expected_manifest_sha256,
             if read(512) != b"\0" * 512 or stream.read(1):
                 raise StateError("TRAILING_ARCHIVE")
             break
-        if manifest is not None or len(payloads) > limits.entries:
+        if manifest is not None or len(payloads) > policy.entries:
             raise StateError("ARCHIVE_MEMBER_BUDGET")
         if (header[156:157] != tarfile.REGTYPE or header[345:500].strip(b"\0")
                 or header[257:263] != b"ustar\0" or header[263:265] != b"00"):
@@ -663,12 +1053,12 @@ def parse_bundle(stream, *, expected_archive_sha256, expected_manifest_sha256,
         if item.linkname or item.mode != 0o600 or item.size < 0:
             raise StateError("UNSAFE_TAR_HEADER")
         if item.name == "manifest.json":
-            if not 0 < item.size <= MAX_MANIFEST:
+            if not 0 < item.size <= policy.manifest_bytes:
                 raise StateError("MANIFEST_BUDGET")
             raw = read(item.size)
             if hashlib.sha256(raw).hexdigest() != expected_manifest_sha256:
                 raise StateError("MANIFEST_HASH_MISMATCH")
-            manifest = _manifest(raw, payloads, limits)
+            manifest = _manifest(raw, payloads, policy, deadline)
             if manifest["sqlite"] != sqlite:
                 raise StateError("FOREIGN_SQLITE_RECEIPT")
             _validate_expected_layout_binding(
@@ -677,10 +1067,10 @@ def parse_bundle(stream, *, expected_archive_sha256, expected_manifest_sha256,
                 expected_proposal_sha256=expected_proposal_sha256,
                 expected_scope_roles=expected_scope_roles)
         else:
-            if item.name != "payload/%06d" % len(payloads) or len(payloads) >= limits.entries:
+            if item.name != "payload/%06d" % len(payloads) or len(payloads) >= policy.entries:
                 raise StateError("UNSAFE_TAR_NAME")
             total += item.size
-            if total > limits.bytes:
+            if total > policy.bytes:
                 raise StateError("BYTE_BUDGET")
             target = payload_sink(item.name, item.size) if payload_sink is not None else None
             sha, left = hashlib.sha256(), item.size
@@ -725,7 +1115,8 @@ def _child_directory(parent, components):
 def restore_state(*, bundle: Path, expected_archive_sha256, expected_manifest_sha256,
                   expected_sqlite: SqliteReceipt, workspace: Path, expected_database_identity,
                   deadline, limits=Limits(), expected_layout_id=None,
-                  expected_proposal_sha256=None, expected_scope_roles=None):
+                  expected_proposal_sha256=None, expected_scope_roles=None,
+                  expected_profile_id=None):
     result = {"schema": "OWNED_STATE_RESTORE_PROTOTYPE_V1", "ok": False,
               "state_ready_before_app": False, "sqlite_restore_created": False,
               "live_restore_allowed": False, "full_application_recovery_certified": False}
@@ -736,6 +1127,7 @@ def restore_state(*, bundle: Path, expected_archive_sha256, expected_manifest_sh
         _native()
         if type(limits) is not Limits:
             raise StateError("INVALID_LIMIT")
+        policy = _policy(expected_profile_id, limits)
         _path(workspace)
         _path(bundle)
         if not workspace.name.startswith(".isolated_restore_327_"):
@@ -753,7 +1145,7 @@ def restore_state(*, bundle: Path, expected_archive_sha256, expected_manifest_sh
             os.close(pfd)
         info = os.fstat(archive_fd)
         _regular(info)
-        if info.st_mode & 0o077 or info.st_size > MAX_ARCHIVE:
+        if info.st_mode & 0o077 or info.st_size > policy.archive_bytes:
             raise StateError("PRIVATE_ARCHIVE_REQUIRED")
         with os.fdopen(os.dup(archive_fd), "rb") as stream:
             manifest = parse_bundle(stream, expected_archive_sha256=expected_archive_sha256,
@@ -761,7 +1153,8 @@ def restore_state(*, bundle: Path, expected_archive_sha256, expected_manifest_sh
                                     expected_sqlite=expected_sqlite, deadline=deadline, limits=limits,
                                     expected_layout_id=expected_layout_id,
                                     expected_proposal_sha256=expected_proposal_sha256,
-                                    expected_scope_roles=expected_scope_roles)
+                                    expected_scope_roles=expected_scope_roles,
+                                    expected_profile_id=expected_profile_id)
         _same(info, os.fstat(archive_fd))
         # mkdir is exclusive: never merge into, replace or clear existing state.
         os.mkdir("data", 0o700, dir_fd=source_fd)
@@ -780,7 +1173,7 @@ def restore_state(*, bundle: Path, expected_archive_sha256, expected_manifest_sh
             entry = expected_files.get(member)
             if entry is None or entry["bytes"] != length:
                 raise StateError("PAYLOAD_MANIFEST_MISMATCH")
-            parts = _relative(entry["relative"], limits.depth)
+            parts = _relative(entry["relative"], policy.depth)
             fd = _child_directory(data_fd, [DESTINATIONS[entry["scope"]], *parts[:-1]])
             try:
                 output = os.open(parts[-1], os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
@@ -796,11 +1189,12 @@ def restore_state(*, bundle: Path, expected_archive_sha256, expected_manifest_sh
                          deadline=deadline, limits=limits, payload_sink=sink,
                          expected_layout_id=expected_layout_id,
                          expected_proposal_sha256=expected_proposal_sha256,
-                         expected_scope_roles=expected_scope_roles)
+                         expected_scope_roles=expected_scope_roles,
+                         expected_profile_id=expected_profile_id)
         _same(info, os.fstat(archive_fd))
         scopes = [Scope(r["scope"], workspace / "source/data" / DESTINATIONS[r["scope"]])
                   for r in manifest["roots"]]
-        verified = _scan(scopes, limits, deadline)
+        verified = _scan(scopes, policy, deadline)
         project = lambda records: sorted((e["scope"], e["relative"], e["kind"],
                                          e.get("bytes"), e.get("sha256")) for e in records)
         if project(verified["entries"]) != project(manifest["entries"]):
