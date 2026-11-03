@@ -42,7 +42,7 @@ HEX = re.compile(r"[0-9a-f]{64}\Z")
 REF = re.compile(r"[A-Z0-9_-]{1,96}\Z")
 
 
-_ERROR_CODES = frozenset(["ARCHIVE_BUDGET","ARCHIVE_HASH_MISMATCH","ARCHIVE_MEMBER_BUDGET","ARCHIVE_READ_BUDGET","BUDGET_PROFILE_MISMATCH","BUDGET_PROFILE_REQUIRED","BYTE_BUDGET","DEADLINE_EXPIRED","DUPLICATE_MANIFEST_KEY","DUPLICATE_STATE_PATH","ENTRY_BUDGET","FOREIGN_SQLITE_RECEIPT","INCOMPLETE_MANIFEST_NAMESPACE","INVALID_BUDGET_PROFILE","INVALID_DEADLINE","INVALID_EXPECTED_DIGEST","INVALID_LIMIT","INVALID_LAYOUT_BINDING","INVALID_MANIFEST","INVALID_MANIFEST_ENTRY","INVALID_MANIFEST_IDENTITY","INVALID_MANIFEST_LIMITS","INVALID_MANIFEST_ROOTS","INVALID_SCOPES","INVALID_TAR_HEADER","LAYOUT_BINDING_MISMATCH","LAYOUT_BINDING_REQUIRED","LAYOUT_REQUIRED_ENTRY_MISSING","MANIFEST_BUDGET","MANIFEST_COMPLEXITY_BUDGET","MANIFEST_HASH_MISMATCH","NONCANONICAL_PADDING","OWNED_RESTORE_WORKSPACE_REQUIRED","PAYLOAD_MANIFEST_MISMATCH","PRIVATE_ARCHIVE_REQUIRED","PRIVATE_PUBLICATION_NAMESPACE_REQUIRED","PROTECTED_SQLITE_PATHS_REQUIRED","PUBLICATION_IDENTITY_CHANGED","PUBLICATION_ROOT_OVERLAP","RESTORED_DATABASE_CHANGED","RESTORED_DATABASE_IDENTITY_MISMATCH","RESTORED_STATE_VERIFY_FAILED","SECRET_CUSTODY_REQUIRED","SOURCE_CHANGED","SOURCE_ROOT_OVERLAP","SPECIFIC_DATA_AUTHORITY_REQUIRED","SQLITE_RECEIPT_NOT_VERIFIED","SQLITE_SCOPE_COLLISION","STATE_CHANGED_ACROSS_SQLITE_INTERVAL","STATE_LINK","STRONG_FD_PRIMITIVES_UNSUPPORTED","TRAILING_ARCHIVE","TRUNCATED_ARCHIVE","UNCLASSIFIED_STATE_ERROR","UNSAFE_MEMBER_PATH","UNSAFE_PATH","UNSAFE_STATE_FILE","UNSAFE_TAR_HEADER","UNSAFE_TAR_NAME","UNSAFE_TAR_TYPE"])
+_ERROR_CODES = frozenset(["PREPARED_SQLITE_CAPTURE_NOT_VERIFIED","PREPARED_SQLITE_CAPTURE_CHANGED","FOREIGN_PREPARED_SQLITE_CAPTURE","PREPARED_SQLITE_HASH_MISMATCH","INVALID_SQLITE_CAPTURE_MODE","ARCHIVE_BUDGET","ARCHIVE_HASH_MISMATCH","ARCHIVE_MEMBER_BUDGET","ARCHIVE_READ_BUDGET","BUDGET_PROFILE_MISMATCH","BUDGET_PROFILE_REQUIRED","BYTE_BUDGET","DEADLINE_EXPIRED","DUPLICATE_MANIFEST_KEY","DUPLICATE_STATE_PATH","ENTRY_BUDGET","FOREIGN_SQLITE_RECEIPT","INCOMPLETE_MANIFEST_NAMESPACE","INVALID_BUDGET_PROFILE","INVALID_DEADLINE","INVALID_EXPECTED_DIGEST","INVALID_LIMIT","INVALID_LAYOUT_BINDING","INVALID_MANIFEST","INVALID_MANIFEST_ENTRY","INVALID_MANIFEST_IDENTITY","INVALID_MANIFEST_LIMITS","INVALID_MANIFEST_ROOTS","INVALID_SCOPES","INVALID_TAR_HEADER","LAYOUT_BINDING_MISMATCH","LAYOUT_BINDING_REQUIRED","LAYOUT_REQUIRED_ENTRY_MISSING","MANIFEST_BUDGET","MANIFEST_COMPLEXITY_BUDGET","MANIFEST_HASH_MISMATCH","NONCANONICAL_PADDING","OWNED_RESTORE_WORKSPACE_REQUIRED","PAYLOAD_MANIFEST_MISMATCH","PRIVATE_ARCHIVE_REQUIRED","PRIVATE_PUBLICATION_NAMESPACE_REQUIRED","PROTECTED_SQLITE_PATHS_REQUIRED","PUBLICATION_IDENTITY_CHANGED","PUBLICATION_ROOT_OVERLAP","RESTORED_DATABASE_CHANGED","RESTORED_DATABASE_IDENTITY_MISMATCH","RESTORED_STATE_VERIFY_FAILED","SECRET_CUSTODY_REQUIRED","SOURCE_CHANGED","SOURCE_ROOT_OVERLAP","SPECIFIC_DATA_AUTHORITY_REQUIRED","SQLITE_RECEIPT_NOT_VERIFIED","SQLITE_SCOPE_COLLISION","STATE_CHANGED_ACROSS_SQLITE_INTERVAL","STATE_LINK","STRONG_FD_PRIMITIVES_UNSUPPORTED","TRAILING_ARCHIVE","TRUNCATED_ARCHIVE","UNCLASSIFIED_STATE_ERROR","UNSAFE_MEMBER_PATH","UNSAFE_PATH","UNSAFE_STATE_FILE","UNSAFE_TAR_HEADER","UNSAFE_TAR_NAME","UNSAFE_TAR_TYPE"])
 
 
 class StateError(ValueError):
@@ -164,6 +164,107 @@ class StateLayoutBinding:
     layout_id: str
     operation_id: str
     proposal_sha256: str
+
+
+
+_CAPTURE_IDENTITY_FIELDS = ("st_dev", "st_ino", "st_mode", "st_nlink", "st_uid", "st_gid",
+                            "st_size", "st_mtime_ns", "st_ctime_ns")
+
+
+@dataclass(frozen=True)
+class PreparedSqliteCapture:
+    """Pinned producer-owned capture; never a provisional SqliteReceipt."""
+    operation_id: str
+    proposal_sha256: str
+    producer_id: str
+    capture_id: str
+    snapshot_fd: int
+    snapshot_identity: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class ValidatedSqliteCapture:
+    """Final producer result retaining the exact prepared capability object."""
+    prepared: PreparedSqliteCapture
+    receipt: SqliteReceipt
+    published_identity: tuple[int, ...]
+    publication: Path
+    publication_fd: int
+    backup_file: str
+
+
+@dataclass(frozen=True)
+class PreparedSqliteCallbacks:
+    """Explicit trusted-code opt-in; neither callback comes from manifest/data."""
+    prepare: object
+    validate: object
+
+
+def _capture_identity(info):
+    return tuple(int(getattr(info, key)) for key in _CAPTURE_IDENTITY_FIELDS)
+
+
+def _prepared_capture(value, binding):
+    if (type(value) is not PreparedSqliteCapture or binding is None
+            or value.operation_id != binding["operation_id"]
+            or value.proposal_sha256 != binding["proposal_sha256"]
+            or type(value.producer_id) is not str or not re.fullmatch(r"[0-9a-f]{32}", value.producer_id)
+            or type(value.capture_id) is not str or not re.fullmatch(r"[0-9a-f]{32}", value.capture_id)
+            or type(value.snapshot_fd) is not int or value.snapshot_fd < 0
+            or type(value.snapshot_identity) is not tuple or len(value.snapshot_identity) != 9
+            or any(type(v) is not int or v < 0 for v in value.snapshot_identity)):
+        raise StateError("PREPARED_SQLITE_CAPTURE_NOT_VERIFIED")
+    info = os.fstat(value.snapshot_fd)
+    _regular(info)
+    if (info.st_mode & 0o077 or info.st_uid != os.geteuid()
+            or info.st_size <= 0 or _capture_identity(info) != value.snapshot_identity):
+        raise StateError("PREPARED_SQLITE_CAPTURE_CHANGED")
+    return value
+
+
+def _validated_capture(value, prepared, binding, deadline):
+    if (type(value) is not ValidatedSqliteCapture or value.prepared is not prepared
+            or type(value.published_identity) is not tuple
+            or len(value.published_identity) != 9
+            or any(type(v) is not int or v < 0 for v in value.published_identity)
+            or type(value.publication_fd) is not int or value.publication_fd < 0
+            or type(value.backup_file) is not str
+            or not re.fullmatch(r"database_[A-Za-z0-9_-]{1,180}\.db", value.backup_file)):
+        raise StateError("FOREIGN_PREPARED_SQLITE_CAPTURE")
+    receipt = _sqlite(value.receipt)
+    if receipt["artifact_id"] != binding["operation_id"]:
+        raise StateError("FOREIGN_SQLITE_RECEIPT")
+    current = os.fstat(prepared.snapshot_fd)
+    _regular(current)
+    # No-replace link/unlink publication changes only ctime on the retained
+    # single-link file. All content/owner/inode fields must remain identical.
+    if (tuple(value.published_identity[:-1]) != prepared.snapshot_identity[:-1]
+            or _capture_identity(current) != value.published_identity
+            or current.st_ctime_ns < prepared.snapshot_identity[-1]):
+        raise StateError("PREPARED_SQLITE_CAPTURE_CHANGED")
+    def published_name_is_same_capture():
+        _path(value.publication)
+        namespace = os.fstat(value.publication_fd)
+        if (not stat.S_ISDIR(namespace.st_mode) or namespace.st_mode & 0o077
+                or namespace.st_uid != os.geteuid()):
+            raise StateError("PREPARED_SQLITE_CAPTURE_CHANGED")
+        check_fd = _directory(value.publication)
+        try:
+            actual = os.fstat(check_fd)
+            if ((namespace.st_dev, namespace.st_ino, namespace.st_mode, namespace.st_uid, namespace.st_gid)
+                    != (actual.st_dev, actual.st_ino, actual.st_mode, actual.st_uid, actual.st_gid)):
+                raise StateError("PREPARED_SQLITE_CAPTURE_CHANGED")
+        finally:
+            os.close(check_fd)
+        _same(current, os.stat(value.backup_file, dir_fd=value.publication_fd, follow_symlinks=False))
+    published_name_is_same_capture()
+    digest = _hash_fd(prepared.snapshot_fd, deadline, current.st_size)
+    _same(current, os.fstat(prepared.snapshot_fd))
+    published_name_is_same_capture()
+    if digest != receipt["sha256"]:
+        raise StateError("PREPARED_SQLITE_HASH_MISMATCH")
+    _check_time(deadline)
+    return receipt
 
 
 def _check_time(deadline):
@@ -605,8 +706,8 @@ def _hash_fd(fd, deadline, maximum):
 
 
 def capture_state(*, scopes, authorization, publication: Path, deadline: float,
-                  sqlite_snapshot_callback, limits: Limits = Limits(), layout_binding=None,
-                  profile_id=None):
+                  sqlite_snapshot_callback=None, limits: Limits = Limits(), layout_binding=None,
+                  profile_id=None, sqlite_prepared_callbacks=None):
     result = {"schema": "OWNED_STATE_CAPTURE_PROTOTYPE_V1", "ok": False,
               "state_published": False, "sqlite_callback_invoked": False,
               "sqlite_receipt": None, "recapture_attempted": False,
@@ -620,6 +721,15 @@ def capture_state(*, scopes, authorization, publication: Path, deadline: float,
         if type(limits) is not Limits:
             raise StateError("INVALID_LIMIT")
         policy = _policy(profile_id, limits)
+        split_capture = sqlite_prepared_callbacks is not None
+        if split_capture and (type(sqlite_prepared_callbacks) is not PreparedSqliteCallbacks
+                or sqlite_snapshot_callback is not None or policy.profile_id is None
+                or not callable(sqlite_prepared_callbacks.prepare)
+                or not callable(sqlite_prepared_callbacks.validate)):
+            raise StateError("INVALID_SQLITE_CAPTURE_MODE")
+        if not split_capture and not callable(sqlite_snapshot_callback):
+            raise StateError("INVALID_SQLITE_CAPTURE_MODE")
+        result["sqlite_capture_mode"] = "PREPARE_THEN_VALIDATE_V1" if split_capture else "LEGACY_CALLBACK"
         scopes = _scopes(scopes, authorization)
         layout_record = _layout_binding_record(layout_binding, scopes)
         if policy.profile_id is not None and (
@@ -665,20 +775,34 @@ def capture_state(*, scopes, authorization, publication: Path, deadline: float,
                     result["sqlite_callback_invoked"] = True
 
                 receipt, profile_manifest_size = _snapshot_after_profile_manifest_preflight(
-                    sizing_manifest, policy, deadline, sqlite_snapshot_callback,
+                    sizing_manifest, policy, deadline,
+                    (sqlite_prepared_callbacks.prepare if split_capture else sqlite_snapshot_callback),
                     mark_sqlite_callback_invoked,
                 )
             else:
                 result["sqlite_callback_invoked"] = True
                 receipt = sqlite_snapshot_callback(deadline)
-            result["sqlite_receipt"] = _sqlite(receipt)
-            if (layout_record is not None
-                    and result["sqlite_receipt"]["artifact_id"] != layout_record["operation_id"]):
-                raise StateError("LAYOUT_BINDING_MISMATCH")
+            if not split_capture:
+                result["sqlite_receipt"] = _sqlite(receipt)
+                if (layout_record is not None
+                        and result["sqlite_receipt"]["artifact_id"] != layout_record["operation_id"]):
+                    raise StateError("LAYOUT_BINDING_MISMATCH")
+            # Close the complete opaque bracket immediately after preparation.
+            # Validation, hashes and publication do not run inside this interval.
             _check_time(deadline)
             after = _scan(scopes, policy, deadline, protected=authorization.protected_sqlite_paths)
             if _comparable(before) != _comparable(after):
                 raise StateError("STATE_CHANGED_ACROSS_SQLITE_INTERVAL")
+            result["opaque_bracket_closed"] = True
+            if split_capture:
+                prepared_capture = _prepared_capture(receipt, layout_record)
+                _check_time(deadline)
+                result["sqlite_validator_invoked"] = True
+                validated = sqlite_prepared_callbacks.validate(prepared_capture, deadline)
+                result["sqlite_receipt"] = _validated_capture(
+                    validated, prepared_capture, layout_record, deadline)
+                result["same_prepared_sqlite_capture_verified"] = True
+                result["sqlite_backup_file"] = validated.backup_file
             manifest = {"schema": manifest_schema,
                         "authorization_ref": authorization.evidence_ref,
                         "sqlite": result["sqlite_receipt"],
