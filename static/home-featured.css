@@ -1,13 +1,42 @@
-/* The featured block only changes presentation of the existing five-card Home budget. */
+/* Home-specific hierarchy; canonical cards and their fixture links stay intact. */
 .home-match-featured{min-width:0;max-width:100%;margin-block:0 10px}
-.home-match-featured-slides,.home-match-featured-slide{min-width:0}
+.home-match-featured-slides{position:relative;min-width:0;min-block-size:var(--home-featured-min-height,0px)}
+.home-match-featured-slide{display:flex;flex-direction:column;min-width:0;max-width:100%;min-block-size:var(--home-featured-min-height,0px)}
 .home-match-featured-slide[hidden],.home-match-featured-controls[hidden]{display:none!important}
-.home-match-featured-slide>.v933-match-card{width:100%;box-sizing:border-box;margin:0;min-width:0}
-.home-match-featured-controls{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:6px;margin-block-start:8px}
-.home-match-featured-controls .v933-action{min-width:44px;min-height:44px;justify-content:center}
-.home-match-featured-counter{font-variant-numeric:tabular-nums;white-space:nowrap;min-width:38px;text-align:center;font-size:.82rem}
-.home-match-featured-toggle{min-width:84px!important}
+.home-match-featured-context{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;min-height:26px;margin-block:0 10px}
+.home-match-featured-context .home-presentation-section-heading{margin:0;min-width:0;font-size:.75rem;line-height:1.4;letter-spacing:.07em;overflow-wrap:anywhere}
+.home-match-featured-favorite[hidden]{display:none!important}
+.home-match-featured-favorite{flex-shrink:0;padding:3px 9px;border:1px solid rgba(245,197,90,.4);border-radius:999px;color:#f6d681;font-size:.72rem;font-weight:650;line-height:1.4}
+.home-match-featured-slide>.v933-match-card{display:flex;flex:1;flex-direction:column;justify-content:space-between;width:100%;box-sizing:border-box;margin:0;min-width:0;padding:18px;border:1px solid rgba(100,216,250,.24);border-radius:16px;background:linear-gradient(145deg,rgba(23,58,76,.45),rgba(10,21,35,.9));box-shadow:0 8px 22px rgba(0,0,0,.12)}
+[data-home-featured-country-context]+.v933-match-card .v933-match-card-header>div:first-child>small{display:none}
+.home-match-featured .v933-match-card-header{align-items:flex-start;gap:12px;flex-wrap:wrap}
+.home-match-featured .v933-match-card-header>div{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.home-match-featured .v933-match-card-header .is-competition{font-weight:650;line-height:1.4}
+.home-match-featured .v937-card-trust{justify-content:flex-start;flex-wrap:wrap;gap:6px}
+.home-match-featured .v937-card-trust time{line-height:1.5}
+.home-match-featured .v933-match-teams{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px;margin-block:20px}
+.home-match-featured .v933-match-teams>div{min-width:0}
+.home-match-featured .v933-match-teams>div:first-child,.home-match-featured .v933-match-teams>div:last-child{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px}
+.home-match-featured .v933-match-teams .is-team{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;max-width:100%;min-width:0}
+body.ns-app .home-match-featured .v933-match-teams strong{display:block;-webkit-line-clamp:unset;line-clamp:unset;-webkit-box-orient:initial;overflow:visible;text-overflow:clip;white-space:normal;height:auto;max-height:none;max-block-size:none;font-size:clamp(.95rem,1.3vw,1.2rem);line-height:1.35;overflow-wrap:anywhere;max-width:100%}
+.home-match-featured .v933-match-center{display:flex;flex-direction:column;align-items:center;gap:4px;white-space:nowrap}
+.home-match-featured .v933-match-center b,.home-match-featured [data-match-kickoff-clock]{font-variant-numeric:tabular-nums;font-size:clamp(1.35rem,2.1vw,1.9rem);line-height:1.1}
+.home-match-featured .v933-match-center small{font-size:.72rem;opacity:.8}
+.home-match-featured .v933-match-card-footer{display:flex;align-items:stretch;flex-direction:column;gap:12px}
+.home-match-featured .v933-match-card-signals{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.home-match-featured .v933-match-card-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.home-match-featured .v933-match-card-actions .is-gold{background:transparent;box-shadow:none}
+.home-match-featured-controls{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-block-start:10px}
+.home-match-featured-controls .home-match-featured-control{position:relative;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;flex:0 0 44px;width:44px;min-width:44px!important;height:44px;min-height:44px;padding:0;border-radius:12px}
+.home-match-featured-control svg{display:block;flex-shrink:0}
+.home-match-featured-control [hidden]{display:none!important}
+.home-match-featured-control::after{content:attr(data-home-featured-tooltip);position:absolute;right:0;bottom:calc(100% + 8px);z-index:5;width:max-content;max-width:12rem;box-sizing:border-box;padding:6px 9px;border:1px solid rgba(148,163,184,.45);border-radius:7px;background:#101e30;color:#f8fafc;box-shadow:0 3px 10px rgba(0,0,0,.2);font-size:.75rem;font-weight:500;line-height:1.4;white-space:normal;pointer-events:none;visibility:hidden;opacity:0}
+.home-match-featured-control:hover::after,.home-match-featured-control:focus-visible::after{visibility:visible;opacity:1}
+.home-match-featured-counter{font-variant-numeric:tabular-nums;white-space:nowrap;min-width:40px;text-align:center;font-size:.78rem;color:#c3cfdd}
 .home-match-featured-fallback{display:block;margin-block-start:8px;font-size:.82rem;overflow-wrap:anywhere}
 .home-match-featured :focus-visible{outline:2px solid #64d8fa;outline-offset:3px}
-@media(max-width:600px){.home-match-featured-controls{gap:4px}.home-match-featured-controls .v933-action{padding:6px 10px}}
+.home-match-featured-slides.is-measuring>.home-match-featured-slide{display:block!important;min-block-size:0!important;position:absolute;inset:0 auto auto 0;width:100%;visibility:hidden!important;pointer-events:none!important}
+.home-match-featured[data-home-featured-motion="true"] .home-match-featured-slide[data-home-featured-enter="true"]{animation:home-featured-enter 200ms ease-out both}
+@keyframes home-featured-enter{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:600px){.home-match-featured-slide>.v933-match-card{padding:14px}.home-match-featured .v933-match-teams{gap:8px;margin-block:16px}.home-match-featured .v933-match-teams strong{font-size:.95rem}.home-match-featured-controls{gap:4px}}
 @media(prefers-reduced-motion:reduce){.home-match-featured *{animation:none!important;transition:none!important}}

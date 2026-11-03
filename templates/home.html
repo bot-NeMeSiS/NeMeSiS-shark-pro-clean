@@ -3,7 +3,7 @@
 {% from "components/v936_product.html" import value_ladder, evidence_receipt, decision_radar, data_trust_meter %}
 {% from "components/home_competition_groups.html" import competition_groups, remaining with context %}
 {% from "components/home_featured.html" import home_featured with context %}
-{% block head_extra %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='home-featured.css') }}?v=1">{% endblock %}
+{% block head_extra %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='home-featured.css') }}?v=2">{% endblock %}
 {% block content %}
 {% set day = data.get("home_matchday")|home_preview(featured_limit=2, active_first=true) %}
 {% set agenda_href = day.agenda_href if day else '/calendario' %}
@@ -43,8 +43,9 @@
 {% endif %}
 
 {% set original_sections = {'live': live_matches|length, 'important': important_matches|length, 'upcoming': upcoming_matches|length, 'results': recent_results|length} %}
-{% set priority_pool = live_matches + important_matches + favorite_matches + upcoming_matches + recent_results %}
+{% set priority_pool = live_matches + important_matches + upcoming_matches + recent_results + favorite_matches %}
 {% set hero_match = day.hero if day is mapping else (priority_pool[0] if priority_pool else none) %}
+{% set hero_lane = day.hero_lane if day is mapping else ('live' if live_matches else 'today' if important_matches else 'upcoming' if upcoming_matches else 'results' if recent_results else '') %}
 {# Reuse only an existing display bucket for the SAME accepted fixture and
    lifecycle. Never copy an old score, clock, status or row back into the agenda. #}
 {% if hero_match and day is mapping and not hero_match.get('sports_relevance_bucket') and not (hero_match.get('sports_relevance') or {}).get('bucket') %}
@@ -62,23 +63,19 @@
   {% endfor %}
   {% if retained.bucket %}{% set hero_match = dict(hero_match, sports_relevance_bucket=retained.bucket) %}{% endif %}
 {% endif %}
-{% if live_matches or (day and day.hero_lane == 'live') %}
+{% if hero_lane == 'live' %}
   {% set hero_title = 'En directo ahora' %}
   {% set hero_summary = 'Marcador, estado y minuto actualizados cuando están disponibles.' %}
   {% set hero_board_title = 'Partido en directo' %}
-{% elif important_matches or (day and day.hero_lane == 'today') %}
+{% elif hero_lane == 'today' %}
   {% set hero_title = 'Lo importante de hoy' %}
   {% set hero_summary = 'Los partidos de tu jornada y los análisis SHARK disponibles.' %}
   {% set hero_board_title = 'Destacado hoy' %}
-{% elif favorite_matches %}
-  {% set hero_title = 'Tus favoritos, primero' %}
-  {% set hero_summary = 'Consulta los partidos de hoy, abre el calendario o sigue los resultados de la jornada.' %}
-  {% set hero_board_title = 'Favorito destacado' %}
-{% elif upcoming_matches or (day and day.hero_lane == 'upcoming') %}
+{% elif hero_lane == 'upcoming' %}
   {% set hero_title = 'Próximos partidos' %}
   {% set hero_summary = 'La agenda priorizada y lista para abrir la ficha de cada partido.' %}
   {% set hero_board_title = 'Próximo partido' %}
-{% elif recent_results or (day and day.hero_lane == 'results') %}
+{% elif hero_lane == 'results' %}
   {% set hero_title = 'Últimos resultados' %}
   {% set hero_summary = 'Marcadores finales confirmados, sin convertirlos en directo.' %}
   {% set hero_board_title = 'Resultado reciente' %}

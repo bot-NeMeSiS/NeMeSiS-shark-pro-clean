@@ -131,7 +131,7 @@ def test_featured_assets_are_bound_without_a_new_polling_transport():
         assert "filename='home-featured.css'" in source
         assert 'featured_limit=2' in source
     base = (ROOT / 'templates/base.html').read_text('utf-8')
-    assert "filename='platform-motion.js') }}?v={{ app_version }}-home-featured-1" in base
+    assert "filename='platform-motion.js') }}?v={{ app_version }}-home-featured-2" in base
     component = (ROOT / 'templates/components/home_featured.html').read_text('utf-8')
     assert 'realtime_state_bar' not in component and '<script' not in component
     css = (ROOT / 'static/home-featured.css').read_text('utf-8')
@@ -145,3 +145,120 @@ def test_public_fully_featured_lane_does_not_create_a_duplicate_empty_panel():
     assert 'data-sports-live-confirmed="2"' in markup
     assert 'data-sports-priority="live-now"' not in markup
     assert 'href="/directo"' in markup
+
+
+def _native_home_markup(app_module, template, data, user=None):
+    from jinja2 import ChoiceLoader, DictLoader
+    env = app_module.app.jinja_env.overlay(loader=ChoiceLoader([
+        DictLoader({'base.html': '{% block content %}{% endblock %}'}),
+        app_module.app.jinja_env.loader]))
+    with app_module.app.test_request_context('/' if template == 'home.html' else '/app'):
+        return env.get_template(template).render(
+            data=data, current_user=user,
+            greeting={'label': 'Prueba', 'name': 'SIMULATED_QA'},
+            evidence_origin='SIMULATED_QA')
+
+
+def _featured_fragments(markup):
+    # Read each SSR slide's own context and canonical article, before any later
+    # result group. Hidden slides remain in the same HTML and are not cloned.
+    for fragment in markup.split('data-home-featured-slide')[1:]:
+        context, article = fragment.split('<article ', 1)
+        yield context, article.split('</article>', 1)[0]
+
+
+@pytest.mark.parametrize('template', ['home.html', 'client_app_center.html'])
+def test_sparse_upcoming_hero_is_not_named_for_a_favorite_finished_elsewhere(app_module, template):
+    upcoming = [row('next-one'), row('next-two')]
+    for match in upcoming:
+        match['kickoff_iso'] = (datetime.fromisoformat(match['kickoff_iso'])
+                                + timedelta(days=1)).isoformat()
+    data = data_for(upcoming + [dict(row('favorite-finished', 'FINISHED'), is_favorite=True)])
+    before = deepcopy(data)
+    markup = _native_home_markup(app_module, template, data)
+    cards = Cards(markup)
+    assert set(cards.ids) == {'next-one', 'next-two', 'favorite-finished'}
+    assert len(cards.ids) == len(set(cards.ids)) == 3
+    parts = list(_featured_fragments(markup))
+    assert len(parts) == 2
+    assert all(' hidden' in re.search(r'<span [^>]*data-home-featured-favorite[^>]*>', context)[0]
+               for context, _ in parts)
+    assert {'next-one', 'next-two'} == {
+        re.search(r'data-v934-match-id="([^"]+)"', article)[1]
+        for _, article in parts}
+    assert 'Favorito destacado' not in markup
+    assert 'Tus favoritos, primero' not in markup
+    if template == 'home.html':
+        assert re.search(r'<h1[^>]*>Próximos partidos', markup)
+        assert '<h2 data-home-featured-title>Próximo partido</h2>' in markup
+    assert data['home_matchday']['results']['total'] == 1
+    assert data == before
+
+
+@pytest.mark.parametrize('template', ['home.html', 'client_app_center.html'])
+def test_featured_favorite_and_highlight_belong_only_to_their_own_fixture(app_module, template):
+    first = row('plain-live', 'LIVE')
+    favorite = dict(row('saved-live', 'LIVE'), is_favorite=True, has_highlights=True)
+    data = data_for([first, favorite])
+    before = deepcopy(data)
+    user = {'id': 'owned-featured-user', 'name': 'QA', 'role': 'FREE', 'membership': 'FREE'}
+    markup = _native_home_markup(app_module, template, data, user)
+    parts = list(_featured_fragments(markup))
+    assert len(parts) == 2
+    for context, article in parts:
+        identity = re.search(r'data-v934-match-id="([^"]+)"', article)[1]
+        expected = identity == 'saved-live'
+        badge = re.search(r'<span [^>]*data-home-featured-favorite[^>]*>', context)[0]
+        assert (' hidden' not in badge) is expected
+        button = re.search(r'<button [^>]*data-kind="match"[^>]*>', article)[0]
+        assert f'data-value="{identity}"' in button
+        assert f'aria-pressed="{"true" if expected else "false"}"' in button
+        assert f'href="/match/{identity}"' in article
+        assert (f'href="/match/{identity}#match-section-video"' in article) is expected
+    assert data == before
+
+
+@pytest.mark.parametrize('template', ['home.html', 'client_app_center.html'])
+@pytest.mark.parametrize('state', ['LIVE', 'UPCOMING', 'FINISHED'])
+def test_featured_reuses_confirmed_zero_score_and_never_fills_missing_time_or_minute(app_module, template, state):
+    match = row('owned-truth', state)
+    match.update(home_team='Club de nombre muy largo de la ciudad de prueba',
+                 away_team='Unión deportiva visitante de nombre completo',
+                 home_logo='', away_logo='', client_live_minute=None)
+    if state != 'UPCOMING':
+        match.update(home_score=0, away_score=0)
+    data = data_for([match])
+    before = deepcopy(data)
+    markup = _native_home_markup(app_module, template, data)
+    parts = list(_featured_fragments(markup))
+    assert len(parts) == 1
+    _, article = parts[0]
+    score = re.search(r'<b data-v934-score[^>]*>(.*?)</b>', article, re.S)[1].strip()
+    if state == 'UPCOMING':
+        assert score == 'VS'
+        assert 'data-match-kickoff-clock' in article and 'Madrid' in article
+    else:
+        assert score == '0 - 0'
+    assert '<small data-v934-minute hidden></small>' in article
+    assert match['home_team'] in article and match['away_team'] in article
+    assert f'href="/match/{match["id"]}"' in article
+    assert 'data-match-temporal-context=' in article
+    assert data == before
+
+
+def test_legacy_upcoming_title_and_card_do_not_follow_a_favorite_result(app_module):
+    upcoming = row('legacy-next', 'UPCOMING')
+    favorite = dict(row('legacy-result', 'FINISHED'), is_favorite=True)
+    data = {'home_summary': {'sports_home': {
+        'live_now': [], 'important_today': [], 'upcoming': [upcoming],
+        'recent_results': [favorite], 'favorites': [favorite]}}}
+    before = deepcopy(data)
+    markup = _native_home_markup(app_module, 'home.html', data)
+    parts = list(_featured_fragments(markup))
+    assert len(parts) == 1
+    context, article = parts[0]
+    assert 'data-v934-match-id="legacy-next"' in article
+    assert 'data-home-featured-favorite' not in context
+    assert re.search(r'<h1[^>]*>Próximos partidos', markup)
+    assert '<h2 data-home-featured-title>Próximo partido</h2>' in markup
+    assert data == before

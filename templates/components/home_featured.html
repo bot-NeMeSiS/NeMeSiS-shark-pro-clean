@@ -1,24 +1,32 @@
 {% from "components/v933_ui.html" import match_card with context %}
+{% macro control_icon(name) -%}
+<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{% if name == 'prev' %}<path d="m14.5 6-6 6 6 6"/>{% elif name == 'next' %}<path d="m9.5 6 6 6-6 6"/>{% else %}<g data-home-featured-pause-icon><path d="M9 6v12M15 6v12"/></g><g data-home-featured-play-icon hidden><path d="m9 5 10 7-10 7Z"/></g>{% endif %}</svg>
+{%- endmacro %}
 {% macro home_featured(matches, label='Partidos destacados', groups=()) -%}
 {% if matches %}
-<div class="home-match-featured" data-home-featured role="region" aria-label="{{ ui(label) }}">
+<div class="home-match-featured" data-home-featured role="region" aria-label="{{ ui(label) }}" data-position-label="{{ ui('Partido {actual} de {total}', actual='{actual}', total='{total}') }}">
   <div class="home-match-featured-slides">
     {% for match in matches %}
-    <div class="home-match-featured-slide" data-home-featured-slide{% if not loop.first %} hidden{% endif %} role="group" aria-label="{{ loop.index }} / {{ loop.length }}">
-      {% if groups|length > loop.index0 %}
-      {% set group = groups[loop.index0] %}
-      <h3 class="home-presentation-section-heading">{% if group.presentation_group_kind == 'international' %}{{ ui('Torneos internacionales') }}{% elif group.presentation_group_kind == 'unknown' %}{{ ui('País sin confirmar') }}{% else %}{{ ui_country(group.presentation_group_label or group.display_country or group.country) }}{% endif %}</h3>
+    <div class="home-match-featured-slide" data-home-featured-slide{% if not loop.first %} hidden inert aria-hidden="true"{% else %} aria-hidden="false"{% endif %} role="group" aria-label="{{ loop.index }} / {{ loop.length }}">
+      {% if groups|length > loop.index0 or match.get('is_favorite') is sameas true or current_user %}
+      <div class="home-match-featured-context"{% if groups|length > loop.index0 %} data-home-featured-country-context{% endif %}>
+        {% if groups|length > loop.index0 %}
+        {% set group = groups[loop.index0] %}
+        <h3 class="home-presentation-section-heading">{% if group.presentation_group_kind == 'international' %}{{ ui('Torneos internacionales') }}{% elif group.presentation_group_kind == 'unknown' %}{{ ui('País sin confirmar') }}{% else %}{{ ui_country(group.presentation_group_label or group.display_country or group.country) }}{% endif %}</h3>
+        {% endif %}
+        <span class="home-match-featured-favorite" data-home-featured-favorite{% if match.get('is_favorite') is not sameas true %} hidden{% endif %}>{{ ui('Favorito') }}</span>
+      </div>
       {% endif %}
-      {{ match_card(match, true, true) }}
+      {{ match_card(match, false, true) }}
     </div>
     {% endfor %}
   </div>
   {% if matches|length > 1 %}
   <div class="home-match-featured-controls" data-home-featured-controls hidden>
-    <button type="button" class="v933-action" data-home-featured-prev aria-label="{{ ui('Anterior') }}"><span aria-hidden="true">‹</span></button>
+    <button type="button" class="v933-action home-match-featured-control" data-home-featured-prev aria-label="{{ ui('Anterior') }}" data-home-featured-tooltip="{{ ui('Anterior') }}">{{ control_icon('prev') }}</button>
     <span class="home-match-featured-counter" data-home-featured-counter>1 / {{ matches|length }}</span>
-    <button type="button" class="v933-action" data-home-featured-next aria-label="{{ ui('Siguiente') }}"><span aria-hidden="true">›</span></button>
-    <button type="button" class="v933-action home-match-featured-toggle" data-home-featured-toggle data-pause="{{ ui('Pausar') }}" data-play="{{ ui('Reanudar') }}" aria-pressed="false">{{ ui('Pausar') }}</button>
+    <button type="button" class="v933-action home-match-featured-control" data-home-featured-next aria-label="{{ ui('Siguiente') }}" data-home-featured-tooltip="{{ ui('Siguiente') }}">{{ control_icon('next') }}</button>
+    <button type="button" class="v933-action home-match-featured-control home-match-featured-toggle" data-home-featured-toggle data-pause="{{ ui('Pausar') }}" data-play="{{ ui('Reanudar') }}" data-paused-status="{{ ui('Avance automático pausado') }}" data-playing-status="{{ ui('Avance automático activado') }}" aria-label="{{ ui('Pausar') }}" data-home-featured-tooltip="{{ ui('Pausar') }}" aria-pressed="false">{{ control_icon('toggle') }}<span class="sr-only" data-home-featured-toggle-label>{{ ui('Pausar') }}</span></button>
   </div>
   <span class="sr-only" data-home-featured-status role="status" aria-live="polite" aria-atomic="true"></span>
   <noscript><div class="home-match-featured-fallback">{{ ui('Ver todos') }}: {% for match in matches[1:] %}<a href="{{ '/match/' ~ match.get('id') }}">{{ match.get('safe_home') or match.get('client_home') or match.get('home_team') }} · {{ match.get('safe_away') or match.get('client_away') or match.get('away_team') }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</div></noscript>

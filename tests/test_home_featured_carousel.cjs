@@ -42,6 +42,7 @@ class Element extends Target {
     assert.notEqual(name, 'href', 'The carousel must never retarget a fixture link');
     this.attributes.set(name, String(value));
   }
+  removeAttribute(name) { this.attributes.delete(name); }
   querySelector(selector) { return this.selectors.get(selector) || null; }
   querySelectorAll(selector) { return this.selectors.get(selector) || []; }
   matches(selector) {
@@ -56,7 +57,17 @@ function harness(options = {}) {
   const controls = new Element(); controls.hidden = true;
   const previous = new Element('button');
   const next = new Element('button');
-  const toggle = new Element('button', {'data-pause':'Pausar', 'data-play':'Reanudar', 'aria-pressed':'false'});
+  const toggle = new Element('button', {
+    'data-pause':'Pausar', 'data-play':'Reanudar', 'aria-pressed':'false',
+    'data-paused-status':'Avance automático pausado',
+    'data-playing-status':'Avance automático activado',
+  });
+  const toggleLabel = new Element('span'); toggleLabel.parent = toggle;
+  const pauseIcon = new Element('g'); pauseIcon.parent = toggle;
+  const playIcon = new Element('g', {hidden:''}); playIcon.parent = toggle;
+  toggle.selectors.set('[data-home-featured-toggle-label]', toggleLabel);
+  toggle.selectors.set('[data-home-featured-pause-icon]', pauseIcon);
+  toggle.selectors.set('[data-home-featured-play-icon]', playIcon);
   const counter = new Element(); counter.textContent = '1 / ' + count;
   const status = new Element();
   const globalToggle = options.globalPreference ? new Element('button', {'aria-pressed':'false'}) : null;
@@ -65,7 +76,14 @@ function harness(options = {}) {
     const card = new Element('article', {'data-v934-match-id':'owned-' + index}); card.parent = slide;
     const link = new Element('a', {href:'/match/owned-' + index}); link.parent = card;
     const score = new Element(); score.parent = card; score.textContent = '0 - 0';
+    const badge = new Element('span'); badge.parent = slide;
+    const favorite = new Element('button', {'data-value':'owned-' + index, 'aria-pressed':'false'});
+    favorite.parent = card;
+    slide.selectors.set('[data-home-featured-favorite]', badge);
+    slide.selectors.set('[data-v934-match-card]', card);
+    card.selectors.set('.fav-star[data-kind="match"]', favorite);
     slide.card = card; slide.link = link; slide.score = score;
+    slide.badge = badge; slide.favorite = favorite;
     return slide;
   });
   root.selectors.set('[data-home-featured-slide]', slides);
@@ -153,8 +171,9 @@ function harness(options = {}) {
     }
   }
   evaluate();
-  return {root, controls, previous, next, toggle, counter, status, slides, timers, document, window,
+  return {root, controls, previous, next, toggle, toggleLabel, pauseIcon, playIcon, counter, status, slides, timers, document, window,
     dispatch, focus, tick, evaluate, globalToggle,
+    favorite(index, active) { const button = slides[index].favorite; button.setAttribute('aria-pressed', String(active)); mutation(button); },
     maximumTimers:() => maximumTimers,
     visible:() => slides.filter(slide => !slide.hidden),
     reduced(value) { media.matches = value; media.emit('change'); },
@@ -205,8 +224,8 @@ test('manual next and previous wrap, pause autoplay and announce only the manual
   const h = harness();
   h.dispatch(h.next, 'click');
   assert.equal(h.visible()[0], h.slides[1]);
-  assert.equal(h.status.textContent, '2 / 2');
-  assert.equal(h.toggle.textContent, 'Reanudar');
+  assert.equal(h.status.textContent, 'Partido 2 de 2');
+  assert.equal(h.toggleLabel.textContent, 'Reanudar');
   assert.equal(h.timers.size, 0);
   h.dispatch(h.previous, 'click');
   assert.equal(h.visible()[0], h.slides[0]);
@@ -221,12 +240,12 @@ test('toggle focus and pointer events stop the timer without reversing Pause or 
   h.window.emit('pointerup');
   assert.equal(h.timers.size, 0);
   h.dispatch(h.toggle, 'click');
-  assert.equal(h.toggle.textContent, 'Reanudar');
+  assert.equal(h.toggleLabel.textContent, 'Reanudar');
   assert.equal(h.toggle.getAttribute('aria-pressed'), 'true');
   h.dispatch(h.toggle, 'pointerdown');
   h.window.emit('pointerup');
   h.dispatch(h.toggle, 'click');
-  assert.equal(h.toggle.textContent, 'Pausar');
+  assert.equal(h.toggleLabel.textContent, 'Pausar');
   assert.equal(h.toggle.getAttribute('aria-pressed'), 'false');
   assert.equal(h.timers.size, 0, 'No retargeting while focus remains inside');
   h.focus(h.document.body);
@@ -286,7 +305,7 @@ test('visibility ends an interrupted pointer gesture before explicit keyboard Pl
   assert.equal(h.timers.size, 0);
   h.dispatch(h.toggle, 'keydown', {key:'Enter'});
   h.dispatch(h.toggle, 'click');
-  assert.equal(h.toggle.textContent, 'Pausar');
+  assert.equal(h.toggleLabel.textContent, 'Pausar');
   assert.equal(h.timers.size, 0, 'Focused controls still prevent retargeting');
   h.focus(h.document.body);
   assert.equal(h.timers.size, 1, 'Explicit Play can resume after focus leaves');
@@ -350,7 +369,7 @@ test('reduced motion disables the native Play control and restoration enables it
   assert.equal(h.toggle.disabled, false);
   h.reduced(true);
   assert.equal(h.toggle.disabled, true);
-  assert.equal(h.toggle.textContent, 'Reanudar');
+  assert.equal(h.toggleLabel.textContent, 'Reanudar');
   assert.equal(h.toggle.getAttribute('aria-pressed'), 'true');
   assert.equal(h.timers.size, 0);
   h.dispatch(h.next, 'click');
@@ -358,7 +377,7 @@ test('reduced motion disables the native Play control and restoration enables it
   assert.equal(h.toggle.disabled, true);
   h.reduced(false);
   assert.equal(h.toggle.disabled, false);
-  assert.equal(h.toggle.textContent, 'Reanudar');
+  assert.equal(h.toggleLabel.textContent, 'Reanudar');
   assert.equal(h.timers.size, 0, 'Restored permission is not Play intent');
   h.dispatch(h.toggle, 'click');
   assert.equal(h.toggle.getAttribute('aria-pressed'), 'false');
@@ -370,7 +389,7 @@ test('global motion pause disables native Play and restoration leaves manual Pla
   assert.equal(h.toggle.disabled, false);
   h.preference(true);
   assert.equal(h.toggle.disabled, true);
-  assert.equal(h.toggle.textContent, 'Reanudar');
+  assert.equal(h.toggleLabel.textContent, 'Reanudar');
   assert.equal(h.timers.size, 0);
   h.dispatch(h.previous, 'click');
   assert.equal(h.visible()[0], h.slides[1], 'Global motion pause does not disable manual arrows');
@@ -380,7 +399,7 @@ test('global motion pause disables native Play and restoration leaves manual Pla
   assert.equal(h.toggle.getAttribute('aria-pressed'), 'true');
   assert.equal(h.timers.size, 0);
   h.dispatch(h.toggle, 'click');
-  assert.equal(h.toggle.textContent, 'Pausar');
+  assert.equal(h.toggleLabel.textContent, 'Pausar');
   assert.equal(h.timers.size, 1);
 });
 
@@ -410,4 +429,68 @@ test('repeated script initialization does not duplicate timers or manual handler
   h.dispatch(h.next, 'click');
   assert.equal(h.visible()[0], h.slides[1]);
   assert.equal(h.timers.size, 0);
+});
+
+test('persistent icon nodes, accessible action and explicit state survive repeated updates', () => {
+  const h = harness();
+  const original = [h.toggleLabel, h.pauseIcon, h.playIcon];
+  assert.equal(h.toggle.getAttribute('aria-label'), 'Pausar');
+  assert.equal(h.pauseIcon.getAttribute('hidden'), null);
+  assert.equal(h.playIcon.getAttribute('hidden'), '');
+  h.dispatch(h.toggle, 'click');
+  assert.equal(h.status.textContent, 'Avance automático pausado');
+  assert.equal(h.toggleLabel.textContent, 'Reanudar');
+  assert.equal(h.toggle.getAttribute('aria-label'), 'Reanudar');
+  assert.equal(h.toggle.getAttribute('data-home-featured-tooltip'), 'Reanudar');
+  assert.equal(h.pauseIcon.getAttribute('hidden'), '');
+  assert.equal(h.playIcon.getAttribute('hidden'), null);
+  h.dispatch(h.toggle, 'click');
+  assert.equal(h.status.textContent, 'Avance automático activado');
+  assert.equal(h.toggle.getAttribute('aria-label'), 'Pausar');
+  h.reduced(true); h.reduced(false);
+  assert.equal(h.toggleLabel, original[0]);
+  assert.equal(h.toggle.querySelector('[data-home-featured-pause-icon]'), original[1]);
+  assert.equal(h.toggle.querySelector('[data-home-featured-play-icon]'), original[2]);
+});
+
+test('entry is not initial and manual changes honor reduced and global motion permission', () => {
+  const h = harness({globalPreference:true});
+  const entered = () => h.slides.filter(slide => slide.getAttribute('data-home-featured-enter') === 'true');
+  assert.equal(entered().length, 0);
+  h.dispatch(h.next, 'click');
+  assert.deepEqual(entered(), [h.slides[1]]);
+  assert.equal(h.visible().length, 1);
+  assert.equal(h.slides[0].getAttribute('aria-hidden'), 'true');
+  assert.equal(h.slides[1].getAttribute('aria-hidden'), 'false');
+  h.reduced(true);
+  assert.equal(entered().length, 0);
+  h.dispatch(h.next, 'click');
+  assert.equal(h.visible()[0], h.slides[0]);
+  assert.equal(entered().length, 0);
+  h.reduced(false); h.preference(true);
+  h.dispatch(h.previous, 'click');
+  assert.equal(h.visible()[0], h.slides[1]);
+  assert.equal(entered().length, 0);
+  h.preference(false);
+  assert.equal(h.timers.size, 0);
+  h.dispatch(h.next, 'click');
+  assert.deepEqual(entered(), [h.slides[0]]);
+  h.dispatch(h.slides[0], 'animationcancel', {animationName:'home-featured-enter'});
+  assert.equal(entered().length, 0);
+});
+
+test('favorite badge follows only its same-card accepted control, including one static slide', () => {
+  for (const count of [1, 2]) {
+    const h = harness({count});
+    assert.equal(h.slides[0].badge.hidden, true);
+    if (count === 2) assert.equal(h.slides[1].badge.hidden, true);
+    h.favorite(0, true);
+    assert.equal(h.slides[0].badge.hidden, false);
+    if (count === 2) assert.equal(h.slides[1].badge.hidden, true);
+    h.evaluate();
+    h.favorite(0, false);
+    assert.equal(h.slides[0].badge.hidden, true);
+    assert.equal(h.slides[0].link.getAttribute('href'), '/match/owned-0');
+    assert.equal(h.maximumTimers(), count === 2 ? 1 : 0);
+  }
 });
