@@ -20777,9 +20777,9 @@ def home_light_data(sports_summary=None, include_payments=True):
 
 
 
-def _v931_provider_context(summary):
+def _v931_provider_context(summary, *, _status_only=False):
     sports = get_v932_real_sports_value_context(summary)
-    sports_metrics = get_sports_metrics_contract(summary)
+    sports_metrics = None if _status_only else get_sports_metrics_contract(summary)
     has_data = bool(sports.get("real_matches_available"))
     return {
         "source": sports.get("source") or "Datos deportivos",
@@ -20791,13 +20791,15 @@ def _v931_provider_context(summary):
         "safe_message": sports.get("safe_message") or "Sin datos deportivos completos disponibles.",
         "no_render_api_call": True,
         "matches": list(summary.get("valid_matches_available") or []),
-        "sports_metrics": sports_metrics,
-        "counts": {
-            "today": sports_metrics["matches_today"],
-            "live": sports_metrics["live_confirmed"],
-            "picks": sports_metrics["matches_with_picks"],
-            "finished": sports_metrics["finished_verified"],
-        },
+        **({} if _status_only else {
+            "sports_metrics": sports_metrics,
+            "counts": {
+                "today": sports_metrics["matches_today"],
+                "live": sports_metrics["live_confirmed"],
+                "picks": sports_metrics["matches_with_picks"],
+                "finished": sports_metrics["finished_verified"],
+            },
+        }),
     }
 
 
@@ -23913,8 +23915,8 @@ def _v940_hydrate_selected_date_results(summary, date_value):
     return summary
 
 
-def _v940_calendar_provider_context(summary):
-    context = dict(_v931_provider_context(summary) or {})
+def _v940_calendar_provider_context(summary, *, _status_only=False):
+    context = dict((_v931_provider_context(summary, _status_only=True) if _status_only else _v931_provider_context(summary)) or {})
     historical_count = int((summary or {}).get("historical_results_count") or 0)
     if historical_count:
         context["has_real_data"] = True
@@ -23972,7 +23974,7 @@ def calendar_page():
     data["date"] = data["calendar"].get("filters", {}).get("date", today_iso())
     data["sports_metrics"] = data["calendar"].get("sports_metrics")
     data["v925_calendar"] = calendar_timed_phase(
-        "provider_context", lambda: _v940_calendar_provider_context(summary),
+        "provider_context", lambda: _v940_calendar_provider_context(summary, _status_only=True),
     )
     return calendar_timed_phase("template_render", lambda: render_template("calendar.html", data=data))
 
