@@ -524,7 +524,7 @@ def test_sports_relevance_home_links_to_match_center(client, app_module, monkeyp
     )
     summary = _sports_relevance_summary([elite])
 
-    monkeypatch.setattr(app_module, "get_public_home_sports_summary", lambda: summary)
+    monkeypatch.setattr(app_module, "get_public_home_sports_summary", lambda *, _home_only=False: summary)
     response = client.get("/")
     html = response.get_data(as_text=True)
 

@@ -22675,7 +22675,7 @@ def home():
     capture_growth_attribution_from_request()
     if request.method == "HEAD":
         return Response("", status=200)
-    summary = get_public_home_sports_summary()
+    summary = get_public_home_sports_summary(_home_only=True)
     data = home_light_data(summary, include_payments=False)
     # Reuse the same cached matchday agenda on public and signed-in Home.
     data["home_matchday"] = home_matchday_context(summary)
