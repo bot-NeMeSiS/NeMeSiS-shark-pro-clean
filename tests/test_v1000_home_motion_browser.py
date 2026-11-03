@@ -220,3 +220,85 @@ def test_history_return_keeps_manual_pause_without_replaying_discovery(fixture_s
             assert all(path==origin+'/api/growth/funnel-event' for method,path in calls if method=='POST')
         finally:
             context.close();browser.close()
+
+
+@pytest.mark.parametrize('width', [390, 1440])
+def test_marine_light_pauses_for_hidden_only_role_modal_and_restores_choice(fixture_server, width, capsys):
+    """Changing only a supported modal's hidden state must pause decoration."""
+    _a, database, origin, _ = fixture_server
+    before = _question_rows(database)
+    with sync_playwright() as pw:
+        browser, context, calls, external = _browser(pw, origin, width)
+        page = context.new_page()
+        _preferences(context, page)
+        errors = []
+        page.on('pageerror', lambda error: errors.append(str(error)))
+        try:
+            response = page.goto(origin + '/')
+            assert response.status == 200
+            launcher = page.locator('[data-ns-assistant-open]')
+            launcher.wait_for(state='visible')
+            # Consume and stop the existing discovery before exercising the modal:
+            # an animation-end callback must not accidentally supply its update.
+            launcher.focus()
+            page.wait_for_function("localStorage.getItem('nemesis.shark.discovery.v1') === 'seen'")
+            page.wait_for_function("!document.querySelector('[data-ns-assistant-open]').classList.contains('ns-discovery-pulse')")
+            _wait_light(page, False)
+            page.locator('[data-motion-preferences] summary').click()
+            checkbox = page.locator('[data-marine-toggle]')
+            checkbox.check()
+            checkbox.focus()
+            _wait_light(page, True)
+            assert checkbox.evaluate('e => document.activeElement === e')
+            body_class = page.locator('body').get_attribute('class')
+            page.evaluate("""() => {
+                const modal = document.createElement('div');
+                modal.id = 'owned-marine-hidden-modal';
+                modal.setAttribute('role', 'dialog');
+                modal.setAttribute('aria-modal', 'true');
+                modal.hidden = true;
+                modal.textContent = 'Ventana de comprobación aislada';
+                document.body.appendChild(modal);
+            }""")
+            _wait_light(page, True)
+            assert checkbox.is_checked()
+
+            # Neither focus, aria-modal, open nor the body class changes here.
+            page.evaluate("document.getElementById('owned-marine-hidden-modal').hidden = false")
+            assert page.locator('body').get_attribute('class') == body_class
+            assert checkbox.evaluate('e => document.activeElement === e')
+            _wait_light(page, False)
+            assert checkbox.is_checked()
+            assert page.evaluate("localStorage.getItem('nemesis.motion.marine.v1')") == 'true'
+
+            page.evaluate("document.getElementById('owned-marine-hidden-modal').hidden = true")
+            assert page.locator('body').get_attribute('class') == body_class
+            assert checkbox.evaluate('e => document.activeElement === e')
+            _wait_light(page, True)
+            assert checkbox.is_checked()
+            assert page.evaluate("localStorage.getItem('nemesis.motion.marine.v1')") == 'true'
+            assert page.locator('.ns-discovery-pulse').count() == 0
+            after = _question_rows(database)
+            assert after == before
+            allowed = lambda method, path: method in ('GET', 'HEAD') or (
+                method == 'POST' and path == origin + '/api/growth/funnel-event')
+            assert all(allowed(method, path) for method, path in calls)
+            assert not external and not errors, (external, errors)
+            with capsys.disabled():
+                print('OWNED_MARINE_MODAL_HIDDEN_PROOF ' + json.dumps({
+                    'schema': 'OWNED_MARINE_MODAL_HIDDEN_PROOF_V1',
+                    'viewport_width': width,
+                    'hidden_only_pause': True,
+                    'hidden_only_resume': True,
+                    'focus_preserved': True,
+                    'body_class_preserved': True,
+                    'marine_choice_preserved': True,
+                    'question_rows_before': before,
+                    'question_rows_after': after,
+                    'external_requests': len(external),
+                    'unexpected_write_requests': 0,
+                    'production_data_touched': False,
+                }, sort_keys=True), flush=True)
+        finally:
+            context.close()
+            browser.close()

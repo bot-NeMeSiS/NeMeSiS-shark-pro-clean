@@ -118,6 +118,7 @@ jobs:
             --ignore=tests/test_v1000_auth_layout_browser.py
             --ignore=tests/test_v1000_actual_admin_navigation.py
             --ignore=tests/test_v1000_home_motion_browser.py
+            --ignore=tests/test_marine_visual_polish_browser.py
             --ignore=tests/test_v1000_ui_accessibility_browser.py
             --ignore=tests/test_founder_obligation_journey.py
             --ignore=tests/test_project_control_http.py
@@ -176,6 +177,7 @@ jobs:
             tests/test_v1000_auth_layout_browser.py \
             tests/test_v1000_actual_admin_navigation.py \
             tests/test_v1000_home_motion_browser.py \
+            tests/test_marine_visual_polish_browser.py \
             tests/test_v1000_ui_accessibility_browser.py \
             tests/test_founder_obligation_journey.py
           do
