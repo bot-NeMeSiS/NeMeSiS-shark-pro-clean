@@ -154,8 +154,12 @@ def _exercise_delayed_image_wait(status, duplicate_release_signal, waiter):
         signals=[]
         waiting=[False]
         entered=[]
-        page.route("**/*",lambda route:pending.append(route))
-        page.expose_function("qa_pending_image_count",lambda:len(pending))
+        def capture_pending(route):
+            pending.append(route)
+            # Confirm handler entry with a synchronous, monotonic DOM marker.
+            # Keep every route held so the count/URL checks reject extra traffic.
+            page.evaluate("() => { document.documentElement.dataset.qaHeldImageRouteSeen='true'; }")
+        page.route("**/*",capture_pending)
         release_image=None
         release_registered=[False]
         def observe_response(response):
@@ -168,7 +172,7 @@ def _exercise_delayed_image_wait(status, duplicate_release_signal, waiter):
         page.on("console",observe_signal)
         try:
             page.set_content('<img src="http://localhost/qa-crest.svg">',wait_until="domcontentloaded")
-            page.wait_for_function("async () => (await window.qa_pending_image_count()) === 1")
+            page.wait_for_function('() => document.documentElement.dataset.qaHeldImageRouteSeen === "true"')
             assert len(pending)==1 and pending[0].request.url==fixture_url
             held_route=pending[0]
             page.wait_for_function("() => document.images.length === 1 && !document.images[0].complete")
