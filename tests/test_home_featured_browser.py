@@ -435,7 +435,9 @@ def _rich_featured_rows():
 def test_professional_feature_keeps_controls_and_height_stable_with_long_real_fields(
     browser, app_module, path, width,
 ):
-    with _screen(browser, app_module, path, width, rows=_rich_featured_rows()) as screen:
+    fixtures = _rich_featured_rows()
+    expected_names = {item['id']: [item['home_team'], item['away_team']] for item in fixtures}
+    with _screen(browser, app_module, path, width, rows=fixtures) as screen:
         page, trace, _ = screen
         root = page.locator(FEATURED)
         root.scroll_into_view_if_needed()
@@ -445,38 +447,70 @@ def test_professional_feature_keeps_controls_and_height_stable_with_long_real_fi
             box = button.bounding_box()
             assert box and box['width'] >= 44 and box['height'] >= 44
             assert box['x'] >= -1 and box['x'] + box['width'] <= width + 1
-        # The max of actual slide heights reserves only the space required by
-        # this pair, including the wrapped full names; it is not a fixed spacer.
+
+        def assert_visible_fixture(identity):
+            visible = root.locator(SLIDE + ':visible')
+            assert visible.count() == 1
+            expect(visible.locator(CARD)).to_have_attribute('data-v934-match-id', identity)
+            names = visible.locator('.v933-match-teams strong')
+            assert names.all_text_contents() == expected_names[identity]
+            for name in names.all():
+                assert name.evaluate('node => node.scrollHeight <= node.clientHeight + 1')
+                assert name.evaluate('node => getComputedStyle(node).webkitLineClamp') in ('none', 'unset')
+            assert visible.locator('[data-v934-score]').inner_text() == '0 - 0'
+            assert visible.locator('[data-v934-minute]:visible').count() == 0
+            assert visible.locator('a[href="/match/' + identity + '"]').count() == 1
+            assert root.locator(SLIDE + '[hidden]').evaluate_all('nodes => nodes.every(node => node.inert)')
+
+        def geometry():
+            # Read one coordinate frame atomically. A native click can scroll
+            # the page; that must not be mistaken for motion inside the feature.
+            # Page/scroll coordinates are diagnostic only, not pass conditions.
+            return root.evaluate("""node => {
+              const feature = node.getBoundingClientRect();
+              const control = node.querySelector('[data-home-featured-controls] button').getBoundingClientRect();
+              return {
+                height: feature.height,
+                control_offset_y: control.y - feature.y,
+                control_page_y: control.y + window.scrollY,
+                root_page_y: feature.y + window.scrollY,
+                scroll_y: window.scrollY,
+              };
+            }""")
+
+        # Equal live kickoff times use the canonical ID tie-breaker, not the
+        # input list's order: owned-long precedes owned-short.
+        assert root.locator(CARD).evaluate_all(
+            "nodes => nodes.map(node => node.dataset.v934MatchId)") == ['owned-long', 'owned-short']
+        assert_visible_fixture('owned-long')
+        counter = root.locator('[data-home-featured-counter]')
+        expect(counter).to_be_visible()
+        assert counter.inner_text() == '1 / 2'
+        # The max of the actual slide heights reserves only this pair's space.
         page.wait_for_function("""() => {
           const track = document.querySelector('.home-match-featured-slides');
           return parseFloat(track.style.getPropertyValue('--home-featured-min-height')) > 0;
         }""")
-        before = root.bounding_box()
-        control_before = buttons.first.bounding_box()
-        assert before and control_before
-        assert root.locator(SLIDE + ':visible [data-v934-score]').inner_text() == '0 - 0'
-        assert root.locator(SLIDE + ':visible [data-v934-minute]:visible').count() == 0
+        before = geometry()
+        assert before['height'] > 0
         root.locator('[data-home-featured-next]').click()
-        during = root.bounding_box()
+        during = geometry()
         page.clock.run_for(250)
-        after = root.bounding_box()
-        control_after = buttons.first.bounding_box()
-        assert abs(before['height'] - during['height']) <= 1
-        assert abs(before['height'] - after['height']) <= 1
-        assert abs(control_before['y'] - control_after['y']) <= 1
-        assert 'Club Deportivo de la Ciudad' in root.locator(SLIDE + ':visible').inner_text()
-        for name in root.locator(SLIDE + ':visible .v933-match-teams strong').all():
-            assert name.evaluate('node => node.scrollHeight <= node.clientHeight + 1')
-            assert name.evaluate('node => getComputedStyle(node).webkitLineClamp') in ('none', 'unset')
-        counter = root.locator('[data-home-featured-counter]')
+        after = geometry()
+        assert abs(before['height'] - during['height']) <= 1, (before, during)
+        assert abs(before['control_offset_y'] - during['control_offset_y']) <= 1, (before, during)
+        assert abs(before['height'] - after['height']) <= 1, (before, after)
+        assert abs(before['control_offset_y'] - after['control_offset_y']) <= 1, (before, after)
+        assert_visible_fixture('owned-short')
         expect(counter).to_be_visible()
         assert counter.inner_text() == '2 / 2'
-        assert root.locator(SLIDE + ':visible a[href="/match/owned-long"]').count() == 1
-        assert root.locator(SLIDE + ':visible').count() == 1
-        assert root.locator(SLIDE + '[hidden]').evaluate_all('nodes => nodes.every(node => node.inert)')
         root.locator('[data-home-featured-prev]').click()
         page.clock.run_for(250)
-        assert abs(root.bounding_box()['height'] - before['height']) <= 1
+        restored = geometry()
+        assert abs(restored['height'] - before['height']) <= 1, (before, restored)
+        assert abs(restored['control_offset_y'] - before['control_offset_y']) <= 1, (before, restored)
+        assert_visible_fixture('owned-long')
+        assert counter.inner_text() == '1 / 2'
         _assert_clean(page, trace)
 
 
