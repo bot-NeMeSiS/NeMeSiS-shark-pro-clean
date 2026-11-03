@@ -56,7 +56,7 @@ def calendar_markup_for(app_module, query):
 def test_public_home_get_receives_the_same_snapshot_matchday(app_module, monkeypatch):
     data = {'all_valid_matches':[]}
     monkeypatch.setattr(app_module,'capture_growth_attribution_from_request',lambda:None)
-    monkeypatch.setattr(app_module,'get_public_home_sports_summary',lambda:data)
+    monkeypatch.setattr(app_module,'get_public_home_sports_summary',lambda *, _home_only=False:data)
     monkeypatch.setattr(app_module,'home_light_data',lambda *a,**kw:{'picks':[]})
     monkeypatch.setattr(app_module,'get_v934_realtime_context',lambda *a:{})
     monkeypatch.setattr(app_module,'render_template',lambda name,**kw:kw)
