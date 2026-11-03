@@ -36,6 +36,66 @@ _BACKUP_DIAGNOSTIC_EVENTS: ContextVar[list | None] = ContextVar(
 )
 _BACKUP_DIAGNOSTIC_EVENT_LIMIT = 32
 
+
+_BACKUP_SNAPSHOT_PROGRESS: ContextVar[dict | None] = ContextVar(
+    "backup_snapshot_progress", default=None
+)
+_SNAPSHOT_METRIC_MAX = (1 << 63) - 1
+_SNAPSHOT_COUNT_FIELDS = (
+    "callbacks", "sqlite_ok", "sqlite_done", "sqlite_busy", "sqlite_locked",
+    "sqlite_other", "remaining_increases",
+)
+_SNAPSHOT_PAGE_FIELDS = ("first_remaining_pages", "last_remaining_pages", "total_pages")
+
+
+def _new_snapshot_progress() -> dict:
+    return {**dict.fromkeys(_SNAPSHOT_COUNT_FIELDS, 0),
+            "last_status": "UNOBSERVED", "pin_fallback": "NONE"}
+
+
+def _note_snapshot_progress(metrics: dict, status_code, remaining, total) -> None:
+    """Aggregate native callbacks only; never log per page or infer a restart."""
+    statuses = {sqlite3.SQLITE_OK: ("SQLITE_OK", "sqlite_ok"),
+                sqlite3.SQLITE_DONE: ("SQLITE_DONE", "sqlite_done"),
+                sqlite3.SQLITE_BUSY: ("SQLITE_BUSY", "sqlite_busy"),
+                sqlite3.SQLITE_LOCKED: ("SQLITE_LOCKED", "sqlite_locked")}
+    label, counter = statuses.get(status_code, ("OTHER", "sqlite_other")) if type(status_code) is int else ("OTHER", "sqlite_other")
+    metrics["callbacks"] = min(_SNAPSHOT_METRIC_MAX, metrics["callbacks"] + 1)
+    metrics[counter] = min(_SNAPSHOT_METRIC_MAX, metrics[counter] + 1)
+    metrics["last_status"] = label
+    # BUSY/LOCKED callbacks may report sentinel page values. They do not
+    # establish that zero pages remain or that any copy has completed.
+    if label not in {"SQLITE_OK", "SQLITE_DONE"}:
+        return
+    if type(remaining) is not int or type(total) is not int or not 0 <= remaining <= total <= _SNAPSHOT_METRIC_MAX:
+        return
+    previous = metrics.get("last_remaining_pages")
+    if previous is not None and remaining > previous:
+        metrics["remaining_increases"] = min(_SNAPSHOT_METRIC_MAX, metrics["remaining_increases"] + 1)
+    metrics.setdefault("first_remaining_pages", remaining)
+    metrics.update(last_remaining_pages=remaining, total_pages=total)
+
+
+def _snapshot_progress_report(metrics) -> dict:
+    """Copy a constant-size allowlist; no SQL, filenames or exception text."""
+    if not isinstance(metrics, dict):
+        return {}
+    result = {}
+    for key in (*_SNAPSHOT_COUNT_FIELDS, *_SNAPSHOT_PAGE_FIELDS):
+        value = metrics.get(key)
+        if type(value) is int and 0 <= value <= _SNAPSHOT_METRIC_MAX:
+            result[key] = value
+    for key in ("source_wal", "wal_snapshot_pinned_for_copy"):
+        if type(metrics.get(key)) is bool:
+            result[key] = metrics[key]
+    status = metrics.get("last_status")
+    if type(status) is str and status in {"UNOBSERVED", "SQLITE_OK", "SQLITE_DONE", "SQLITE_BUSY", "SQLITE_LOCKED", "OTHER"}:
+        result["last_status"] = status
+    fallback = metrics.get("pin_fallback")
+    if type(fallback) is str and fallback in {"NONE", "BUSY", "LOCKED", "JOURNAL_CHANGED"}:
+        result["pin_fallback"] = fallback
+    return result
+
 OWNERSHIP = {
     "users": "user_personal_data",
     "favorites": "user_personal_data",
@@ -80,7 +140,7 @@ def _emit_backup_stage(stage: str, status: str, *, started_at: float | None = No
                        free_before: int | None = None,
                        free_bytes: int | None = None,
                        reusable_page_bytes: int | None = None,
-                       reason_code: str = "") -> None:
+                       reason_code: str = "", snapshot_progress: dict | None = None) -> None:
     """Write low-cardinality backup timing without paths, data, or secrets."""
     event = {"event": "data_backup_stage", "stage": str(stage), "status": str(status)}
     if started_at is not None:
@@ -101,6 +161,9 @@ def _emit_backup_stage(stage: str, status: str, *, started_at: float | None = No
             event[key] = value
     if reason_code and reason_code.replace("_", "").isalnum() and reason_code.upper() == reason_code:
         event["reason_code"] = reason_code[:48]
+    progress_report = _snapshot_progress_report(snapshot_progress)
+    if stage == "SNAPSHOT" and progress_report:
+        event["snapshot_progress"] = progress_report
     collector = _BACKUP_DIAGNOSTIC_EVENTS.get()
     if collector is not None and status != "started":
         collector.append(dict(event))
@@ -563,10 +626,13 @@ def _backup_with_wal_snapshot(source, destination, *, progress) -> None:
     """Copy from a fresh read-only connection; release our WAL pin before verification."""
     pinned = False
     release_before_copy = False
+    diagnostics = _BACKUP_SNAPSHOT_PROGRESS.get()
     try:
         try:
             with closing(source.execute("PRAGMA journal_mode")) as cursor:
                 wal = str(cursor.fetchone()[0]).lower() == "wal"
+            if diagnostics is not None:
+                diagnostics["source_wal"] = wal
             if wal:
                 source.execute("BEGIN")
                 pinned = True
@@ -582,9 +648,16 @@ def _backup_with_wal_snapshot(source, destination, *, progress) -> None:
             if not isinstance(code, int) or code & 255 not in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED):
                 raise
             release_before_copy = pinned
+            if diagnostics is not None:
+                diagnostics["pin_fallback"] = "BUSY" if code & 255 == sqlite3.SQLITE_BUSY else "LOCKED"
         if release_before_copy:
             source.rollback()
             pinned = False
+            if diagnostics is not None and diagnostics["pin_fallback"] == "NONE":
+                diagnostics["pin_fallback"] = "JOURNAL_CHANGED"
+        if diagnostics is not None:
+            # This describes the copy interval, not a lock held after return.
+            diagnostics["wal_snapshot_pinned_for_copy"] = pinned
         # DELETE sources retain incremental reads so their writers can commit.
         source.backup(destination, pages=256, progress=progress, sleep=0.05)
     except BaseException:
@@ -752,13 +825,15 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
     result = {}
     stage = "WORKSPACE"
     stage_started_at = None
+    snapshot_progress = _new_snapshot_progress() if not compact else None
 
     def advance_stage(next_stage: str) -> None:
         nonlocal stage, stage_started_at
         if absolute_deadline is not None and time.monotonic() >= absolute_deadline:
             raise sqlite3.OperationalError("backup_snapshot_timeout")
         if stage_started_at is not None:
-            _emit_backup_stage(stage, "finished", started_at=stage_started_at)
+            fields = {"snapshot_progress": snapshot_progress} if stage == "SNAPSHOT" else {}
+            _emit_backup_stage(stage, "finished", started_at=stage_started_at, **fields)
         stage = next_stage
         stage_started_at = time.monotonic()
         _emit_backup_stage(stage, "started")
@@ -797,10 +872,16 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
             source.execute("PRAGMA busy_timeout=50")
             dest.execute("PRAGMA busy_timeout=50")
             def progress(status_code, remaining, total):
-                if time.monotonic() >= deadline:
+                expired = time.monotonic() >= deadline
+                _note_snapshot_progress(snapshot_progress, status_code, remaining, total)
+                if expired:
                     raise sqlite3.OperationalError("backup_snapshot_timeout")
             if not compact:
-                _backup_with_wal_snapshot(source, dest, progress=progress)
+                progress_token = _BACKUP_SNAPSHOT_PROGRESS.set(snapshot_progress)
+                try:
+                    _backup_with_wal_snapshot(source, dest, progress=progress)
+                finally:
+                    _BACKUP_SNAPSHOT_PROGRESS.reset(progress_token)
             # Keep the SQLite copy separate from verification in production
             # timings. Previously source.backup ran under INTEGRITY, making a
             # slow snapshot indistinguishable from a slow integrity_check.
@@ -881,8 +962,9 @@ def _create_sqlite_backup_locked(db_path: str | Path, root: str | Path, app_vers
             deadline = locals().get("deadline")
             error_type = _backup_error_type(exc, deadline=deadline)
             error_code = getattr(exc, "sqlite_errorname", "")
+            fields = {"snapshot_progress": snapshot_progress} if stage == "SNAPSHOT" else {}
             _emit_backup_stage(stage, "failed", started_at=stage_started_at,
-                               error_type=error_type, error_code=error_code)
+                               error_type=error_type, error_code=error_code, **fields)
             stage_started_at = None
         deadline = locals().get("deadline")
         error_label = ("backup_snapshot_timeout" if _backup_error_type(exc, deadline=deadline) == "BACKUP_TIMEOUT"

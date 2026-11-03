@@ -911,6 +911,52 @@ def continuous_evolution_tick(base_url: str, secret: str) -> dict:
         return request_error_result("continuous", started, "TIMEOUT" if is_timeout else type(exc).__name__)
 
 
+def backup_snapshot_diagnostics(payload: dict, secret: str) -> dict:
+    """Project only terminal SNAPSHOT timing/counters from the engine response."""
+    stages = payload.get("diagnostic_stages")
+    if not isinstance(stages, list):
+        return {}
+    result = {}
+    number_fields = ("callbacks", "sqlite_ok", "sqlite_done", "sqlite_busy", "sqlite_locked",
+                     "sqlite_other", "remaining_increases", "first_remaining_pages",
+                     "last_remaining_pages", "total_pages")
+    for item in stages[-32:]:
+        if not isinstance(item, dict) or item.get("stage") != "SNAPSHOT":
+            continue
+        terminal = item.get("status")
+        if type(terminal) is not str or terminal not in {"finished", "failed"}:
+            continue
+        # Replace the complete prior candidate, rather than mixing two events.
+        result = {}
+        duration = item.get("duration_ms")
+        if type(duration) is int and 0 <= duration <= (1 << 63) - 1:
+            result["backup_snapshot_duration_ms"] = duration
+        status = safe_label(item.get("status"), secret, "")
+        if status in {"finished", "failed"}:
+            result["backup_snapshot_stage_status"] = status
+        raw = item.get("snapshot_progress")
+        if not isinstance(raw, dict):
+            continue
+        progress = {}
+        for key in number_fields:
+            value = raw.get(key)
+            if type(value) is int and 0 <= value <= (1 << 63) - 1:
+                progress[key] = value
+        for key in ("source_wal", "wal_snapshot_pinned_for_copy"):
+            if type(raw.get(key)) is bool:
+                progress[key] = raw[key]
+        for key, allowed in (
+            ("last_status", {"UNOBSERVED", "SQLITE_OK", "SQLITE_DONE", "SQLITE_BUSY", "SQLITE_LOCKED", "OTHER"}),
+            ("pin_fallback", {"NONE", "BUSY", "LOCKED", "JOURNAL_CHANGED"}),
+        ):
+            value = safe_label(raw.get(key), secret, "")
+            if value in allowed:
+                progress[key] = value
+        if progress:
+            result["backup_snapshot_progress"] = progress
+    return result
+
+
 def backup_tick(base_url: str, secret: str) -> dict:
     started = time.perf_counter()
     request = urllib.request.Request(
@@ -958,6 +1004,7 @@ def backup_tick(base_url: str, secret: str) -> dict:
                 "backup_storage_removed_count": len(storage.get("removed") or []) if isinstance(storage.get("removed"), list) else 0,
                 "backup_duration_ms": max(0, round((time.perf_counter() - started) * 1000)),
             }
+            result_payload.update(backup_snapshot_diagnostics(payload, secret))
             # Preserve the compact-copy preflight decision in safe operational
             # telemetry. It explains CAPACITY failures without exposing paths,
             # database contents, or provider credentials.

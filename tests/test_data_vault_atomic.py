@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import threading
 import time
 
 import pytest
@@ -50,7 +51,8 @@ def test_backup_emits_sanitized_stage_timings_for_diagnosis(backup_source, monke
     assert all(set(item).issubset({"event", "stage", "status", "duration_ms", "error_type",
                                   "error_code", "snapshot_bytes", "compact_snapshot_bytes",
                                   "required_bytes", "free_before", "free_bytes",
-                                  "reusable_page_bytes", "reason_code"}) for item in diagnostics)
+                                  "reusable_page_bytes", "reason_code", "snapshot_progress"}) for item in diagnostics)
+    assert all("snapshot_progress" not in item for item in diagnostics if item["stage"] != "SNAPSHOT")
     assert str(source) not in json.dumps(diagnostics)
     output = capsys.readouterr().out
     events = [json.loads(line) for line in output.splitlines()]
@@ -69,6 +71,124 @@ def test_backup_emits_sanitized_stage_timings_for_diagnosis(backup_source, monke
                if event["status"] in {"finished", "failed", "skipped", "rejected"})
     assert "do-not-log-this" not in output
     assert str(source) not in output
+
+
+@pytest.mark.parametrize("journal", ["DELETE", "WAL"])
+def test_snapshot_progress_describes_real_copy_without_changing_backup_truth(backup_source, journal):
+    source, root = backup_source
+    with sqlite3.connect(source) as writer:
+        assert writer.execute("PRAGMA journal_mode=" + journal).fetchone()[0].upper() == journal
+        writer.execute("INSERT INTO users VALUES('kept-user','Retained')")
+        writer.commit()
+        original_rows = writer.execute("SELECT id,name FROM users ORDER BY id").fetchall()
+        result = vault.create_sqlite_backup(source, root, "SIMULATED_QA")
+        assert writer.execute("SELECT id,name FROM users ORDER BY id").fetchall() == original_rows
+    assert result["ok"] and result["backup_created"], result
+    snapshot = next(row for row in result["diagnostic_stages"] if row["stage"] == "SNAPSHOT")
+    metrics = snapshot["snapshot_progress"]
+    assert snapshot["status"] == "finished"
+    assert metrics["callbacks"] >= 1 and metrics["sqlite_done"] == 1
+    assert metrics["last_status"] == "SQLITE_DONE"
+    assert metrics["last_remaining_pages"] == 0 and metrics["total_pages"] > 0
+    assert metrics["source_wal"] is (journal == "WAL")
+    assert metrics["wal_snapshot_pinned_for_copy"] is (journal == "WAL")
+    assert metrics["pin_fallback"] == "NONE"
+    assert vault._BACKUP_SNAPSHOT_PROGRESS.get() is None
+    assert vault.sha256_file(result["path"]) == result["sha256"]
+    assert vault.validate_backup(root, result["backup_file"])["ok"]
+
+
+def _backup_with_real_exclusive_contention(source, root, monkeypatch, *, timeout):
+    """Release an owned writer only after backup() reports a real BUSY callback."""
+    real_backup = vault._backup_with_wal_snapshot
+    ready, release = threading.Event(), threading.Event()
+    errors = []
+    workers = []
+
+    def hold_lock():
+        try:
+            with sqlite3.connect(source, timeout=0.2) as writer:
+                writer.execute("BEGIN EXCLUSIVE")
+                ready.set()
+                release.wait(2)
+                writer.rollback()
+        except BaseException as exc:
+            errors.append(exc)
+            ready.set()
+
+    def contended(source_conn, destination, *, progress):
+        worker = threading.Thread(target=hold_lock, daemon=True)
+        workers.append(worker)
+        worker.start()
+        assert ready.wait(2) and not errors, errors
+
+        def observed(status, remaining, total):
+            if status in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED):
+                release.set()
+            return progress(status, remaining, total)
+
+        try:
+            return real_backup(source_conn, destination, progress=observed)
+        finally:
+            release.set()
+            worker.join(3)
+
+    monkeypatch.setattr(vault, "_backup_with_wal_snapshot", contended)
+    try:
+        result = vault.create_sqlite_backup(source, root, "SIMULATED_QA", snapshot_timeout=timeout)
+    finally:
+        release.set()
+        for worker in workers:
+            worker.join(3)
+    assert workers and all(not worker.is_alive() for worker in workers)
+    assert not errors
+    assert vault._BACKUP_SNAPSHOT_PROGRESS.get() is None
+    return result
+
+
+def test_snapshot_progress_records_busy_without_treating_it_as_completion(backup_source, monkeypatch):
+    source, root = backup_source
+    before = vault.sha256_file(source)
+    result = _backup_with_real_exclusive_contention(source, root, monkeypatch, timeout=15)
+    assert result["ok"] and result["backup_created"], result
+    snapshot = next(row for row in result["diagnostic_stages"] if row["stage"] == "SNAPSHOT")
+    metrics = snapshot["snapshot_progress"]
+    assert metrics["sqlite_busy"] >= 1
+    assert metrics["last_status"] == "SQLITE_DONE" and metrics["last_remaining_pages"] == 0
+    assert metrics["pin_fallback"] == "BUSY" and metrics["wal_snapshot_pinned_for_copy"] is False
+    assert vault.sha256_file(source) == before
+    assert vault.validate_backup(root, result["backup_file"])["ok"]
+
+
+def test_snapshot_progress_survives_real_deadline_without_publishing(backup_source, monkeypatch):
+    source, root = backup_source
+    before = vault.sha256_file(source)
+    # This is a real monotonic fixture budget, not a replacement clock.
+    result = _backup_with_real_exclusive_contention(source, root, monkeypatch, timeout=0.01)
+    assert not result["ok"] and result["backup_created"] is False
+    assert result["failure_stage"] == "SNAPSHOT" and result["error"] == "backup_snapshot_timeout"
+    snapshot = next(row for row in result["diagnostic_stages"] if row["stage"] == "SNAPSHOT")
+    metrics = snapshot["snapshot_progress"]
+    assert snapshot["status"] == "failed" and metrics["sqlite_busy"] >= 1
+    assert metrics["last_status"] == "SQLITE_BUSY"
+    assert "last_remaining_pages" not in metrics  # BUSY sentinel is not a completed copy.
+    assert result["storage"]["temporary_cleanup_ok"] is True
+    assert not list(vault.backup_dir(root).glob("database_*.db"))
+    assert vault.sha256_file(source) == before
+
+
+def test_snapshot_progress_log_rejects_untyped_values_and_private_fields(capsys):
+    vault._emit_backup_stage("SNAPSHOT", "failed", snapshot_progress={
+        "callbacks": 2, "sqlite_busy": 1, "last_remaining_pages": "PRIVATE-canary",
+        "total_pages": True, "sqlite_ok": -1, "sqlite_done": 1 << 80,
+        "last_status": {"private": "PRIVATE-canary"}, "pin_fallback": ["PRIVATE-canary"],
+        "source_wal": True, "wal_snapshot_pinned_for_copy": "PRIVATE-canary",
+        "path": "/PRIVATE-canary/source.db", "sql": "PRIVATE-canary",
+    })
+    output = capsys.readouterr().out
+    event = json.loads(output)
+    assert event["snapshot_progress"] == {"callbacks": 2, "sqlite_busy": 1, "source_wal": True}
+    assert "PRIVATE-canary" not in output and "path" not in event["snapshot_progress"]
 
 
 def test_capacity_preflight_emits_safe_space_metrics(backup_source, capsys):
