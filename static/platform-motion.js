@@ -105,7 +105,12 @@
     if (media.addEventListener) media.addEventListener('change', onChange);
     else if (media.addListener) media.addListener(onChange);
   });
-  new MutationObserver(onChange).observe(document.body, {subtree:true, attributes:true, attributeFilter:['open','aria-modal']});
+  new MutationObserver(function (records) {
+    // Ignore our own controls: only modal visibility changes affect eligibility.
+    if (records.some(function (record) {
+      return record.attributeName !== 'hidden' || record.target.matches('dialog,[role="dialog"]');
+    })) onChange();
+  }).observe(document.body, {subtree:true, attributes:true, attributeFilter:['open','aria-modal','hidden']});
   if (launcher) {
     launcher.addEventListener('animationend', function (event) {
       if (event.animationName === 'ns-discovery-pulse') { stopPulse(); update(); }
