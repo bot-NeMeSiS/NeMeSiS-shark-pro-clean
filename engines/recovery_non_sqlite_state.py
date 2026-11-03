@@ -25,12 +25,20 @@ MAX_MANIFEST = 1024 * 1024
 MAX_ARCHIVE = MAX_BYTES + MAX_MANIFEST + MAX_ENTRIES * 1024 + 4096
 ROLES = frozenset(("ce", "legacy_runtime"))
 DESTINATIONS = {"ce": "continuous_evolution_os", "legacy_runtime": "runtime"}
+LAYOUT_CE_COLOCATED_SENTINEL_AUTOPILOT_V1 = "CE_COLOCATED_SENTINEL_AND_RUNTIME_AUTOPILOT_V1"
+_LAYOUT_REQUIRED_ENTRIES = {
+    LAYOUT_CE_COLOCATED_SENTINEL_AUTOPILOT_V1: (
+        ("ce", "product_memory.json"),
+        ("ce", "sentinel_issues_memory.json"),
+        ("legacy_runtime", "sentinel_autopilot_memory.json"),
+    ),
+}
 SECRET = re.compile(r"(^\.env(?:\.|$)|secret|credential|token|^id_|\.(?:key|pem|p12|pfx)$)", re.I)
 HEX = re.compile(r"[0-9a-f]{64}\Z")
 REF = re.compile(r"[A-Z0-9_-]{1,96}\Z")
 
 
-_ERROR_CODES = frozenset(["ARCHIVE_BUDGET","ARCHIVE_HASH_MISMATCH","ARCHIVE_MEMBER_BUDGET","ARCHIVE_READ_BUDGET","BYTE_BUDGET","DEADLINE_EXPIRED","DUPLICATE_MANIFEST_KEY","DUPLICATE_STATE_PATH","ENTRY_BUDGET","FOREIGN_SQLITE_RECEIPT","INCOMPLETE_MANIFEST_NAMESPACE","INVALID_DEADLINE","INVALID_EXPECTED_DIGEST","INVALID_LIMIT","INVALID_MANIFEST","INVALID_MANIFEST_ENTRY","INVALID_MANIFEST_IDENTITY","INVALID_MANIFEST_LIMITS","INVALID_MANIFEST_ROOTS","INVALID_SCOPES","INVALID_TAR_HEADER","MANIFEST_BUDGET","MANIFEST_HASH_MISMATCH","NONCANONICAL_PADDING","OWNED_RESTORE_WORKSPACE_REQUIRED","PAYLOAD_MANIFEST_MISMATCH","PRIVATE_ARCHIVE_REQUIRED","PRIVATE_PUBLICATION_NAMESPACE_REQUIRED","PROTECTED_SQLITE_PATHS_REQUIRED","PUBLICATION_IDENTITY_CHANGED","PUBLICATION_ROOT_OVERLAP","RESTORED_DATABASE_CHANGED","RESTORED_DATABASE_IDENTITY_MISMATCH","RESTORED_STATE_VERIFY_FAILED","SECRET_CUSTODY_REQUIRED","SOURCE_CHANGED","SOURCE_ROOT_OVERLAP","SPECIFIC_DATA_AUTHORITY_REQUIRED","SQLITE_RECEIPT_NOT_VERIFIED","SQLITE_SCOPE_COLLISION","STATE_CHANGED_ACROSS_SQLITE_INTERVAL","STATE_LINK","STRONG_FD_PRIMITIVES_UNSUPPORTED","TRAILING_ARCHIVE","TRUNCATED_ARCHIVE","UNCLASSIFIED_STATE_ERROR","UNSAFE_MEMBER_PATH","UNSAFE_PATH","UNSAFE_STATE_FILE","UNSAFE_TAR_HEADER","UNSAFE_TAR_NAME","UNSAFE_TAR_TYPE"])
+_ERROR_CODES = frozenset(["ARCHIVE_BUDGET","ARCHIVE_HASH_MISMATCH","ARCHIVE_MEMBER_BUDGET","ARCHIVE_READ_BUDGET","BYTE_BUDGET","DEADLINE_EXPIRED","DUPLICATE_MANIFEST_KEY","DUPLICATE_STATE_PATH","ENTRY_BUDGET","FOREIGN_SQLITE_RECEIPT","INCOMPLETE_MANIFEST_NAMESPACE","INVALID_DEADLINE","INVALID_EXPECTED_DIGEST","INVALID_LIMIT","INVALID_LAYOUT_BINDING","INVALID_MANIFEST","INVALID_MANIFEST_ENTRY","INVALID_MANIFEST_IDENTITY","INVALID_MANIFEST_LIMITS","INVALID_MANIFEST_ROOTS","INVALID_SCOPES","INVALID_TAR_HEADER","LAYOUT_BINDING_MISMATCH","LAYOUT_BINDING_REQUIRED","LAYOUT_REQUIRED_ENTRY_MISSING","MANIFEST_BUDGET","MANIFEST_HASH_MISMATCH","NONCANONICAL_PADDING","OWNED_RESTORE_WORKSPACE_REQUIRED","PAYLOAD_MANIFEST_MISMATCH","PRIVATE_ARCHIVE_REQUIRED","PRIVATE_PUBLICATION_NAMESPACE_REQUIRED","PROTECTED_SQLITE_PATHS_REQUIRED","PUBLICATION_IDENTITY_CHANGED","PUBLICATION_ROOT_OVERLAP","RESTORED_DATABASE_CHANGED","RESTORED_DATABASE_IDENTITY_MISMATCH","RESTORED_STATE_VERIFY_FAILED","SECRET_CUSTODY_REQUIRED","SOURCE_CHANGED","SOURCE_ROOT_OVERLAP","SPECIFIC_DATA_AUTHORITY_REQUIRED","SQLITE_RECEIPT_NOT_VERIFIED","SQLITE_SCOPE_COLLISION","STATE_CHANGED_ACROSS_SQLITE_INTERVAL","STATE_LINK","STRONG_FD_PRIMITIVES_UNSUPPORTED","TRAILING_ARCHIVE","TRUNCATED_ARCHIVE","UNCLASSIFIED_STATE_ERROR","UNSAFE_MEMBER_PATH","UNSAFE_PATH","UNSAFE_STATE_FILE","UNSAFE_TAR_HEADER","UNSAFE_TAR_NAME","UNSAFE_TAR_TYPE"])
 
 
 class StateError(ValueError):
@@ -75,6 +83,14 @@ class SqliteReceipt:
     artifact_id: str
     sha256: str
     published_and_validated: bool
+
+
+@dataclass(frozen=True)
+class StateLayoutBinding:
+    """Closed typed opt-in; required paths are fixed by this module."""
+    layout_id: str
+    operation_id: str
+    proposal_sha256: str
 
 
 def _check_time(deadline):
@@ -227,6 +243,58 @@ def _canonical(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
 
 
+def _layout_binding_record(binding, scopes):
+    if binding is None:
+        return None
+    if (type(binding) is not StateLayoutBinding
+            or type(binding.layout_id) is not str
+            or binding.layout_id not in _LAYOUT_REQUIRED_ENTRIES
+            or type(binding.operation_id) is not str or not REF.fullmatch(binding.operation_id)
+            or type(binding.proposal_sha256) is not str or not HEX.fullmatch(binding.proposal_sha256)):
+        raise StateError("INVALID_LAYOUT_BINDING")
+    roles = tuple(sorted(scope.role for scope in scopes))
+    required = _LAYOUT_REQUIRED_ENTRIES[binding.layout_id]
+    required_roles = tuple(sorted({role for role, _ in required}))
+    if roles != required_roles:
+        raise StateError("INVALID_LAYOUT_BINDING")
+    return {
+        "layout_id": binding.layout_id,
+        "operation_id": binding.operation_id,
+        "proposal_sha256": binding.proposal_sha256,
+        "scope_roles": list(roles),
+        "required_entries": [{"scope": role, "relative": relative} for role, relative in required],
+    }
+
+
+def _validate_required_layout_entries(binding, entries):
+    if binding is None:
+        return
+    by_path = {(entry["scope"], entry["relative"]): entry for entry in entries}
+    required = _LAYOUT_REQUIRED_ENTRIES[binding["layout_id"]]
+    if any(by_path.get(key, {}).get("kind") != "file" for key in required):
+        raise StateError("LAYOUT_REQUIRED_ENTRY_MISSING")
+
+
+def _validate_expected_layout_binding(manifest, *, expected_layout_id=None,
+                                      expected_operation_id=None, expected_proposal_sha256=None,
+                                      expected_scope_roles=None):
+    binding = manifest.get("layout_binding")
+    expectations = (expected_layout_id, expected_proposal_sha256, expected_scope_roles)
+    if binding is None:
+        if any(value is not None for value in expectations):
+            raise StateError("LAYOUT_BINDING_MISMATCH")
+        return None
+    if (expected_layout_id is None or expected_proposal_sha256 is None
+            or expected_scope_roles is None):
+        raise StateError("LAYOUT_BINDING_REQUIRED")
+    if (binding.get("layout_id") != expected_layout_id
+            or binding.get("operation_id") != expected_operation_id
+            or binding.get("proposal_sha256") != expected_proposal_sha256
+            or binding.get("scope_roles") != list(expected_scope_roles)):
+        raise StateError("LAYOUT_BINDING_MISMATCH")
+    return binding
+
+
 def _scan(scopes, limits, deadline, writer=None, protected=()):
     scan_deadline = min(deadline, time.monotonic() + limits.seconds)
     entries, roots, count, size = [], [], 0, 0
@@ -335,7 +403,7 @@ def _hash_fd(fd, deadline, maximum):
 
 
 def capture_state(*, scopes, authorization, publication: Path, deadline: float,
-                  sqlite_snapshot_callback, limits: Limits = Limits()):
+                  sqlite_snapshot_callback, limits: Limits = Limits(), layout_binding=None):
     result = {"schema": "OWNED_STATE_CAPTURE_PROTOTYPE_V1", "ok": False,
               "state_published": False, "sqlite_callback_invoked": False,
               "sqlite_receipt": None, "recapture_attempted": False,
@@ -349,6 +417,7 @@ def capture_state(*, scopes, authorization, publication: Path, deadline: float,
         if type(limits) is not Limits:
             raise StateError("INVALID_LIMIT")
         scopes = _scopes(scopes, authorization)
+        layout_record = _layout_binding_record(layout_binding, scopes)
         _path(publication)
         if any(publication == s.source or publication.is_relative_to(s.source)
                or s.source.is_relative_to(publication) for s in scopes):
@@ -364,19 +433,26 @@ def capture_state(*, scopes, authorization, publication: Path, deadline: float,
         with os.fdopen(fd, "w+b") as stream:
             writer = _Writer(stream, deadline)
             before = _scan(scopes, limits, deadline, writer, authorization.protected_sqlite_paths)
+            _validate_required_layout_entries(layout_record, before["entries"])
             _check_time(deadline)
             result["sqlite_callback_invoked"] = True
             receipt = sqlite_snapshot_callback(deadline)
             result["sqlite_receipt"] = _sqlite(receipt)
+            if (layout_record is not None
+                    and result["sqlite_receipt"]["artifact_id"] != layout_record["operation_id"]):
+                raise StateError("LAYOUT_BINDING_MISMATCH")
             _check_time(deadline)
             after = _scan(scopes, limits, deadline, protected=authorization.protected_sqlite_paths)
             if _comparable(before) != _comparable(after):
                 raise StateError("STATE_CHANGED_ACROSS_SQLITE_INTERVAL")
-            manifest = {"schema": "OPAQUE_STATE_BUNDLE_V1", "authorization_ref": authorization.evidence_ref,
+            manifest = {"schema": "OPAQUE_STATE_BUNDLE_V2" if layout_record is not None else "OPAQUE_STATE_BUNDLE_V1",
+                        "authorization_ref": authorization.evidence_ref,
                         "sqlite": result["sqlite_receipt"], "limits": asdict(limits),
                         "roots": before["roots"], "entries": before["entries"],
                         "bracket_equal": True,
                         "continuous_cross_store_consistency_certified": False}
+            if layout_record is not None:
+                manifest["layout_binding"] = layout_record
             mh = writer.manifest(manifest)
             stream.flush()
             os.fsync(stream.fileno())
@@ -403,6 +479,9 @@ def capture_state(*, scopes, authorization, publication: Path, deadline: float,
         _check_time(deadline)
         result.update(ok=True, code="BRACKETED_STATE_PRESERVED_NOT_FULL_RECOVERY",
                       entries=before["entries_count"], state_bytes=before["bytes"])
+        if layout_record is not None:
+            result.update(layout_id=layout_record["layout_id"],
+                          scope_roles=layout_record["scope_roles"])
     except BaseException as exc:
         result.update(code=str(exc) if isinstance(exc, StateError) else "STATE_CAPTURE_FAILED",
                       error_type=type(exc).__name__)
@@ -444,9 +523,16 @@ def _manifest(raw, payloads, limits):
         value = json.loads(raw, object_pairs_hook=_no_duplicate_keys)
     except (ValueError, RecursionError, UnicodeError):
         raise StateError("INVALID_MANIFEST") from None
-    keys = {"schema", "authorization_ref", "sqlite", "limits", "roots", "entries",
-            "bracket_equal", "continuous_cross_store_consistency_certified"}
-    if (type(value) is not dict or set(value) != keys or value["schema"] != "OPAQUE_STATE_BUNDLE_V1"
+    base_keys = {"schema", "authorization_ref", "sqlite", "limits", "roots", "entries",
+                 "bracket_equal", "continuous_cross_store_consistency_certified"}
+    schema = value.get("schema") if type(value) is dict else None
+    if schema == "OPAQUE_STATE_BUNDLE_V1":
+        expected_keys = base_keys
+    elif schema == "OPAQUE_STATE_BUNDLE_V2":
+        expected_keys = base_keys | {"layout_binding"}
+    else:
+        raise StateError("INVALID_MANIFEST")
+    if (type(value) is not dict or set(value) != expected_keys
             or value["bracket_equal"] is not True
             or value["continuous_cross_store_consistency_certified"] is not False
             or not isinstance(value["authorization_ref"], str) or not REF.fullmatch(value["authorization_ref"])
@@ -466,6 +552,34 @@ def _manifest(raw, payloads, limits):
     roles = [r["scope"] for r in value["roots"]]
     if len(roles) != len(value["roots"]) or len(set(roles)) != len(roles) or set(roles) - ROLES:
         raise StateError("INVALID_MANIFEST_ROOTS")
+    layout_binding = value.get("layout_binding")
+    if schema == "OPAQUE_STATE_BUNDLE_V2":
+        binding_keys = {"layout_id", "operation_id", "proposal_sha256", "scope_roles", "required_entries"}
+        sqlite_value = value.get("sqlite")
+        try:
+            if (type(sqlite_value) is not dict
+                    or set(sqlite_value) != {"artifact_id", "sha256", "published_and_validated"}):
+                raise StateError("INVALID_LAYOUT_BINDING")
+            sqlite_receipt = _sqlite(SqliteReceipt(**sqlite_value))
+        except (TypeError, StateError):
+            raise StateError("INVALID_LAYOUT_BINDING") from None
+        if (type(layout_binding) is not dict or set(layout_binding) != binding_keys
+                or type(layout_binding.get("layout_id")) is not str
+                or layout_binding["layout_id"] not in _LAYOUT_REQUIRED_ENTRIES
+                or type(layout_binding.get("operation_id")) is not str
+                or not REF.fullmatch(layout_binding["operation_id"])
+                or type(layout_binding.get("proposal_sha256")) is not str
+                or not HEX.fullmatch(layout_binding["proposal_sha256"])
+                or type(layout_binding.get("scope_roles")) is not list
+                or layout_binding["operation_id"] != sqlite_receipt["artifact_id"]
+                or layout_binding["scope_roles"] != sorted(roles)
+                or roles != sorted(roles)):
+            raise StateError("INVALID_LAYOUT_BINDING")
+        required = _LAYOUT_REQUIRED_ENTRIES[layout_binding["layout_id"]]
+        required_roles = sorted({role for role, _ in required})
+        expected_entries = [{"scope": role, "relative": relative} for role, relative in required]
+        if (roles != required_roles or layout_binding["required_entries"] != expected_entries):
+            raise StateError("INVALID_LAYOUT_BINDING")
     seen, members, total = set(), set(), 0
     for item in value["entries"]:
         if type(item) is not dict or not isinstance(item.get("scope"), str) or item.get("scope") not in roles:
@@ -499,11 +613,14 @@ def _manifest(raw, payloads, limits):
                 raise StateError("INCOMPLETE_MANIFEST_NAMESPACE")
     if members != set(payloads) or total > limits.bytes:
         raise StateError("PAYLOAD_MANIFEST_MISMATCH")
+    if schema == "OPAQUE_STATE_BUNDLE_V2":
+        _validate_required_layout_entries(layout_binding, value["entries"])
     return value
 
 
 def parse_bundle(stream, *, expected_archive_sha256, expected_manifest_sha256,
-                 expected_sqlite: SqliteReceipt, deadline, limits=Limits(), payload_sink=None):
+                 expected_sqlite: SqliteReceipt, deadline, limits=Limits(), payload_sink=None,
+                 expected_layout_id=None, expected_proposal_sha256=None, expected_scope_roles=None):
     """Bounded USTAR subset; no extract(), pickle, links, PAX or GNU extensions."""
     _check_time(deadline)
     if type(limits) is not Limits:
@@ -554,6 +671,11 @@ def parse_bundle(stream, *, expected_archive_sha256, expected_manifest_sha256,
             manifest = _manifest(raw, payloads, limits)
             if manifest["sqlite"] != sqlite:
                 raise StateError("FOREIGN_SQLITE_RECEIPT")
+            _validate_expected_layout_binding(
+                manifest, expected_layout_id=expected_layout_id,
+                expected_operation_id=sqlite["artifact_id"],
+                expected_proposal_sha256=expected_proposal_sha256,
+                expected_scope_roles=expected_scope_roles)
         else:
             if item.name != "payload/%06d" % len(payloads) or len(payloads) >= limits.entries:
                 raise StateError("UNSAFE_TAR_NAME")
@@ -602,7 +724,8 @@ def _child_directory(parent, components):
 
 def restore_state(*, bundle: Path, expected_archive_sha256, expected_manifest_sha256,
                   expected_sqlite: SqliteReceipt, workspace: Path, expected_database_identity,
-                  deadline, limits=Limits()):
+                  deadline, limits=Limits(), expected_layout_id=None,
+                  expected_proposal_sha256=None, expected_scope_roles=None):
     result = {"schema": "OWNED_STATE_RESTORE_PROTOTYPE_V1", "ok": False,
               "state_ready_before_app": False, "sqlite_restore_created": False,
               "live_restore_allowed": False, "full_application_recovery_certified": False}
@@ -635,7 +758,10 @@ def restore_state(*, bundle: Path, expected_archive_sha256, expected_manifest_sh
         with os.fdopen(os.dup(archive_fd), "rb") as stream:
             manifest = parse_bundle(stream, expected_archive_sha256=expected_archive_sha256,
                                     expected_manifest_sha256=expected_manifest_sha256,
-                                    expected_sqlite=expected_sqlite, deadline=deadline, limits=limits)
+                                    expected_sqlite=expected_sqlite, deadline=deadline, limits=limits,
+                                    expected_layout_id=expected_layout_id,
+                                    expected_proposal_sha256=expected_proposal_sha256,
+                                    expected_scope_roles=expected_scope_roles)
         _same(info, os.fstat(archive_fd))
         # mkdir is exclusive: never merge into, replace or clear existing state.
         os.mkdir("data", 0o700, dir_fd=source_fd)
@@ -667,7 +793,10 @@ def restore_state(*, bundle: Path, expected_archive_sha256, expected_manifest_sh
         with os.fdopen(os.dup(archive_fd), "rb") as stream:
             parse_bundle(stream, expected_archive_sha256=expected_archive_sha256,
                          expected_manifest_sha256=expected_manifest_sha256, expected_sqlite=expected_sqlite,
-                         deadline=deadline, limits=limits, payload_sink=sink)
+                         deadline=deadline, limits=limits, payload_sink=sink,
+                         expected_layout_id=expected_layout_id,
+                         expected_proposal_sha256=expected_proposal_sha256,
+                         expected_scope_roles=expected_scope_roles)
         _same(info, os.fstat(archive_fd))
         scopes = [Scope(r["scope"], workspace / "source/data" / DESTINATIONS[r["scope"]])
                   for r in manifest["roots"]]
@@ -683,6 +812,9 @@ def restore_state(*, bundle: Path, expected_archive_sha256, expected_manifest_sh
         result.update(ok=True, code="STATE_BYTES_VERIFIED_BEFORE_APP",
                       state_ready_before_app=True, entries=verified["entries_count"],
                       state_bytes=verified["bytes"], app_started=False)
+        if manifest.get("layout_binding") is not None:
+            result.update(layout_id=manifest["layout_binding"]["layout_id"],
+                          scope_roles=list(manifest["layout_binding"]["scope_roles"]))
     except BaseException as exc:
         result.update(code=str(exc) if isinstance(exc, StateError) else "STATE_RESTORE_FAILED",
                       error_type=type(exc).__name__,

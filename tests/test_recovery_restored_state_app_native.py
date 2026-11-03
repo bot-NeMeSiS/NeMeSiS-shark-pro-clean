@@ -1,11 +1,10 @@
 """Owned native App/state integration, authored for authentic-checkout POSIX CI.
 
-This TEST entrypoint runs the complete existing normal_boot child first. It then
-calls two real read-only stores under that child's still-installed audit/SQLite
-boundary and the SAME absolute B deadline/native parent timeout. No App flags,
-getters, initialization or child results are replaced. It does not establish
-that the production CLI receipt itself observes these store reads, continuous
-cross-store quiescence, real-data permission, or full recovery.
+This test runs the stock normal_boot child and checks three fixed owners in the
+explicit co-located CE/runtime fixture against bytes restored in the same
+workspace, under the existing audit/SQLite boundary and absolute deadline. It
+does not establish continuous cross-store quiescence, real-data permission,
+production layout, or full recovery.
 """
 from __future__ import annotations
 
@@ -30,139 +29,13 @@ from tools import recovery_state_adapter as adapter
 
 ROOT = Path(__file__).resolve().parents[1]
 
-# A test-only entrypoint, not a substitute App or a fabricated child response.
-# The production probe module is loaded in full from the authentic checkout.
-# _run_child imports the full App from its real bounded source copy.
-STORE_OBSERVER_CHILD = r"""
-import hashlib, importlib.util, json, os, pathlib, sqlite3, sys, time
-
-probe_path = pathlib.Path(sys.argv[1])
-expected = json.loads(sys.argv[2])
-spec = importlib.util.spec_from_file_location("owned_real_probe", probe_path)
-probe = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(probe)
-raw = sys.stdin.buffer.read(16385)
-if len(raw) > 16384:
-    raise SystemExit(3)
-payload = json.loads(raw)
-source = pathlib.Path(payload["source"])
-legacy_path = source / "data/runtime/sentinel_issues_memory.json"
-ce_path = source / "data/continuous_evolution_os/product_memory.json"
-decoy_path = source / "data/runtime/continuous_evolution_os/product_memory.json"
-phase = [None]
-reads = {"legacy": 0, "ce": 0, "decoy": 0}
-
-def observe_owned_reads(event, args):
-    if phase[0] is None or event != "open" or not isinstance(args[0], (str, bytes, os.PathLike)):
-        return
-    mode, flags = args[1:3]
-    writing = (isinstance(mode, str) and any(c in mode for c in "wax+")) or (
-        isinstance(flags, int) and flags & (os.O_WRONLY | os.O_RDWR | os.O_CREAT | os.O_TRUNC | os.O_APPEND))
-    if writing:
-        return
-    path = pathlib.Path(os.fsdecode(args[0]))
-    if not path.is_absolute():
-        path = pathlib.Path.cwd() / path
-    if phase[0] == "legacy" and path == legacy_path:
-        reads["legacy"] += 1
-    if phase[0] == "ce" and path == ce_path:
-        reads["ce"] += 1
-    if path == decoy_path:
-        reads["decoy"] += 1
-
-def require(condition, code):
-    if not condition:
-        raise probe.ProbeError(code)
-
-sys.addaudithook(observe_owned_reads)
-result = None
-try:
-    result = probe._run_child(payload)
-    # Failure of actual initialization/routes is never upgraded or discarded.
-    if result.get("ok") is True:
-        try:
-            probe._deadline(payload["deadline"])
-            require(payload["mode"] == "normal_boot", "OWNED_STATE_MODE_MISMATCH")
-            require(payload["deadline"] == expected["restore_deadline"], "OWNED_STATE_DEADLINE_RESTARTED")
-            require(payload.get("restored_state_layout") == "DISJOINT_CE_LEGACY_V1", "OWNED_STATE_LAYOUT_MISMATCH")
-            app = sys.modules["app"]
-            require(pathlib.Path(app.__file__) == source / "app.py", "OWNED_APP_SOURCE_MISMATCH")
-            require(pathlib.Path.cwd() == source, "OWNED_STATE_CWD_MISMATCH")
-            require(os.environ.get("CONTINUOUS_EVOLUTION_STORAGE_ROOT") == str(ce_path.parent),
-                    "OWNED_CE_ENV_MISMATCH")
-            require(os.environ.get("CONTINUOUS_EVOLUTION_SAFE_MODE") != "1", "OWNED_LEGACY_ROOT_REDIRECTED")
-            boundary = getattr(sqlite3.connect, "__self__", None)
-            require(boundary is not None and boundary.source == source
-                    and boundary.database == pathlib.Path(payload["database"])
-                    and boundary.deadline == payload["deadline"]
-                    and boundary.mode == "normal_boot", "OWNED_BOUNDARY_BINDING_MISMATCH")
-            before_writes = boundary.fs_writes
-            before_sql_writes = boundary.sql_writes
-            legacy = sys.modules["engines.sentinel_issues_engine"]
-            ce = sys.modules["engines.product_review_system_engine"]
-            require(pathlib.Path(legacy.__file__) == source / "engines/sentinel_issues_engine.py",
-                    "OWNED_LEGACY_SOURCE_MISMATCH")
-            require(pathlib.Path(ce.__file__) == source / "engines/product_review_system_engine.py",
-                    "OWNED_CE_SOURCE_MISMATCH")
-            require(legacy.sentinel_issues_memory_path() == legacy_path, "OWNED_LEGACY_PATH_MISMATCH")
-            require(ce._ce_storage() == ce_path.parent, "OWNED_CE_PATH_MISMATCH")
-
-            # Default owner APIs: no root/storage override, fake getter, or now.
-            phase[0] = "legacy"
-            legacy_memory = legacy.load_sentinel_issues_memory()
-            phase[0] = "ce"
-            ce_memory = ce.load_product_memory()
-            phase[0] = None
-            probe._deadline(payload["deadline"])
-            require(getattr(sqlite3.connect, "__self__", None) is boundary, "OWNED_BOUNDARY_CHANGED")
-            require(not boundary.denials and not result["boundary_denials"], "OWNED_STATE_BOUNDARY_DENIAL")
-            require(boundary.fs_writes == before_writes and boundary.sql_writes == before_sql_writes,
-                    "OWNED_GETTER_WROTE_STATE")
-            require(reads["legacy"] > 0 and reads["ce"] > 0 and reads["decoy"] == 0,
-                    "OWNED_GETTER_READS_MISSING")
-            require(legacy_memory.get("_storage_revision") == expected["legacy_sha256"],
-                    "OWNED_LEGACY_BYTES_MISMATCH")
-            require(any(isinstance(issue, dict) and issue.get("id") == expected["legacy_issue"]
-                        for issue in legacy_memory.get("issues", [])), "OWNED_LEGACY_VALUE_MISSING")
-            projection = json.dumps(ce_memory.get("recommendations"), sort_keys=True,
-                                    separators=(",", ":"), ensure_ascii=True).encode("ascii")
-            ce_digest = hashlib.sha256(projection).hexdigest()
-            require(ce_digest == expected["ce_projection_sha256"], "OWNED_CE_VALUE_MISMATCH")
-            # Report only booleans/digests of our own fixture, never state rows.
-            result["owned_store_observation"] = {
-                "schema": "OWNED_RESTORED_STATE_GETTERS_TEST_V1",
-                "legacy_read_observed": True, "ce_read_observed": True,
-                "decoy_not_read_by_getters": True, "recognized_state_matches": True,
-                "same_sqlite_boundary_binding": True, "same_absolute_deadline_checked": True,
-                "getters_wrote_nothing": True,
-                "legacy_sha256": legacy_memory["_storage_revision"],
-                "ce_projection_sha256": ce_digest,
-                "production_cli_observer_coverage": False,
-            }
-        except BaseException as exc:
-            phase[0] = None
-            result["ok"] = False
-            result["owned_store_observation"] = {
-                "schema": "OWNED_RESTORED_STATE_GETTERS_TEST_V1", "ok": False,
-                "code": str(exc) if isinstance(exc, probe.ProbeError) else "OWNED_STORE_OBSERVATION_FAILED",
-                "error_type": type(exc).__name__,
-            }
-except BaseException as exc:
-    result = {"schema": "NEMESIS_APP_PROBE_CHILD_V1", "ok": False,
-              "code": str(exc) if isinstance(exc, probe.ProbeError) else "APP_PROBE_CHILD_FAILED",
-              "error_type": type(exc).__name__}
-print(json.dumps(result, ensure_ascii=True))
-raise SystemExit(0 if result.get("ok") is True else 3)
-"""
-
-
 def _json_bytes(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("ascii")
 
 
 @unittest.skipUnless(os.name == "posix", "Native POSIX state confinement; not certified on Windows")
 class NativeRestoredStateAppConsumptionTests(unittest.TestCase):
-    def test_real_normal_boot_then_real_legacy_and_ce_reads_in_same_restore(self):
+    def test_real_normal_boot_then_three_colocated_owner_reads_in_same_restore(self):
         # This test belongs in the authentic checkout, not an artificial source
         # tree. prepare_source below copies exactly the current admitted source.
         self.assertEqual(operator.ROOT, ROOT)
@@ -174,8 +47,8 @@ class NativeRestoredStateAppConsumptionTests(unittest.TestCase):
             database = root / "owned.sqlite3"
             backups = root / "backups"
             ce = root / "ce"
-            legacy = root / "legacy"
-            for path in (backups, ce, legacy):
+            runtime = root / "runtime"
+            for path in (backups, ce, runtime):
                 path.mkdir(mode=0o700)
             publication = backups / "private-state"
             publication.mkdir(mode=0o700)
@@ -183,31 +56,41 @@ class NativeRestoredStateAppConsumptionTests(unittest.TestCase):
                 connection.execute("CREATE TABLE sample(id INTEGER PRIMARY KEY, value TEXT)")
                 connection.executemany("INSERT INTO sample(value) VALUES (?)", [("owned-one",), ("owned-two",)])
             before_database = hashlib.sha256(database.read_bytes()).hexdigest()
-            legacy_issue = "OWNED-RESTORED-ISSUE"
-            legacy_bytes = _json_bytes({"issues": [{"id": legacy_issue, "title": "Owned recovery fixture",
-                                                   "status": "OPEN_REAL", "severity": "low"}], "events": []})
+            ce_issue = "OWNED-CE-SENTINEL-ISSUE"
+            autopilot_issue = "OWNED-RUNTIME-AUTOPILOT-ISSUE"
+            dormant_issue = "OWNED-DORMANT-RUNTIME-SENTINEL"
             recommendations = {"owned-restored-recommendation": {"title": "Owned CE fixture", "status": "OBSERVED"}}
             ce_bytes = _json_bytes({"recommendations": recommendations, "events": [], "snapshots": []})
-            decoy_bytes = _json_bytes({"recommendations": {"owned-decoy": {"title": "Wrong CE root"}}})
-            legacy_file = legacy / "sentinel_issues_memory.json"
+            ce_sentinel_bytes = _json_bytes({"issues": [{"id": ce_issue, "title": "Owned co-located Sentinel fixture",
+                                                       "status": "OPEN_REAL", "severity": "low"}], "events": []})
+            autopilot_bytes = _json_bytes({"issues": [{"id": autopilot_issue, "title": "Owned autopilot fixture",
+                                                      "status": "OPEN_REAL", "severity": "low"}]})
+            dormant_runtime_sentinel_bytes = _json_bytes({"issues": [{"id": dormant_issue,
+                                                                     "title": "Dormant duplicate root",
+                                                                     "status": "OPEN_REAL", "severity": "low"}],
+                                                         "events": []})
+            decoy_recommendations = _json_bytes({"recommendations": {"owned-wrong-ce-root": {"title": "Wrong CE root"}}})
             ce_file = ce / "product_memory.json"
-            legacy_file.write_bytes(legacy_bytes)
+            ce_sentinel_file = ce / "sentinel_issues_memory.json"
+            autopilot_file = runtime / "sentinel_autopilot_memory.json"
+            dormant_runtime_sentinel_file = runtime / "sentinel_issues_memory.json"
             ce_file.write_bytes(ce_bytes)
-            decoy = legacy / "continuous_evolution_os"
-            decoy.mkdir(mode=0o700)
-            decoy_file = decoy / "product_memory.json"
-            decoy_file.write_bytes(decoy_bytes)
-            originals = {path: path.read_bytes() for path in (legacy_file, ce_file, decoy_file)}
-            expected = {"legacy_issue": legacy_issue,
-                        "legacy_sha256": hashlib.sha256(legacy_bytes).hexdigest(),
-                        "ce_projection_sha256": hashlib.sha256(_json_bytes(recommendations)).hexdigest()}
-            scopes = tuple(sorted((state.Scope("ce", ce), state.Scope("legacy_runtime", legacy)),
+            ce_sentinel_file.write_bytes(ce_sentinel_bytes)
+            autopilot_file.write_bytes(autopilot_bytes)
+            dormant_runtime_sentinel_file.write_bytes(dormant_runtime_sentinel_bytes)
+            runtime_ce_decoys = runtime / "continuous_evolution_os"
+            runtime_ce_decoys.mkdir(mode=0o700)
+            product_decoy = runtime_ce_decoys / "product_memory.json"
+            product_decoy.write_bytes(decoy_recommendations)
+            originals = {path: path.read_bytes() for path in (
+                ce_file, ce_sentinel_file, autopilot_file, dormant_runtime_sentinel_file, product_decoy)}
+            scopes = tuple(sorted((state.Scope("ce", ce), state.Scope("legacy_runtime", runtime)),
                                   key=lambda scope: scope.role))
             authorization = state.Authorization("OWNED_APP_NATIVE_ONLY",
                 tuple((scope.role, str(scope.source)) for scope in scopes), True, (str(database),))
             plan = adapter.StateRecoveryPlan("OWNED_APP_NATIVE_ONLY",
                 hashlib.sha256(b"owned CI fixture; not real data-operation approval").hexdigest(),
-                scopes, authorization, publication)
+                scopes, authorization, publication, layout_id=app_probe.COLOCATED_LAYOUT_ID)
             capture_deadline = time.monotonic() + 60.0
             snapshot_deadlines = []
 
@@ -239,22 +122,23 @@ class NativeRestoredStateAppConsumptionTests(unittest.TestCase):
                 return native_restore_state(**kwargs)
 
             def launch_real_observed_child(command, **kwargs):
-                # Only the TEST entrypoint differs. All environment, cwd, pipes,
-                # memory policy and the parent's original timeout are unchanged.
+                # Observe the launch but invoke the exact stock child command unchanged.
                 self.assertEqual(command, [sys.executable, "-I", "-B", str(Path(app_probe.__file__)), "--child"])
                 self.assertEqual(kwargs["env"]["PATH"], str(Path(sys.executable).parent))
                 self.assertEqual(set(kwargs["env"]) - {"SYSTEMROOT", "WINDIR"},
                                  {"PATH", "TMP", "TEMP", "TMPDIR", "PYTHONDONTWRITEBYTECODE",
-                                  "PYTHONNOUSERSITE", "OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS"})
+                                  "PYTHONNOUSERSITE", "OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS",
+                                  "CONTINUOUS_EVOLUTION_SAFE_MODE", "CONTINUOUS_EVOLUTION_STORAGE_ROOT"})
+                self.assertEqual(kwargs["env"]["CONTINUOUS_EVOLUTION_SAFE_MODE"], "1")
+                self.assertEqual(kwargs["env"]["CONTINUOUS_EVOLUTION_STORAGE_ROOT"],
+                                 str(kwargs["cwd"].parent / "source" / "data" / "continuous_evolution_os"))
                 self.assertEqual(kwargs["cwd"].name, "scratch")
                 workspace = kwargs["cwd"].parent
                 self.assertTrue(workspace.name.startswith(".isolated_restore_327_"))
                 self.assertTrue((workspace / "restoration-test.db").is_file())
                 launches.append(workspace)
-                self.assertEqual(len(restore_deadlines), 1, "state restored before the actual child")
-                return native_popen(
-                    [*command[:3], "-c", STORE_OBSERVER_CHILD, str(Path(app_probe.__file__)),
-                     json.dumps({**expected, "restore_deadline": restore_deadlines[0]}, ensure_ascii=True)], **kwargs)
+                self.assertEqual(len(restore_deadlines), 1, "state restored before the stock child")
+                return native_popen(command, **kwargs)
 
             with patch.object(state, "restore_state", side_effect=observe_native_restore), \
                  patch.object(operator, "connect_archive_readonly", wraps=native_archive_connect) as archive_connections, \
@@ -277,19 +161,77 @@ class NativeRestoredStateAppConsumptionTests(unittest.TestCase):
             self.assertTrue(all(row["ok"] and row["completed_read_fetches"] > 0 for row in child["routes"]))
             self.assertFalse(child["boundary_denials"])
             self.assertTrue(result["app_probe"]["state_restore"]["state_ready_before_app"])
+            self.assertEqual(result["app_probe"]["state_restore"]["code"], "STATE_BYTES_VERIFIED_BEFORE_APP")
             self.assertEqual(result["app_probe"]["state_scope_roles"], ["ce", "legacy_runtime"])
-            proof = child["owned_store_observation"]
-            self.assertEqual(proof["schema"], "OWNED_RESTORED_STATE_GETTERS_TEST_V1")
-            for key in ("legacy_read_observed", "ce_read_observed", "decoy_not_read_by_getters",
-                        "recognized_state_matches", "same_sqlite_boundary_binding",
-                        "same_absolute_deadline_checked", "getters_wrote_nothing"):
+            expected_consumers = [
+                {"consumer_id": "ce_product_memory", "scope_role": "ce",
+                 "relative_path": "data/continuous_evolution_os/product_memory.json",
+                 "owner": "engines.product_review_system_engine.load_product_memory"},
+                {"consumer_id": "ce_sentinel_issues", "scope_role": "ce",
+                 "relative_path": "data/continuous_evolution_os/sentinel_issues_memory.json",
+                 "owner": "engines.sentinel_issues_engine.load_sentinel_issues_memory"},
+                {"consumer_id": "runtime_sentinel_autopilot", "scope_role": "legacy_runtime",
+                 "relative_path": "data/runtime/sentinel_autopilot_memory.json",
+                 "owner": "engines.sentinel_issues_engine._issues_from_autopilot_memory"},
+            ]
+            self.assertTrue(result["app_probe"]["bundle_all_files_restored_verified"])
+            self.assertTrue(result["app_probe"]["canonical_consumer_consumption_verified"])
+            self.assertEqual(result["app_probe"]["canonical_consumer_paths"], expected_consumers)
+            proof = child["restored_state_consumption"]
+            self.assertEqual(proof["schema"], "NEMESIS_CANONICAL_CONSUMER_OBSERVATION_V4")
+            self.assertEqual(proof["layout_id"], app_probe.COLOCATED_LAYOUT_ID)
+            self.assertEqual(proof["scope_roles"], ["ce", "legacy_runtime"])
+            self.assertEqual(proof["observed_roles"], ["ce", "legacy_runtime"])
+            self.assertEqual(proof["observed_consumer_ids"],
+                             ["ce_product_memory", "ce_sentinel_issues", "runtime_sentinel_autopilot"])
+            self.assertEqual(proof["canonical_consumer_paths"], expected_consumers)
+            self.assertEqual(proof["mode"], "normal_boot")
+            self.assertEqual(proof["layout_model"], app_probe.COLOCATED_LAYOUT_MODEL)
+            self.assertEqual(proof["observation_scope"], "THREE_FIXED_CANONICAL_CONSUMERS_ONLY")
+            self.assertFalse(proof["universal_scope_consumption_verified"])
+            self.assertFalse(proof["production_layout_attested"])
+            self.assertFalse(proof["full_application_recovery_certified"])
+            for key in ("verified", "canonical_consumer_consumption_verified", "successful_full_file_reads",
+                        "getters_read_only", "same_restored_workspace", "same_sqlite_boundary",
+                        "same_deadline", "canonical_value_projections_match_restored_bytes",
+                        "decoy_open_not_attempted_during_getters", "getters_wrote_nothing",
+                        "bundle_all_files_restored_verified"):
                 self.assertIs(proof[key], True, key)
-            self.assertEqual(proof["legacy_sha256"], expected["legacy_sha256"])
-            self.assertEqual(proof["ce_projection_sha256"], expected["ce_projection_sha256"])
-            self.assertFalse(proof["production_cli_observer_coverage"])
+            self.assertTrue(child["canonical_consumer_consumption_verified"])
+            self.assertFalse(child["production_layout_attested"])
+            self.assertFalse(child["full_application_recovery_certified"])
+            self.assertTrue(result["app_probe"]["external_state_restoration_verified"])
+            binding = result["app_probe"]["state_consumption_binding"]
+            self.assertTrue(binding["verified"])
+            self.assertTrue(binding["bundle_all_files_restored_verified"])
+            self.assertTrue(binding["canonical_consumer_consumption_verified"])
+            self.assertTrue(binding["state_ready_before_app"])
+            self.assertEqual(binding["layout_id"], app_probe.COLOCATED_LAYOUT_ID)
+            self.assertEqual(binding["canonical_consumer_paths"], expected_consumers)
+            self.assertEqual(binding["canonical_consumer_ids"],
+                             ["ce_product_memory", "ce_sentinel_issues", "runtime_sentinel_autopilot"])
+            self.assertEqual(binding["consumer_mode"], "normal_boot")
+            self.assertEqual(binding["layout_model"], app_probe.COLOCATED_LAYOUT_MODEL)
+            self.assertEqual(binding["proposal_sha256"], handoff.bundle.proposal_sha256)
+            self.assertTrue(binding["same_restored_workspace"])
+            self.assertTrue(binding["same_sqlite_boundary"])
+            self.assertTrue(binding["same_deadline"])
+            self.assertEqual(binding["canonical_consumer_scope"], "THREE_FIXED_CANONICAL_CONSUMERS_ONLY")
+            self.assertFalse(binding["universal_scope_consumption_verified"])
+            self.assertFalse(binding["production_layout_attested"])
+            self.assertFalse(binding["full_application_recovery_certified"])
+            proof_wire = json.dumps(proof, sort_keys=True)
+            for fixture_value in (ce_issue, autopilot_issue, dormant_issue, "owned-restored-recommendation"):
+                self.assertNotIn(fixture_value, proof_wire)
+            self.assertNotIn("legacy_sha256", proof)
+            self.assertNotIn("ce_projection_sha256", proof)
+            self.assertEqual(binding["backup_name"], backup_name)
+            self.assertEqual(binding["sqlite_sha256"], handoff.bundle.sqlite.sha256)
+            self.assertEqual(binding["state_archive_sha256"], handoff.bundle.archive_sha256)
+            self.assertEqual(binding["state_manifest_sha256"], handoff.bundle.manifest_sha256)
+            self.assertEqual(binding["bundle_scope_roles"], ["ce", "legacy_runtime"])
             for scope in (result, result["app_probe"], child):
                 self.assertFalse(scope["full_application_recovery_certified"])
-            self.assertFalse(child["external_state_restoration_verified"])
             self.assertFalse(child["authenticated_client_verified"])
             self.assertFalse(child["external_services_verified"])
             self.assertEqual(hashlib.sha256(database.read_bytes()).hexdigest(), before_database)

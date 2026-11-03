@@ -55,6 +55,21 @@ class _OwnedFixture:
         self.ce_file.write_bytes(self.ce_bytes)
         self.legacy_file.write_bytes(self.legacy_bytes)
 
+        # This test keeps its opaque markers and also supplies the two fixed
+        # legacy-layout consumer targets required before the stock child boundary.
+        self.ce_consumer_bytes = json.dumps(
+            {"recommendations": {"OWNED-PROBE-RECOMMENDATION": {"status": "OBSERVED"}}},
+            sort_keys=True, separators=(",", ":"),
+        ).encode("utf-8")
+        self.legacy_consumer_bytes = json.dumps(
+            {"issues": [{"id": "OWNED-PROBE-LEGACY-ISSUE"}], "events": []},
+            sort_keys=True, separators=(",", ":"),
+        ).encode("utf-8")
+        self.ce_consumer_file = self.ce / "product_memory.json"
+        self.legacy_consumer_file = self.legacy / "sentinel_issues_memory.json"
+        self.ce_consumer_file.write_bytes(self.ce_consumer_bytes)
+        self.legacy_consumer_file.write_bytes(self.legacy_consumer_bytes)
+
         connection = sqlite3.connect(str(self.database))
         try:
             connection.execute("CREATE TABLE owned_fixture (fixture_id INTEGER PRIMARY KEY, value TEXT NOT NULL)")
@@ -212,6 +227,14 @@ class NativeOwnedStateIntegrationTests(unittest.TestCase):
                 legacy_path = workspace / "source" / "data" / "runtime" / self.fx.legacy_file.name
                 self.assertEqual(ce_path.read_bytes(), self.fx.ce_bytes)
                 self.assertEqual(legacy_path.read_bytes(), self.fx.legacy_bytes)
+                self.assertEqual(
+                    (workspace / "source" / "data" / "continuous_evolution_os" / "product_memory.json").read_bytes(),
+                    self.fx.ce_consumer_bytes,
+                )
+                self.assertEqual(
+                    (workspace / "source" / "data" / "runtime" / "sentinel_issues_memory.json").read_bytes(),
+                    self.fx.legacy_consumer_bytes,
+                )
                 self.assertTrue((workspace / "restoration-test.db").is_file())
                 child_self.returncode = 0
 
@@ -258,6 +281,36 @@ class NativeOwnedStateIntegrationTests(unittest.TestCase):
         self.assertFalse(verified["full_application_recovery_certified"])
         self.assertFalse(verified["app_probe"]["ok"])
         self.assertEqual(verified["app_probe"]["child"]["code"], "OWNED_CHILD_NOT_EXECUTED")
+
+    def test_missing_canonical_consumer_target_stops_before_app_child(self):
+        self.fx.ce_consumer_file.unlink()
+        handoff, capture_deadline, scan_deadlines, sqlite_deadlines, recovery_calls = self.fx.capture_once()
+        self.assertTrue(handoff.ok, handoff.state_result)
+        self.assertEqual(sqlite_deadlines, [capture_deadline], "one owned SQLite snapshot callback")
+        self.assertEqual(scan_deadlines, [capture_deadline, capture_deadline])
+        self.assertEqual(len(recovery_calls), 1)
+
+        with patch.object(operator, "ROOT", self.fx.project), \
+             patch.object(app_probe.subprocess, "Popen") as child_launch:
+            verified = operator.verify_and_restore_isolated(
+                self.fx.backups,
+                handoff.bundle.backup_name,
+                60,
+                app_probe_mode="read_only",
+                state_bundle=handoff.bundle,
+            )
+
+        child_launch.assert_not_called()
+        self.assertTrue(verified["sqlite_restore_verified"])
+        self.assertFalse(verified["full_application_recovery_certified"])
+        app_report = verified["app_probe"]
+        self.assertFalse(app_report["ok"])
+        self.assertEqual(app_report["code"], "STATE_CONSUMER_TARGETS_INCOMPLETE")
+        self.assertTrue(app_report["bundle_all_files_restored_verified"])
+        self.assertFalse(app_report["canonical_consumer_consumption_verified"])
+        self.assertFalse(app_report["external_state_restoration_verified"])
+        self.assertTrue(app_report["state_restore"]["state_ready_before_app"])
+        self.assertNotIn("child", app_report)
 
     def test_foreign_receipt_hash_and_archive_path_fail_before_state_materialization_or_child(self):
         handoff, _deadline, _scans, _sqlite_deadlines, _recoveries = self.fx.capture_once()

@@ -45,6 +45,13 @@ class ProbeBoundary:
         self.read_executions, self.read_fetches = 0, 0
         self.timezone_reads = {"UTC": 0, "Europe/Madrid": 0}
         self._connecting, self._configuring = False, False
+        self._state_read_role, self._state_read_target = None, None
+        self._state_read_open_attempt_counts = {"ce": 0, "legacy_runtime": 0}
+        self._state_read_full_counts = {"ce": 0, "legacy_runtime": 0}
+        self._state_pending_reads = []
+        self._state_read_identity = None
+        self._state_read_expected_size = 0
+        self._state_decoy_open_attempts = 0
         self._native_connect = sqlite3.connect
         boundary = self
 
@@ -154,6 +161,49 @@ class ProbeBoundary:
             return False
         return (path == self.database or str(path) in {str(self.database) + s for s in ("-wal", "-shm", "-journal")}
                 or self._under(path, self.data))
+
+    def observe_state_file(self, role, path, reader):
+        """Observe the exact owner getter and a complete native-file read."""
+        if role not in ("ce", "legacy_runtime") or not callable(reader):
+            self.deny("STATE_READ_OBSERVER")
+        target = self._path(path)
+        if target == self.data or not self._under(target, self.data):
+            self.deny("STATE_READ_TARGET")
+        try:
+            before = target.lstat()
+        except OSError:
+            self.deny("STATE_READ_TARGET")
+        if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1:
+            self.deny("STATE_READ_IDENTITY")
+        if self._state_read_role is not None:
+            self.deny("NESTED_STATE_READ_OBSERVER")
+        identity = (before.st_dev, before.st_ino, before.st_mode, before.st_nlink,
+                    before.st_size, before.st_mtime_ns, before.st_ctime_ns)
+        open_count = self._state_read_open_attempt_counts[role]
+        successful_count = self._state_read_full_counts[role]
+        previous_profile = sys.getprofile()
+        self._state_read_role, self._state_read_target = role, target
+        self._state_read_identity = identity
+        self._state_read_expected_size = before.st_size
+        try:
+            sys.setprofile(self.profile)
+            value = reader()
+        finally:
+            self._state_read_role, self._state_read_target = None, None
+            self._state_read_identity = None
+            self._state_read_expected_size = 0
+            self._state_pending_reads = [entry for entry in self._state_pending_reads if entry[2] != role]
+            sys.setprofile(previous_profile)
+        try:
+            after = target.lstat()
+        except OSError:
+            self.deny("STATE_READ_TARGET")
+        after_identity = (after.st_dev, after.st_ino, after.st_mode, after.st_nlink,
+                          after.st_size, after.st_mtime_ns, after.st_ctime_ns)
+        if not stat.S_ISREG(after.st_mode) or after.st_nlink != 1 or identity != after_identity:
+            self.deny("STATE_READ_IDENTITY_CHANGED")
+        return (value, self._state_read_open_attempt_counts[role] - open_count,
+                self._state_read_full_counts[role] - successful_count)
 
     def _database_path(self, value):
         if not isinstance(value, (str, os.PathLike)):
@@ -283,6 +333,15 @@ class ProbeBoundary:
                     self.deny("FILE_WRITE")
                 self.fs_writes += 1
                 return
+            if self._state_read_role is not None:
+                if path == self._state_read_target:
+                    self._state_read_open_attempt_counts[self._state_read_role] += 1
+                decoys = (
+                    self.data / "runtime" / "continuous_evolution_os" / "product_memory.json",
+                    self.data / "runtime" / "sentinel_issues_memory.json",
+                )
+                if path != self._state_read_target and path in decoys:
+                    self._state_decoy_open_attempts += 1
             if any(SECRET_FILE.search(part) for part in path.parts):
                 self.deny("SECRET_FILE")
             if path == self.database or self._under(path, self.source) or self._under(path, self.scratch):
@@ -307,7 +366,19 @@ class ProbeBoundary:
                 self.deny("FILESYSTEM_MUTATION")
             self.fs_writes += 1
 
-    def profile(self, frame, event, _argument):
+    def _profile_file_path(self, owner):
+        value = getattr(owner, "name", None)
+        if not isinstance(value, (str, bytes, os.PathLike)):
+            return None
+        candidate = Path(os.fsdecode(value))
+        return candidate if candidate.is_absolute() else Path.cwd() / candidate
+
+    @staticmethod
+    def _native_file_identity(info):
+        return (info.st_dev, info.st_ino, info.st_mode, info.st_nlink,
+                info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+
+    def profile(self, frame, event, argument):
         name = frame.f_code.co_name
         if event == "call" and name in ("seed_core", "_seed_core_unlocked", "init_db", "initialize_once",
                                          "v931_record_client_route_issue", "v932_record_authenticated_issue"):
@@ -316,6 +387,53 @@ class ProbeBoundary:
                     self.degraded_calls += 1
                     return
                 self.seed_calls += 1
+
+        if (self._state_read_role is None or event not in ("c_call", "c_return", "c_exception")
+                or argument is None):
+            return
+        method_name = getattr(argument, "__name__", None)
+        if method_name not in ("read", "read1", "readall", "readline", "readlines",
+                               "readinto", "readinto1", "__next__"):
+            return
+        owner = getattr(argument, "__self__", None)
+        if (owner is None or type(owner).__module__ != "_io"
+                or self._profile_file_path(owner) != self._state_read_target):
+            return
+        if event == "c_call":
+            try:
+                position = owner.tell()
+                descriptor = owner.fileno()
+                descriptor_position = os.lseek(descriptor, 0, os.SEEK_CUR)
+                descriptor_identity = self._native_file_identity(os.fstat(descriptor))
+            except (AttributeError, OSError, ValueError):
+                return
+            if (type(position) is int and position == 0 and descriptor_position == 0
+                    and self._state_read_expected_size > 0
+                    and descriptor_identity == self._state_read_identity):
+                self._state_pending_reads.append(
+                    (owner, method_name, self._state_read_role, self._state_read_target,
+                     position, descriptor, descriptor_identity, self._state_read_expected_size))
+            return
+        for index in range(len(self._state_pending_reads) - 1, -1, -1):
+            (pending_owner, pending_name, role, target, before_position,
+             descriptor, before_identity, expected_size) = self._state_pending_reads[index]
+            if (pending_owner is owner and pending_name == method_name
+                    and role == self._state_read_role and target == self._state_read_target):
+                self._state_pending_reads.pop(index)
+                if event != "c_return":
+                    return
+                try:
+                    descriptor_position = os.lseek(descriptor, 0, os.SEEK_CUR)
+                    after_identity = self._native_file_identity(os.fstat(descriptor))
+                    logical_position = owner.tell()
+                except (AttributeError, OSError, ValueError):
+                    return
+                if (before_position == 0 and descriptor_position == expected_size
+                        and type(logical_position) is int and logical_position == expected_size
+                        and before_identity == self._state_read_identity
+                        and after_identity == before_identity):
+                    self._state_read_full_counts[role] += 1
+                return
 
     def install(self):
         import _thread

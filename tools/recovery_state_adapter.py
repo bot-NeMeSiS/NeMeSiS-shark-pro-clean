@@ -40,6 +40,7 @@ class StateRecoveryPlan:
     authorization: state.Authorization
     publication: Path
     limits: state.Limits = state.Limits()
+    layout_id: str | None = None
 
     def __post_init__(self):
         if (type(self.operation_id) is not str or not state.REF.fullmatch(self.operation_id)
@@ -49,6 +50,11 @@ class StateRecoveryPlan:
         # Pure checks only. Actual native paths/ownership are checked by the
         # sealed FD-based implementation before its callback can run.
         state._scopes(self.scopes, self.authorization)
+        if self.layout_id is not None:
+            if (type(self.layout_id) is not str
+                    or self.layout_id != state.LAYOUT_CE_COLOCATED_SENTINEL_AUTOPILOT_V1
+                    or tuple(sorted(scope.role for scope in self.scopes)) != ("ce", "legacy_runtime")):
+                raise HandoffError("INVALID_STATE_RECOVERY_LAYOUT")
         state._path(self.publication)
         for scope in self.scopes:
             if (self.publication == scope.source or self.publication.is_relative_to(scope.source)
@@ -67,6 +73,7 @@ class BoundStateBundle:
     backup_name: str
     scope_roles: tuple[str, ...]
     limits: state.Limits
+    layout_id: str | None = None
 
     def __post_init__(self):
         if (type(self.operation_id) is not str or not state.REF.fullmatch(self.operation_id)
@@ -74,6 +81,7 @@ class BoundStateBundle:
                 or not _flat_backup_name(self.backup_name)
                 or type(self.limits) is not state.Limits
                 or type(self.scope_roles) is not tuple or not self.scope_roles
+                or any(type(role) is not str for role in self.scope_roles)
                 or self.scope_roles != tuple(sorted(set(self.scope_roles)))
                 or set(self.scope_roles) - state.ROLES):
             raise HandoffError("INVALID_BOUND_STATE_BUNDLE")
@@ -84,6 +92,11 @@ class BoundStateBundle:
         state._sqlite(self.sqlite)
         if self.sqlite.artifact_id != self.operation_id:
             raise HandoffError("FOREIGN_STATE_OPERATION")
+        if self.layout_id is not None:
+            if (type(self.layout_id) is not str
+                    or self.layout_id != state.LAYOUT_CE_COLOCATED_SENTINEL_AUTOPILOT_V1
+                    or self.scope_roles != ("ce", "legacy_runtime")):
+                raise HandoffError("INVALID_BOUND_STATE_LAYOUT")
 
 
 @dataclass(frozen=True)
@@ -131,9 +144,12 @@ def capture_with_state(*, plan: StateRecoveryPlan, source: Path,
         return state.SqliteReceipt(plan.operation_id, sqlite_result["sha256"], True)
 
     try:
+        layout_binding = (None if plan.layout_id is None else
+                          state.StateLayoutBinding(plan.layout_id, plan.operation_id, plan.proposal_sha256))
         result = state.capture_state(scopes=plan.scopes, authorization=plan.authorization,
                                      publication=plan.publication, deadline=deadline,
-                                     sqlite_snapshot_callback=capture_once, limits=plan.limits)
+                                     sqlite_snapshot_callback=capture_once, limits=plan.limits,
+                                     layout_binding=layout_binding)
     except Exception:
         # A low-level failure after the callback cannot revoke or erase its
         # returned SQLite disposition. Preserve it and never retry.
@@ -154,7 +170,7 @@ def capture_with_state(*, plan: StateRecoveryPlan, source: Path,
             bundle = BoundStateBundle(plan.operation_id, plan.proposal_sha256, plan.publication / name,
                                       result["archive_sha256"], result["manifest_sha256"], expected,
                                       sqlite_result["backup_file"],
-                                      tuple(sorted(s.role for s in plan.scopes)), plan.limits)
+                                      tuple(sorted(s.role for s in plan.scopes)), plan.limits, plan.layout_id)
     except (HandoffError, state.StateError, KeyError, TypeError, ValueError):
         result = {**result, "ok": False, "code": "STATE_HANDOFF_NOT_VERIFIED"}
     # Keep the actual SQLite disposition even if the bracket or publication
@@ -220,9 +236,17 @@ def restore_before_app(bundle, *, source: Path, restored_database: Path,
                                  expected_manifest_sha256=bundle.manifest_sha256,
                                  expected_sqlite=bundle.sqlite, workspace=workspace,
                                  expected_database_identity=state._identity(database_info),
-                                 deadline=deadline, limits=bundle.limits)
+                                 deadline=deadline, limits=bundle.limits,
+                                 expected_layout_id=bundle.layout_id,
+                                 expected_proposal_sha256=(bundle.proposal_sha256 if bundle.layout_id is not None else None),
+                                 expected_scope_roles=(bundle.scope_roles if bundle.layout_id is not None else None))
     if result.get("ok") is not True or result.get("state_ready_before_app") is not True:
         return result
+    if bundle.layout_id is not None and (
+            result.get("layout_id") != bundle.layout_id
+            or result.get("scope_roles") != list(bundle.scope_roles)):
+        return {**result, "ok": False, "state_ready_before_app": False,
+                "code": "LAYOUT_BINDING_MISMATCH"}
     _time(deadline)
     return result
 
@@ -247,7 +271,8 @@ def public_state_receipt(handoff):
     value = handoff.state_result
     allowed = ("schema", "ok", "code", "state_published", "sqlite_callback_invoked",
                "sqlite_disposition", "entries", "state_bytes", "archive_sha256", "manifest_sha256",
-               "full_application_recovery_certified", "continuous_cross_store_consistency_certified")
+               "layout_id", "scope_roles", "full_application_recovery_certified",
+               "continuous_cross_store_consistency_certified")
     result = {key: value[key] for key in allowed if key in value}
     # Codes originating in this fixed module are closed. No data-derived strings.
     if type(result.get("code")) is not str or not re.fullmatch(r"[A-Z0-9_]{1,96}", result["code"]):
