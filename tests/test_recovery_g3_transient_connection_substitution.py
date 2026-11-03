@@ -76,7 +76,7 @@ def counted_hash(*args, **kwargs):
 worker_globals["_copy_once"] = counted_copy
 worker_globals["_hash"] = counted_hash
 
-def transient_connect(uri, **kwargs):
+def transient_connect(database, **kwargs):
     if connect_calls:
         raise RuntimeError("OWNED_SECOND_CONNECTION_DENIED")
     connect_calls.append(1)
@@ -87,7 +87,7 @@ def transient_connect(uri, **kwargs):
     try:
         # The real SQLite unix VFS opens B while the authorized basename points
         # at B. This fresh process has never opened or closed a SQLite database.
-        connection = original_connect(uri, **kwargs)
+        connection = original_connect(database, **kwargs)
         connections.append(connection)
         connection.set_trace_callback(statements.append)
         after = fd_table()
@@ -164,7 +164,7 @@ def _sha256(path):
 
 @pytest.mark.skipif(not _NATIVE_LINUX, reason="native Linux unix-VFS and /proc descriptor attestation required")
 @pytest.mark.parametrize("role,readonly", [("source", True), ("destination", False), ("integrity", True)])
-def test_real_connect_transient_substitution_is_rejected_before_sql_copy_or_integrity(tmp_path, role, readonly):
+def test_real_connect_transient_substitution_is_rejected_before_sql_copy_or_integrity(tmp_path, role, readonly, capsys):
     owned = tmp_path / "owned_connection_swap"
     owned.mkdir(mode=0o700)
     owned.chmod(0o700)
@@ -222,3 +222,25 @@ def test_real_connect_transient_substitution_is_rejected_before_sql_copy_or_inte
     assert (decoy.stat().st_dev, decoy.stat().st_ino) == decoy_inode
     assert not (owned / "authorized.saved").exists()
     assert sorted(path.name for path in owned.iterdir()) == ["authorized.db", "decoy.db"]
+    proof = {
+        "schema": "OWNED_G3_TRANSIENT_CONNECTION_PROOF_V1",
+        "role": role,
+        "readonly": report["readonly"],
+        "actual_fd_is_decoy_B": report["opened_origins"] == [list(decoy_inode)],
+        "authorized_A_restored_before_connect_returned": report["authorized_name_restored_before_connect_returned"][0],
+        "rejected_before_first_sql": report["code"] == "SQLITE_CONNECTION_FD_ATTESTATION_FAILED" and not report["statements"],
+        "real_connect_calls": report["real_connect_calls"],
+        "sql_statements": len(report["statements"]),
+        "source_backup_calls": report["source_backup_calls"],
+        "integrity_statements": report["integrity_statements"],
+        "integrity_hash_calls": report["integrity_hash_calls"],
+        "recapture_attempted": report["recapture_attempted"],
+        "authorized_A_inode_preserved": report["authorized_origin_before"] == report["authorized_origin_after"],
+        "decoy_B_inode_preserved": report["decoy_origin_before"] == report["decoy_origin_after"],
+        "authorized_A_sha256": original_a,
+        "decoy_B_sha256": original_b,
+        "production_data_touched": False,
+        "full_application_recovery_certified": False,
+    }
+    with capsys.disabled():
+        print(json.dumps(proof, sort_keys=True, separators=(",", ":")), flush=True)

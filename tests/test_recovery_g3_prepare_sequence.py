@@ -11,6 +11,7 @@ from __future__ import annotations
 from contextlib import closing
 from dataclasses import FrozenInstanceError, replace
 import hashlib
+import json
 import os
 from pathlib import Path
 import sqlite3
@@ -147,7 +148,7 @@ def _observe_scans(monkeypatch, events):
 
 @native_sqlite
 def test_validator_runs_only_after_complete_bracket_and_same_capture_is_published(
-        owned, monkeypatch, copy_calls):
+        owned, monkeypatch, copy_calls, capsys):
     events, capabilities, guarded_work = [], [], []
     _observe_scans(monkeypatch, events)
     deadline = time.monotonic() + 60.0
@@ -242,6 +243,31 @@ def test_validator_runs_only_after_complete_bracket_and_same_capture_is_publishe
     assert any(kind == "hash" for kind, _work, _order in guarded_work)
     assert all("after" in order for _kind, _work, order in guarded_work)
     assert len(copy_calls) == 1
+    proof = {
+        "schema": "OWNED_G3_SAME_CAPTURE_PROOF_V1",
+        "phase_order": events,
+        "sqlite_sha256": result["sqlite_receipt"]["sha256"],
+        "archive_sha256": result["archive_sha256"],
+        "manifest_sha256": result["manifest_sha256"],
+        "capture_worker_invocations": len(copy_calls),
+        "sqlite_backup_calls": prepared_receipt["sqlite_backup_calls"],
+        "opaque_bracket_closed": result["opaque_bracket_closed"],
+        "same_prepared_sqlite_capture_verified": result["same_prepared_sqlite_capture_verified"],
+        "source_binding": prepared_receipt["source_binding"],
+        "source_attested_before_sql": prepared_receipt["source_attested_before_sql"],
+        "destination_attested_before_sql": prepared_receipt["destination_attested_before_sql"],
+        "source_connection_retained_through_backup": prepared_receipt["source_connection_retained_through_backup"],
+        "source_connections_closed": prepared_receipt["source_connections_closed"],
+        "snapshot_writers_closed": prepared_receipt["snapshot_writers_closed"],
+        "integrity_attested_before_sql": validated_receipt["integrity_attested_before_sql"],
+        "fresh_validation_worker": validated_receipt["worker_pid"] != prepared_receipt["worker_pid"],
+        "hostile_wal_namespace_certified": prepared_receipt["hostile_wal_namespace_certified"],
+        "continuous_cross_store_consistency_certified": result["continuous_cross_store_consistency_certified"],
+        "production_data_touched": False,
+        "full_application_recovery_certified": result["full_application_recovery_certified"],
+    }
+    with capsys.disabled():
+        print(json.dumps(proof, sort_keys=True, separators=(",", ":")), flush=True)
 
 
 @native_sqlite
@@ -774,8 +800,8 @@ def test_worker_connection_attestation_precedes_the_first_sql_statement(monkeypa
 
     legacy_control = object()
 
-    def connect(uri, **kwargs):
-        assert uri.endswith("?mode=ro&cache=private&vfs=unix")
+    def connect(database, **kwargs):
+        assert database.endswith("?mode=ro&cache=private&vfs=unix")
         assert kwargs == {"uri": True, "timeout": 0.05, "isolation_level": None,
                           "factory": Connection, "cached_statements": 0,
                           "autocommit": legacy_control}
@@ -825,7 +851,7 @@ def test_profile_caps_and_legacy_limits_remain_closed(tmp_path):
 
 @native_sqlite
 def test_parent_prepare_preserves_live_caller_wal_snapshot_without_opening_source(
-        owned, monkeypatch, copy_calls):
+        owned, monkeypatch, copy_calls, capsys):
     import fcntl
     import json
     import subprocess
@@ -952,3 +978,19 @@ def test_parent_prepare_preserves_live_caller_wal_snapshot_without_opening_sourc
     assert forbidden_parent_closes == []
     assert writer_commits == [1]
     assert len(copy_calls) == 1
+    proof = {
+        "schema": "OWNED_G3_CALLER_WAL_PROOF_V1",
+        "parent_source_opens": len(forbidden_parent_opens),
+        "parent_source_closes": len(forbidden_parent_closes),
+        "independent_writer_commits": len(writer_commits),
+        "capture_worker_invocations": len(copy_calls),
+        "sqlite_backup_calls": producer.result["worker_prepared_receipt"]["sqlite_backup_calls"],
+        "sqlite_sha256": producer.result["sha256"],
+        "source_binding": producer.result["source_binding"],
+        "production_source_connection_bound": producer.result["production_source_connection_bound"],
+        "caller_snapshot_control_assertions_completed": True,
+        "production_data_touched": False,
+        "full_application_recovery_certified": False,
+    }
+    with capsys.disabled():
+        print(json.dumps(proof, sort_keys=True, separators=(",", ":")), flush=True)
