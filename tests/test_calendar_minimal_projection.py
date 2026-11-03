@@ -397,8 +397,8 @@ def test_calendar_route_uses_flag_and_preserves_complete_context_provider_and_ti
         calls.append(("calendar",))
         return calendar
 
-    def provider_context(owner):
-        assert owner is summary
+    def provider_context(owner, *, _status_only=False):
+        assert owner is summary and _status_only is True
         calls.append(("provider",))
         return provider
 
