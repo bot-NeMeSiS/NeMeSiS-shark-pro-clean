@@ -877,6 +877,80 @@ def test_backup_error_classifier_never_echoes_secret():
     assert master.backup_error_code("backup_temporary_recovery_failed", secret) == "BACKUP_CLEANUP"
 
 
+def test_backup_snapshot_diagnostics_preserve_failure_and_separate_request_time(monkeypatch):
+    from types import SimpleNamespace
+
+    request_times = iter((100.0, 100.007))
+    monkeypatch.setattr(master, "time", SimpleNamespace(perf_counter=lambda: next(request_times)))
+    secret = "PRIVATE-progress-secret"
+    response = {"ok": False, "backup_created": False, "error": "backup_snapshot_timeout",
+                "failure_stage": "SNAPSHOT", "diagnostic_stages": [
+                    {"stage": "CAPACITY_PREFLIGHT", "status": "finished", "duration_ms": 123},
+                    {"stage": "SNAPSHOT", "status": "failed", "duration_ms": 15214,
+                     "snapshot_progress": {"callbacks": 17, "sqlite_ok": 16, "sqlite_busy": 1,
+                                           "last_status": "SQLITE_BUSY", "total_pages": 461604,
+                                           "last_remaining_pages": 120000, "remaining_increases": 0,
+                                           "source_wal": True, "wal_snapshot_pinned_for_copy": True,
+                                           "pin_fallback": "NONE", "path": "/" + secret}},
+                    {"stage": "CLEANUP", "status": "finished", "duration_ms": 1},
+                ]}
+    monkeypatch.setattr(master.urllib.request, "urlopen", lambda *_a, **_k: MockResponse(response))
+    result = master.backup_tick("https://example.invalid", secret)
+    assert result["backup_status"] == "FAIL" and result["backup_created"] is False
+    assert result["backup_error_code"] == "BACKUP_TIMEOUT" and result["backup_failure_stage"] == "SNAPSHOT"
+    assert result["backup_snapshot_duration_ms"] == 15214
+    assert result["backup_snapshot_stage_status"] == "failed"
+    assert result["backup_duration_ms"] == 7
+    assert result["backup_snapshot_progress"]["last_remaining_pages"] == 120000
+    assert result["backup_snapshot_progress"]["wal_snapshot_pinned_for_copy"] is True
+    assert secret not in json.dumps(result) and "path" not in result["backup_snapshot_progress"]
+    assert "restarts" not in result["backup_snapshot_progress"]
+
+
+def test_backup_snapshot_diagnostics_do_not_mix_two_terminal_events():
+    payload = {"diagnostic_stages": [
+        {"stage": "SNAPSHOT", "status": "finished", "duration_ms": 8,
+         "snapshot_progress": {"callbacks": 4, "sqlite_done": 1, "last_remaining_pages": 0}},
+        {"stage": "SNAPSHOT", "status": "failed", "duration_ms": None},
+    ]}
+    assert master.backup_snapshot_diagnostics(payload, "PRIVATE-canary") == {
+        "backup_snapshot_stage_status": "failed",
+    }
+
+
+@pytest.mark.parametrize("bad", [None, {}, True, "PRIVATE-canary", [None, True, [], {"stage": "SNAPSHOT", "status": {"private": "PRIVATE-canary"}}]])
+def test_malformed_backup_diagnostics_do_not_reclassify_the_backup(monkeypatch, bad):
+    payload = {"ok": False, "backup_created": False, "error": "backup_snapshot_timeout",
+               "failure_stage": "SNAPSHOT", "diagnostic_stages": bad}
+    monkeypatch.setattr(master.urllib.request, "urlopen", lambda *_a, **_k: MockResponse(payload))
+    result = master.backup_tick("https://example.invalid", "PRIVATE-canary")
+    assert result["backup_http"] == 200 and result["backup_status"] == "FAIL"
+    assert result["backup_error_code"] == "BACKUP_TIMEOUT" and result["backup_failure_stage"] == "SNAPSHOT"
+    assert not any(key.startswith("backup_snapshot_") for key in result)
+    assert "PRIVATE-canary" not in json.dumps(result)
+
+
+def test_backup_snapshot_diagnostics_discard_unknown_or_invalid_metadata(monkeypatch):
+    secret = "PRIVATE-canary"
+    payload = {"ok": False, "backup_created": True, "failure_stage": "CLEANUP",
+               "error": "backup_temporary_cleanup_failed", "diagnostic_stages": [
+                   {"stage": "SNAPSHOT", "status": "finished", "duration_ms": True,
+                    "snapshot_progress": {"callbacks": 2, "sqlite_busy": -1, "total_pages": 1 << 80,
+                                          "last_remaining_pages": "123", "source_wal": True,
+                                          "wal_snapshot_pinned_for_copy": secret, "last_status": [secret],
+                                          "pin_fallback": {"private": secret}, "sql": secret}},
+                   {"stage": "INTEGRITY", "status": "failed", "duration_ms": 987, "path": secret},
+               ]}
+    monkeypatch.setattr(master.urllib.request, "urlopen", lambda *_a, **_k: MockResponse(payload))
+    result = master.backup_tick("https://example.invalid", secret)
+    assert result["backup_status"] == "FAIL" and result["backup_created"] is True
+    assert result["backup_failure_stage"] == "CLEANUP" and result["backup_error_code"] == "BACKUP_CLEANUP"
+    assert "backup_snapshot_duration_ms" not in result
+    assert result["backup_snapshot_stage_status"] == "finished"
+    assert result["backup_snapshot_progress"] == {"callbacks": 2, "source_wal": True}
+    assert secret not in json.dumps(result)
+
+
 def test_backup_recovery_telemetry_preserves_failure_and_excludes_paths(monkeypatch):
     secret = "private-qa-secret"
     payload = {"ok": False, "backup_created": True, "error": "backup_temporary_cleanup_failed",
