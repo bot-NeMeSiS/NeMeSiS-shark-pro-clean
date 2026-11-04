@@ -102,6 +102,15 @@ def test_dev_source_archive_uses_allowlist_and_excludes_private_artifacts(local_
         path.write_text("safe source\n", encoding="utf-8")
     (tmp_path / ".env.example").write_text("SECRET_KEY=replace-me\n", encoding="utf-8")
     (tmp_path / "env.example").write_text("DB_PATH=/data/app.db\n", encoding="utf-8")
+    frontend_sources = {
+        relative: (ROOT / relative).read_bytes()
+        for relative in ("package.json", "pnpm-lock.yaml")
+    }
+    for relative, content in frontend_sources.items():
+        (tmp_path / relative).write_bytes(content)
+    (tmp_path / ".npmrc").write_text(
+        "//registry.example.invalid/:_authToken=must-not-ship\n", encoding="utf-8"
+    )
     (tmp_path / "engines").mkdir(exist_ok=True)
     (tmp_path / "engines" / "safe_engine.py").write_text("VALUE = 1\n", encoding="utf-8")
     (tmp_path / "data").mkdir()
@@ -121,12 +130,15 @@ def test_dev_source_archive_uses_allowlist_and_excludes_private_artifacts(local_
     assert result["sha256"]
     with zipfile.ZipFile(tmp_path / result["path"]) as archive:
         names = set(archive.namelist())
+        for relative, content in frontend_sources.items():
+            assert archive.read(relative) == content
     assert ARCHIVE_REQUIRED <= names
     assert ".env.example" in names
     assert "env.example" in names
     assert "data/real.sqlite" not in names
     assert "reports/screen.png" not in names
     assert ".env" not in names
+    assert ".npmrc" not in names
     assert "templates/home.html.orig" not in names
     assert "DEV_SOURCE_MANIFEST.json" in names
 

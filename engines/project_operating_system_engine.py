@@ -78,6 +78,8 @@ ROOT_CONFIG = {
     "requirements.txt",
     "requirements-dev.txt",
     "requirements-browser.txt",
+    "package.json",
+    "pnpm-lock.yaml",
     "nemesis-smoke.yml",
     "RELEASE_MANIFEST.json",
 }
