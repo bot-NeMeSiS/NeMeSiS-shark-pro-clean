@@ -154,8 +154,8 @@ def test_flask_templates_keep_home_consistent(app_module,template,state):
     assert f'data-sports-live-confirmed="{1 if state=="LIVE" else 0}"' in html
     if template=='home.html':assert ('Partido en directo' in html) is (state=='LIVE')
     if template=='client_app_center.html' and state=='EMPTY':
-        assert 'Todavía no hay pronósticos publicados' in html
-        assert 'href="/picks"' in html
+        assert 'Explora tus competiciones' in html
+        assert 'href="/picks"' not in html
 
 
 @pytest.mark.parametrize('case,expected', [

@@ -74,7 +74,11 @@ def test_explorer_filter_focus_and_mobile_layout(browser, app_module, scope, wid
         search.fill('zzsincoincidencia')
         assert dialog.locator('[data-explore-empty]').is_visible()
         search.fill('')
-        assert dialog.locator('[data-explore-item]:visible').count() >= 15
+        assert dialog.locator('[data-explore-item]:visible').count() >= (12 if scope == 'public' else 15)
+        if scope in {'public', 'client'}:
+            forbidden = {'/picks', '/combinadas', '/historico', '/membresias'}
+            links = dialog.locator('[data-explore-item]:visible').evaluate_all('(nodes) => nodes.map(node => node.getAttribute("href"))')
+            assert forbidden.isdisjoint(links), (scope, links)
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
         assert dialog.evaluate('(el)=>el.scrollWidth <= el.clientWidth+1')
         evidence = tmp_path/'app-navigation'

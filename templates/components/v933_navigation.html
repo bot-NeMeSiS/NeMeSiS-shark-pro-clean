@@ -12,7 +12,7 @@
     {{ nemesis_brand('/', 'topbar') }}
     <nav aria-label="{{ ui("Navegación pública") }}">
       {% for label, href, icon_name in links %}
-      {% set active = nav_contracts.is_active(href, request.path, 'public') %}
+      {% set active = nav_contracts.is_active(href, request.path, 'public', request.args.get('lane', '')) %}
       <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
       {% endfor %}
     </nav>
@@ -28,23 +28,24 @@
 {% macro v933_client_navigation(plan='FREE') -%}
 {% set plan = (plan or 'FREE')|trim|upper %}
 {% if plan == 'ADMIN' %}{% set plan = 'ELITE' %}{% endif %}
-{% if plan not in ['FREE', 'PRO', 'ELITE'] %}{% set plan = 'FREE' %}{% endif %}
-{% set links = nav_contracts.CLIENT_LINKS %}
+{% if plan in ['ELITE_PLUS', 'ELITEPLUS'] %}{% set plan = 'ELITE+' %}{% endif %}
+{% if plan not in ['FREE', 'PRO', 'ELITE', 'ELITE+'] %}{% set plan = 'FREE' %}{% endif %}
+{% set links = nav_contracts.CLIENT_ADULT_LINKS if plan in ['PRO','ELITE','ELITE+'] else nav_contracts.CLIENT_LINKS %}
 <header class="v933-topbar v933-client-topbar" data-nav-zone="client-desktop">
   <div class="v933-topbar-inner">
     {{ nemesis_brand('/app', 'topbar') }}
     <nav aria-label="{{ ui("Navegación cliente") }}">
       {% for label, href, icon_name in links %}
-      {% set active = nav_contracts.is_active(href, request.path, 'client') %}
+      {% set active = nav_contracts.is_active(href, request.path, 'client', request.args.get('lane', '')) %}
       <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
       {% endfor %}
     </nav>
-    <div class="v933-topbar-actions">{{ explore_link() }}<a class="v933-plan-chip is-{{ 'eliteplus' if plan == 'ADMIN' else plan|lower }}" href="/membresias"><span>{{ ui("Plan") }}</span><strong>{{ plan }}</strong></a></div>
+    <div class="v933-topbar-actions">{{ explore_link() }}<a class="v933-plan-chip is-{{ 'eliteplus' if plan == 'ELITE+' else plan|lower }}" href="{{ '/membresias' if plan in ['PRO','ELITE','ELITE+'] else '/mi-cuenta' }}"><span>{{ ui("Plan") }}</span><strong>{{ plan }}</strong></a></div>
   </div>
 </header>
 <header class="v933-mobile-header v933-client-mobile-header" data-nav-zone="client-mobile">
   {{ nemesis_brand('/app', 'topbar', True) }}
-  <div class="v933-mobile-header-actions">{{ explore_link() }}<a class="v933-icon-button" href="/telegram" aria-label="{{ ui("Abrir Telegram") }}" title="Telegram">{{ nav_icon('telegram') }}</a><details class="product-account-menu"><summary class="v933-icon-button" aria-label="{{ ui('Abrir opciones de cuenta') }}">{{ nav_icon('user') }}</summary><nav aria-label="{{ ui('Opciones de cuenta') }}"><a href="/mi-cuenta">{{ ui('Mi cuenta') }}</a><a href="/membresias">{{ ui('Membresías') }}</a><a href="/soporte">{{ ui('Soporte') }}</a></nav></details></div>
+  <div class="v933-mobile-header-actions">{{ explore_link() }}{% if plan in ['PRO','ELITE','ELITE+'] %}<a class="v933-icon-button" href="/telegram" aria-label="{{ ui("Abrir Telegram") }}" title="Telegram">{{ nav_icon('telegram') }}</a>{% else %}<a class="v933-icon-button" href="/favoritos" aria-label="{{ ui('Abrir favoritos') }}" title="{{ ui('Favoritos') }}">{{ nav_icon('star') }}</a>{% endif %}<details class="product-account-menu"><summary class="v933-icon-button" aria-label="{{ ui('Abrir opciones de cuenta') }}">{{ nav_icon('user') }}</summary><nav aria-label="{{ ui('Opciones de cuenta') }}"><a href="/mi-cuenta">{{ ui('Mi cuenta') }}</a>{% if plan in ['PRO','ELITE','ELITE+'] %}<a href="/membresias">{{ ui('Membresías') }}</a>{% endif %}<a href="/soporte">{{ ui('Soporte') }}</a></nav></details></div>
 </header>
 {%- endmacro %}
 
@@ -96,11 +97,12 @@
 </nav>
 {%- endmacro %}
 
-{% macro v933_mobile_bottom_nav(authenticated=false) -%}
-{% set links = nav_contracts.CLIENT_MOBILE_LINKS if authenticated else nav_contracts.PUBLIC_MOBILE_LINKS %}
+{% macro v933_mobile_bottom_nav(authenticated=false, plan='FREE') -%}
+{% set plan = (plan or 'FREE')|trim|upper %}
+{% set links = (nav_contracts.CLIENT_ADULT_MOBILE_LINKS if plan in ['PRO','ELITE','ELITE+'] else nav_contracts.CLIENT_MOBILE_LINKS) if authenticated else nav_contracts.PUBLIC_MOBILE_LINKS %}
 <nav class="v933-mobile-bottom-nav" aria-label="{{ ui("Navegación móvil") }}" data-nav-zone="client-bottom" data-nav-items="{{ links|length }}">
   {% for label, href, icon_name in links %}
-  {% set active = nav_contracts.is_active(href, request.path, 'client' if authenticated else 'public') %}
+  {% set active = nav_contracts.is_active(href, request.path, 'client' if authenticated else 'public', request.args.get('lane', '')) %}
   <a href="{{ href }}"{% if active %} class="is-active" aria-current="page"{% endif %}>{{ nav_icon(icon_name) }}<span>{{ ui(label) }}</span></a>
   {% endfor %}
 </nav>

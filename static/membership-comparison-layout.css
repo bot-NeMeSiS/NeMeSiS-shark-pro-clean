@@ -1,0 +1,41 @@
+/* Membership comparison: four genuine tiers, no orphan card on desktop.
+   Deliberately scoped to /membresias; never affects match cards, picks or admin.
+   This tiny page stylesheet is loaded after the generated product bundle. */
+.v933-memberships-page > .v933-plan-grid {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.v933-memberships-page > .v933-plan-grid > .v933-plan-card {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.v933-memberships-page > .v933-plan-grid .v933-plan-price {
+  font-size: clamp(1.35rem, 1.85vw, 1.85rem);
+}
+.v933-memberships-page > .v933-plan-grid .v933-checkout-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* Both checkout submit buttons AND the ordinary login/disabled plan
+   actions are touch targets. The global action style was only 42px tall. */
+.v933-memberships-page > .v933-plan-grid .v933-plan-card .v933-action,
+.v933-memberships-page > .v933-plan-grid .v933-checkout-actions > button {
+  min-height: 44px;
+  box-sizing: border-box;
+  max-width: 100%;
+  white-space: normal;
+}
+@media (min-width: 1350px) {
+  .v933-memberships-page > .v933-plan-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (max-width: 800px) {
+  .v933-memberships-page > .v933-plan-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
