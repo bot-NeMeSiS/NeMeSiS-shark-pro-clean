@@ -263,7 +263,8 @@ def validate_operator_plan(*, plan, source, directory, app_probe_mode, verify_ex
         raise HandoffError("ACTUAL_SQLITE_SOURCE_NOT_PROTECTED")
 
 
-def operator_preflight(*, plan, source, directory, app_probe_mode, verify_existing, storage):
+def operator_preflight(*, plan, source, directory, app_probe_mode, verify_existing, storage,
+                       restore_workspace_root=None, restore_workspace_identity=None):
     """Whole chosen-mode estimate before capture, not a reservation or quota."""
     validate_operator_plan(plan=plan, source=source, directory=directory,
                            app_probe_mode=app_probe_mode, verify_existing=verify_existing)
@@ -277,6 +278,17 @@ def operator_preflight(*, plan, source, directory, app_probe_mode, verify_existi
     # normal-boot clone journal which B otherwise checks only after capture.
     # State archive and extracted state coexist with that ONE restored DB.
     policy = state._policy(plan.profile_id, plan.limits)
+    if restore_workspace_root is not None:
+        from tools.recovery_workspace import workspace_capacity_preflight
+        checked = workspace_capacity_preflight(
+            source=source, directory=directory, restore_root=restore_workspace_root,
+            snapshot_bytes=expected, app_probe_mode=app_probe_mode,
+            expected_identity=restore_workspace_identity,
+            state_archive_bytes=policy.archive_bytes, restored_state_bytes=policy.bytes)
+        ready = storage.get("ok") is True and checked["ok"] is True
+        return {**checked, "ok": ready, "code": "READY" if ready else "INSUFFICIENT_SPACE",
+                "state_overhead_bytes": policy.archive_bytes + policy.bytes,
+                "workspace_app_overhead_included": True}
     extra = 128 * 1024 * 1024 + policy.archive_bytes + policy.bytes
     if app_probe_mode == "normal_boot":
         extra += expected
