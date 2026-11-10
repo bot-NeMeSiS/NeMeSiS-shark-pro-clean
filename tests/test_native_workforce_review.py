@@ -15,10 +15,17 @@ from engines.game_ui_review_lab import GAME_UI_REVIEW_TARGETS
 NOW = "2026-10-29T01:00:00+01:00"
 
 
+@pytest.fixture(autouse=True)
+def release_owned_storage(tmp_path):
+    yield
+    ce._ce_release_lock(ce._ce_paths(tmp_path / "runtime"), "native-test-job")
+
+
 def _owned_storage(tmp_path, job_id="native-test-job"):
     storage = tmp_path / "runtime"
     storage.mkdir(exist_ok=True)
-    (storage / "scheduler.lock").write_text(json.dumps({"job_id": job_id, "pid": os.getpid(), "locked_at_madrid": NOW}))
+    acquired, _ = ce._ce_acquire_lock(ce._ce_paths(storage), job_id, NOW)
+    assert acquired and ce._nw_lock_owned(storage, job_id)
     return storage, job_id
 
 

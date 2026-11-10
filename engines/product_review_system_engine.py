@@ -18,6 +18,8 @@ from pathlib import Path
 from typing import Any, Iterable
 from zoneinfo import ZoneInfo
 
+from engines import companyos_scheduler_lock
+
 from engines.experience_platform_engine import build_experience_platform_snapshot
 from engines.growth_revenue_os_engine import GROWTH_FUNNEL_EVENT_CONTRACT, build_growth_revenue_os_snapshot
 from engines.sports_platform_contracts import build_sports_platform_contract_registry
@@ -1288,6 +1290,11 @@ def _ce_safe_error(exc: BaseException) -> dict[str, str]:
 
 def _ce_acquire_lock(paths: dict[str, Path], job_id: str, now_iso: str) -> tuple[bool, dict[str, Any]]:
     lock_path = paths["scheduler_lock"]
+    if companyos_scheduler_lock.supported():
+        try:
+            return companyos_scheduler_lock.acquire(lock_path, job_id, now_iso)
+        except companyos_scheduler_lock.LegacyLock as exc:
+            return _ce_existing_lock_state(exc.payload, now_iso)
     lock_payload = {"job_id": job_id, "locked_at_madrid": now_iso, "pid": os.getpid()}
     try:
         lock_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1296,22 +1303,27 @@ def _ce_acquire_lock(paths: dict[str, Path], job_id: str, now_iso: str) -> tuple
         return True, lock_payload
     except FileExistsError:
         existing = _ce_load_json(lock_path, {})
-        locked_at = existing.get("locked_at_madrid") if isinstance(existing, dict) else None
-        if not locked_at:
-            return False, {"state": "LOCK_UNVERIFIED"}
-        if locked_at:
-            try:
-                if _ce_now(now_iso) - _ce_now(locked_at) > CONTINUOUS_EVOLUTION_LOCK_TTL:
-                    # A stale timestamp cannot prove that its owner has stopped.
-                    # Never delete an observed lock and risk deleting a new owner.
-                    return False, {**existing, "state": "STALE_LOCK"}
-            except (OSError, ValueError, TypeError):
-                return False, {"state": "LOCK_UNVERIFIED"}
-        return False, existing if isinstance(existing, dict) else {"locked": True}
+        return _ce_existing_lock_state(existing, now_iso)
+
+
+def _ce_existing_lock_state(existing: Any, now_iso: str) -> tuple[bool, dict[str, Any]]:
+    locked_at = existing.get("locked_at_madrid") if isinstance(existing, dict) else None
+    if not locked_at:
+        return False, {"state": "LOCK_UNVERIFIED"}
+    try:
+        if _ce_now(now_iso) - _ce_now(locked_at) > CONTINUOUS_EVOLUTION_LOCK_TTL:
+            # Advisory flock cannot prove an old exclusive-create owner stopped.
+            return False, {**existing, "state": "STALE_LOCK"}
+    except (OSError, ValueError, TypeError):
+        return False, {"state": "LOCK_UNVERIFIED"}
+    return False, existing
 
 
 def _ce_release_lock(paths: dict[str, Path], job_id: str) -> None:
     lock_path = paths["scheduler_lock"]
+    if companyos_scheduler_lock.supported():
+        companyos_scheduler_lock.release(lock_path, job_id)
+        return
     existing = _ce_load_json(lock_path, {})
     if isinstance(existing, dict) and existing.get("job_id") == job_id:
         try:
@@ -2748,6 +2760,8 @@ def _nw_update_state(previous: dict[str, Any], receipt: dict[str, Any]) -> dict[
 def _nw_lock_owned(storage: Path, job_id: str) -> bool:
     if not job_id:
         return False
+    if companyos_scheduler_lock.supported():
+        return companyos_scheduler_lock.owned(_ce_paths(storage)["scheduler_lock"], job_id)
     try:
         lock = _nw_json_read(_ce_paths(storage)["scheduler_lock"], maximum=4096)
         return isinstance(lock, dict) and lock.get("job_id") == job_id and lock.get("pid") == os.getpid()

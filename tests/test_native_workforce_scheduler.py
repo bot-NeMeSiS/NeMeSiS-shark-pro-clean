@@ -9,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from engines import product_review_system_engine as engine
 from tools import render_cron_master_tick as master
 
@@ -17,16 +19,26 @@ TASK = "platform_workforce_review"
 
 
 class NativeWorkforceSchedulerTests(unittest.TestCase):
+    @pytest.fixture(autouse=True)
+    def isolated_pytest_storage(self, tmp_path):
+        # The supervisor owns/retains its disposable pytest tree. Do not invoke
+        # unittest TemporaryDirectory cleanup through relative dir_fd removals.
+        self._pytest_root = tmp_path
+
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tmp.cleanup)
-        self.root = Path(self.tmp.name)
+        if hasattr(self, "_pytest_root"):
+            self.root = self._pytest_root
+        else:  # Preserve standalone unittest execution outside the supervisor.
+            self.tmp = tempfile.TemporaryDirectory()
+            self.addCleanup(self.tmp.cleanup)
+            self.root = Path(self.tmp.name)
         self.storage = self.root / "review-store"
         self.calls = []
 
     def native(self, _root, _version, **kwargs):
         lock = json.loads((self.storage / "scheduler.lock").read_text())
         self.assertEqual(lock["job_id"], kwargs["job_id"])
+        self.assertTrue(engine._nw_lock_owned(self.storage, kwargs["job_id"]))
         self.assertTrue(kwargs["write"])
         self.calls.append(kwargs)
         run_id = "NWR-" + format(len(self.calls), "016x")
@@ -45,6 +57,18 @@ class NativeWorkforceSchedulerTests(unittest.TestCase):
     def state(self):
         return json.loads((self.storage / "scheduler_state.json").read_text())
 
+    def assert_released(self):
+        paths = engine._ce_paths(self.storage)
+        if engine.companyos_scheduler_lock.supported():
+            marker = json.loads(paths["scheduler_lock"].read_text())
+            self.assertEqual(marker["lock_protocol"], engine.companyos_scheduler_lock.PROTOCOL)
+            self.assertFalse(engine._nw_lock_owned(self.storage, marker["job_id"]))
+        else:
+            self.assertFalse(paths["scheduler_lock"].exists())
+        acquired, _ = engine._ce_acquire_lock(paths, "release-proof", "2026-10-29T12:00:00+01:00")
+        self.assertTrue(acquired)
+        engine._ce_release_lock(paths, "release-proof")
+
     def test_hourly_executes_native_checks_and_never_daily_full_cycle(self):
         with patch.object(engine, "run_native_workforce_review", self.native, create=True), \
              patch.object(engine, "run_continuous_evolution_cycle", side_effect=AssertionError("full daily cycle")):
@@ -55,7 +79,7 @@ class NativeWorkforceSchedulerTests(unittest.TestCase):
         self.assertIsNone(result["job"]["founder_brief_id"])
         self.assertIsNone(result["job"]["snapshot_id"])
         self.assertEqual(self.state()["tasks"][TASK]["last_completed_period"], "2026-10-29T10:00Z")
-        self.assertFalse((self.storage / "scheduler.lock").exists())
+        self.assert_released()
 
     def test_repeated_tick_preserves_last_receipt_and_does_not_write_new_job(self):
         with patch.object(engine, "run_native_workforce_review", self.native, create=True):
@@ -97,7 +121,7 @@ class NativeWorkforceSchedulerTests(unittest.TestCase):
         self.assertEqual(again["result"], "SKIPPED_NOT_DUE")
         self.assertFalse(following["ok"])
         self.assertEqual(call.call_count, 2)
-        self.assertFalse((self.storage / "scheduler.lock").exists())
+        self.assert_released()
 
     def test_paused_scheduled_tick_never_evaluates_reviewers(self):
         engine.set_continuous_evolution_pause(self.root, paused=True, storage_root=self.storage,

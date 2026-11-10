@@ -163,6 +163,9 @@ jobs:
         run: |
           set -e
           for test_file in \
+            tests/test_companyos_scheduler_lock.py \
+            tests/test_native_workforce_scheduler.py \
+            tests/test_native_workforce_review.py \
             tests/test_final_replay.py \
             tests/test_local_betting_evidence.py \
             tests/test_local_client_continuity.py \
