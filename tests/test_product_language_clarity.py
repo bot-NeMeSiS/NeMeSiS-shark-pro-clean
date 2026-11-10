@@ -354,8 +354,8 @@ def test_visible_surfaces_use_canonical_spanish_routes():
     assert 'href="/menu"' not in hub
     assert 'href="/app"' in hub
     assert 'href="/memberships"' not in home
-    # Follow the actual macro consumers: Home keeps its plan comparison and
-    # account entry; authenticated users manage membership from their account.
+    # Follow actual macro consumers: public Home now links only to informational
+    # football pages, while authenticated account tools still manage plans.
     # A literal href in Home would miss these rendered canonical links.
     env=Environment(autoescape=True)
     env.globals["ui"]=lambda value: value
@@ -374,7 +374,7 @@ def test_visible_surfaces_use_canonical_spanish_routes():
         assert len(calls)==1, (macro,label)
         return str(getattr(macros,macro)(*[arg.as_const() for arg in calls[0].args]))
     for rendered,canonical in (
-        (rendered_call(home,"section_header","Planes"),"/membresias"),
+        (rendered_call(home,"section_header","Fútbol para todos"),"/calendario"),
         (rendered_call(home,"quick_action","Mi cuenta"),"/mi-cuenta"),
         (rendered_call(account,"action_button","Ver prestaciones"),"/membresias"),
     ):

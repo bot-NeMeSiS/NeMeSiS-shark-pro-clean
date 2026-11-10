@@ -43,11 +43,11 @@ def test_catalogue_destinations_resolve_and_respect_role_boundaries(app_module, 
 
 
 def test_server_search_without_javascript_and_escaped_query(app_module):
-    markup = render_directory(app_module, 'client', '  membresias  ')
+    markup = render_directory(app_module, 'client', '  mi cuenta  ')
     dom = Structure(markup)
     page = next(n for n in dom.nodes if n['attrs'].get('id') == 'explore-page-results')
     visible = [n for n in dom.nodes if page in n['parents'] and 'data-explore-item' in n['attrs'] and 'hidden' not in n['attrs']]
-    assert [n['attrs']['href'] for n in visible] == ['/membresias']
+    assert [n['attrs']['href'] for n in visible] == ['/mi-cuenta']
     malicious = '<img src=x onerror=alert(1)>&q=/admin/users'
     markup = render_directory(app_module, query=malicious)
     assert '<img src=x' not in markup and '&lt;img' in markup

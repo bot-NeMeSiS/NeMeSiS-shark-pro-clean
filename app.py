@@ -12358,11 +12358,12 @@ MEMBERSHIP_PLANS = [
     {"key": "free", "name": "FREE", "price": "0 €", "features": ["Calendario", "Directo con datos disponibles", "Resultados", "SHARK base"]},
     {"key": "pro", "name": "PRO", "price": "Precio según configuración", "features": ["Pronósticos PRO publicados", "Combinadas", "Opciones de Telegram", "SHARK con más contexto"]},
     {"key": "elite", "name": "ELITE", "price": "Precio según configuración", "features": ["Pronósticos ELITE publicados", "Combinadas ELITE", "Funciones de Telegram del plan", "SHARK con contexto ampliado"]},
+    {"key": "elite_plus", "name": "ELITE+", "price": "Precio según configuración", "features": ["Todo ELITE", "Funciones beta seleccionadas cuando estén habilitadas", "Feedback prioritario"]},
 ]
 
 
-VALID_ROLES = {"FREE", "PRO", "ELITE", "ADMIN"}
-COMMERCIAL_MEMBERSHIP_TIERS = frozenset({"FREE", "PRO", "ELITE"})
+VALID_ROLES = {"FREE", "PRO", "ELITE", "ELITE+", "ADMIN"}
+COMMERCIAL_MEMBERSHIP_TIERS = frozenset({"FREE", "PRO", "ELITE", "ELITE+"})
 
 
 def normalize_email(email):
@@ -24451,12 +24452,12 @@ def _safe_admin_next(value: str | None, default: str = "/admin/control-center") 
 
 def _selected_paid_plan(value: str | None) -> str:
     plan = str(value or "").strip().upper()
-    return plan if plan in {"PRO", "ELITE"} else ""
+    return plan if plan in {"PRO", "ELITE", "ELITE+"} else ""
 
 
 def _membership_next_for_plan(plan: str) -> str:
     plan = _selected_paid_plan(plan)
-    return f"/membresias?plan={plan}&continuar_pago=1" if plan else "/membresias"
+    return "/membresias?" + urllib.parse.urlencode({"plan": plan, "continuar_pago": "1"}) if plan else "/membresias"
 
 
 def _store_pending_checkout_plan(plan: str) -> str:
@@ -34085,7 +34086,7 @@ def onboarding_status(user=None):
 def membership_revenue_summary():
     """Separa distribución de acceso de ingresos Stripe reales."""
     distribution = membership_distribution()
-    total_clients = distribution.get("FREE", 0) + distribution.get("PRO", 0) + distribution.get("ELITE", 0)
+    total_clients = distribution.get("FREE", 0) + distribution.get("PRO", 0) + distribution.get("ELITE", 0) + distribution.get("ELITE+", 0)
     try:
         billing = subscription_summary(DB_PATH, apply_rules=False, persist_metrics=False) or {}
     except Exception:
@@ -34793,11 +34794,12 @@ def api_payments_checkout():
     if not user:
         return jsonify({"ok": False, "version": APP_VERSION, "error": "Inicia sesión antes de pagar."}), 401
     payload = request.get_json(silent=True) or request.form or {}
-    plan = str(payload.get("plan") or request.args.get("plan") or "").upper()
+    plan = _selected_paid_plan(payload.get("plan") or request.args.get("plan"))
+    billing_period = str(payload.get("billing_period") or "monthly").strip().lower()
     ok_legal, legal_response = enforce_checkout_legal_gate(user, plan)
     if not ok_legal:
         return legal_response
-    result = create_checkout_session(DB_PATH, user, plan)
+    result = create_checkout_session(DB_PATH, user, plan, billing_period=billing_period)
     status_code = 200 if result.get("ok") else 400
     if request.form and result.get("ok") and result.get("url"):
         return redirect(result["url"])
@@ -34813,10 +34815,11 @@ def payments_checkout_plan(plan):
         target = _membership_next_for_plan(plan)
         encoded_next = urllib.parse.quote(target, safe="")
         return redirect(f"/cliente-login?plan={plan}&next={encoded_next}")
+    billing_period = str(request.form.get("billing_period") or "monthly").strip().lower()
     ok_legal, legal_response = enforce_checkout_legal_gate(user, plan)
     if not ok_legal:
         return legal_response
-    result = create_checkout_session(DB_PATH, user, plan)
+    result = create_checkout_session(DB_PATH, user, plan, billing_period=billing_period)
     if result.get("ok") and result.get("url"):
         return redirect(result["url"])
     data = dashboard_data()
@@ -35332,8 +35335,8 @@ def v566_client_menu_items():
     # V777: mapa cliente final por intención. No esconder funciones clave ni mezclar páginas sueltas.
     return [
         {"group": "01 - Empezar", "title": "Inicio inteligente", "body": "Centro de mando con hoy, directo, pronósticos, resultados, Telegram y SHARK.", "href": "/app", "intent": "start"},
-        {"group": "01 - Empezar", "title": "Partidos de hoy", "body": "Agenda clara con día, liga, estado y hora Madrid.", "href": "/calendar?lane=today", "intent": "matches"},
-        {"group": "01 - Empezar", "title": "Directo ahora", "body": "Marcador, minuto y estado cuando exista dato real.", "href": "/live", "intent": "live"},
+        {"group": "01 - Empezar", "title": "Partidos de hoy", "body": "Agenda clara con día, liga, estado y hora Madrid.", "href": "/calendario?lane=today", "intent": "matches"},
+        {"group": "01 - Empezar", "title": "Directo ahora", "body": "Marcador, minuto y estado cuando exista dato real.", "href": "/directo", "intent": "live"},
         {"group": "02 - Pronósticos", "title": "Pronósticos SHARK", "body": "Selección publicada, mercado, cuota, unidades, riesgo y motivo.", "href": "/picks", "intent": "bet"},
         {"group": "02 - Pronósticos", "title": "Combinadas", "body": "Constructor y borradores privados con selecciones disponibles.", "href": "/combinadas", "intent": "bet"},
         {"group": "02 - Pronósticos", "title": "Mercados básicos", "body": "1X2, doble oportunidad, DNB, goles y ambos marcan explicado simple.", "href": "/mercados", "intent": "learn"},
@@ -36721,6 +36724,9 @@ def admin_data_vault_page():
         return redirect("/admin-login?next=/admin/data-vault")
     data = dashboard_data()
     data["data_vault_admin"] = v743_data_vault_context()
+    # Fast, read-only capacity preflight; no dbstat scan on page render.
+    from tools.inspect_sqlite_growth_readonly import inspect_database
+    data["storage_telemetry"] = inspect_database(DB_PATH, limit=0)
     return render_template("admin_data_vault.html", data=data)
 
 
@@ -36730,6 +36736,15 @@ def api_admin_data_vault():
     if not is_admin_session():
         return admin_json_forbidden()
     return jsonify({"ok": True, "version": APP_VERSION, **v743_data_vault_context()})
+
+
+@app.route("/api/admin/data-vault/storage-telemetry", methods=["GET"])
+def api_admin_data_vault_storage_telemetry():
+    if not is_admin_session():
+        return admin_json_forbidden()
+    from tools.inspect_sqlite_growth_readonly import inspect_database
+    payload = inspect_database(DB_PATH, limit=0)
+    return jsonify({"version": APP_VERSION, **payload})
 
 
 @app.route("/api/admin/data-vault/create-backup", methods=["POST"])
@@ -37713,13 +37728,13 @@ def api_v808_telegram_enqueue_recommendations():
 def v809_client_navigation_items():
     return [
         {"group":"Inicio y uso diario","title":"Inicio","body":"Resumen cliente con partidos, directo, pronósticos y SHARK.","href":"/app","icon":"Inicio"},
-        {"group":"Inicio y uso diario","title":"Partidos","body":"Calendario real por días, ligas y búsqueda.","href":"/calendar?lane=today","icon":"Partidos"},
-        {"group":"Inicio y uso diario","title":"Directo","body":"Marcador, minuto y contexto disponible cuando exista información confirmada.","href":"/live","icon":"Directo"},
+        {"group":"Inicio y uso diario","title":"Partidos","body":"Calendario real por días, ligas y búsqueda.","href":"/calendario?lane=today","icon":"Partidos"},
+        {"group":"Inicio y uso diario","title":"Directo","body":"Marcador, minuto y contexto disponible cuando exista información confirmada.","href":"/directo","icon":"Directo"},
         {"group":"Inicio y uso diario","title":"Pronósticos","body":"Pronósticos publicados con cuota, unidades, riesgo y explicación.","href":"/picks","icon":"Pronósticos"},
         {"group":"SHARK y análisis","title":"SHARK","body":"Preguntar por partido, pronóstico, riesgo o combinada responsable.","href":"/shark","icon":"SHARK"},
         {"group":"SHARK y análisis","title":"SHARK Core","body":"Resumen basado en datos disponibles, sin convertir indicadores en garantías.","href":"/shark-core","icon":"SHARK Core"},
         {"group":"Seguimiento","title":"Historial","body":"Resultados y rendimiento solo cuando están cerrados con datos reales.","href":"/track-record","icon":"Historial"},
-        {"group":"Seguimiento","title":"Favoritos","body":"Tus equipos, partidos o focos guardados.","href":"/favorites","icon":"Favoritos"},
+        {"group":"Seguimiento","title":"Favoritos","body":"Tus equipos, partidos o focos guardados.","href":"/favoritos","icon":"Favoritos"},
         {"group":"Alertas y cuenta","title":"Telegram","body":"Conexión, alertas y canal sin inventar envíos.","href":"/telegram","icon":"Telegram"},
         {"group":"Alertas y cuenta","title":"Mi cuenta","body":"Plan, sesión, ajustes y cierre de sesión.","href":"/mi-cuenta","icon":"Cuenta"},
         {"group":"Alertas y cuenta","title":"Soporte","body":"Ayuda y contacto para el cliente.","href":"/soporte","icon":"?"},

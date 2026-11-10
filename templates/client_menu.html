@@ -1,15 +1,28 @@
 {% extends "base.html" %}
 {% block content %}
 {% set all_items = items or [] %}
+{# Interim tier presentation split (#330). A paid tier is NOT age verification.
+   Content authorization still requires its own server-side release gate. #}
+{% set paid_product_plan = current_user and (current_user.membership|default('FREE')|upper) in ['PRO', 'ELITE', 'ELITE+'] %}
+{# Positive allowlist: new destinations do not automatically appear in FREE. #}
+{% set free_allowed_hrefs = ['/app', '/calendario?lane=today', '/directo', '/highlights', '/shark', '/favoritos', '/mi-cuenta', '/ayuda', '/legal'] %}
+{% set visible_items = all_items if paid_product_plan else all_items|selectattr('href', 'in', free_allowed_hrefs)|list %}
+{% set free_descriptions = {
+  '/app': 'Centro de partidos, directo, resultados y favoritos.',
+  '/shark': 'Consulta partidos, competiciones y resultados con datos disponibles.',
+  '/modo-dinamico': 'La app prioriza directo, calendario y resultados según el momento.',
+  '/guia': 'Primeros pasos con calendario, resultados, favoritos y SHARK.',
+  '/ayuda': 'Ayuda con tu cuenta, alertas y navegación.'
+} %}
 <section class="v778-home-hero v778-menu-hero">
   <div class="v778-hero-main">
     <div class="kicker">Explorar NeMeSiS</div>
     <h1>Todo lo importante, ordenado por lo que quieres hacer</h1>
-    <p class="lead">Encuentra partidos, pronósticos, SHARK, resultados, alertas y tu cuenta desde un único punto, sin perderte entre pantallas.</p>
+    <p class="lead">{% if paid_product_plan %}Encuentra partidos, pronósticos, SHARK, resultados, alertas y tu cuenta desde un único punto.{% else %}Encuentra partidos, resultados, competiciones, SHARK deportivo y tu cuenta desde un único punto.{% endif %}</p>
     <div class="v778-primary-actions">
       <a class="btn primary" href="/app">Inicio</a>
       <a class="btn" href="/calendario?lane=today">Partidos de hoy</a>
-      <a class="btn" href="/picks">Pronósticos</a>
+      {% if paid_product_plan %}<a class="btn" href="/picks">Pronósticos</a>{% else %}<a class="btn" href="/competiciones">Competiciones</a>{% endif %}
       <a class="btn" href="/shark">SHARK</a>
     </div>
   </div>
@@ -21,14 +34,20 @@
 
 <section class="v778-section-grid" aria-label="Accesos principales">
   <a class="v778-section-card" href="/calendario?lane=today"><strong>Partidos</strong><span>Hoy, próximos y en directo.</span><small>Busca por fecha, competición o equipo.</small></a>
+  {% if paid_product_plan %}
   <a class="v778-section-card" href="/picks"><strong>Pronósticos</strong><span>Selecciones publicadas y su contexto.</span><small>Cuota, unidades, riesgo y explicación cuando estén disponibles.</small></a>
   <a class="v778-section-card" href="/combinadas"><strong>Combinadas</strong><span>Constructor y borradores privados.</span><small>Revisa las selecciones y las cuotas antes de guardar.</small></a>
   <a class="v778-section-card" href="/historico"><strong>Historial</strong><span>Resultados y rendimiento cerrado.</span><small>Solo datos evaluables y resultados registrados.</small></a>
-  <a class="v778-section-card" href="/telegram"><strong>Alertas</strong><span>Telegram y seguimiento de tu cuenta.</span><small>Consulta el estado de conexión y tus opciones.</small></a>
+  {% else %}
+  <a class="v778-section-card" href="/competiciones"><strong>Competiciones</strong><span>Ligas, torneos y clasificaciones.</span><small>Solo información deportiva registrada.</small></a>
+  <a class="v778-section-card" href="/calendario?lane=finished"><strong>Resultados</strong><span>Marcadores finales confirmados.</span><small>Consulta datos deportivos confirmados.</small></a>
+  <a class="v778-section-card" href="/shark"><strong>SHARK deportivo</strong><span>Contexto de los partidos.</span><small>Responde con los datos disponibles.</small></a>
+  {% endif %}
+  {% if paid_product_plan %}<a class="v778-section-card" href="/telegram"><strong>Alertas</strong><span>Telegram y seguimiento de tu cuenta.</span><small>Consulta el estado de conexión y tus opciones.</small></a>{% else %}<a class="v778-section-card" href="/favoritos"><strong>Favoritos</strong><span>Equipos y partidos que sigues.</span><small>Acceso rápido a tus encuentros.</small></a>{% endif %}
 </section>
 
 <section class="v778-menu-sections">
-  {% for group, group_items in all_items|groupby('group') %}
+  {% for group, group_items in visible_items|groupby('group') %}
   <article class="v778-panel">
     <div class="section-head">
       <div>
@@ -38,7 +57,7 @@
     </div>
     <div class="v778-menu-grid">
       {% for item in group_items %}
-      <a href="{{ item.href }}"><b>{{ item.title }}</b><small>{{ item.body }}</small></a>
+      <a href="{{ item.href }}"><b>{{ item.title }}</b><small>{{ item.body if paid_product_plan else free_descriptions.get(item.href, item.body) }}</small></a>
       {% endfor %}
     </div>
   </article>
@@ -47,6 +66,6 @@
 
 <section class="v774-responsible-note v778-final-note">
   <strong>Una forma sencilla de empezar</strong>
-  <span>Calendario → Pronósticos → SHARK → Historial. Telegram puede ayudarte con el seguimiento cuando esté configurado.</span>
+  <span>{% if paid_product_plan %}Calendario → Pronósticos → SHARK → Historial.{% else %}Calendario → Directo → Resultados → SHARK deportivo.{% endif %} Guarda tus equipos y partidos favoritos para seguirlos.</span>
 </section>
 {% endblock %}

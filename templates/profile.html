@@ -4,12 +4,14 @@
 {% from 'components/account_activity.html' import account_activity_list with context %}
 {% set user = data.get('session_user') or current_user or {} %}
 {% set plan = (user.get('membership') or 'FREE')|upper %}
+{# Presentation only: paid plan alone does not prove adulthood (#330). #}
+{% set paid_product_plan = plan in ['PRO', 'ELITE', 'ELITE+'] %}
 {% set telegram = data.get('telegram_state') or {} %}
 {% set activity = data.get('client_activity') or [] %}
 {% set favorites = data.get('favorites') or [] %}
 
 <div class="v933-page v933-profile-page ns16-account" data-v933-template="profile" data-v933-reference="official-ref-15" data-top100-improvement="14,15,16" data-first-use-contract="Primer uso real" data-habit-contract="Hábito sin invasión">
-  {{ page_header('Mi cuenta', 'Plan, preferencias y seguridad.', 'user', [{'label':'Gestionar plan','href':'/membresias','primary':true,'icon':'plan'}]) }}
+  {{ page_header('Mi cuenta', 'Plan, preferencias y seguridad.', 'user', ([{'label':'Gestionar plan','href':'/membresias','primary':true,'icon':'plan'}] if paid_product_plan else [])) }}
   {{ profile_card(user, plan, 'Sesión activa') }}
   {% include 'partials/language_selector.html' %}
 
@@ -18,11 +20,11 @@
       <section class="v933-panel">
         {{ section_header('Cuenta y servicios', '') }}
         <div class="v933-quick-actions ns16-account-actions">
-          {{ quick_action('Plan y facturación', plan, '/membresias', 'plan', 'gold') }}
-          {{ quick_action('Telegram', 'Conexión y alertas', '/telegram', 'telegram', 'cyan') }}
+          {% if paid_product_plan %}{{ quick_action('Plan y facturación', plan, '/membresias', 'plan', 'gold') }}{% else %}{{ quick_action('Tu espacio FREE', 'Fútbol y resultados', '/app', 'calendar', 'blue') }}{% endif %}
+          {% if paid_product_plan %}{{ quick_action('Telegram', 'Conexión y alertas', '/telegram', 'telegram', 'cyan') }}{% endif %}
           {{ quick_action('Favoritos', 'Equipos y partidos', '/favoritos', 'star') }}
-          {{ quick_action('Mis combinadas', 'Borradores privados y revisión', '/combinadas#combinadas-guardadas', 'target', 'cyan') }}
-          {{ quick_action('Notificaciones', 'Preferencias', '/alertas', 'alert') }}
+          {% if paid_product_plan %}{{ quick_action('Mis combinadas', 'Borradores privados y revisión', '/combinadas#combinadas-guardadas', 'target', 'cyan') }}{% endif %}
+          {% if paid_product_plan %}{{ quick_action('Notificaciones', 'Preferencias', '/alertas', 'alert') }}{% endif %}
           {{ quick_action('Privacidad y medición de uso', 'Tus datos', '/user-intelligence', 'lock') }}
           {{ quick_action('Soporte', 'Ayuda', '/soporte', 'support') }}
         </div>

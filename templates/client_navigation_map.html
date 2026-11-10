@@ -1,12 +1,22 @@
 {% extends "base.html" %}
 {% block content %}
-{% set groups = items|default([])|groupby('group') %}
+{# Preserve premium destinations, but allow only factual sports/account routes for FREE. #}
+{% set premium_map = current_user and (current_user.membership|default('FREE')|upper) in ['PRO','ELITE','ELITE+'] %}
+{% set free_map_allowed = ['/app','/calendario?lane=today','/directo','/shark','/favoritos','/mi-cuenta','/soporte','/logout'] %}
+{% set visible_map_items = items|default([]) if premium_map else items|default([])|selectattr('href', 'in', free_map_allowed)|list %}
+{% set free_map_copy = {
+  '/app': 'Partidos, directo, resultados y SHARK deportivo.',
+  '/shark': 'Consulta datos de partidos y competiciones.',
+  '/mi-cuenta': 'Perfil, favoritos y ajustes de cuenta.',
+  '/soporte': 'Ayuda con tu cuenta y navegación.'
+} %}
+{% set groups = visible_map_items|groupby('group') %}
 <section class="v809-client-map-page">
   <section class="v809-client-map-hero">
     <div>
       <span class="v809-eyebrow">Explorar la app</span>
       <h1>Tus accesos principales, en un solo lugar.</h1>
-      <p>Abre partidos, directo, pronósticos, SHARK, histórico, favoritos, Telegram y tu cuenta desde aquí.</p>
+      <p>{% if premium_map %}Abre partidos, directo, pronósticos, SHARK, histórico, favoritos, Telegram y tu cuenta desde aquí.{% else %}Abre partidos, directo, resultados, competiciones, favoritos, SHARK deportivo y tu cuenta desde aquí.{% endif %}</p>
       <div class="v809-hero-actions"><a class="primary" href="/calendario?lane=today">Partidos de hoy</a><a href="/directo">Directo</a><a href="/shark">SHARK</a></div>
     </div>
     <aside class="v809-shark-device" aria-label="Vista estilo app">
@@ -19,7 +29,7 @@
   <section class="v809-route-strip" aria-label="Recorrido sugerido">
     <a href="/calendario?lane=today"><b>1</b><span>Calendario</span><small>elige un partido</small></a>
     <a href="/directo"><b>2</b><span>Directo</span><small>sigue el estado</small></a>
-    <a href="/picks"><b>3</b><span>Pronóstico</span><small>revisa el contexto</small></a>
+    {% if premium_map %}<a href="/picks"><b>3</b><span>Pronóstico</span><small>revisa el contexto</small></a>{% else %}<a href="/calendario?lane=finished"><b>3</b><span>Resultados</span><small>marcadores confirmados</small></a>{% endif %}
     <a href="/shark"><b>4</b><span>SHARK</span><small>pregunta lo que necesites</small></a>
   </section>
 
@@ -32,7 +42,7 @@
         <a href="{{ item.href }}" class="{{ 'danger' if item.href == '/logout' else '' }}">
           <i>{{ item.icon }}</i>
           <b>{{ item.title }}</b>
-          <small>{{ item.body }}</small>
+          <small>{{ item.body if premium_map else free_map_copy.get(item.href, item.body) }}</small>
           <em>Abrir →</em>
         </a>
         {% endfor %}

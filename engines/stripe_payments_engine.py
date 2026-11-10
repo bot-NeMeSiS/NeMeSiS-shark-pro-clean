@@ -20,7 +20,11 @@ MADRID_OFFSET_FALLBACK = "+01:00"
 ACTIVE_STATUSES = {"active", "trialing"}
 KEEP_ACCESS_STATUSES = {"active", "trialing", "past_due"}
 CANCEL_STATUSES = {"canceled", "unpaid", "incomplete_expired", "paused"}
-VALID_PAID_PLANS = {"PRO", "ELITE"}
+# Legacy paid-plan allowlist remains unchanged until all checkout/webhook/permissions
+# paths support ELITE+; do not enable a plan on a partial deployment.
+VALID_PAID_PLANS = {"PRO", "ELITE", "ELITE+"}
+REVENUE_OS_PLAN_ORDER = ("FREE", "PRO", "ELITE", "ELITE+")
+REVENUE_OS_BILLING_PERIODS = ("monthly", "yearly")
 MAX_STRIPE_WEBHOOK_BODY_BYTES = 2 * 1024 * 1024
 
 def local_safe_payments_blocked() -> bool:
@@ -160,9 +164,44 @@ def normalize_plan(plan: Any) -> str:
     value = str(plan or "").strip().upper()
     if value in {"PRO", "PRO_PLUS", "PRO+"}:
         return "PRO"
-    if value in {"ELITE", "ELITE_PLUS", "ELITE+"}:
+    if value in {"ELITE_PLUS", "ELITE+", "ELITEPLUS"}:
+        return "ELITE+"
+    if value == "ELITE":
         return "ELITE"
     return ""
+
+
+def revenue_os_normalize_plan(plan: Any) -> str:
+    """Normalize future plan labels without downgrading ELITE+ to ELITE.
+
+    This helper does not alter the existing live checkout allowlist.
+    """
+    value = str(plan or "").strip().upper().replace(" ", "").replace("-", "_")
+    if value in {"ELITE+", "ELITE_PLUS", "ELITEPLUS"}:
+        return "ELITE+"
+    if value in {"PRO", "PRO+", "PROPLUS"}:
+        return "PRO"
+    return value if value in REVENUE_OS_PLAN_ORDER else ""
+
+
+def revenue_os_price_id(plan: Any, period: Any) -> str:
+    """Look up a configured price; never infer prices from labels or amounts."""
+    key = revenue_os_normalize_plan(plan)
+    interval = str(period or "").strip().lower()
+    if key not in REVENUE_OS_PLAN_ORDER[1:] or interval not in REVENUE_OS_BILLING_PERIODS:
+        return ""
+    suffix = "MONTHLY" if interval == "monthly" else "YEARLY"
+    return str(os.getenv(f"STRIPE_PRICE_{key.replace('+', '_PLUS')}_{suffix}") or "").strip()
+
+
+def revenue_os_checkout_idempotency_key(user_id: str, plan: Any, period: Any, price_id: str, at: Optional[datetime] = None) -> str:
+    """Key a proposed checkout to the actual plan, billing period and price ID."""
+    key = revenue_os_normalize_plan(plan)
+    interval = str(period or "").strip().lower()
+    if not user_id or not key or interval not in REVENUE_OS_BILLING_PERIODS or not price_id:
+        return ""
+    current = at or datetime.now(timezone.utc)
+    return stable_id("nemesis_checkout_v2", user_id, key, interval, price_id, int(current.timestamp()) // 600)
 
 
 def env_bool(name: str, default: bool = False) -> bool:
@@ -190,32 +229,44 @@ def plan_price_id(plan: str) -> str:
 
 
 def plan_catalog() -> Dict[str, Dict[str, Any]]:
-    return {
+    """Public offer catalog; only currently integrated plans are checkout-ready.
+
+    Annual and ELITE+ are informative until the authenticated route and
+    entitlement gates are updated and verified.
+    """
+    catalog = {
         "FREE": {
-            "plan": "FREE",
-            "title": "FREE",
-            "price_label": "0€",
-            "price_id": "",
-            "configured": True,
+            "plan": "FREE", "title": "FREE", "price_label": "0 €",
+            "price_id": "", "configured": True,
             "features": ["Calendario", "Directo", "Resultados", "SHARK base"],
         },
-        "PRO": {
-            "plan": "PRO",
-            "title": "PRO",
-            "price_label": os.getenv("STRIPE_PRICE_PRO_LABEL", "9,99 €/mes"),
-            "price_id": plan_price_id("PRO"),
-            "configured": bool(plan_price_id("PRO")),
-            "features": ["Pronósticos PRO", "Combinadas", "Telegram premium", "Más lectura SHARK"],
-        },
-        "ELITE": {
-            "plan": "ELITE",
-            "title": "ELITE",
-            "price_label": os.getenv("STRIPE_PRICE_ELITE_LABEL", "24,99 €/mes"),
-            "price_id": plan_price_id("ELITE"),
-            "configured": bool(plan_price_id("ELITE")),
-            "features": ["Pronósticos ELITE", "Alertas en directo", "Prioridad Telegram", "SHARK contextual"],
-        },
     }
+    offers = (
+        ("PRO", "14,99 €/mes", "149 €/año", ["Pronósticos PRO", "Combinadas", "Telegram premium", "SHARK"]),
+        ("ELITE", "29,99 €/mes", "299 €/año", ["Todo PRO", "Alertas avanzadas", "Combinadas ELITE", "SHARK contextual"]),
+        ("ELITE+", "44,99 €/mes", "449 €/año", ["Todo ELITE", "NeMeSiS Lab", "Acceso anticipado", "Soporte prioritario"]),
+    )
+    for key, monthly_label, yearly_label, features in offers:
+        legacy_id = plan_price_id(key) if key in {"PRO", "ELITE"} else ""
+        monthly_id = revenue_os_price_id(key, "monthly") or legacy_id
+        yearly_id = revenue_os_price_id(key, "yearly")
+        six_enabled = env_bool("REVENUE_OS_SIX_PLANS_ENABLED", False)
+        enabled = bool(monthly_id) and revenue_os_price_matches_period(monthly_id, key, "monthly") and (key != "ELITE+" or six_enabled)
+        yearly_enabled = six_enabled and bool(yearly_id) and revenue_os_price_matches_period(yearly_id, key, "yearly")
+        catalog[key] = {
+            "plan": key, "title": key, "price_label": os.getenv(f"STRIPE_PRICE_{key.replace('+', '_PLUS')}_LABEL", monthly_label),
+            "yearly_price_label": yearly_label,
+            "price_id": monthly_id if enabled else "",
+            "monthly_price_id": monthly_id,
+            "yearly_price_id": yearly_id,
+            "monthly_configured": bool(monthly_id),
+            "yearly_configured": bool(yearly_id),
+            "configured": enabled,
+            "available_for_checkout": enabled,
+            "yearly_available_for_checkout": yearly_enabled,
+            "features": features,
+        }
+    return catalog
 
 
 def stripe_sdk():
@@ -247,7 +298,7 @@ def stripe_runtime_status(db_path: str = "") -> Dict[str, Any]:
         "portal_enabled": env_bool("STRIPE_CUSTOMER_PORTAL_ENABLED", True),
         "payments_enabled": env_bool("PAYMENTS_ENABLED", True),
     }
-    checkout_ready = all(flags[k] for k in ["stripe_sdk", "secret_key", "price_pro", "price_elite", "public_url"]) and flags["payments_enabled"]
+    checkout_ready = (all(flags[k] for k in ["stripe_sdk", "secret_key", "webhook_secret", "price_pro", "price_elite", "public_url"]) and flags["payments_enabled"])
     webhook_ready = flags["stripe_sdk"] and flags["webhook_secret"]
     blockers = []
     labels = {
@@ -355,6 +406,10 @@ def ensure_stripe_schema(db_path: str) -> Dict[str, Any]:
         last_event_at TEXT,
         raw_json TEXT
     )""")
+    # Additive migrations only: keep existing checkout and subscription history.
+    for col, ddl in {"billing_period": "TEXT", "expected_price_id": "TEXT"}.items():
+        add_column(conn, "stripe_checkout_sessions", col, ddl)
+    add_column(conn, "stripe_subscriptions", "billing_period", "TEXT")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_stripe_sub_user ON stripe_subscriptions(user_id,status)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_stripe_sub_subscription ON stripe_subscriptions(stripe_subscription_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_payment_events_received ON payment_webhook_events(received_at)")
@@ -385,12 +440,38 @@ def user_by_stripe(conn: sqlite3.Connection, customer_id: str = "", subscription
 
 
 def resolve_plan_from_price(price_id: str) -> str:
+    """Resolve only known configured Stripe prices; never trust caller metadata."""
     price_id = str(price_id or "").strip()
-    if price_id and price_id == plan_price_id("PRO"):
-        return "PRO"
-    if price_id and price_id == plan_price_id("ELITE"):
-        return "ELITE"
-    return ""
+    if not price_id:
+        return ""
+    matches = set()
+    for name in ("PRO", "ELITE", "ELITE+"):
+        for period in REVENUE_OS_BILLING_PERIODS:
+            if revenue_os_price_id(name, period) == price_id:
+                matches.add(name)
+    for name in ("PRO", "ELITE"):
+        if plan_price_id(name) == price_id:
+            matches.add(name)
+    # A misconfigured price used by two tiers must never grant a higher tier.
+    return next(iter(matches)) if len(matches) == 1 else ""
+
+
+def revenue_os_price_matches_plan(price_id: str, plan: Any) -> bool:
+    """Payment entitlement must be supported by a configured Stripe price."""
+    return bool(price_id and resolve_plan_from_price(price_id) == revenue_os_normalize_plan(plan))
+
+
+def revenue_os_price_matches_period(price_id: str, plan: Any, period: str) -> bool:
+    """Deny price IDs accidentally assigned to both monthly and annual billing."""
+    plan = revenue_os_normalize_plan(plan)
+    period = str(period or "").strip().lower()
+    if not revenue_os_price_matches_plan(price_id, plan) or period not in REVENUE_OS_BILLING_PERIODS:
+        return False
+    periods = {candidate for candidate in REVENUE_OS_BILLING_PERIODS
+               if revenue_os_price_id(plan, candidate) == price_id}
+    if plan in {"PRO", "ELITE"} and plan_price_id(plan) == price_id:
+        periods.add("monthly")
+    return periods == {period}
 
 
 
@@ -416,16 +497,24 @@ def extract_subscription_fields(subscription: Dict[str, Any]) -> Dict[str, Any]:
     status = str(subscription.get("status") or "").lower()
     metadata = subscription.get("metadata") if isinstance(subscription.get("metadata"), dict) else {}
     user_id = str(metadata.get("user_id") or "")
-    plan = normalize_plan(metadata.get("plan"))
+    plan = ""
     price_id = ""
+    items = []
     try:
         items = ((subscription.get("items") or {}).get("data") or []) if isinstance(subscription.get("items"), dict) else []
-        if items:
+        # NeMeSiS sells one subscription tier per customer. A multi-price
+        # subscription must be reviewed, never resolved from its first item.
+        if len(items) == 1 and isinstance(items[0], dict):
             price = items[0].get("price") or {}
-            price_id = str(price.get("id") or "")
-    except Exception:
+            price_id = str(price.get("id") if isinstance(price, dict) else price or "")
+    except (TypeError, AttributeError, ValueError):
         price_id = ""
-    plan = plan or resolve_plan_from_price(price_id)
+    # Stripe Billing API versions can provide the interval on the item.
+    first_item = items[0] if len(items) == 1 and isinstance(items[0], dict) else {}
+    period_start = subscription.get("current_period_start") or first_item.get("current_period_start")
+    period_end = subscription.get("current_period_end") or first_item.get("current_period_end")
+    # Price is the source of truth, not editable metadata supplied by a client.
+    plan = resolve_plan_from_price(price_id)
     return {
         "subscription_id": sub_id,
         "customer_id": customer_id,
@@ -433,10 +522,40 @@ def extract_subscription_fields(subscription: Dict[str, Any]) -> Dict[str, Any]:
         "user_id": user_id,
         "plan": plan,
         "price_id": price_id,
-        "current_period_start": utc_from_timestamp(subscription.get("current_period_start")),
-        "current_period_end": utc_from_timestamp(subscription.get("current_period_end")),
+        "current_period_start": utc_from_timestamp(period_start),
+        "current_period_end": utc_from_timestamp(period_end),
         "cancel_at_period_end": int(bool(subscription.get("cancel_at_period_end"))),
     }
+
+
+def invoice_subscription_id(invoice: Dict[str, Any]) -> str:
+    """Handle both legacy and Basil+ invoice subscription references."""
+    source = invoice.get("subscription")
+    if not source:
+        parent = invoice.get("parent") if isinstance(invoice.get("parent"), dict) else {}
+        details = parent.get("subscription_details") if isinstance(parent.get("subscription_details"), dict) else {}
+        source = details.get("subscription")
+    if isinstance(source, dict):
+        source = source.get("id")
+    return str(source or "").strip()
+
+
+def invoice_price_ids(invoice: Dict[str, Any]) -> set[str]:
+    """Read the invoice line price IDs when Stripe includes them."""
+    items = (invoice.get("lines") or {}).get("data") or [] if isinstance(invoice.get("lines"), dict) else []
+    prices = set()
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        price = item.get("price")
+        price_id = price.get("id") if isinstance(price, dict) else price
+        if not price_id:
+            pricing = item.get("pricing") if isinstance(item.get("pricing"), dict) else {}
+            details = pricing.get("price_details") if isinstance(pricing.get("price_details"), dict) else {}
+            price_id = details.get("price")
+        if isinstance(price_id, str) and price_id:
+            prices.add(price_id)
+    return prices
 
 
 def apply_subscription_to_user(conn: sqlite3.Connection, fields: Dict[str, Any], event_type: str, raw: Dict[str, Any] | None = None) -> Dict[str, Any]:
@@ -444,7 +563,57 @@ def apply_subscription_to_user(conn: sqlite3.Connection, fields: Dict[str, Any],
     subscription_id = str(fields.get("subscription_id") or "")
     customer_id = str(fields.get("customer_id") or "")
     status = str(fields.get("status") or "").lower()
-    plan = normalize_plan(fields.get("plan"))
+    plan = revenue_os_normalize_plan(fields.get("plan"))
+    if status in CANCEL_STATUSES:
+        # A signed cancellation must still revoke a previously paid subscription
+        # when its old price has been retired. Match the current customer,
+        # subscription and user; never rely on unverified metadata alone.
+        if not subscription_id or not customer_id:
+            return {"applied": False, "reason": "subscription_identity_unverified", "status": status}
+        linked = user_by_stripe(conn, customer_id=customer_id, subscription_id=subscription_id)
+        linked_id = str(linked.get("id") or "")
+        if (not linked_id or (user_id and linked_id != user_id)
+                or str(linked.get("stripe_subscription_id") or "") != subscription_id
+                or str(linked.get("stripe_customer_id") or "") != customer_id):
+            return {"applied": False, "reason": "subscription_owner_unverified",
+                    "status": status, "user_id": user_id}
+        user_id = linked_id
+        conn.execute(
+            "UPDATE stripe_subscriptions SET status=?,cancel_at_period_end=0,"
+            "last_event_type=?,last_event_at=? "
+            "WHERE user_id=? AND stripe_subscription_id=?",
+            (status, event_type, utc_now(), user_id, subscription_id),
+        )
+        conn.execute(
+            "UPDATE users SET stripe_subscription_status=? "
+            "WHERE id=? AND stripe_subscription_id=?",
+            (status, user_id, subscription_id),
+        )
+        manual_access = (
+            str(linked.get("membership_admin_granted") or "0").lower() in {"1", "true"}
+            or str(linked.get("membership_source") or "").lower() == "admin_manual"
+            or str(linked.get("role") or "").upper() == "ADMIN"
+        )
+        if manual_access:
+            return {"applied": True, "action": "subscription_recorded_access_preserved",
+                    "membership_changed": False, "user_id": user_id,
+                    "plan": linked.get("membership"), "status": status}
+        if str(linked.get("membership_source") or "") == "stripe":
+            conn.execute(
+                """UPDATE users SET role='FREE', membership='FREE',
+                       membership_source='stripe_cancelled', membership_expires_at='',
+                       membership_note='Suscripción Stripe cancelada o vencida. Acceso devuelto a FREE.',
+                       membership_updated_at=?, membership_updated_by='stripe_webhook',
+                       stripe_subscription_status=?, last_payment_status=?
+                   WHERE id=? AND stripe_subscription_id=? AND stripe_customer_id=?""",
+                (utc_now(), status, status, user_id, subscription_id, customer_id),
+            )
+            return {"applied": True, "action": "membership_free", "user_id": user_id,
+                    "plan": "FREE", "status": status}
+        return {"applied": False, "reason": "subscription_not_current_paid_access",
+                "user_id": user_id, "status": status}
+    if not revenue_os_price_matches_plan(str(fields.get("price_id") or ""), plan):
+        return {"applied": False, "reason": "price_plan_unverified", "status": status}
     if not user_id:
         found = user_by_stripe(conn, customer_id=customer_id, subscription_id=subscription_id)
         user_id = str(found.get("id") or "")
@@ -453,8 +622,39 @@ def apply_subscription_to_user(conn: sqlite3.Connection, fields: Dict[str, Any],
     if not user_id:
         return {"applied": False, "reason": "usuario_no_resuelto", "plan": plan, "status": status}
     period_end = str(fields.get("current_period_end") or "")
+    # Never invent a paid entitlement expiry from a missing provider period.
+    # Keep existing access untouched and retry reconciliation with Stripe.
     if not period_end and status in KEEP_ACCESS_STATUSES:
-        period_end = future_period(31)
+        return {"applied": False, "reason": "subscription_period_unverified",
+                "user_id": user_id, "plan": plan, "status": status}
+    if period_end and status in KEEP_ACCESS_STATUSES:
+        try:
+            end_dt = datetime.fromisoformat(period_end.replace("Z", "+00:00"))
+            if end_dt.tzinfo is None or end_dt.astimezone(timezone.utc) <= datetime.now(timezone.utc):
+                return {"applied": False, "reason": "subscription_period_expired",
+                        "user_id": user_id, "plan": plan, "status": status}
+        except ValueError:
+            return {"applied": False, "reason": "subscription_period_unverified",
+                    "user_id": user_id, "plan": plan, "status": status}
+    if status == "past_due":
+        # Pending renewal payment is not evidence of new entitlement.
+        # Keep the already-paid tier and its existing expiration unchanged.
+        # Reconciliation after invoice.paid may update these fields.
+        current = user_by_id(conn, user_id)
+        same_link = (
+            str(current.get("membership_source") or "") == "stripe"
+            and str(current.get("stripe_subscription_id") or "") == subscription_id
+            and str(current.get("stripe_customer_id") or "") == customer_id
+        )
+        if same_link:
+            conn.execute(
+                "UPDATE users SET stripe_subscription_status='past_due', "
+                "last_payment_status='payment_failed' "
+                "WHERE id=? AND stripe_subscription_id=? AND stripe_customer_id=?",
+                (user_id, subscription_id, customer_id),
+            )
+        return {"applied": False, "reason": "past_due_existing_access_preserved" if same_link
+                else "past_due_unverified", "user_id": user_id, "plan": plan, "status": status}
     conn.execute(
         """INSERT OR REPLACE INTO stripe_subscriptions
            (id,user_id,plan,stripe_customer_id,stripe_subscription_id,stripe_price_id,status,
@@ -525,18 +725,6 @@ def apply_subscription_to_user(conn: sqlite3.Connection, fields: Dict[str, Any],
             ),
         )
         return {"applied": True, "action": "membership_active", "user_id": user_id, "plan": plan, "status": status}
-    if status in CANCEL_STATUSES:
-        if (subscription_id and str(current.get("membership_source") or "") == "stripe"
-                and str(current.get("stripe_subscription_id") or "") == subscription_id):
-            conn.execute(
-                """UPDATE users
-                      SET role='FREE', membership='FREE', membership_source='stripe_cancelled', membership_expires_at='',
-                          membership_note='Suscripción Stripe cancelada o vencida. Acceso devuelto a FREE.',
-                          membership_updated_at=?, membership_updated_by='stripe_webhook', stripe_subscription_status=?, last_payment_status=?
-                    WHERE id=?""",
-                (utc_now(), status, status, user_id),
-            )
-            return {"applied": True, "action": "membership_free", "user_id": user_id, "plan": "FREE", "status": status}
     return {"applied": False, "reason": "estado_no_aplica_cambio", "user_id": user_id, "plan": plan, "status": status}
 
 
@@ -573,6 +761,19 @@ def sync_checkout_session(db_path: str, user: Dict[str, Any], session_id: str) -
     ref_user_id = str(session.get("client_reference_id") or metadata.get("user_id") or "").strip()
     if not ref_user_id or ref_user_id != user_id:
         return {"ok": False, "reason": "session_no_pertenece_usuario"}
+
+    # An external Payment Link or a foreign Checkout Session cannot grant
+    # access based only on user_id metadata. It must be known to this app.
+    check_conn = connect(db_path)
+    try:
+        registered = check_conn.execute(
+            "SELECT user_id,plan FROM stripe_checkout_sessions WHERE stripe_session_id=?",
+            (session_id,),
+        ).fetchone()
+    finally:
+        check_conn.close()
+    if not registered or str(registered["user_id"] or "") != user_id:
+        return {"ok": False, "reason": "checkout_not_initiated_in_app", "session_id": session_id}
 
     payment_status = str(session.get("payment_status") or "").strip().lower()
     if payment_status not in {"paid", "no_payment_required"}:
@@ -611,10 +812,25 @@ def sync_checkout_session(db_path: str, user: Dict[str, Any], session_id: str) -
         return {"ok": False, "reason": "stripe_subscription_owner_mismatch", "session_id": session_id}
 
     fields = extract_subscription_fields(subscription)
-    plan = normalize_plan(fields.get("plan")) or normalize_plan(metadata.get("plan"))
-    plan = plan or resolve_plan_from_price(fields.get("price_id"))
+    plan = resolve_plan_from_price(fields.get("price_id"))
     if plan not in VALID_PAID_PLANS:
         return {"ok": False, "reason": "stripe_subscription_plan_unconfirmed", "session_id": session_id}
+    # A returned checkout must match the stored signed-in purchase selection.
+    check_conn = connect(db_path)
+    try:
+        checkout_row = check_conn.execute(
+            "SELECT user_id,plan,billing_period,expected_price_id FROM stripe_checkout_sessions WHERE stripe_session_id=?",
+            (session_id,),
+        ).fetchone()
+    finally:
+        check_conn.close()
+    if checkout_row and (str(checkout_row["user_id"] or "") != user_id or
+            (checkout_row["expected_price_id"] and
+             (str(checkout_row["expected_price_id"]) != fields.get("price_id") or
+              not revenue_os_price_matches_period(fields.get("price_id"), plan,
+                  str(checkout_row["billing_period"] or "monthly")))) or
+            normalize_plan(checkout_row["plan"]) != plan):
+        return {"ok": False, "reason": "checkout_price_or_owner_mismatch", "session_id": session_id}
     fields.update({
         "user_id": user_id,
         "plan": plan,
@@ -655,16 +871,29 @@ def sync_checkout_session(db_path: str, user: Dict[str, Any], session_id: str) -
     return {"ok": bool(applied.get("applied")), "plan": fields.get("plan"), "status": fields.get("status"), "applied": applied, "session_id": session_id}
 
 
-def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Dict[str, Any]:
+def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str, billing_period: str = "monthly") -> Dict[str, Any]:
     if local_safe_payments_blocked():
         return local_safe_payment_result()
     ensure_stripe_schema(db_path)
     plan = normalize_plan(plan)
     if plan not in VALID_PAID_PLANS:
         return {"ok": False, "error": "Plan no válido para pago."}
+    if plan == "ELITE+" and not env_bool("REVENUE_OS_SIX_PLANS_ENABLED", False):
+        return {"ok": False, "error": "Este plan aún no está disponible para contratar."}
+    billing_period = str(billing_period or "").strip().lower()
+    if billing_period not in REVENUE_OS_BILLING_PERIODS:
+        return {"ok": False, "error": "Periodo de facturación no válido."}
+    if billing_period == "yearly" and not env_bool("REVENUE_OS_SIX_PLANS_ENABLED", False):
+        return {"ok": False, "error": "La suscripción anual está pendiente de habilitación."}
+    price_id = revenue_os_price_id(plan, billing_period)
+    if not price_id and billing_period == "monthly":
+        price_id = plan_price_id(plan)
+    if not price_id or not revenue_os_price_matches_period(price_id, plan, billing_period):
+        return {"ok": False, "error": "Precio de este periodo aún no configurado o no verificable."}
+    # Prevent checkout when Stripe events cannot be authenticated and processed.
     status = stripe_runtime_status(db_path)
-    if not status["checkout_ready"]:
-        return {"ok": False, "error": "Stripe Checkout no está configurado completamente.", "blockers": status.get("blockers", [])}
+    if not status["checkout_ready"] or not status["webhook_ready"]:
+        return {"ok": False, "error": "Pago no disponible: checkout o verificación de suscripciones sin configurar.", "blockers": status.get("blockers", [])}
     user_id = str(user.get("id") or "")
     if not user_id:
         return {"ok": False, "error": "Inicia sesión antes de pagar."}
@@ -673,14 +902,27 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Di
         return {"ok": False, "error": "La librería stripe no está instalada."}
     stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
     base = public_base_url()
-    price_id = plan_price_id(plan)
     conn = connect(db_path)
     db_user = user_by_id(conn, user_id) or user
     customer_id = str(db_user.get("stripe_customer_id") or "")
-    idempotency_key = checkout_idempotency_key(user_id, plan)
+    # Customers with an existing Stripe subscription must use Billing Portal
+    # for upgrades, downgrades, renewal issues or cancellation.
+    if (str(db_user.get("membership_source") or "") == "stripe"
+            and str(db_user.get("stripe_subscription_id") or "").strip()
+            and str(db_user.get("stripe_subscription_status") or "").lower() in KEEP_ACCESS_STATUSES):
+        conn.close()
+        return {
+            "ok": False,
+            "reason": "existing_subscription_manage_in_portal",
+            "error": "Ya tienes una suscripción. Cambia de plan o actualiza el pago desde Mi cuenta.",
+            "manage_url": "/mi-cuenta",
+        }
+    idempotency_key = revenue_os_checkout_idempotency_key(user_id, plan, billing_period, price_id)
     metadata = {
         "user_id": user_id,
         "plan": plan,
+        "billing_period": billing_period,
+        "price_id": price_id,
         "app": "nemesis_shark_pro",
         "version": "V937",
         "checkout_attempt": idempotency_key,
@@ -690,7 +932,7 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Di
             "mode": "subscription",
             "line_items": [{"price": price_id, "quantity": 1}],
             "success_url": f"{base}/pagos/exito?session_id={{CHECKOUT_SESSION_ID}}",
-            "cancel_url": f"{base}/pagos/cancelado?plan={plan}",
+            "cancel_url": f"{base}/pagos/cancelado?plan={plan}&billing_period={billing_period}",
             "client_reference_id": user_id,
             "metadata": metadata,
             "subscription_data": {"metadata": metadata},
@@ -707,13 +949,15 @@ def create_checkout_session(db_path: str, user: Dict[str, Any], plan: str) -> Di
         url = str(getattr(session, "url", "") or session.get("url"))
         conn.execute(
             """INSERT OR REPLACE INTO stripe_checkout_sessions
-               (id,user_id,plan,stripe_session_id,stripe_customer_id,status,url,created_at,raw_json)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
-            (session_id or stable_id("checkout", user_id, plan, utc_now()), user_id, plan, session_id, customer_id, "created", url, utc_now(), safe_json(safe_stripe_audit_object(session))),
+               (id,user_id,plan,billing_period,expected_price_id,stripe_session_id,stripe_customer_id,status,url,created_at,raw_json)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+            (session_id or stable_id("checkout", user_id, plan, utc_now()), user_id, plan,
+             billing_period, price_id, session_id, customer_id, "created", url, utc_now(),
+             safe_json(safe_stripe_audit_object(session))),
         )
         conn.commit()
         conn.close()
-        return {"ok": True, "url": url, "session_id": session_id, "plan": plan}
+        return {"ok": True, "url": url, "session_id": session_id, "plan": plan, "billing_period": billing_period}
     except Exception as exc:
         conn.close()
         return {"ok": False, "error": "No se pudo iniciar el pago. Inténtalo de nuevo más tarde.", "error_code": "stripe_checkout_unavailable", "plan": plan}
@@ -862,12 +1106,16 @@ def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -
             customer_id = str(obj.get("customer") or "")
             subscription_id = str(obj.get("subscription") or "")
             stored_checkout = conn.execute(
-                "SELECT user_id,plan FROM stripe_checkout_sessions WHERE stripe_session_id=? LIMIT 1",
+                "SELECT user_id,plan,billing_period,expected_price_id FROM stripe_checkout_sessions WHERE stripe_session_id=? LIMIT 1",
                 (session_id,),
             ).fetchone() if session_id else None
             stored_user_id = str(stored_checkout["user_id"] or "") if stored_checkout else ""
             stored_plan = normalize_plan(stored_checkout["plan"] if stored_checkout else "")
-            if stored_user_id and user_id and stored_user_id != user_id:
+            if not stored_checkout:
+                applied = {"applied": False, "reason": "checkout_not_initiated_in_app"}
+                status = "checkout_not_initiated_in_app"
+                processed = True
+            elif stored_user_id and user_id and stored_user_id != user_id:
                 applied = {"applied": False, "reason": "checkout_owner_mismatch"}
                 status = "checkout_owner_mismatch"
                 processed = True
@@ -878,7 +1126,7 @@ def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -
             payment_status = str(obj.get("payment_status") or "").strip().lower()
             async_success = event_type == "checkout.session.async_payment_succeeded"
             payment_confirmed = payment_status == "paid" if async_success else payment_status in {"paid", "no_payment_required"}
-            if status == "checkout_owner_mismatch":
+            if status in {"checkout_owner_mismatch", "checkout_not_initiated_in_app"}:
                 pass
             elif not payment_confirmed:
                 applied = {"applied": False, "reason": "payment_not_confirmed", "payment_status": payment_status or "unknown"}
@@ -936,8 +1184,19 @@ def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -
                             status = "stripe_subscription_owner_mismatch"
                             processed = True
                         else:
-                            plan = normalize_plan(fields.get("plan")) or plan or resolve_plan_from_price(fields.get("price_id"))
-                            if plan not in VALID_PAID_PLANS:
+                            plan = resolve_plan_from_price(fields.get("price_id"))
+                            expected_price = str(stored_checkout["expected_price_id"] or "") if stored_checkout else ""
+                            if expected_price and (expected_price != fields.get("price_id") or
+                                    not revenue_os_price_matches_period(expected_price, stored_plan,
+                                         str(stored_checkout["billing_period"] or "monthly"))):
+                                applied = {"applied": False, "reason": "checkout_price_mismatch"}
+                                status = "checkout_price_mismatch"
+                                processed = True
+                            elif stored_checkout and stored_plan and plan != stored_plan:
+                                applied = {"applied": False, "reason": "checkout_plan_mismatch"}
+                                status = "checkout_plan_mismatch"
+                                processed = True
+                            elif plan not in VALID_PAID_PLANS:
                                 applied = {"applied": False, "reason": "stripe_subscription_plan_unconfirmed"}
                                 status = "stripe_subscription_plan_unconfirmed"
                                 processed = True
@@ -972,31 +1231,131 @@ def process_stripe_webhook(db_path: str, payload_bytes: bytes, signature: str) -
             applied = {"applied": False, "reason": "async_payment_failed"}
             status = "async_payment_failed"
             processed = True
-        elif event_type.startswith("customer.subscription."):  # handles customer.subscription.created/updated/deleted
+        elif event_type.startswith("customer.subscription."):
             fields = extract_subscription_fields(obj)
-            applied = apply_subscription_to_user(conn, fields, event_type, obj)
-            user_id = user_id or str(applied.get("user_id") or fields.get("user_id") or "")
-            plan = plan or str(applied.get("plan") or fields.get("plan") or "")
-            processed = bool(applied.get("applied"))
-            status = "processed" if processed else "verified_not_applied"
-        elif event_type in {"invoice.payment_succeeded", "invoice.paid"}:
-            subscription_id = str(obj.get("subscription") or "")
-            customer_id = str(obj.get("customer") or "")
-            found = user_by_stripe(conn, customer_id=customer_id, subscription_id=subscription_id)
-            user_id = user_id or str(found.get("id") or "")
-            if user_id:
-                conn.execute("UPDATE users SET last_payment_status='paid', last_payment_at=?, membership_note='Último pago Stripe confirmado.' WHERE id=?", (utc_now(), user_id))
+            subscription_id = str(fields.get("subscription_id") or "")
+            found = user_by_stripe(conn, customer_id=str(fields.get("customer_id") or ""),
+                                   subscription_id=subscription_id)
+            user_id = str(found.get("id") or fields.get("user_id") or "")
+            plan = str(fields.get("plan") or "")
+            current_plan = normalize_plan(found.get("membership"))
+            same_current = (
+                bool(found) and subscription_id
+                and str(found.get("stripe_subscription_id") or "") == subscription_id
+                and str(found.get("membership_source") or "") == "stripe"
+                and current_plan == plan
+            )
+            sub_status = str(fields.get("status") or "")
+            if sub_status in CANCEL_STATUSES:
+                # Actual termination is authoritative; only the currently
+                # associated subscription can remove access.
+                fields["user_id"] = user_id
+                applied = apply_subscription_to_user(conn, fields, event_type, obj)
+                processed = bool(applied.get("applied"))
+                status = "processed" if processed else "verified_not_applied"
+            elif same_current and sub_status in KEEP_ACCESS_STATUSES:
+                # Updates can arrive before the renewal or upgrade invoice.
+                # Preserve the last *paid* expiry and plan until invoice.paid.
+                conn.execute(
+                    "UPDATE stripe_subscriptions SET status=?,cancel_at_period_end=?,"
+                    "last_event_type=?,last_event_at=? WHERE stripe_subscription_id=? AND user_id=?",
+                    (sub_status, int(fields.get("cancel_at_period_end") or 0),
+                     event_type, utc_now(), subscription_id, user_id),
+                )
+                conn.execute(
+                    "UPDATE users SET stripe_subscription_status=? "
+                    "WHERE id=? AND stripe_subscription_id=?",
+                    (sub_status, user_id, subscription_id),
+                )
+                applied = {"applied": True, "action": "status_recorded_no_entitlement_change",
+                           "user_id": user_id, "plan": plan}
                 processed = True
-                status = "payment_recorded"
-        elif event_type in {"invoice.payment_failed", "invoice.payment_action_required"}:
-            subscription_id = str(obj.get("subscription") or "")
+                status = "state_recorded_waiting_for_payment"
+            else:
+                # A new or upgraded subscription alone is not proof of payment.
+                applied = {"applied": False, "reason": "awaiting_confirmed_invoice_or_checkout"}
+                processed = True
+                status = "awaiting_confirmed_payment"
+        elif event_type in {"invoice.payment_succeeded", "invoice.paid"}:
+            subscription_id = invoice_subscription_id(obj)
             customer_id = str(obj.get("customer") or "")
-            found = user_by_stripe(conn, customer_id=customer_id, subscription_id=subscription_id)
-            user_id = user_id or str(found.get("id") or "")
-            if user_id:
-                conn.execute("UPDATE users SET last_payment_status='payment_failed', membership_note='Stripe indica incidencia de pago. Revisar portal de cliente.' WHERE id=?", (user_id,))
+            invoice_status = str(obj.get("status") or "").lower()
+            found = user_by_stripe(conn, customer_id=customer_id,
+                                   subscription_id=subscription_id) if subscription_id and customer_id else {}
+            user_id = str(found.get("id") or "")
+            if not subscription_id or not customer_id or not found or str(found.get("stripe_subscription_id") or "") != subscription_id:
+                # Initial checkout may still be in flight. Never activate an
+                # anonymous or external Payment Link by email or metadata.
+                status = "invoice_without_linked_checkout"
+                processed = True
+                applied = {"applied": False, "reason": status}
+            elif invoice_status and invoice_status != "paid":
+                status = "invoice_not_paid"
+                processed = True
+                applied = {"applied": False, "reason": status}
+            else:
+                stripe = stripe_sdk()
+                if stripe is None or not env_present("STRIPE_SECRET_KEY"):
+                    retryable_error = "stripe_subscription_confirmation_unavailable"
+                else:
+                    try:
+                        stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+                        subscription = stripe_object_to_dict(stripe.Subscription.retrieve(subscription_id))
+                    except Exception:
+                        subscription = {}
+                        retryable_error = "stripe_subscription_retrieve_failed"
+                if retryable_error:
+                    status = "invoice_reconciliation_retryable"
+                    applied = {"applied": False, "reason": retryable_error}
+                else:
+                    fields = extract_subscription_fields(subscription)
+                    plan = str(fields.get("plan") or "")
+                    claimed_user = str(fields.get("user_id") or "")
+                    provided_prices = invoice_price_ids(obj)
+                    price_id = str(fields.get("price_id") or "")
+                    current_plan = normalize_plan(found.get("membership"))
+                    is_upgrade = REVENUE_OS_PLAN_ORDER.index(plan) > REVENUE_OS_PLAN_ORDER.index(current_plan) if plan in REVENUE_OS_PLAN_ORDER and current_plan in REVENUE_OS_PLAN_ORDER else True
+                    if (str(fields.get("subscription_id") or "") != subscription_id
+                            or str(fields.get("customer_id") or "") != customer_id
+                            or (claimed_user and claimed_user != user_id)
+                            or str(found.get("stripe_customer_id") or "") not in {"", customer_id}
+                            or not revenue_os_price_matches_plan(price_id, plan)
+                            or (provided_prices and price_id not in provided_prices)
+                            or (is_upgrade and not provided_prices)
+                            or str(fields.get("status") or "") not in ACTIVE_STATUSES):
+                        status = "invoice_subscription_mismatch_or_unpaid"
+                        processed = True
+                        applied = {"applied": False, "reason": status}
+                    else:
+                        fields["user_id"] = user_id
+                        applied = apply_subscription_to_user(conn, fields, event_type, subscription)
+                        processed = bool(applied.get("applied"))
+                        status = "payment_reconciled" if processed else "payment_not_applied"
+                        if processed:
+                            conn.execute(
+                                "UPDATE users SET last_payment_status='paid',last_payment_at=?,"
+                                "membership_note='Último pago Stripe confirmado.' "
+                                "WHERE id=? AND stripe_subscription_id=?",
+                                (utc_now(), user_id, subscription_id),
+                            )
+        elif event_type in {"invoice.payment_failed", "invoice.payment_action_required"}:
+            subscription_id = invoice_subscription_id(obj)
+            customer_id = str(obj.get("customer") or "")
+            found = user_by_stripe(conn, customer_id=customer_id,
+                                   subscription_id=subscription_id) if subscription_id and customer_id else {}
+            user_id = str(found.get("id") or "")
+            if found and str(found.get("stripe_subscription_id") or "") == subscription_id:
+                conn.execute(
+                    "UPDATE users SET last_payment_status='payment_failed',"
+                    "membership_note='Stripe indica incidencia de pago. Revisar portal de cliente.' "
+                    "WHERE id=? AND stripe_subscription_id=?",
+                    (user_id, subscription_id),
+                )
                 processed = True
                 status = "payment_issue_recorded"
+            else:
+                processed = True
+                status = "invoice_not_linked_to_current_subscription"
         record_event(conn, event, verified, status, user_id=user_id, plan=plan, amount=amount, currency=currency, reason=safe_json(applied, 600), processed=processed)
         conn.commit()
     finally:

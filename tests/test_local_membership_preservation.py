@@ -6,7 +6,8 @@ from engines import stripe_payments_engine as billing
 
 
 @pytest.fixture
-def account(app_module,tmp_path):
+def account(app_module,tmp_path,monkeypatch):
+    monkeypatch.setenv('STRIPE_PRICE_PRO_MONTHLY', 'price_local_pro_qa')
     source=sqlite3.connect(app_module.DB_PATH)
     try:
         schema=source.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").fetchone()[0]
@@ -18,14 +19,17 @@ def account(app_module,tmp_path):
     billing.ensure_stripe_schema(str(path))
     con=sqlite3.connect(path)
     con.row_factory=sqlite3.Row
-    con.execute("INSERT INTO users(id,name,email,password_hash,created_at,role,membership,membership_source,membership_admin_granted,stripe_subscription_id) VALUES('qa-billing','Local QA','billing@example.invalid','invalid_qa_hash','2026-09-19','ELITE','ELITE','stripe',0,'sub_current_qa')")
+    con.execute("INSERT INTO users(id,name,email,password_hash,created_at,role,membership,membership_source,membership_admin_granted,stripe_customer_id,stripe_subscription_id) VALUES('qa-billing','Local QA','billing@example.invalid','invalid_qa_hash','2026-09-19','ELITE','ELITE','stripe',0,'cus_local_qa','sub_current_qa')")
+    # Seed the same linked customer/subscription identity that production Stripe
+    # records before a signed cancellation. Missing identity must fail closed.
+    con.execute("INSERT INTO stripe_subscriptions(id,user_id,plan,stripe_customer_id,stripe_subscription_id,stripe_price_id,status,current_period_end,last_event_at) VALUES('sub_current_qa','qa-billing','PRO','cus_local_qa','sub_current_qa','price_local_pro_qa','active','2030-01-01T00:00:00+00:00','2026-10-31T00:00:00Z')")
     yield con
     con.close()
 
 
 def deliver(con,status='canceled',subscription='sub_current_qa'):
     return billing.apply_subscription_to_user(con,dict(user_id='qa-billing',plan='PRO',status=status,
-        subscription_id=subscription,customer_id='cus_local_qa',current_period_end='2030-01-01T00:00:00+00:00',cancel_at_period_end=1),'SIMULATED_QA')
+        subscription_id=subscription,customer_id='cus_local_qa',price_id='price_local_pro_qa',current_period_end='2030-01-01T00:00:00+00:00',cancel_at_period_end=1),'SIMULATED_QA')
 
 
 @pytest.mark.parametrize('status',['active','canceled'])

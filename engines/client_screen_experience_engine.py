@@ -65,14 +65,16 @@ def _title_for_route(route: str) -> str:
 
 def build_client_screen_state(route: str = "/app", plan: str = "FREE") -> dict[str, Any]:
     normalized_plan = (plan or "FREE").strip().upper()
-    if normalized_plan not in {"FREE", "PRO", "ELITE", "ADMIN"}:
+    if normalized_plan in {"ELITE_PLUS", "ELITEPLUS"}:
+        normalized_plan = "ELITE+"
+    if normalized_plan not in {"FREE", "PRO", "ELITE", "ELITE+", "ADMIN"}:
         normalized_plan = "FREE"
     ctas = [
         {"label": "Ver partidos", "href": "/partidos"},
         {"label": "Abrir SHARK", "href": "/shark"},
         {"label": "Conectar Telegram", "href": "/telegram"},
     ]
-    if normalized_plan in {"PRO", "ELITE", "ADMIN"}:
+    if normalized_plan in {"PRO", "ELITE", "ELITE+", "ADMIN"}:
         ctas.insert(1, {"label": "Ver picks", "href": "/picks"})
     state = ClientScreenState(
         route=route,
@@ -95,6 +97,6 @@ def build_client_screen_state(route: str = "/app", plan: str = "FREE") -> dict[s
             "telegram_value_visible",
             "membership_value_visible",
         ],
-        css_flags=["v856-client-premium", f"v856-plan-{normalized_plan.lower()}"],
+        css_flags=["v856-client-premium", f"v856-plan-{normalized_plan.lower().replace('+', 'plus')}"],
     )
     return asdict(state)

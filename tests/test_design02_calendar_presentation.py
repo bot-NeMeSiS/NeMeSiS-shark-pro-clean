@@ -116,7 +116,7 @@ def test_mobile_primary_navigation_keeps_results_and_shark_discovery(app_module,
         client_header = str(module.v933_client_navigation('PRO')) if authenticated else ''
     dom = Structure(html)
     links = [n['attrs']['href'] for n in dom.nodes if n['tag'] == 'a']
-    assert links == (['/directo', '/calendario?lane=today', '/picks', '/mi-cuenta'] if authenticated else ['/', '/calendario?lane=finished', '/directo', '/picks', '/cliente-login'])
+    assert links == (['/directo', '/calendario?lane=today', '/competiciones', '/mi-cuenta'] if authenticated else ['/', '/calendario?lane=today', '/directo', '/calendario?lane=finished', '/cliente-login'])
     assert ('<span>Calendario</span>' if authenticated else '<span>Resultados</span>') in html
     if authenticated:
         assert 'href="/mi-cuenta"' in client_header
@@ -154,8 +154,31 @@ def test_calendar_aliases_share_visible_navigation_state(app_module, route, surf
         dom = Structure(str(getattr(module, surface)()))
     selected = [n for n in dom.nodes if n['tag'] == 'a' and n['attrs'].get('aria-current') == 'page']
     assert selected
-    expected = '/calendario?lane=today' if surface == 'v933_client_navigation' else '/calendario?lane=finished'
+    expected = '/calendario?lane=today'
     assert all(n['attrs'].get('href') == expected for n in selected)
+
+
+
+@pytest.mark.parametrize('lane', ['today', 'finished'])
+@pytest.mark.parametrize('surface', ['v933_public_navigation', 'v933_mobile_bottom_nav'])
+def test_public_calendar_lane_selects_one_nav_item(app_module, lane, surface):
+    with app_module.app.test_request_context('/calendario?lane=' + lane):
+        module = app_module.app.jinja_env.get_template('components/v933_navigation.html').make_module()
+        dom = Structure(str(getattr(module, surface)()))
+    selected = [node for node in dom.nodes
+                if node['tag'] == 'a' and node['attrs'].get('aria-current') == 'page']
+    assert len(selected) == 1, selected
+    assert selected[0]['attrs']['href'] == '/calendario?lane=' + lane
+
+
+def test_public_competition_nav_has_only_one_active_item(app_module):
+    with app_module.app.test_request_context('/competiciones'):
+        module = app_module.app.jinja_env.get_template('components/v933_navigation.html').make_module()
+        dom = Structure(str(module.v933_public_navigation()))
+    selected = [node['attrs']['href'] for node in dom.nodes
+                if node['tag'] == 'a' and node['attrs'].get('aria-current') == 'page']
+    assert selected == ['/competiciones']
+
 
 
 def test_client_copy_reduction_does_not_hide_temporal_container():
