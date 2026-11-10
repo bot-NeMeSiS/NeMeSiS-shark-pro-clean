@@ -300,6 +300,20 @@ def test_public_home_and_long_match_keep_content_and_controls_with_marine_light(
             _pause_existing_featured(page)
             assets['home'] = _served_asset_digests(responses)
             card = page.locator('.v933-match-card:visible').first
+            if card.count() == 0:
+                # This owned fixture is a secondary competition. Today's
+                # feature must not promote it just to fill the carousel; open
+                # its real ordinary-list controls before comparing readability.
+                more = page.locator('[data-home-more-leagues]').first
+                assert more.count() == 1 and more.get_attribute('open') is None
+                more.locator(':scope > summary').focus()
+                page.keyboard.press('Enter')
+                assert more.get_attribute('open') is not None
+                league = more.locator('[data-home-importance="secondary"]').first
+                assert league.count() == 1 and league.get_attribute('open') is None
+                league.locator(':scope > summary').focus()
+                page.keyboard.press('Enter')
+                assert league.get_attribute('open') is not None
             assert card.count() == 1
             home_readable = [(card, ('.v933-match-teams > div:first-child strong',
                 '.v933-match-teams > div:last-child strong', '.v933-match-card-header a.is-competition'))]
