@@ -9,6 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from engines import product_review_system_engine as engine
 from tools import render_cron_master_tick as master
 
@@ -17,10 +19,19 @@ TASK = "platform_workforce_review"
 
 
 class NativeWorkforceSchedulerTests(unittest.TestCase):
+    @pytest.fixture(autouse=True)
+    def isolated_pytest_storage(self, tmp_path):
+        # The supervisor owns/retains its disposable pytest tree. Do not invoke
+        # unittest TemporaryDirectory cleanup through relative dir_fd removals.
+        self._pytest_root = tmp_path
+
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(self.tmp.cleanup)
-        self.root = Path(self.tmp.name)
+        if hasattr(self, "_pytest_root"):
+            self.root = self._pytest_root
+        else:  # Preserve standalone unittest execution outside the supervisor.
+            self.tmp = tempfile.TemporaryDirectory()
+            self.addCleanup(self.tmp.cleanup)
+            self.root = Path(self.tmp.name)
         self.storage = self.root / "review-store"
         self.calls = []
 
