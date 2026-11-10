@@ -3,7 +3,7 @@
 {% from "components/v936_product.html" import value_ladder, evidence_receipt, decision_radar, data_trust_meter %}
 {% from "components/home_competition_groups.html" import competition_groups, remaining with context %}
 {% from "components/home_featured.html" import home_featured with context %}
-{% block head_extra %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='home-featured.css') }}?v=2">{% endblock %}
+{% block head_extra %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='home-featured.css') }}?v=3">{% endblock %}
 {% block content %}
 {% set day = data.get("home_matchday")|home_preview(limit=12, featured_limit=8, mode='mixed_today') %}
 {% set agenda_href = day.agenda_href if day else '/calendario' %}

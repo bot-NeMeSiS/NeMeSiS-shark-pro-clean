@@ -128,6 +128,7 @@ def test_featured_assets_are_bound_without_a_new_polling_transport():
     for template in ('home.html', 'client_app_center.html'):
         source = (ROOT / 'templates' / template).read_text('utf-8')
         assert "filename='home-featured.css'" in source
+        assert "filename='home-featured.css') }}?v=3" in source
         assert "featured_limit=8, mode='mixed_today'" in source
     base = (ROOT / 'templates/base.html').read_text('utf-8')
     assert "filename='platform-motion.js') }}?v={{ app_version }}-home-featured-2" in base

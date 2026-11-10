@@ -2,7 +2,7 @@
 {% from "components/v933_ui.html" import icon, status_chip, section_header, kpi_card, quick_action, empty_state, match_card, live_card, pick_card, sports_contract_attributes with context %}
 {% from "components/home_competition_groups.html" import competition_groups, remaining with context %}
 {% from "components/home_featured.html" import home_featured with context %}
-{% block head_extra %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='home-featured.css') }}?v=2">{% endblock %}
+{% block head_extra %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='home-featured.css') }}?v=3">{% endblock %}
 {% block content %}
 {% set hub = data.get('match_hub') or {} %}
 {% set home_summary = data.get('home_summary') or {} %}
