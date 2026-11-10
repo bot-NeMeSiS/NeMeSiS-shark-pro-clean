@@ -28,8 +28,10 @@ class Elements(HTMLParser):
 def test_calendar_empty_states_are_distinct(client, app_module, monkeypatch, language,
                                            state, status, has_data, query, title):
     monkeypatch.setattr(app_module, 'v932_safe_dashboard_data', lambda *a, **kw: ({}, {}))
-    monkeypatch.setattr(app_module, '_v931_provider_context', lambda _: {
-        'provider_status': status, 'has_real_data': has_data})
+    def provider_context(owner, *, _status_only=False):
+        assert _status_only is True
+        return {'provider_status': status, 'has_real_data': has_data}
+    monkeypatch.setattr(app_module, '_v931_provider_context', provider_context)
     response = client.get('/calendar', query_string={'q': query}, headers={'Accept-Language': language})
     assert response.status_code == 200
     html = response.get_data(as_text=True)

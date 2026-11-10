@@ -75,7 +75,10 @@ def test_actual_calendar_caller_preserves_bodies_calls_and_five_parents(app_modu
         captured = []
         monkeypatch.setattr(a, "v932_safe_dashboard_data", lambda *x, **kw: ({}, summary))
         monkeypatch.setattr(a, "_v940_hydrate_selected_date_results", lambda owner, day: owner)
-        monkeypatch.setattr(a, "_v940_calendar_provider_context", lambda owner: {"owned": True})
+        def provider_context(owner, *, _status_only=False):
+            assert owner is summary and _status_only is True
+            return {"owned": True}
+        monkeypatch.setattr(a, "_v940_calendar_provider_context", provider_context)
         monkeypatch.setattr(a, "current_session_user", lambda: None)
         def render(template, **kwargs):
             assert template == "calendar.html"
@@ -136,7 +139,10 @@ def test_new_observer_failures_do_not_stop_actual_calendar_caller(app_module, mo
         summary = _owned_summary(a, monkeypatch)
         monkeypatch.setattr(a, "v932_safe_dashboard_data", lambda *x, **kw: ({}, summary))
         monkeypatch.setattr(a, "_v940_hydrate_selected_date_results", lambda owner, day: owner)
-        monkeypatch.setattr(a, "_v940_calendar_provider_context", lambda owner: {})
+        def provider_context(owner, *, _status_only=False):
+            assert owner is summary and _status_only is True
+            return {}
+        monkeypatch.setattr(a, "_v940_calendar_provider_context", provider_context)
         monkeypatch.setattr(a, "render_template", lambda *x, **kw: "owned-calendar")
         names = {"start": "_context_subphase_started", "record": "_context_subphase_record",
                  "merge": "_calendar_route_phase_values"}
