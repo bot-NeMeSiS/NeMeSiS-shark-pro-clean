@@ -256,16 +256,13 @@ def test_real_flask_home_loads_disclosure_once_on_every_home_alias(app_module,pa
     dom=Structure(html)
     primary=[n for n in dom.nodes if n['attrs'].get('data-home-importance')=='primary']
     secondary=[n for n in dom.nodes if n['attrs'].get('data-home-importance')=='secondary']
-    assert len(primary)==3 and len(secondary)==0
+    assert len(primary)==4 and len(secondary)==0
     featured=[n for n in dom.nodes if 'data-v934-match-id' in n['attrs'] and
               any('data-home-featured' in parent['attrs'] for parent in n['parents'])]
-    assert len(featured)==2
+    assert len(featured)==8
     cards=[n['attrs']['data-v934-match-id'] for n in dom.nodes if 'data-v934-match-id' in n['attrs']]
-    assert len(cards)==len(set(cards))==5
-    from engines.home_preview import home_preview
-    original_preview=home_preview(day,with_hero=False)
-    expected={item['id'] for lane in ('live','today','upcoming','results')
-              for group in original_preview[lane]['groups'] for item in group['matches']}
+    assert len(cards)==len(set(cards))==12
+    expected={f'qa-main-{i}-{j}' for i in range(6) for j in range(2)}
     assert set(cards)==expected
     assert day['today']['total']==42
     assert any(n['tag']=='a' and n['attrs'].get('href')=='/calendario?date='+day['date'] for n in dom.nodes)

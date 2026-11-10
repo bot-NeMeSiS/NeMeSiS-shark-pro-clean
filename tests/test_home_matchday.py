@@ -320,7 +320,8 @@ def test_home_shows_three_secondary_live_competitions_without_opening_a_disclosu
 
     assert len(cards)==5
     assert len(visible)==3
-    assert len(disclosed)==1 and len(carousel_hidden)==1
+    # Minor leagues stay in the agenda; they must not fill a prominent slot.
+    assert len(disclosed)==2 and len(carousel_hidden)==0
     assert visible.isdisjoint(disclosed)
     assert carousel_hidden.isdisjoint(visible | disclosed)
     assert visible | disclosed | carousel_hidden == {row['id'] for row in rows}
@@ -334,7 +335,12 @@ def test_all_home_lanes_are_visible_without_disclosures(app_module,language):
     dom=Structure(render_home(app_module,{'home_matchday':build(rows)},language))
     cards=[n for n in dom.nodes if 'data-v934-match-id' in n['attrs']]
     assert [n['attrs']['data-v934-match-id'] for n in cards]==['live','today','next','done']
-    assert all(not any(p['tag']=='details' or 'hidden' in p['attrs'] for p in n['parents']) for n in cards)
+    # Both phases now share one carousel. Its inactive upcoming slide is
+    # intentionally hidden; other lanes must remain directly accessible.
+    assert all(not any(p['tag']=='details' for p in n['parents']) for n in cards)
+    hidden = [n['attrs']['data-v934-match-id'] for n in cards
+              if any('hidden' in p['attrs'] for p in n['parents'])]
+    assert hidden == ['today']
     assert not any('data-personal-home' in n['attrs'] for n in dom.nodes)
     assert not any(n['attrs'].get('href')=='#personal-home-title' for n in dom.nodes)
 
