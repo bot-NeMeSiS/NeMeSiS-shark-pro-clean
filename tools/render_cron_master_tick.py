@@ -977,9 +977,18 @@ def backup_tick(base_url: str, secret: str) -> dict:
             payload = decode_json(response.read(30000))
             if payload is None:
                 return request_error_result("backup", started, "INVALID_JSON_RESPONSE", http_status)
-            candidate = payload.get("status") or payload.get("result")
-            result = safe_label(candidate, secret, "PASS" if payload.get("ok") is not False else "FAIL")
-            ok = http_status == 200 and payload.get("ok") is not False and result in BACKUP_VALID_RESULTS
+            # The current Web writer omits status on a newly published copy.
+            # That legacy shape is accepted only with explicit boolean receipts.
+            candidate = payload.get("status", payload.get("result"))
+            result = safe_label(candidate, secret, "PASS" if payload.get("ok") is True else "FAIL")
+            label_valid = ("status" not in payload and "result" not in payload) or (
+                isinstance(candidate, str) and bool(candidate.strip()))
+            created = payload.get("backup_created")
+            ok = (http_status == 200 and payload.get("ok") is True
+                  and type(created) is bool and label_valid and result in BACKUP_VALID_RESULTS
+                  and (created is True if result in {"PASS", "OK"} else created is False))
+            receipt_status = ("PARTIAL" if ok and result == "SKIPPED_ALREADY_RUNNING"
+                              else "PASS" if ok else "FAIL")
             storage = payload.get("storage") if isinstance(payload.get("storage"), dict) else {}
             recovery = storage.get("temporary_recovery") if isinstance(storage.get("temporary_recovery"), dict) else {}
             compact = storage.get("compact_candidate") if isinstance(storage.get("compact_candidate"), dict) else {}
@@ -988,9 +997,9 @@ def backup_tick(base_url: str, secret: str) -> dict:
                               "METADATA", "HASH", "MANIFEST", "PUBLICATION", "RETENTION", "CLEANUP"}
             result_payload = {
                 "backup_http": http_status,
-                "backup_status": "PASS" if ok else "FAIL",
+                "backup_status": receipt_status,
                 "backup_result": result,
-                "backup_created": bool(payload.get("backup_created")),
+                "backup_created": created is True,
                 "backup_error_code": backup_error_code(payload.get("error"), secret),
                 "backup_failure_stage": stage if stage in allowed_stages else "",
                 "backup_temporary_recovered_count": safe_count(recovery.get("recovered_count")),
@@ -1206,7 +1215,7 @@ def overall_status(telegram: dict, continuous: dict, backup: dict) -> str:
         for item, key in ((telegram, "telegram_status"), (continuous, "continuous_status"))
     )
     base = "PASS" if successful == 2 else "PARTIAL" if successful == 1 else "FAIL"
-    if backup.get("backup_status") == "FAIL" and base == "PASS":
+    if backup.get("backup_status") in {"FAIL", "PARTIAL"} and base == "PASS":
         return "PARTIAL"
     return base
 

@@ -84,6 +84,61 @@ def backup_ok(status: str = "PASS", created: bool = True) -> MockResponse:
     return MockResponse({"ok": True, "status": status, "backup_created": created})
 
 
+@pytest.mark.parametrize("receipt,expected,created", [
+    ({"ok": True, "status": "PASS", "backup_created": True}, "PASS", True),
+    ({"ok": True, "result": "OK", "backup_created": True}, "PASS", True),
+    # Actual create_sqlite_backup success has explicit flags, but no status.
+    ({"ok": True, "backup_created": True, "manifest": "synthetic.json"}, "PASS", True),
+    ({"ok": True, "status": "SKIPPED_ALREADY_DONE", "backup_created": False}, "PASS", False),
+    ({"ok": True, "status": "SKIPPED_ALREADY_RUNNING", "backup_created": False}, "PARTIAL", False),
+    ({"ok": False, "backup_created": True, "failure_stage": "CLEANUP"}, "FAIL", True),
+    ({}, "FAIL", False),
+    ({"ok": True, "status": "PASS", "backup_created": False}, "FAIL", False),
+    ({"ok": True, "status": "PASS"}, "FAIL", False),
+    ({"status": "PASS", "backup_created": True}, "FAIL", True),
+    ({"ok": True, "status": "SKIPPED_ALREADY_DONE", "backup_created": True}, "FAIL", True),
+    ({"ok": True, "status": "SKIPPED_ALREADY_RUNNING", "backup_created": True}, "FAIL", True),
+    ({"ok": True, "status": None, "backup_created": True}, "FAIL", True),
+    ({"ok": True, "status": "", "backup_created": True}, "FAIL", True),
+    ({"ok": True, "status": "UNKNOWN", "backup_created": True}, "FAIL", True),
+])
+def test_backup_receipt_requires_explicit_consistent_creation(monkeypatch, receipt, expected, created):
+    calls = []
+    def respond(request, timeout):
+        calls.append((request, timeout))
+        return MockResponse(receipt)
+    monkeypatch.setattr(master.urllib.request, "urlopen", respond)
+    result = master.backup_tick("https://example.invalid", "synthetic-secret")
+    assert result["backup_http"] == 200
+    assert result["backup_status"] == expected
+    assert result["backup_created"] is created
+    assert len(calls) == 1 and calls[0][1] == master.BACKUP_TIMEOUT_SECONDS
+
+
+@pytest.mark.parametrize("field", ["ok", "backup_created"])
+@pytest.mark.parametrize("value", [None, 0, 1, "true", "false", [], {}])
+def test_backup_receipt_rejects_truthy_and_falsey_non_booleans(monkeypatch, field, value):
+    receipt = {"ok": True, "status": "PASS", "backup_created": True, field: value}
+    monkeypatch.setattr(master.urllib.request, "urlopen", lambda *_a, **_kw: MockResponse(receipt))
+    result = master.backup_tick("https://example.invalid", "synthetic-secret")
+    assert result["backup_status"] == "FAIL"
+    assert result["backup_created"] is (receipt["backup_created"] is True)
+
+
+def test_backup_inflight_keeps_master_partial_without_technical_exit(monkeypatch, capsys):
+    code, payload, calls, _ = run_master(
+        monkeypatch, capsys,
+        [telegram_ok(), evolution_ok(), backup_ok("SKIPPED_ALREADY_RUNNING", created=False)],
+        backup_is_due=True,
+    )
+    assert code == 0 and payload["overall"] == "PARTIAL"
+    assert payload["backup_status"] == "PARTIAL"
+    assert payload["backup"]["backup_created"] is False
+    assert len(calls) == 4
+    assert master.overall_status({"telegram_status": "PASS"}, {"continuous_status": "PASS"},
+                                 payload["backup"]) == "PARTIAL"
+
+
 def test_backup_window_is_madrid_and_bounded_in_summer():
     assert master.backup_due("2026-09-26T02:30:00+00:00") is True
     assert master.backup_due("2026-09-26T04:29:59+00:00") is True
