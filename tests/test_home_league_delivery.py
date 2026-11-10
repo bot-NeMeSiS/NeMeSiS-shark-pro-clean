@@ -113,17 +113,20 @@ def test_more_today_grouped_with_logos_and_native_league_navigation(browser, app
     try:
         page.goto('https://league-home.invalid'+page_path)
         agenda=page.locator('[data-home-league-agenda="'+('public-today' if public else 'today')+'"]')
-        # Both Homes allocate two of the existing five slots to the same
-        # featured lane; its remaining three competition cards stay grouped.
-        preview_count=3
+        # Eight accepted highlights share a twelve-card budget with four
+        # ordinary competition cards; the complete thirty remain in Calendar.
+        preview_count=4
         featured=page.locator('[data-home-featured] [data-v934-match-id]')
-        assert featured.count()==2
+        assert featured.count()==8
         assert agenda.locator('[data-v934-match-id]').count() == preview_count
-        assert page.locator('[data-v934-match-id]').count() == 5
+        assert page.locator('[data-v934-match-id]').count() == 12
         assert len(set(page.locator('[data-v934-match-id]').evaluate_all(
-            '(nodes)=>nodes.map(node=>node.dataset.v934MatchId)')))==5
-        assert agenda.locator('.home-competition-group').count() == preview_count
-        assert agenda.locator('.home-competition-header img').count() == preview_count
+            '(nodes)=>nodes.map(node=>node.dataset.v934MatchId)')))==12
+        assert agenda.locator('.home-competition-group').count() == 4
+        assert agenda.locator('.home-competition-header img').count() == 4
+        all_ids = page.locator('[data-v934-match-id]').evaluate_all(
+            'nodes => nodes.map(node => node.dataset.v934MatchId)')
+        assert {int(identity.rsplit('-', 1)[1]) % 6 for identity in all_ids} == set(range(6))
         assert agenda.locator('details').count() == 0
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+1')
         boxes = agenda.locator('.home-competition-group').evaluate_all('(els)=>els.map(e=>{const r=e.getBoundingClientRect();return {top:r.top,bottom:r.bottom,left:r.left,right:r.right}})')
@@ -140,8 +143,8 @@ def test_more_today_grouped_with_logos_and_native_league_navigation(browser, app
         assert len(set(agenda.locator('.home-competition-group').evaluate_all('(els)=>els.map(e=>getComputedStyle(e).borderLeftColor)'))) > 1
         ids=agenda.locator('[data-v934-match-id]').evaluate_all('(els)=>els.map(e=>e.dataset.v934MatchId)')
         assert len(set(ids)) == preview_count
-        for group in agenda.locator('.home-competition-group').all():
-            assert group.locator('[data-v934-match-id]').count() == 1
+        assert sorted(group.locator('[data-v934-match-id]').count()
+                      for group in agenda.locator('.home-competition-group').all()) == [1, 1, 1, 1]
         link=page.locator('.home-league-index a').first
         target=link.get_attribute('href')
         link.focus(); page.keyboard.press('Enter')
@@ -159,7 +162,7 @@ def test_more_today_grouped_with_logos_and_native_league_navigation(browser, app
             page.evaluate('window.scrollTo(0,0)')
             page.screenshot(path=str(out/f'home-{"public" if public else "client"}-{width}.png'),full_page=True)
             page.screenshot(path=str(out/f'home-{"public" if public else "client"}-{width}-viewport.png'))
-        # The preview must not lose the 25 omitted fixtures: follow its actual
+        # The preview must not lose the 18 omitted fixtures: follow its actual
         # dated "all" link into the complete calendar and inspect every identity.
         complete=page.locator('[data-sports-priority="important-today"] .home-agenda-more a')
         assert complete.count()==1
@@ -195,11 +198,11 @@ def test_public_hero_and_grouped_preview_share_global_budget_with_complete_agend
     dom=Structure(markup_for(app_module,public=True))
     agenda=next(n for n in dom.nodes if n['attrs'].get('data-home-league-agenda')=='public-today')
     cards=[n for n in dom.nodes if 'data-v934-match-id' in n['attrs'] and agenda in n['parents']]
-    assert len(cards)==3
-    assert len([n for n in dom.nodes if 'home-competition-group' in n['attrs'].get('class','') and agenda in n['parents']])==3
+    assert len(cards)==4
+    assert len([n for n in dom.nodes if 'home-competition-group' in n['attrs'].get('class','') and agenda in n['parents']])==4
     featured=[n for n in dom.nodes if 'data-v934-match-id' in n['attrs'] and
               any('data-home-featured' in parent['attrs'] for parent in n['parents'])]
-    assert len(featured)==2
+    assert len(featured)==8
     ids=[n['attrs']['data-v934-match-id'] for n in dom.nodes if 'data-v934-match-id' in n['attrs']]
-    assert len(ids)==len(set(ids))==5
+    assert len(ids)==len(set(ids))==12
     assert day_fixture()['today']['total']==30

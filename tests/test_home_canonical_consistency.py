@@ -10,6 +10,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 import os
+import re
 from urllib.parse import quote
 
 from jinja2 import ChoiceLoader, DictLoader, Environment, FileSystemLoader, select_autoescape
@@ -87,7 +88,8 @@ def test_snapshot_owns_cards_and_counter_even_when_cached_summary_disagrees(temp
     assert f'data-sports-live-confirmed="{expected}"' in html
     assert 'cached-expired' not in html
     if template=='home.html':
-        assert ('Partido en directo' in html) is (state=='LIVE')
+        assert 'Grandes partidos de hoy' in html
+        assert bool(re.search(r'<h1[^>]*>En directo ahora', html)) is (state=='LIVE')
         assert ('No hay partidos destacados en directo' in html) is (state!='LIVE')
         assert f'{expected} en directo' in html
     if state!='EMPTY':assert 'data-v934-match-id="current"' in html
@@ -108,7 +110,7 @@ def test_legacy_preview_without_matchday_is_preserved():
     data={'home_summary':{'sports_home':{'live_now':[row('legacy','LIVE')]}},
           'sports_metrics':{'live_confirmed':1}}
     html=render('home.html',data)
-    assert 'data-v934-match-id="legacy"' in html and 'Partido en directo' in html
+    assert 'data-v934-match-id="legacy"' in html and 'En directo ahora' in html
 
 
 def test_locked_client_home_shows_unknown_counts_instead_of_false_zeroes():
@@ -152,7 +154,9 @@ def test_flask_templates_keep_home_consistent(app_module,template,state):
         html=render(template,data,env)
     assert 'cached-expired' not in html
     assert f'data-sports-live-confirmed="{1 if state=="LIVE" else 0}"' in html
-    if template=='home.html':assert ('Partido en directo' in html) is (state=='LIVE')
+    if template=='home.html':
+        assert 'Grandes partidos de hoy' in html
+        assert bool(re.search(r'<h1[^>]*>En directo ahora', html)) is (state=='LIVE')
     if template=='client_app_center.html' and state=='EMPTY':
         assert 'Todavía no hay pronósticos publicados' in html
         assert 'href="/picks"' in html
@@ -217,7 +221,8 @@ def test_browser_coherent_home_with_real_templates_and_css(consistency_browser,w
         assert page.locator('[data-sports-live-confirmed]').get_attribute('data-sports-live-confirmed')==('1' if state=='LIVE' else '0')
         title=page.locator('[data-home-featured-title]')
         assert title.is_visible()
-        assert (title.inner_text()=='Partido en directo') is (state=='LIVE')
+        assert title.inner_text()=='Grandes partidos de hoy'
+        assert ('En directo ahora' in page.locator('h1').inner_text()) is (state=='LIVE')
         assert page.evaluate('document.documentElement.scrollWidth <= innerWidth+2')
         assert not errors and not calls
         out=os.getenv('HOME_CONSISTENCY_QA_OUTPUT')

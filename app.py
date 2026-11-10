@@ -12622,9 +12622,10 @@ def current_user_id():
 
 
 @app.template_filter("home_preview")
-def jinja_home_preview(value, with_hero=True, featured_limit=1, active_first=False):
+def jinja_home_preview(value, with_hero=True, featured_limit=1, active_first=False, *, limit=5, mode="legacy"):
     from engines.home_preview import home_preview
-    return home_preview(value, with_hero=with_hero, featured_limit=featured_limit, active_first=active_first)
+    return home_preview(value, with_hero=with_hero, limit=limit, featured_limit=featured_limit,
+                        active_first=active_first, mode=mode)
 
 
 @app.template_filter("competition_es")
@@ -22727,10 +22728,13 @@ def home_matchday_context(summary, favorites=None, *, now=None, fixture_operatio
         else:
             continue
         eligible[lane].append(row)
-    selected = [row for values in eligible.values()
-                for row in _v991_selected(summary,values,fixture_operation=operation,
-                    rank_for=lambda row: (_sports_match_favorite(row,favorites=favorites),
-                        provider_family(row.get('source'))=='api-football',match_quality_score(row))).rows]
+    # One current identity selection across phases: provider aliases must not
+    # become separate LIVE and upcoming cards for the same confirmed fixture.
+    selected = _v991_selected(summary, [row for values in eligible.values() for row in values],
+        fixture_operation=operation,
+        rank_for=lambda row: (status[id(row)].get('is_live') is True,
+            _sports_match_favorite(row,favorites=favorites),
+            provider_family(row.get('source'))=='api-football',match_quality_score(row))).rows
     result = build_matchday(selected,now=agenda_now,status_for=lambda row:status[id(row)],
         kickoff_for=match_kickoff_madrid_dt,priority_for=sports_competition_priority,
         identity_for=canonical_competition_surface_contract,dedupe_ids=False)

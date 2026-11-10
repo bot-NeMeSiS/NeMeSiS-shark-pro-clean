@@ -5,7 +5,7 @@
 {% from "components/home_featured.html" import home_featured with context %}
 {% block head_extra %}{{ super() }}<link rel="stylesheet" href="{{ url_for('static', filename='home-featured.css') }}?v=2">{% endblock %}
 {% block content %}
-{% set day = data.get("home_matchday")|home_preview(featured_limit=2, active_first=true) %}
+{% set day = data.get("home_matchday")|home_preview(limit=12, featured_limit=8, mode='mixed_today') %}
 {% set agenda_href = day.agenda_href if day else '/calendario' %}
 {% set upcoming_href = day.upcoming_href if day else '/calendario?lane=week' %}
 {% set results_href = day.results_href if day else '/calendario?lane=finished' %}
@@ -120,11 +120,11 @@
 
     <aside class="v933-today-board sports-priority-main-card" aria-label="Prioridad deportiva de hoy">
       <header>
-        <h2 data-home-featured-title>{{ hero_board_title }}</h2>
+        <h2 data-home-featured-title>{{ ui('Grandes partidos de hoy') }}</h2>
         {{ status_chip('QA local' if simulated_evidence else ('Datos disponibles' if summary.get('has_real_data') else 'Agenda pendiente'), 'info' if simulated_evidence else ('success' if summary.get('has_real_data') else 'warning')) }}
       </header>
       {% if hero_match %}
-        {{ home_featured([hero_match] + (day.featured_items[1:] if day is mapping and day.featured_items is defined else []), hero_board_title, day.featured_groups if day is mapping and day.featured_groups is defined else []) }}
+        {{ home_featured([hero_match] + (day.featured_items[1:] if day is mapping and day.featured_items is defined else []), 'Grandes partidos de hoy', day.featured_groups if day is mapping and day.featured_groups is defined else []) }}
       {% else %}
         <div class="v933-safe-copy">{{ safe_message }}</div>
         {{ action_button('Ver próximos partidos', '/calendario?lane=week', true, 'blue', false, 'calendar') }}

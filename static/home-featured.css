@@ -22,6 +22,7 @@ body.ns-app .home-match-featured .v933-match-teams strong{display:block;-webkit-
 .home-match-featured .v933-match-center{display:flex;flex-direction:column;align-items:center;gap:4px;white-space:nowrap}
 .home-match-featured .v933-match-center b,.home-match-featured [data-match-kickoff-clock]{font-variant-numeric:tabular-nums;font-size:clamp(1.35rem,2.1vw,1.9rem);line-height:1.1}
 .home-match-featured .v933-match-center small{font-size:.72rem;opacity:.8}
+body.ns-app .home-match-featured .v933-match-center [data-match-kickoff-zone]{white-space:nowrap;overflow-wrap:normal;word-break:normal}
 .home-match-featured .v933-match-card-footer{display:flex;align-items:stretch;flex-direction:column;gap:12px}
 .home-match-featured .v933-match-card-signals{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
 .home-match-featured .v933-match-card-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}

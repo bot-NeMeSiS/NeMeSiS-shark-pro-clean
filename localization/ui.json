@@ -1,5 +1,6 @@
 {
   "platform_refinement": {
+    "Grandes partidos de hoy": {"en": "Today’s big matches", "fr": "Les grandes affiches du jour"},
     "Avance automático pausado": {
       "en": "Automatic advance paused",
       "fr": "Défilement automatique en pause"

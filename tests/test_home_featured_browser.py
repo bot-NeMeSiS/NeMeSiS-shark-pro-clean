@@ -43,11 +43,8 @@ def _rows(slides):
     if slides == 0:
         return []
     if slides == 1:
-        # A second featured card must not be borrowed from another lane.
-        return [row("owned-live-one", "LIVE")] + [
-            row("owned-next-" + str(index)) for index in range(7)
-        ]
-    return [row("owned-live-" + str(index), "LIVE") for index in range(9)]
+        return [row("owned-live-one", "LIVE")]
+    return [row("owned-live-" + str(index), "LIVE") for index in range(2)]
 
 
 def _markup(a, path, slides, *, rows=None, language='es'):
@@ -169,6 +166,78 @@ def _visible_id(page):
     return visible.locator(CARD).get_attribute("data-v934-match-id")
 
 
+@pytest.mark.parametrize('path', ROUTES)
+@pytest.mark.parametrize('width', [320, 390, 1440])
+def test_mixed_seven_visual_receipt_keeps_each_phase_truth(browser, app_module, path, width, tmp_path):
+    fixtures = [row('visual-live-' + str(i), 'LIVE') for i in range(3)]
+    fixtures += [row('visual-today-' + str(i)) for i in range(4)]
+    with _screen(browser, app_module, path, width, rows=fixtures) as screen:
+        page, trace, _ = screen
+        root = page.locator(FEATURED)
+        assert root.get_attribute('aria-label') == 'Grandes partidos de hoy'
+        assert root.locator(SLIDE).count() == 7
+        root.locator('[data-home-featured-toggle]').click()
+        root.screenshot(path=str(tmp_path / ('mixed-' + str(width) + '-live.png')))
+        while not _visible_id(page).startswith('visual-today-'):
+            root.locator('[data-home-featured-next]').click()
+        page.clock.run_for(250)
+        visible = root.locator(SLIDE + ':visible')
+        assert visible.locator('[data-v934-score]').inner_text() == 'VS'
+        assert visible.locator('[data-match-kickoff-clock]').count() == 1
+        zone = visible.locator('[data-match-kickoff-zone]')
+        assert zone.inner_text() == 'Madrid'
+        assert zone.evaluate('node => getComputedStyle(node).whiteSpace') == 'nowrap'
+        assert zone.evaluate('node => node.scrollWidth <= node.clientWidth + 1')
+        root.screenshot(path=str(tmp_path / ('mixed-' + str(width) + '-today.png')))
+        _assert_clean(page, trace)
+
+
+@pytest.mark.parametrize('path', ROUTES)
+@pytest.mark.parametrize('width', [320, 390, 768, 1440])
+@pytest.mark.parametrize('count', [7, 8, 12])
+def test_mixed_today_carousel_preserves_bounded_unique_fixtures_and_native_links(
+    browser, app_module, path, width, count,
+):
+    fixtures = [row('mixed-live-' + str(i), 'LIVE') for i in range(3)]
+    fixtures += [row('mixed-today-' + str(i)) for i in range(count - 3)]
+    expected_ids = {item['id'] for item in fixtures}
+    with _screen(browser, app_module, path, width, rows=fixtures) as screen:
+        page, trace, _ = screen
+        root = page.locator(FEATURED)
+        ids = page.locator(CARD).evaluate_all(
+            'nodes => nodes.map(node => node.dataset.v934MatchId)')
+        assert len(ids) == len(set(ids)) == count
+        assert set(ids) == expected_ids
+        featured_ids = root.locator(CARD).evaluate_all(
+            'nodes => nodes.map(node => node.dataset.v934MatchId)')
+        assert len(featured_ids) == min(8, count)
+        assert any(identity.startswith('mixed-live-') for identity in featured_ids)
+        assert any(identity.startswith('mixed-today-') for identity in featured_ids)
+        root.locator('[data-home-featured-toggle]').click()
+        assert root.locator('[data-home-featured-toggle]').get_attribute('aria-pressed') == 'true'
+        seen = []
+        for index in range(len(featured_ids)):
+            identity = _visible_id(page)
+            seen.append(identity)
+            hidden = root.locator(SLIDE + '[hidden]')
+            assert hidden.count() == len(featured_ids) - 1
+            assert hidden.evaluate_all('nodes => nodes.every(node => node.inert)')
+            link = root.locator(SLIDE + ':visible a[href="/match/' + identity + '"]')
+            assert link.count() == 1 and link.is_visible()
+            page.clock.run_for(9000)
+            assert _visible_id(page) == identity
+            next_button = root.locator('[data-home-featured-next]')
+            next_button.focus()
+            page.keyboard.press('Enter')
+        assert seen == featured_ids
+        assert _visible_id(page) == featured_ids[0]
+        _assert_clean(page, trace)
+        target = featured_ids[0]
+        root.locator(SLIDE + ':visible a[href="/match/' + target + '"]').click()
+        page.wait_for_url(ORIGIN + '/match/' + target)
+        _assert_clean(page, trace)
+
+
 def _assert_clean(page, trace, *, javascript=True):
     assert not trace["external"], trace
     assert not trace["api"], trace
@@ -198,14 +267,14 @@ def _arm_auto_by_native_mouse_exit(page):
 @pytest.mark.parametrize("width", WIDTHS)
 @pytest.mark.parametrize("slides", [0, 1, 2])
 @pytest.mark.parametrize("javascript", [False, True])
-def test_actual_ssr_has_one_visible_feature_and_a_global_five_id_budget(
+def test_actual_ssr_keeps_empty_single_and_two_card_controls(
     browser, app_module, path, width, slides, javascript,
 ):
     with _screen(browser, app_module, path, width, slides, javascript=javascript) as screen:
         page, trace, owned_ids = screen
         cards = page.locator(CARD)
         ids = cards.evaluate_all("nodes => nodes.map(node => node.dataset.v934MatchId)")
-        assert len(ids) == len(set(ids)) == (5 if slides else 0)
+        assert len(ids) == len(set(ids)) == slides
         assert set(ids).issubset(owned_ids)
         assert "cached-expired" not in ids
         assert page.locator(FEATURED).count() == int(bool(slides))

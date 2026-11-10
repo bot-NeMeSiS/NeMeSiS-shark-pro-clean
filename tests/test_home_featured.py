@@ -32,33 +32,30 @@ class Cards(HTMLParser):
 
 @pytest.mark.parametrize('template', ['home.html', 'client_app_center.html'])
 @pytest.mark.parametrize('state', ['LIVE', 'UPCOMING', 'FINISHED'])
-def test_featured_reuses_the_same_five_ids_without_changing_truth(template, state):
+def test_mixed_feature_preserves_nine_accepted_ids_without_changing_truth(template, state):
     data = data_for([row(str(i), state) for i in range(9)])
     before = deepcopy(data)
     markup = render(template, data)
     cards = Cards(markup)
-    from engines.home_preview import home_preview
-    old = home_preview(data['home_matchday'], with_hero=False)
-    expected = {m['id'] for lane in ('live', 'today', 'upcoming', 'results')
-                for group in old[lane]['groups'] for m in group['matches']}
-    assert len(cards.ids) == len(set(cards.ids)) == 5
-    assert set(cards.ids) == expected
-    assert cards.blocks == 1
-    assert len(cards.slides) == (1 if state == 'FINISHED' else 2)
-    assert 'hidden' not in cards.slides[0]
+    assert len(cards.ids) == len(set(cards.ids)) == 9
+    assert set(cards.ids) == {str(i) for i in range(9)}
+    assert cards.blocks == int(state != 'FINISHED')
+    assert len(cards.slides) == (0 if state == 'FINISHED' else 8)
+    if cards.slides:
+        assert 'hidden' not in cards.slides[0]
     assert all('hidden' in slide for slide in cards.slides[1:])
     assert data == before
-    if len(cards.slides) == 2:
+    if len(cards.slides) > 1:
         assert '<noscript>' in markup
         assert 'data-home-featured-controls hidden' in markup
 
 
 @pytest.mark.parametrize('template', ['home.html', 'client_app_center.html'])
-def test_featured_does_not_take_the_only_fixture_of_another_lane(template):
+def test_featured_mixes_live_and_today_and_keeps_results_separate(template):
     data = data_for([row('live', 'LIVE'), row('upcoming', 'UPCOMING'),
                      row('finished', 'FINISHED')])
     cards = Cards(render(template, data))
-    assert cards.blocks == 1 and len(cards.slides) == 1
+    assert cards.blocks == 1 and len(cards.slides) == 2
     assert set(cards.ids) == {'live', 'upcoming', 'finished'}
 
 
@@ -116,10 +113,12 @@ def test_real_home_prioritizes_active_phase_over_favorite_results(app_module, te
     with app_module.app.test_request_context('/' if template == 'home.html' else '/app'):
         markup = render(template, data, env)
     cards = Cards(markup)
-    assert cards.blocks == 1 and len(cards.slides) == 2
-    assert set(cards.ids) == {'active-' + str(i) for i in range(5)}
-    assert len(cards.ids) == len(set(cards.ids)) == 5
-    assert 'data-v934-match-id="favorite-result"' not in markup
+    assert cards.blocks == int(lane != 'upcoming')
+    assert len(cards.slides) == (0 if lane == 'upcoming' else 5)
+    assert set(cards.ids) == {'active-' + str(i) for i in range(5)} | {'favorite-result'}
+    assert len(cards.ids) == len(set(cards.ids)) == 6
+    assert all('data-v934-match-id="favorite-result"' not in article
+               for _, article in _featured_fragments(markup))
     assert all('href="/match/active-' + str(i) + '"' in markup for i in range(5))
     assert data['home_matchday']['results']['total'] == 1
     assert data == before
@@ -129,7 +128,7 @@ def test_featured_assets_are_bound_without_a_new_polling_transport():
     for template in ('home.html', 'client_app_center.html'):
         source = (ROOT / 'templates' / template).read_text('utf-8')
         assert "filename='home-featured.css'" in source
-        assert 'featured_limit=2' in source
+        assert "featured_limit=8, mode='mixed_today'" in source
     base = (ROOT / 'templates/base.html').read_text('utf-8')
     assert "filename='platform-motion.js') }}?v={{ app_version }}-home-featured-2" in base
     component = (ROOT / 'templates/components/home_featured.html').read_text('utf-8')
@@ -180,17 +179,12 @@ def test_sparse_upcoming_hero_is_not_named_for_a_favorite_finished_elsewhere(app
     assert set(cards.ids) == {'next-one', 'next-two', 'favorite-finished'}
     assert len(cards.ids) == len(set(cards.ids)) == 3
     parts = list(_featured_fragments(markup))
-    assert len(parts) == 2
-    assert all(' hidden' in re.search(r'<span [^>]*data-home-featured-favorite[^>]*>', context)[0]
-               for context, _ in parts)
-    assert {'next-one', 'next-two'} == {
-        re.search(r'data-v934-match-id="([^"]+)"', article)[1]
-        for _, article in parts}
+    assert parts == []  # Tomorrow and finished fixtures remain ordinary cards.
     assert 'Favorito destacado' not in markup
     assert 'Tus favoritos, primero' not in markup
     if template == 'home.html':
-        assert re.search(r'<h1[^>]*>Próximos partidos', markup)
-        assert '<h2 data-home-featured-title>Próximo partido</h2>' in markup
+        assert re.search(r'<h1[^>]*>Tu jornada deportiva', markup)
+        assert '<h2 data-home-featured-title>Grandes partidos de hoy</h2>' in markup
     assert data['home_matchday']['results']['total'] == 1
     assert data == before
 
@@ -231,8 +225,9 @@ def test_featured_reuses_confirmed_zero_score_and_never_fills_missing_time_or_mi
     before = deepcopy(data)
     markup = _native_home_markup(app_module, template, data)
     parts = list(_featured_fragments(markup))
-    assert len(parts) == 1
-    _, article = parts[0]
+    assert len(parts) == int(state != 'FINISHED')
+    article = (parts[0][1] if parts else
+               markup.split('data-v934-match-id="owned-truth"', 1)[1].split('</article>', 1)[0])
     score = re.search(r'<b data-v934-score[^>]*>(.*?)</b>', article, re.S)[1].strip()
     if state == 'UPCOMING':
         assert score == 'VS'
@@ -260,5 +255,5 @@ def test_legacy_upcoming_title_and_card_do_not_follow_a_favorite_result(app_modu
     assert 'data-v934-match-id="legacy-next"' in article
     assert 'data-home-featured-favorite' not in context
     assert re.search(r'<h1[^>]*>Próximos partidos', markup)
-    assert '<h2 data-home-featured-title>Próximo partido</h2>' in markup
+    assert '<h2 data-home-featured-title>Grandes partidos de hoy</h2>' in markup
     assert data == before
