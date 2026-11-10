@@ -46,6 +46,18 @@ def difference_paths(left,right,path="root"):
 
 
 def assert_temporal_parity(left,right,elapsed,path="root"):
+    if path.endswith(".sports_relevance.kickoff_delta_minutes"):
+        # App uses floor((kickoff-real_now)/60). Two sequential real reads can
+        # cross an integer-minute boundary, including negative countdowns.
+        # Only this field may decrease, within the MEASURED interval; all other
+        # relevance, kickoff, status and identity fields retain exact parity.
+        if left is None or right is None:
+            assert left is right,(path,"kickoff presence changed")
+            return
+        assert type(left) is int and type(right) is int,(path,"integer countdown required")
+        assert math.isfinite(elapsed) and elapsed>=0,(path,"invalid real read interval")
+        assert 0 <= left-right <= math.ceil(elapsed/60),(path,"countdown drift outside real read interval")
+        return
     if (path.endswith(".live_age_seconds") or path.endswith(".v935_freshness.age_seconds")) and isinstance(left,int) and not isinstance(left,bool) and isinstance(right,int) and not isinstance(right,bool):
         # Engine age=int(real_now-provider_timestamp), clamped to zero.
         # Real reads are sequential; permit only measured elapsed plus integer rounding.
@@ -71,6 +83,44 @@ def test_freshness_temporal_oracle_preserves_status_and_other_age_fields():
         with pytest.raises(AssertionError):
             assert_temporal_parity(left,{"v935_freshness":{"age_seconds":age,"status":status,"is_stale":stale}},0.5)
     with pytest.raises(AssertionError):assert_temporal_parity({"other":{"age_seconds":30}},{"other":{"age_seconds":31}},0.5)
+
+@pytest.mark.parametrize("left,right,elapsed",[
+    (1265,1264,1.1519627571105957),(0,-1,0.5),(-1,-2,0.01),
+    (1265,1265,0),(2,1,60),(None,None,0.5),
+])
+def test_kickoff_countdown_oracle_accepts_only_bounded_real_minute_steps(left,right,elapsed):
+    assert_temporal_parity({"sports_relevance":{"kickoff_delta_minutes":left}},
+                          {"sports_relevance":{"kickoff_delta_minutes":right}},elapsed)
+
+
+@pytest.mark.parametrize("left,right,elapsed",[
+    (1265,1266,0.5),(1265,1263,1.1519627571105957),(0,-2,0.5),
+    (1265,1264,0),(1,1,float("inf")),(True,True,0.5),
+    (1.0,1.0,0.5),(None,0,0.5),(1,None,0.5),
+])
+def test_kickoff_countdown_oracle_rejects_reverse_excess_drift_and_type_changes(left,right,elapsed):
+    with pytest.raises(AssertionError):
+        assert_temporal_parity({"sports_relevance":{"kickoff_delta_minutes":left}},
+                              {"sports_relevance":{"kickoff_delta_minutes":right}},elapsed)
+
+
+@pytest.mark.parametrize("mutation",["score","status","kickoff"])
+def test_countdown_tolerance_does_not_hide_other_sport_contract_changes(mutation):
+    left={"sports_relevance":{"kickoff_delta_minutes":1265,"score":70},
+          "status":"UPCOMING","kickoff":"synthetic-fixed-kickoff"}
+    right={"sports_relevance":{"kickoff_delta_minutes":1264,"score":70},
+           "status":"UPCOMING","kickoff":"synthetic-fixed-kickoff"}
+    if mutation=="score":right["sports_relevance"]["score"]=71
+    elif mutation=="status":right["status"]="LIVE"
+    else:right["kickoff"]="changed-kickoff"
+    with pytest.raises(AssertionError):assert_temporal_parity(left,right,0.5)
+
+
+def test_countdown_tolerance_does_not_apply_to_other_numeric_fields():
+    with pytest.raises(AssertionError):
+        assert_temporal_parity({"other":{"kickoff_delta_minutes":1265}},
+                              {"other":{"kickoff_delta_minutes":1264}},0.5)
+
 
 @pytest.mark.parametrize("role",["anonymous","free","pro","elite","admin"])
 @pytest.mark.parametrize("state",["upcoming","live","empty"])

@@ -165,6 +165,7 @@ jobs:
           for test_file in \
             tests/test_render_cron_master_tick.py \
             tests/test_cron_incident_hotfix.py \
+            tests/test_companyos_legacy_transition.py \
             tests/test_companyos_scheduler_lock.py \
             tests/test_native_workforce_scheduler.py \
             tests/test_native_workforce_review.py \
