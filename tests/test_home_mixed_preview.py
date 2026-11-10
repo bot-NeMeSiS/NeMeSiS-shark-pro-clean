@@ -60,6 +60,15 @@ def test_sport_rank_precedes_row_position_and_single_slot_takes_best_rank():
     assert [r['id'] for r in preview(day)['featured_items']] == ['b', 'c', 'a']
 
 
+def test_ordinary_round_robin_keeps_remaining_primary_rows_before_secondary_filler():
+    from test_home_matchday import LEAGUES
+    majors = [match(f'major-{i}-{j}', league) for i, league in enumerate(LEAGUES) for j in range(2)]
+    secondary = [match(f'minor-{i}', (f'small-{i}', f'Minor {i}', 'Spain')) for i in range(10)]
+    result = preview(build(majors + secondary))
+    assert len(result['featured_items']) == 8
+    assert {r['id'] for r in displayed(result)} == {r['id'] for r in majors}
+
+
 @pytest.mark.parametrize('now', [datetime(2026, 3, 29, 0, 45, tzinfo=timezone.utc),
                                datetime(2026, 10, 25, 1, 15, tzinfo=timezone.utc),
                                datetime(2026, 11, 10, 23, 5, tzinfo=ZoneInfo('Europe/Madrid'))])
@@ -91,6 +100,22 @@ def test_legacy_default_and_no_hero_are_explicit():
     assert len(displayed(no_hero)) == 10
     with pytest.raises(ValueError):
         home_preview(day, mode='unexpected')
+
+
+@pytest.mark.parametrize('case', ['tomorrow', 'finished', 'secondary'])
+def test_available_ordinary_fixtures_do_not_claim_an_empty_public_agenda(case):
+    from test_home_canonical_consistency import render
+    league = ('small', 'Minor competition', 'Spain') if case == 'secondary' else None
+    options = {'hours': 24} if case == 'tomorrow' else (
+        {'state': 'finished', 'hours': -2} if case == 'finished' else {})
+    fixture = match('ordinary-available', league, **options) if league else match('ordinary-available', **options)
+    day = build([fixture])
+    assert preview(day)['featured_items'] == []
+    html = render('home.html', {'home_matchday': day})
+    assert 'data-v934-match-id="ordinary-available"' in html
+    assert 'No hay partidos destacados para hoy. Consulta la agenda completa.' in html
+    assert 'Consulta la agenda completa por ligas y fechas.' in html
+    assert 'Todavía no hay partidos disponibles para esta jornada.' not in html
 
 
 def test_prepared_aliases_across_live_today_share_one_actual_selection(app_module, monkeypatch):

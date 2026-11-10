@@ -12622,10 +12622,10 @@ def current_user_id():
 
 
 @app.template_filter("home_preview")
-def jinja_home_preview(value, with_hero=True, featured_limit=1, active_first=False, *, limit=5, mode="legacy"):
+def jinja_home_preview(value, with_hero=True, featured_limit=1, active_first=False, *, limit=5, mode="legacy", relevance_candidates=()):
     from engines.home_preview import home_preview
     return home_preview(value, with_hero=with_hero, limit=limit, featured_limit=featured_limit,
-                        active_first=active_first, mode=mode)
+                        active_first=active_first, mode=mode, relevance_candidates=relevance_candidates)
 
 
 @app.template_filter("competition_es")

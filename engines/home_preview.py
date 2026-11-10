@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 LANES = ('live', 'today', 'upcoming', 'results')
 
 
-def home_preview(day, with_hero=True, limit=5, *, featured_limit=1, active_first=False, mode='legacy'):
+def home_preview(day, with_hero=True, limit=5, *, featured_limit=1, active_first=False, mode='legacy', relevance_candidates=()):
     """Keep counts and source truth; never fetch, refresh or mutate the snapshot.
 
     By default LIVE wins, then favorites, then the existing canonical lane order.
@@ -16,11 +16,14 @@ def home_preview(day, with_hero=True, limit=5, *, featured_limit=1, active_first
     chosen rows. Results retain one static hero; other lanes keep their slots.
     Active-first presentation exhausts LIVE, today and upcoming in that order
     before results, with favorites ranked only within their existing lane.
+    Mixed-today is an explicit8-feature/12-total opt-in. Supplied display
+    relevance is retained only for the same fixture and accepted lifecycle.
     """
     if type(active_first) is not bool:
         raise ValueError('active_first must be a bool')
     if mode == 'mixed_today':
-        return _mixed_today_preview(day, with_hero=with_hero, limit=limit, featured_limit=featured_limit)
+        selected = _mixed_today_preview(day, with_hero=with_hero, limit=limit, featured_limit=featured_limit)
+        return _retain_current_relevance(selected, relevance_candidates)
     if mode != 'legacy':
         raise ValueError('unknown Home preview mode')
     if not isinstance(day, Mapping):
@@ -171,7 +174,9 @@ def _mixed_today_preview(day, *, with_hero, limit, featured_limit):
                      for pos, row in enumerate(group.get('matches') or ())]
         # Preserve the existing cross-league round robin in the ordinary list;
         # eight featured fixtures must not monopolize the twelve-card preview.
-        for _, _, group, row in sorted(remaining, key=lambda entry: entry[:2]):
+        for _, _, group, row in sorted(remaining, key=lambda entry: (
+                not (entry[2].get('home_primary') or entry[3].get('is_favorite') is True),
+                entry[0], entry[1])):
             if len(featured) + len(extra) >= limit:
                 break
             identity = str(row.get('id') or '').strip()
@@ -201,4 +206,48 @@ def _mixed_today_preview(day, *, with_hero, limit, featured_limit):
         displayed = shown + sum(e[1] == lane for e in featured)
         result[lane] = dict(original, groups=groups, shown=shown, preview_displayed=displayed,
                             has_more=int(original.get('total') or 0) > displayed)
+    return result
+
+
+def _retain_current_relevance(day, candidates):
+    """Carry only the same fixture's current display bucket, never old truth.
+
+    A tomorrow fixture leaving the hero still keeps its existing relevance in
+    the ordinary list. Exact IDs plus matching accepted lifecycle are required;
+    no score, label, clock, row or provider alias is copied from cached metadata.
+    """
+    if not isinstance(day, Mapping) or not candidates:
+        return day
+    indexed = {}
+    for candidate in candidates:
+        if isinstance(candidate, Mapping):
+            indexed.setdefault(str(candidate.get('id') or ''), []).append(candidate)
+    def retain(row):
+        if not isinstance(row, Mapping):
+            return row
+        own = row.get('sports_relevance') or {}
+        if row.get('sports_relevance_bucket') or (isinstance(own, Mapping) and own.get('bucket')):
+            return row
+        state = row.get('status_info') or {}
+        if not isinstance(state, Mapping):
+            return row
+        for candidate in indexed.get(str(row.get('id') or ''), ()):
+            relevance = candidate.get('sports_relevance') or {}
+            if not isinstance(relevance, Mapping):
+                continue
+            if relevance.get('is_stale') is not False or relevance.get('status_conflict') is not False:
+                continue
+            if any(relevance.get(key) != state.get(key, False)
+                   for key in ('is_live', 'is_upcoming', 'is_finished')):
+                continue
+            bucket = candidate.get('sports_relevance_bucket') or relevance.get('bucket')
+            if bucket in ('PRIORITY', 'STANDARD', 'LOW_PRIORITY', 'UNKNOWN'):
+                return dict(row, sports_relevance_bucket=bucket)
+        return row
+    result = dict(day, hero=retain(day.get('hero')),
+                  featured_items=[retain(row) for row in day.get('featured_items', ())])
+    for lane in LANES:
+        original = day.get(lane) or {}
+        result[lane] = dict(original, groups=[dict(group, matches=[retain(row) for row in group.get('matches', ())])
+                                            for group in original.get('groups', ())])
     return result

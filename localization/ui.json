@@ -1,6 +1,8 @@
 {
   "platform_refinement": {
     "Grandes partidos de hoy": {"en": "Today’s big matches", "fr": "Les grandes affiches du jour"},
+    "No hay partidos destacados para hoy. Consulta la agenda completa.": {"en": "No featured matches today. See the full schedule.", "fr": "Aucun match à la une aujourd’hui. Consultez le calendrier complet."},
+    "Consulta la agenda completa por ligas y fechas.": {"en": "Browse the full schedule by league and date.", "fr": "Consultez le calendrier complet par ligue et par date."},
     "Avance automático pausado": {
       "en": "Automatic advance paused",
       "fr": "Défilement automatique en pause"

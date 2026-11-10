@@ -40,13 +40,14 @@ def test_client_has_one_canonical_active_destination_without_losing_home(app_mod
 
 
 @pytest.mark.parametrize('language',['es','en','fr'])
-def test_client_home_has_five_unique_fixtures_total_and_links_for_undisplayed_lanes(app_module,language):
+def test_client_home_has_ten_unique_accepted_fixtures_and_complete_lane_links(app_module,language):
     rows=[match('live-'+str(i), hours=-.5, state='live') for i in range(8)]
     rows += [match('tomorrow',hours=24),match('done',hours=-4,state='finished')]
     day=build(rows)
     dom=Structure(render_home(app_module,{'home_matchday':day},language))
     ids=[n['attrs']['data-v934-match-id'] for n in dom.nodes if 'data-v934-match-id' in n['attrs']]
-    assert len(ids) == len(set(ids)) == 5
+    assert len(ids) == len(set(ids)) == 10
+    assert set(ids) == {'live-'+str(i) for i in range(8)} | {'tomorrow', 'done'}
     assert day['live']['total'] == 8
     links=[n['attrs'].get('href') for n in dom.nodes if n['tag']=='a']
     from urllib.parse import urlsplit,parse_qs
@@ -66,7 +67,7 @@ def test_public_home_hero_consumes_one_slot_without_duplicate_or_false_empty(app
         html=env.get_template('home.html').render(data={'home_matchday':day},current_user=None)
     dom=Structure(html)
     ids=[n['attrs']['data-v934-match-id'] for n in dom.nodes if 'data-v934-match-id' in n['attrs']]
-    assert len(ids)==len(set(ids))==5
+    assert len(ids)==len(set(ids))==8
     assert 'No hay partidos destacados en directo' not in html
     assert day['live']['total']==8
 

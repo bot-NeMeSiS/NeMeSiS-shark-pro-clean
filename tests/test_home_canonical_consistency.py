@@ -164,11 +164,14 @@ def test_flask_templates_keep_home_consistent(app_module,template,state):
 
 @pytest.mark.parametrize('case,expected', [
     ('current', 'PRIORITY'), ('wrong_match', None), ('wrong_state', None),
-    ('stale', None), ('conflict', None), ('unrecognized', None),
+    ('stale', None), ('conflict', None), ('unrecognized', None), ('zero_stale', None),
     ('canonical_has_bucket', 'STANDARD'),
 ])
-def test_featured_priority_preserves_only_same_fixture_current_metadata(case,expected):
+@pytest.mark.parametrize('phase', ['today', 'tomorrow'])
+def test_featured_priority_preserves_only_same_fixture_current_metadata(case,expected,phase):
     fixture=row('current','UPCOMING')
+    if phase == 'tomorrow':
+        fixture['kickoff_iso'] = (datetime.fromisoformat(fixture['kickoff_iso']) + timedelta(days=1)).isoformat()
     if case=='canonical_has_bucket':fixture['sports_relevance_bucket']='STANDARD'
     data=data_for([fixture],old_count=0)
     candidate={**fixture,'home_team':'OLD TEAM LABEL MUST NOT LEAK',
@@ -179,15 +182,18 @@ def test_featured_priority_preserves_only_same_fixture_current_metadata(case,exp
     if case=='wrong_match':candidate['id']='other-match'
     elif case=='wrong_state':candidate['sports_relevance'].update(is_live=True,is_upcoming=False)
     elif case=='stale':candidate['sports_relevance']['is_stale']=True
+    elif case=='zero_stale':candidate['sports_relevance']['is_stale']=0
     elif case=='conflict':candidate['sports_relevance']['status_conflict']=True
     elif case=='unrecognized':candidate['sports_relevance_bucket']='<script>unsafe</script>'
     data['home_summary']['sports_home']['upcoming']=[candidate]
     before=deepcopy(data)
     html=render('home.html',data)
+    assert 'data-v934-match-id="current"' in html
+    article=html.split('data-v934-match-id="current"',1)[1].split('</article>',1)[0]
+    if expected:assert f'data-sports-relevance="{expected}"' in article
+    else:assert 'data-sports-relevance=' not in article
     board=html.split('<aside class="v933-today-board',1)[1].split('</aside>',1)[0]
-    assert 'data-v934-match-id="current"' in board
-    if expected:assert f'data-sports-relevance="{expected}"' in board
-    else:assert 'data-sports-relevance=' not in board
+    assert ('data-v934-match-id="current"' in board) is (phase == 'today')
     assert 'OLD TEAM LABEL MUST NOT LEAK' not in html
     assert 'other-match' not in html and 'Partido en directo' not in html
     assert 'unsafe' not in html
