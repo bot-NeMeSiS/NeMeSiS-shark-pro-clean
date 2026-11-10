@@ -120,6 +120,7 @@ jobs:
             --ignore=tests/test_v1000_home_motion_browser.py
             --ignore=tests/test_marine_visual_polish_browser.py
             --ignore=tests/test_home_source_metrics_read.py
+            --ignore=tests/test_calendar_provider_status_read.py
             --ignore=tests/test_v1000_ui_accessibility_browser.py
             --ignore=tests/test_founder_obligation_journey.py
             --ignore=tests/test_project_control_http.py
@@ -180,6 +181,7 @@ jobs:
             tests/test_v1000_home_motion_browser.py \
             tests/test_marine_visual_polish_browser.py \
             tests/test_home_source_metrics_read.py \
+            tests/test_calendar_provider_status_read.py \
             tests/test_v1000_ui_accessibility_browser.py \
             tests/test_founder_obligation_journey.py
           do
