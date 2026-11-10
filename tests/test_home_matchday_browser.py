@@ -79,12 +79,11 @@ def test_matchday_is_visible_diverse_and_navigable(browser,app_module,width,lang
         else:
             assert abs(group_positions[1]['x']-group_positions[0]['x'])<=2
             assert group_positions[1]['y']>group_positions[0]['y']
-        from engines.home_preview import home_preview
-        preview=home_preview(day,with_hero=False)
-        expected_ids=[row['id'] for lane in ('live','today','upcoming','results')
-                      for group in preview[lane]['groups'] for row in group['matches']]
-        assert len(expected_ids)==len(set(expected_ids))==5
-        assert page.locator('[data-v934-match-id]').count()==5
+        # Tomorrow and the confirmed result remain ordinary accepted cards;
+        # neither is borrowed to fill a today's-only carousel.
+        expected_ids={'qa-'+league[0] for league in LEAGUES} | {'final-qa'}
+        assert page.locator('[data-v934-match-id]').count()==7
+        assert page.locator('[data-home-featured]').count()==0
         for identity in expected_ids:
             card=page.locator('[data-v934-match-id="'+identity+'"]')
             assert card.count()==1
