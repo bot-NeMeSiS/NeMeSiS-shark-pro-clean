@@ -162,6 +162,11 @@ jobs:
           (evidence / 'source-commit.txt').write_text(os.environ['GITHUB_SHA'] + '\n', encoding='utf-8')
           print(f'Browser cases executed successfully: {len(browser_cases)}')
           PY
+      - name: Directo and match fields on actual guarded App HTML
+        run: |
+          python -B tools/check_v991_app_read_paths.py --output-dir "$NEMESIS_JOURNEY_EVIDENCE_DIR/directo-app" -v
+          python -B tools/check_directo_match_browser.py --repo-root . --receipt-dir "$NEMESIS_JOURNEY_EVIDENCE_DIR/directo-app" --output-dir "$NEMESIS_JOURNEY_EVIDENCE_DIR/directo-browser"
+          python -B tools/check_directo_match_browser.py --repo-root . --receipt-dir "$NEMESIS_JOURNEY_EVIDENCE_DIR/directo-app" --output-dir "$NEMESIS_JOURNEY_EVIDENCE_DIR/directo-recovery" --recovery-only
       - name: Upload isolated evidence
         uses: actions/upload-artifact@v7
         if: always()

@@ -230,6 +230,224 @@ class LiveMinimalContracts(unittest.TestCase):
         self.assertTrue(all(type(value) is int and value==0 for value in identity['general']['counts'].values()))
         self.assertIn('No hay partidos para este estado', response.get_data(as_text=True))
 
+    def test_06_expired_observations_remain_accessible_without_live_authority(self):
+        # Advance only this isolated fixture's source age; production clock and
+        # lease policy remain real and unchanged.
+        from datetime import timedelta
+        observed = self.r.observed
+        try:
+            self.r.observed = self.r.now - timedelta(minutes=5)
+            self.r.seed(live=True)
+            for role in self.r.clients:
+                with self.subTest(role=role), self.captured() as contexts:
+                    response, _, _ = self.r.request({'f':'live'}, role=role, path='/directo',
+                                                    headers={'Accept-Language':'es'})
+                    self.assertEqual(response.status_code, 200)
+                    data = contexts[-1]
+                    experience = data['live_experience']
+                    self.assertEqual(experience['sports_metrics']['live_confirmed'], 0)
+                    self.assertEqual(experience['matches'], [])
+                    observations = experience.get('retained_observations') or []
+                    self.assertEqual(len(observations), 2,
+                        'Expired own observations must remain accessible separately from LIVE members')
+                    html = response.get_data(as_text=True)
+                    self.assertIn('data-directo-retained-observations', html)
+                    self.assertIn('Última observación', html)
+                    if role=='anonymous':
+                        (self.r.out/'directo-retained.html').write_text(html,encoding='utf-8')
+                    self.assertNotIn('No hay partidos para este estado', html)
+                    for observation in observations:
+                        state = observation['realtime_state']
+                        self.assertFalse(state['is_live'])
+                        self.assertTrue(state['is_stale'])
+                        self.assertEqual(state['live_valid_until_madrid'], '')
+                        self.assertEqual(state['provider_observed_at'], self.r.observed.isoformat())
+                        self.assertTrue('/match/'+observation['id'] in html, 'Missing retained observation detail link')
+                        self.assertNotIn(observation['id'], [
+                            item['id'] for item in experience['fixture_bootstrap']['matches']])
+                    self.details.append({'role':role, 'live_count':0,
+                        'retained_ids':[item['id'] for item in observations]})
+        finally:
+            self.r.observed = observed
+
+    def test_07_fresh_canonical_sibling_suppresses_expired_duplicate(self):
+        from datetime import timedelta
+        observed = self.r.observed
+        try:
+            self.r.observed = self.r.now - timedelta(minutes=5)
+            self.r.seed(live=True)
+            fresh = (self.r.now-timedelta(seconds=20)).isoformat()
+            with closing(sqlite3.connect(self.r.db)) as conn, conn:
+                conn.execute("UPDATE matches SET updated_at=?,last_synced_at=? WHERE id=?",
+                             (fresh,fresh,'sdb-901002'))
+            self.r.business_before = self.r.table_hashes()
+            self.r.invalidate()
+            with self.captured() as contexts:
+                response, _, _ = self.r.request({'f':'live'}, path='/directo')
+            self.assertEqual(response.status_code, 200)
+            live = contexts[-1]['live_experience']
+            self.assertEqual([row['id'] for row in live['matches']], ['sdb-901002'])
+            self.assertEqual([row['id'] for row in live['retained_observations']], ['sdb-901003'])
+            self.assertEqual(live['sports_metrics']['live_confirmed'], 1)
+            self.details.append({'fresh':'sdb-901002','retained':['sdb-901003'],'expired_sibling_suppressed':True})
+        finally:
+            self.r.observed = observed
+
+    def test_08_retained_filters_and_future_clock_fail_closed(self):
+        from datetime import timedelta
+        observed = self.r.observed
+        try:
+            self.r.observed = self.r.now-timedelta(minutes=5)
+            self.r.seed(live=True)
+            for params, count in (({'f':'live','q':'not-a-real-qa-team'},0),
+                                  ({'f':'break'},0),({'f':'with_pick'},0)):
+                with self.subTest(params=params), self.captured() as contexts:
+                    response, _, _ = self.r.request(params,path='/directo')
+                    self.assertEqual(response.status_code,200)
+                    live=contexts[-1]['live_experience']
+                    # Expired picks are deliberately removed by the existing
+                    # safe producer; retention cannot invent active-pick authority.
+                    if params.get('f')=='with_pick':
+                        self.assertEqual(contexts[-1]['v934_realtime']['counts']['picks'],0)
+                    self.assertEqual(len(live['retained_observations']),count)
+                    self.assertEqual(live['sports_metrics']['live_confirmed'],0)
+            self.r.observed = self.r.now+timedelta(minutes=5)
+            self.r.seed(live=True)
+            with self.captured() as contexts:
+                response, _, _ = self.r.request({'f':'live'},path='/directo')
+            self.assertEqual(response.status_code,200)
+            self.assertEqual(contexts[-1]['live_experience']['retained_observations'],[])
+            self.details.append({'query_and_lane_filters':True,'future_clock_retained':False})
+        finally:
+            self.r.observed = observed
+
+    def test_09_actual_route_recovers_then_halftime_then_finishes_without_old_copy(self):
+        from datetime import timedelta
+        observed = self.r.observed
+        try:
+            self.r.observed=self.r.now-timedelta(minutes=5)
+            self.r.seed(live=True)
+            with self.captured() as contexts:
+                response, _, _=self.r.request({'f':'live'},path='/directo')
+            self.assertEqual(response.status_code,200)
+            self.assertEqual(len(contexts[-1]['live_experience']['retained_observations']),2)
+            self.r.observed=observed
+            self.r.seed(live=True)
+            phases=[]
+            for status,lane,canonical in (('LIVE','live','LIVE'),('HT','break','HALFTIME'),('FT','finished','FINISHED')):
+                with closing(sqlite3.connect(self.r.db)) as conn,conn:
+                    for identifier,source,raw in conn.execute('SELECT id,source,raw_json FROM matches').fetchall():
+                        payload=json.loads(raw)
+                        short={'LIVE':'1H','HT':'HT','FT':'FT'}[status]
+                        if source=='api_football_live':
+                            payload['fixture']['status']={'short':short,'elapsed':45 if status=='HT' else 90 if status=='FT' else 20}
+                        else:
+                            payload['strStatus']=short
+                        conn.execute('UPDATE matches SET status=?,raw_json=? WHERE id=?',
+                                     (status,json.dumps(payload),identifier))
+                self.r.business_before=self.r.table_hashes()
+                self.r.invalidate()
+                with self.captured() as contexts:
+                    response, _, _=self.r.request({'f':lane},path='/directo')
+                self.assertEqual(response.status_code,200)
+                live=contexts[-1]['live_experience']
+                self.assertEqual(live['retained_observations'],[])
+                self.assertEqual(len(live['matches']),2)
+                ids=[row['id'] for row in live['matches']]
+                self.assertEqual(len(set(ids)),2)
+                for row in live['matches']:
+                    state=row['realtime_state']
+                    self.assertEqual(state['status_canonical'],canonical)
+                    self.assertEqual(state['provider_observed_at'],observed.isoformat())
+                    self.assertEqual(state['is_live'],status!='FT')
+                    if status=='FT':
+                        self.assertIsNone(state['minute'])
+                        self.assertEqual(state['live_valid_until_madrid'],'')
+                self.assertEqual(live['sports_metrics']['live_confirmed'],0 if status=='FT' else 2)
+                (self.r.out/('directo-'+status.lower()+'.html')).write_text(response.get_data(as_text=True),encoding='utf-8')
+                phases.append({'status':status,'ids':ids,'retained':0})
+            self.details.append({'real_route_transitions':phases})
+        finally:
+            self.r.observed=observed
+
+    def test_10_actual_match_route_exposes_seven_field_availability(self):
+        for role in self.r.clients:
+            with self.subTest(role=role):
+                response, _, _=self.r.request({},role=role,path='/match/af-901001',
+                                               headers={'Accept-Language':'es'})
+                self.assertEqual(response.status_code,200)
+                html=response.get_data(as_text=True)
+                self.assertIn('data-match-field-availability',html)
+                fields=re.findall(r'data-match-field="([^"]+)"',html)
+                self.assertEqual(fields,['score','minute','events','lineups','formation','players','statistics'])
+                if role=='anonymous':
+                    (self.r.out/'match-fields.html').write_text(html,encoding='utf-8')
+                self.details.append({'match_fields_real_route':role,'fields':fields})
+
+    def test_11_actual_old_and_new_observations_export_browser_recovery_pair(self):
+        from datetime import datetime,timedelta
+        observed=self.r.observed
+        try:
+            self.r.observed=datetime.now(self.a.MADRID_TZ)-timedelta(seconds=110)
+            self.r.seed(live=True)
+            with self.captured() as contexts:
+                response, _, _=self.r.request({'f':'live'},path='/directo')
+            self.assertEqual(response.status_code,200)
+            initial=contexts[-1]['live_experience']
+            self.assertEqual(len(initial['matches']),2)
+            (self.r.out/'directo-before-recovery.html').write_text(response.get_data(as_text=True),encoding='utf-8')
+            old={row['id']:row['realtime_state']['provider_observed_at'] for row in initial['matches']}
+            self.r.observed=datetime.now(self.a.MADRID_TZ)-timedelta(seconds=5)
+            self.r.seed(live=True)
+            response,payload,_=self.r.request({'scope':'matches','consumer':'directo-v2','lane':'live','query':''})
+            self.assertEqual(response.status_code,200)
+            self.assertEqual(payload['counts']['live'],2)
+            for row in payload['matches']:
+                self.assertGreater(row['realtime_state']['provider_observed_at'],
+                    min(old.values()))
+            (self.r.out/'directo-recovery-payload.json').write_text(json.dumps(payload,ensure_ascii=False),encoding='utf-8')
+            self.details.append({'actual_old_and_new_provider_clocks':True,'old':old,
+                'new':[row['realtime_state']['provider_observed_at'] for row in payload['matches']]})
+        finally:
+            self.r.observed=observed
+
+    def test_12_retained_callback_identity_mutation_cannot_reuse_old_group(self):
+        from datetime import timedelta
+        observed=self.r.observed
+        try:
+            self.r.observed=self.r.now-timedelta(minutes=5)
+            self.r.seed(live=True)
+            with self.r.context('/directo'):
+                summary=self.a.get_public_home_sports_summary()
+                operation=self.a._v991_operation_for(summary)
+                self.assertIsNotNone(operation)
+                row=next(row for row in summary['retained_live_observations'] if row['id']=='af-901001')
+                self.assertEqual(operation.snapshot.context_for(row).state,'RESOLVED')
+                projection=self.a._v991_realtime_projection(summary,lane='live',query='')
+                mutated=[]
+                def adversary(frame,event,arg):
+                    if event=='return' and frame.f_code is self.a.match_quality_score.__code__ and not mutated:
+                        row['home_canonical_team_id']='synthetic-retained-after-ranking'
+                        mutated.append(True)
+                previous=sys.getprofile()
+                self.assertIsNone(previous)
+                sys.setprofile(adversary)
+                try:
+                    result=self.a.v931_live_context(summary,lane='live',query='',fixture_projection=projection)
+                finally:
+                    sys.setprofile(previous)
+                self.assertEqual(mutated,[True])
+                self.assertEqual(operation.snapshot.context_for(row).state,'UNKNOWN_IDENTITY_CHANGED')
+                observations=result['retained_observations']
+                self.assertEqual({item['id'] for item in observations},{row['id'] for row in self.r.rows})
+                self.assertEqual(len(observations),3)
+                for item in observations:
+                    self.assertFalse(item['realtime_state']['is_live'])
+                    self.assertEqual(item['realtime_state']['provider_observed_at'],self.r.observed.isoformat())
+                self.details.append({'retained_callback_real':True,'identity_state':'UNKNOWN_IDENTITY_CHANGED','independent_observations':3})
+        finally:
+            self.r.observed=observed
+
 
 def run_live_contracts(runtime):
     LiveMinimalContracts.runtime = runtime
