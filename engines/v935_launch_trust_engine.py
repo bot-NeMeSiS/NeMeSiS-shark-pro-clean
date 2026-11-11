@@ -213,7 +213,9 @@ def _status_values(item: dict[str, Any]) -> list[tuple[str, str]]:
         "strStatus", "strProgress", "progress",
         "safe_status", "client_status_label", "live_status_label", "calendar_status",
     ):
-        add(field, item.get(field))
+        value = item.get(field)
+        if value is not None:
+            add(field, value)
 
     status_info = item.get("status_info")
     if isinstance(status_info, dict):
@@ -229,7 +231,9 @@ def _status_values(item: dict[str, Any]) -> list[tuple[str, str]]:
 
     fixture = item.get("fixture")
     if isinstance(fixture, dict):
-        add("fixture.status", fixture.get("status"))
+        value = fixture.get("status")
+        if value is not None:
+            add("fixture.status", value)
 
     for payload_field in ("raw_json", "payload_json"):
         raw = item.get(payload_field)
@@ -242,10 +246,14 @@ def _status_values(item: dict[str, Any]) -> list[tuple[str, str]]:
         if not isinstance(payload, dict):
             continue
         for key in ("status", "strStatus", "strProgress", "progress", "match_status", "fixture_status"):
-            add(f"{payload_field}.{key}", payload.get(key))
+            value = payload.get(key)
+            if value is not None:
+                add(f"{payload_field}.{key}", value)
         nested_fixture = payload.get("fixture")
         if isinstance(nested_fixture, dict):
-            add(f"{payload_field}.fixture.status", nested_fixture.get("status"))
+            value = nested_fixture.get("status")
+            if value is not None:
+                add(f"{payload_field}.fixture.status", value)
 
     deduped: list[tuple[str, str]] = []
     seen: set[tuple[str, str]] = set()
