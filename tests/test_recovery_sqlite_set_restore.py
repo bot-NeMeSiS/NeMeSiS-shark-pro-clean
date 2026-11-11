@@ -1,5 +1,6 @@
 """Closed restore receipts plus native owned snapshot restores, never live data."""
 from copy import deepcopy
+from contextlib import closing
 from dataclasses import replace
 from pathlib import Path
 import sqlite3
@@ -73,7 +74,7 @@ def test_native_all_members_restored_from_same_sealed_snapshots(tmp_path):
         for member, expected in zip(restored.members,captured.bundle.sqlite.members):
             assert member.worker_receipt['deadline']==deadline
             assert (workspace/member.relative).read_bytes()==(plan.sqlite.publication/expected.backup_file).read_bytes()
-            with sqlite3.connect('file:'+str(workspace/member.relative)+'?mode=ro',uri=True) as db:
+            with closing(sqlite3.connect('file:'+str(workspace/member.relative)+'?mode=ro',uri=True)) as db:
                 assert db.execute('SELECT source_id FROM owned_rows').fetchall()==[(expected.source_id,)]
             assert member.worker_receipt['live_source_capture_calls']==0
         restored.verify_before_app(deadline)
@@ -193,3 +194,48 @@ def test_app_binding_keeps_each_member_instead_of_fictitious_single_digest(tmp_p
     assert 'backup_name' not in result
     assert 'sqlite_sha256' not in result
     assert result['auxiliary_sqlite_consumers_verified'] is False
+
+
+
+def test_directory_children_do_not_change_the_admitted_origin(monkeypatch):
+    from types import SimpleNamespace
+    import stat
+    monkeypatch.setattr(restore.os, 'geteuid', lambda:1001, raising=False)
+    fields=dict(st_dev=1,st_ino=25,st_mode=stat.S_IFDIR|0o700,st_uid=1001,st_gid=1001)
+    before=SimpleNamespace(**fields,st_nlink=2,st_mtime_ns=10,st_ctime_ns=10)
+    after=SimpleNamespace(**fields,st_nlink=5,st_mtime_ns=20,st_ctime_ns=20)
+    assert restore._workspace_origin(before)==restore._workspace_origin(after)
+    assert restore._workspace_origin(before)!=(1,26,fields['st_mode'],1001,1001)
+
+
+@pytest.mark.parametrize('field,value',[('st_mode',0o40750),('st_uid',1002)])
+def test_directory_privacy_and_owner_still_enforced(monkeypatch,field,value):
+    from types import SimpleNamespace
+    import stat
+    monkeypatch.setattr(restore.os, 'geteuid', lambda:1001, raising=False)
+    fields=dict(st_dev=1,st_ino=25,st_mode=stat.S_IFDIR|0o700,st_uid=1001,st_gid=1001)
+    fields[field]=value
+    with pytest.raises(restore.SqliteSetRestoreError,match='PRIVATE_RESTORE_WORKSPACE_REQUIRED'):
+        restore._workspace_origin(SimpleNamespace(**fields))
+
+
+@native
+def test_native_workspace_replacement_still_denied_after_child_creation(tmp_path):
+    plan=complete_plan(tmp_path)
+    captured=capture_set_with_state(plan=plan,deadline=time.monotonic()+30)
+    assert captured.ok is True, captured.state_result
+    workspace=tmp_path/'.isolated_restore_327_workspace_origin'
+    workspace.mkdir(mode=0o700)
+    workspace.chmod(0o700)
+    deadline=time.monotonic()+30
+    with restore.restore_all_members(bundle=captured.bundle,workspace=workspace,deadline=deadline) as restored:
+        (workspace/'source').mkdir(mode=0o700)
+        (workspace/'scratch').mkdir(mode=0o700)
+        restored.verify_before_app(deadline)
+        preserved=tmp_path/'preserved_original_workspace'
+        workspace.rename(preserved)
+        workspace.mkdir(mode=0o700)
+        workspace.chmod(0o700)
+        with pytest.raises(restore.SqliteSetRestoreError,match='RESTORE_WORKSPACE_CHANGED'):
+            restored.verify_before_app(deadline)
+        assert (preserved/'restoration-test.db').exists()

@@ -7,6 +7,7 @@ are preserved; no retry, cleanup or new live-source snapshot is performed.
 from contextlib import contextmanager
 from dataclasses import dataclass
 import os
+import stat
 from pathlib import Path
 import subprocess
 import sys
@@ -20,6 +21,16 @@ from tools.recovery_sqlite_set_state import BoundSqliteSetStateBundle
 
 class SqliteSetRestoreError(ValueError):
     """Closed restore codes without private paths or original exceptions."""
+
+
+def _workspace_origin(info):
+    # Child mkdir changes directory nlink/mtime/ctime. Bind stable namespace,
+    # owner and privacy instead; regular SQLite files still require nlink==1.
+    if (not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077
+            or info.st_uid != os.geteuid()):
+        raise SqliteSetRestoreError("PRIVATE_RESTORE_WORKSPACE_REQUIRED")
+    return tuple(int(getattr(info, key)) for key in
+                 ("st_dev", "st_ino", "st_mode", "st_uid", "st_gid"))
 
 
 @dataclass(frozen=True)
@@ -55,7 +66,7 @@ class RestoredSet:
             raise SqliteSetRestoreError("INCOMPLETE_RESTORED_SQLITE_SET")
         root = state._directory(self.workspace)
         try:
-            if state._capture_identity(os.fstat(root))[:6] != self.workspace_origin:
+            if _workspace_origin(os.fstat(root)) != self.workspace_origin:
                 raise SqliteSetRestoreError("RESTORE_WORKSPACE_CHANGED")
             for restored, expected in zip(self.members, self.bundle.sqlite.members):
                 state._check_time(deadline)
@@ -156,7 +167,7 @@ def restore_all_members(*, bundle, workspace, deadline):
         info = os.fstat(root)
         if info.st_mode & 0o077 or info.st_uid != os.geteuid():
             raise SqliteSetRestoreError("PRIVATE_RESTORE_WORKSPACE_REQUIRED")
-        origin = state._capture_identity(info)[:6]
+        origin = _workspace_origin(info)
         publication = state._directory(bundle.plan.sqlite.publication)
         # Exclusive child creation: never merge or replace a previous restore.
         os.mkdir("sqlite", 0o700, dir_fd=root)
