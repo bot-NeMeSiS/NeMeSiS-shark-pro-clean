@@ -772,9 +772,23 @@ def _observe_restored_state_consumers(payload, source: Path, boundary) -> dict:
         proof["code"] = "STATE_CONSUMER_OBSERVATION_FAILED"
     return proof
 
+def _state_sqlite_consumption_binding(bundle):
+    """Keep complete set identity explicit; never invent one aggregate DB hash."""
+    from tools.recovery_sqlite_set_state import BoundSqliteSetStateBundle
+    if type(bundle) is BoundSqliteSetStateBundle:
+        from engines.recovery_sqlite_set_contract import to_record
+        BoundSqliteSetStateBundle.__post_init__(bundle)
+        return {"sqlite_set": to_record(bundle.sqlite), "auxiliary_sqlite_consumers_verified": False}
+    from tools.recovery_state_adapter import BoundStateBundle
+    if type(bundle) is not BoundStateBundle:
+        raise ProbeError("TYPED_STATE_BUNDLE_REQUIRED")
+    BoundStateBundle.__post_init__(bundle)
+    return {"backup_name": bundle.backup_name, "sqlite_sha256": bundle.sqlite.sha256}
+
+
 def run_app_probe(*, project_root: Path, restored_database: Path, workspace: Path,
                   deadline: float, mode: str = "read_only", routes=DEFAULT_ROUTES,
-                  memory_bytes: int = 256 * MIB, state_bundle=None) -> dict:
+                  memory_bytes: int = 256 * MIB, state_bundle=None, restored_sqlite_set=None) -> dict:
     """Explicit smoke only. Does not capture, restore, delete or certify a backup."""
     report = {"schema": "NEMESIS_ISOLATED_APP_PROBE_V1", "mode": mode, "ok": False,
               "full_application_recovery_certified": False, "authenticated_client_verified": False,
@@ -814,19 +828,42 @@ def run_app_probe(*, project_root: Path, restored_database: Path, workspace: Pat
             raise ProbeError("INVALID_APP_PROBE_ROUTES")
         if state_bundle is not None:
             from tools.recovery_state_adapter import BoundStateBundle
-            if type(state_bundle) is not BoundStateBundle:
+            from tools.recovery_sqlite_set_state import BoundSqliteSetStateBundle
+            if type(state_bundle) is BoundSqliteSetStateBundle:
+                from tools.recovery_sqlite_set_restore import RestoredSet
+                if (type(restored_sqlite_set) is not RestoredSet
+                        or restored_sqlite_set.bundle is not state_bundle
+                        or restored_sqlite_set.workspace != workspace):
+                    raise ProbeError("COMPLETE_SQLITE_SET_RESTORE_REQUIRED")
+                restored_sqlite_set.verify_before_app(deadline)
+                report.update(sqlite_set_members_verified_before_app=len(restored_sqlite_set.members),
+                              auxiliary_sqlite_consumers_verified=False)
+            elif type(state_bundle) is not BoundStateBundle or restored_sqlite_set is not None:
                 raise ProbeError("TYPED_STATE_BUNDLE_REQUIRED")
             state_layout_id = getattr(state_bundle, "layout_id", None)
             if state_layout_id not in (None, COLOCATED_LAYOUT_ID):
                 raise ProbeError("STATE_CONSUMER_LAYOUT_UNSUPPORTED")
             if state_layout_id == COLOCATED_LAYOUT_ID and tuple(state_bundle.scope_roles) != COLOCATED_SCOPE_ROLES:
                 raise ProbeError("STATE_CONSUMER_LAYOUT_ROLES")
+        if state_bundle is None and restored_sqlite_set is not None:
+            raise ProbeError("COMPLETE_SQLITE_SET_RESTORE_REQUIRED")
         source = prepare_source(project_root, workspace, deadline=deadline)
         if state_bundle is not None:
-            from tools.recovery_state_adapter import restore_before_app
-            state_report = restore_before_app(state_bundle, source=source["path"],
-                                              restored_database=restored_database, workspace=workspace,
-                                              database_info=db, deadline=deadline)
+            if restored_sqlite_set is not None:
+                from engines import recovery_non_sqlite_state as native_state
+                state_report = native_state.restore_state(
+                    bundle=state_bundle.archive, expected_archive_sha256=state_bundle.archive_sha256,
+                    expected_manifest_sha256=state_bundle.manifest_sha256,
+                    expected_sqlite=state_bundle.sqlite, workspace=workspace,
+                    expected_database_identity=native_state._identity(db), deadline=deadline,
+                    limits=state_bundle.limits, expected_layout_id=state_bundle.layout_id,
+                    expected_proposal_sha256=state_bundle.proposal_sha256,
+                    expected_scope_roles=state_bundle.scope_roles, restored_sqlite_set=restored_sqlite_set)
+            else:
+                from tools.recovery_state_adapter import restore_before_app
+                state_report = restore_before_app(state_bundle, source=source["path"],
+                                                  restored_database=restored_database, workspace=workspace,
+                                                  database_info=db, deadline=deadline)
             report["state_restore"] = state_report
             if (state_report.get("ok") is not True
                     or state_report.get("state_ready_before_app") is not True
@@ -876,6 +913,8 @@ def run_app_probe(*, project_root: Path, restored_database: Path, workspace: Pat
         if not memory["allowed"]:
             raise ProbeError("APP_MEMORY_PREFLIGHT_REFUSED")
         nonce = secrets.token_hex(16)
+        if restored_sqlite_set is not None:
+            restored_sqlite_set.verify_before_app(deadline)
         payload = {"nonce": nonce, "source": str(source["path"]), "database": str(restored_database), "workspace": str(workspace),
                    "scratch": str(scratch), "deadline": deadline, "mode": mode, "routes": list(routes),
                    "memory_bytes": memory_bytes}
@@ -996,8 +1035,7 @@ def run_app_probe(*, project_root: Path, restored_database: Path, workspace: Pat
                     "probe_nonce": nonce,
                     "operation_id": state_bundle.operation_id,
                     "proposal_sha256": state_bundle.proposal_sha256,
-                    "backup_name": state_bundle.backup_name,
-                    "sqlite_sha256": state_bundle.sqlite.sha256,
+                    **_state_sqlite_consumption_binding(state_bundle),
                     "state_archive_sha256": state_bundle.archive_sha256,
                     "state_manifest_sha256": state_bundle.manifest_sha256,
                     "same_restored_workspace": proof.get("same_restored_workspace") is True if isinstance(proof, dict) else False,
@@ -1062,8 +1100,7 @@ def run_app_probe(*, project_root: Path, restored_database: Path, workspace: Pat
                     "state_ready_before_app": report.get("state_restore", {}).get("state_ready_before_app") is True,
                     "probe_nonce": nonce,
                     "operation_id": state_bundle.operation_id,
-                    "backup_name": state_bundle.backup_name,
-                    "sqlite_sha256": state_bundle.sqlite.sha256,
+                    **_state_sqlite_consumption_binding(state_bundle),
                     "state_archive_sha256": state_bundle.archive_sha256,
                     "state_manifest_sha256": state_bundle.manifest_sha256,
                     "bundle_scope_roles": expected_roles,
