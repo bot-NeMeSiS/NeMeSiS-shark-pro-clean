@@ -27531,9 +27531,8 @@ def picks_page():
     data["pick_stats"] = {"closed": closed_count, "graded": closed_count}
     data["v925_picks"] = get_safe_picks_context(data["picks"])
     data["v925_odds"] = get_safe_odds_context(data["picks"])
-    data["v934_realtime"] = get_realtime_safe_picks_context(summary)
-    # Both contexts describe the same request-owned evaluation.
-    data["v934_odds"] = _v934_odds_context_from_snapshot(data["v934_realtime"])
+    # The template consumes authorized picks/odds and sports_metrics, not a
+    # discarded full-match realtime descriptor. Polling keeps its existing API.
     data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
     data["pick_readiness"], data["pick_watchlist"] = client_pick_readiness(
         summary,

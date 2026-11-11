@@ -130,7 +130,8 @@ if _owned_supervisor:
         assert old_calls['_v931_minimal_client_data']==1
         assert calls['build_sports_metrics_contract']<old_calls['build_sports_metrics_contract']
         assert calls['_v991_prepare_summary_operation']==old_calls['_v991_prepare_summary_operation']==1
-        assert calls['_v991_realtime_projection']==old_calls['_v991_realtime_projection']==1
+        assert calls['_v991_realtime_projection']==old_calls['_v991_realtime_projection']==0
+        assert 'v934_realtime' not in data and 'v934_odds' not in data
         html=candidate.get_data(as_text=True)
         assert probe['draft_canary'] not in html
         if principal in ('ANONYMOUS','FREE','PRO'):

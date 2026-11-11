@@ -173,6 +173,7 @@ jobs:
             tests/test_status_absent_inputs.py \
             tests/test_status_absent_dispatch.py \
             tests/test_pick_assessment_once.py \
+            tests/test_picks_render_only_context.py \
             tests/test_browser_network_diagnostics.py \
             tests/test_companyos_scheduler_lock.py \
             tests/test_companyos_pending_slot.py \
