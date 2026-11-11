@@ -698,14 +698,19 @@ def enrich_pick_lifecycle(item: dict[str, Any], now: datetime | None = None) -> 
     result["v935_match_lifecycle"] = match_lifecycle
     complete = is_pick_complete(result, now)
     lifecycle = _complete_pick_lifecycle(result, now, match_lifecycle) if complete else "INCOMPLETE"
+    result["v935_lifecycle"] = lifecycle
     odds = _pick_odds_state(result, now)
-    publishable = bool(lifecycle in {"PUBLISHED", "LIVE"} and complete and odds.get("is_usable"))
+    # Legacy enrichment assigns this field before quality/eligibility rules.
+    # Match truth reads v935_lifecycle too, so this is a distinct observation
+    # phase even though all results still share one record and one instant.
+    policy_lifecycle = _complete_pick_lifecycle(result, now) if complete else "INCOMPLETE"
+    publishable = bool(policy_lifecycle in {"PUBLISHED", "LIVE"} and complete and odds.get("is_usable"))
     stake = _float(result.get("stake") or result.get("stake_units"))
-    evaluable = bool(lifecycle in {"WON", "LOST", "VOID"} and stake is not None and stake > 0 and complete)
+    evaluable = bool(policy_lifecycle in {"WON", "LOST", "VOID"} and stake is not None and stake > 0 and complete)
     result["v935_lifecycle"] = lifecycle
     result["v935_odds"] = odds
     result["v935_quality"] = _pick_quality_from_observations(
-        complete=complete, lifecycle=lifecycle, odds=odds,
+        complete=complete, lifecycle=policy_lifecycle, odds=odds,
         publishable=publishable, evaluable=evaluable)
     result["v935_publishable"] = publishable
     result["v935_evaluable"] = evaluable

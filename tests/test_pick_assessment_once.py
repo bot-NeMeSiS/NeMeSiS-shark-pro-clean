@@ -15,22 +15,26 @@ def pick():
                 odds=1.8, odds_source="qa", source="qa", odds_updated_at=NOW.isoformat(), stake=1)
 
 
+@pytest.mark.parametrize("derived", ["UPCOMING", "LIVE", "FINISHED", "ARCHIVED", "EXPIRED", "CANCELLED", "INCOMPLETE", "WON"])
 @pytest.mark.parametrize("status", ["draft", "review", "approved", "published", "live", "cancelled", "archived"])
 @pytest.mark.parametrize("match_status", ["NS", "LIVE", "FT", "PST", "SUSP"])
 @pytest.mark.parametrize("change", [{}, {"result_status":"won"}, {"odds":0}, {"selection":None},
                                    {"odds_updated_at":(NOW-timedelta(hours=2)).isoformat()}])
-def test_assessment_agrees_with_independent_public_rules(status, match_status, change):
+def test_assessment_agrees_with_independent_public_rules(status, match_status, change, derived):
     row = {**pick(), "status":status, "match_status":match_status, **change,
-           "v935_match_lifecycle":"UPCOMING", "v935_lifecycle":"WON",
+           "v935_match_lifecycle":"UPCOMING", "v935_lifecycle":derived,
            "v935_publishable":True, "v935_evaluable":True, "v935_quality":{"status":"PASS"}}
     original = deepcopy(row)
     expected_row = dict(row)
     expected_row["v935_match_lifecycle"] = trust.normalize_match_lifecycle(trust._pick_match_view(row), NOW)
-    expected = dict(expected_row, v935_lifecycle=trust.normalize_pick_lifecycle(expected_row, NOW),
-                    v935_odds=trust._pick_odds_state(expected_row, NOW),
-                    v935_quality=trust.get_pick_data_quality(expected_row, NOW),
-                    v935_publishable=trust.is_pick_publishable(expected_row, NOW),
-                    v935_evaluable=trust.is_pick_evaluable(expected_row, NOW))
+    # Original public enrichment order is part of compatibility: later rules
+    # observe the newly assigned pick lifecycle, not the incoming derived field.
+    expected = expected_row
+    expected["v935_lifecycle"] = trust.normalize_pick_lifecycle(expected, NOW)
+    expected["v935_odds"] = trust._pick_odds_state(expected, NOW)
+    expected["v935_quality"] = trust.get_pick_data_quality(expected, NOW)
+    expected["v935_publishable"] = trust.is_pick_publishable(expected, NOW)
+    expected["v935_evaluable"] = trust.is_pick_evaluable(expected, NOW)
     actual = trust.enrich_pick_lifecycle(row, NOW)
     assert actual == expected
     assert row == original
@@ -53,7 +57,7 @@ def test_new_time_and_source_mutation_revoke_old_eligibility():
     assert revoked["v935_evaluable"] is False
 
 
-def test_enrichment_observes_each_source_dependency_once(monkeypatch):
+def test_enrichment_reuses_dependencies_within_each_observation_phase(monkeypatch):
     calls = dict(complete=0, lifecycle=0, odds=0)
     for name, key in [("is_pick_complete", "complete"), ("normalize_match_lifecycle", "lifecycle"),
                       ("_pick_odds_state", "odds")]:
@@ -64,4 +68,4 @@ def test_enrichment_observes_each_source_dependency_once(monkeypatch):
         monkeypatch.setattr(trust, name, observe)
     result = trust.enrich_pick_lifecycle(pick(), NOW)
     assert result["v935_publishable"] is True
-    assert calls == dict(complete=1, lifecycle=1, odds=1)
+    assert calls == dict(complete=1, lifecycle=2, odds=1)
