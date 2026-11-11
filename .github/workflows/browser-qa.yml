@@ -17,6 +17,7 @@ on:
       - 'tools/run_v929_click_navigation_qa.py'
       - 'tools/check_shark_workspace_browser.py'
       - 'tools/check_approved_identity_browser.py'
+      - 'tools/browser_network_diagnostics.py'
   push:
     branches: [main]
     paths:
@@ -33,6 +34,7 @@ on:
       - 'tools/run_v929_click_navigation_qa.py'
       - 'tools/check_shark_workspace_browser.py'
       - 'tools/check_approved_identity_browser.py'
+      - 'tools/browser_network_diagnostics.py'
   workflow_dispatch:
     inputs:
       base_url:

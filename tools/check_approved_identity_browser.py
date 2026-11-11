@@ -79,7 +79,9 @@ def main():
     import app
     app.DB_PATH=str(database);app._SEEDED_DB_PATH=str(database);app.APP_INITIALIZED=True
     app.app.config.update(TESTING=True)
-    http=[];errors=[];external=[];views=[];surface_checks=[]
+    from tools.browser_network_diagnostics import BrowserNetworkDiagnostics
+    network=BrowserNetworkDiagnostics()
+    http=[];errors=[];external=[];views=[];surface_checks=[];scene_proofs=[];media_checks=[]
     @app.app.after_request
     def record(response):
         from flask import request
@@ -92,15 +94,21 @@ def main():
     from playwright.sync_api import sync_playwright
     def login(page,admin):
         path='/admin-login' if admin else '/cliente-login'
+        network.set_case(None,'admin-login' if admin else 'client-login',path)
         page.goto(base+path,wait_until='domcontentloaded')
         page.locator('input[name="login"]').fill('admin_qa' if admin else 'client-qa@example.invalid')
         page.locator('input[name="password"]').fill(password)
         page.locator('form[action="'+path+'"] button[type="submit"]').click()
         page.wait_for_url('**/admin/**' if admin else '**/app')
     def check(page,width,role,path):
+        network.set_case(width,role,path)
         response=page.goto(base+path,wait_until='domcontentloaded')
         assert response and response.status==200,(role,path,response.status if response else None)
-        page.wait_for_load_state('networkidle')
+        try:
+            page.wait_for_load_state('networkidle')
+        except Exception as exc:
+            network.capture_failure(type(exc).__name__,phase='networkidle',timeout_ms=12000)
+            raise
         scene=page.locator('[data-brand-scene]')
         assert scene.count()==1 and scene.get_attribute('aria-hidden')=='true'
         assert scene.evaluate('(el)=>getComputedStyle(el).position')=='fixed'
@@ -113,6 +121,17 @@ def main():
         from tools.run_production_quality_browser_gate import _capture_approved_scene, _approved_scene_in_page, _official_brand_in_page
         # Bind loading to CSS before the first explicit image-decode probe.
         proof=_capture_approved_scene(page)
+        geometry=scene.evaluate('''el => {
+          const rows=[];
+          for(let node=el;node;node=node.parentElement){
+            const s=getComputedStyle(node),r=node.getBoundingClientRect();
+            rows.push({tag:node.tagName,classes:node.className,width:r.width,height:r.height,
+              display:s.display,position:s.position,transform:s.transform,contain:s.contain,
+              top:s.top,bottom:s.bottom,left:s.left,right:s.right,contentVisibility:s.contentVisibility});
+          }
+          return {ancestors:rows,innerWidth,innerHeight,dpr:devicePixelRatio};
+        }''')
+        scene_proofs.append(dict(width=width,role=role,path=path,proof=proof,geometry=geometry))
         assert _approved_scene_in_page(proof, base), (role,path,width)
         decoded=proof['images']
         inspection=qa._inspect(page, path, str(width)+'x'+str(page.viewport_size['height']))
@@ -163,14 +182,41 @@ def main():
                         else:external.append(urlsplit(route.request.url).hostname);route.abort()
                     context.route('**/*',routes)
                     page=context.new_page();page.set_default_timeout(12000)
+                    cdp=context.new_cdp_session(page)
+                    def scene_media(transparency='no-preference',forced='none'):
+                        cdp.send('Emulation.setEmulatedMedia',dict(features=[
+                            dict(name='prefers-reduced-motion',value='reduce'),
+                            dict(name='prefers-contrast',value='no-preference'),
+                            dict(name='prefers-reduced-transparency',value=transparency),
+                            dict(name='forced-colors',value=forced)]))
+                        actual=page.evaluate('''() => ({
+                            transparency:matchMedia('(prefers-reduced-transparency:reduce)').matches,
+                            contrast:matchMedia('(prefers-contrast:more)').matches,
+                            forced:matchMedia('(forced-colors:active)').matches,
+                            motion:matchMedia('(prefers-reduced-motion:reduce)').matches})''')
+                        assert actual==dict(transparency=transparency=='reduce',contrast=False,
+                                           forced=forced=='active',motion=True),actual
+                        return actual
+                    # The ordinary-scene contract must not inherit host accessibility
+                    # settings. The hidden-scene contracts are checked below as well.
+                    ordinary_media=scene_media()
                     page.on('pageerror',lambda e:errors.append(str(e)))
+                    page.on('request',network.request_started)
+                    page.on('requestfinished',network.request_finished)
+                    page.on('requestfailed',network.request_failed)
                     if not admin:check(page,width,'public','/cliente-login')
                     login(page,admin)
                     for path in (('/admin/control-center','/admin/users','/admin/data-center') if admin else
                                  ('/app','/calendario','/directo','/mi-cuenta')):
                         check(page,width,'admin' if admin else 'client',path)
-                    page.emulate_media(forced_colors='active')
-                    assert not page.locator('[data-brand-scene]').is_visible()
+                    for media_name,transparency,forced in (
+                            ('forced-colors','no-preference','active'),
+                            ('reduced-transparency','reduce','none')):
+                        actual=scene_media(transparency,forced)
+                        assert not page.locator('[data-brand-scene]').is_visible(),(width,admin,media_name)
+                        media_checks.append(dict(width=width,role='admin' if admin else 'client',
+                                                 media=media_name,actual=actual,scene_hidden=True,
+                                                 ordinary_media=ordinary_media))
                     context.close()
             browser.close()
     finally:
@@ -181,9 +227,12 @@ def main():
             assets_unchanged=asset_hashes==after_assets,asset_hashes=asset_hashes,
             origin='SIMULATED_QA',real_application=str(app.__file__)==str(ROOT/'app.py'),
             limits='Owned synthetic SQLite/accounts and actual local HTTP login/assets; no production, real provider, physical device, purchase or global performance certification.')
+        receipt['media_checks']=media_checks
+        receipt['scene_proofs']=scene_proofs
+        receipt['network_diagnostics']=network.snapshot()
         receipt['unexpected_http']=[r for r in http if r['status']>=400]
         receipt['no_shark_question']=not any(r['path']=='/api/shark/ask' for r in http)
-        receipt['ok']=(len(views)==32 and receipt['source_unchanged'] and receipt['assets_unchanged']
+        receipt['ok']=(len(views)==32 and len(media_checks)==16 and receipt['source_unchanged'] and receipt['assets_unchanged']
             and receipt['no_shark_question'] and not errors and not external and not boundary and not receipt['unexpected_http'])
         (out/'receipt.json').write_text(json.dumps(receipt,indent=2)+'\n',encoding='utf-8')
     assert receipt['ok'],out

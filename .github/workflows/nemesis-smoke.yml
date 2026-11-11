@@ -170,6 +170,7 @@ jobs:
             tests/test_recovery_workspace_backend.py \
             tests/test_sports_count_progress.py \
             tests/test_status_absent_inputs.py \
+            tests/test_browser_network_diagnostics.py \
             tests/test_companyos_scheduler_lock.py \
             tests/test_native_workforce_scheduler.py \
             tests/test_native_workforce_review.py \
