@@ -34,6 +34,11 @@ from engines.data_vault_engine import (  # noqa: E402
     validate_backup,
 )
 
+from tools.recovery_workspace import (  # noqa: E402
+    admit_restore_root, recheck_restore_root, restore_workspace, workspace_capacity_preflight,
+)
+from tools.recovery_workspace_plan import WorkspacePlanError, WorkspaceRootIdentity  # noqa: E402
+
 MIN_RESERVE = 128 * 1024 * 1024
 
 
@@ -60,7 +65,8 @@ def storage_probe(directory: Path) -> Path:
     return probe
 
 
-def preflight(source: Path, directory: Path) -> dict:
+def preflight(source: Path, directory: Path, *, restore_workspace_root=None,
+              restore_workspace_identity=None, app_probe_mode=None) -> dict:
     if not source.is_file() or source.is_symlink():
         return {"ok": False, "stage": "PREFLIGHT", "code": "SOURCE_UNAVAILABLE"}
     if directory.is_symlink():
@@ -72,6 +78,17 @@ def preflight(source: Path, directory: Path) -> dict:
         return {"ok": False, "stage": "PREFLIGHT", "code": "STORAGE_OR_DB_UNAVAILABLE"}
     if expected <= 0:
         return {"ok": False, "stage": "PREFLIGHT", "code": "EMPTY_SNAPSHOT"}
+    if restore_workspace_root is not None:
+        try:
+            return workspace_capacity_preflight(
+                source=source, directory=directory, restore_root=restore_workspace_root,
+                snapshot_bytes=expected, app_probe_mode=app_probe_mode,
+                expected_identity=restore_workspace_identity)
+        except WorkspacePlanError as exc:
+            return {"ok": False, "stage": "PREFLIGHT", "code": "RESTORE_WORKSPACE_NOT_ADMITTED",
+                    "diagnostic": str(exc)}
+        except OSError:
+            return {"ok": False, "stage": "PREFLIGHT", "code": "RESTORE_WORKSPACE_NOT_AVAILABLE"}
     # Keep enough space for one full backup AND a separate restore test.
     reserve = max(MIN_RESERVE, expected // 5)
     required = 2 * expected + reserve
@@ -85,8 +102,12 @@ def preflight(source: Path, directory: Path) -> dict:
     }
 
 
-def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app_probe_mode=None, state_bundle=None) -> dict:
+def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app_probe_mode=None,
+                                state_bundle=None, restore_workspace_root=None,
+                                restore_workspace_identity=None) -> dict:
     started = time.monotonic()
+    if restore_workspace_identity is not None and restore_workspace_root is None:
+        return {"ok": False, "code": "RESTORE_WORKSPACE_IDENTITY_WITHOUT_ROOT"}
     if state_bundle is not None and app_probe_mode is None:
         return {"ok": False, "code": "STATE_REQUIRES_EXPLICIT_APP_PROBE"}
     if app_probe_mode not in (None, "read_only", "normal_boot"):
@@ -99,10 +120,27 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app
         return {"ok": False, "code": "INVALID_VERIFICATION_BUDGET"}
     deadline = started + budget
     stage = "ARCHIVE_VALIDATION"
+    workspace_identity = None
+    workspace_observation = None
+
+    def workspace_details():
+        if workspace_observation is not None and workspace_observation.get("created") is True:
+            # The helper owns this plain metadata object through its finalizer;
+            # cleanup completion updates it before this function returns.
+            return {"restore_workspace": workspace_observation}
+        return {}
+
+    def failed_workspace_details():
+        details = workspace_details()
+        if details and workspace_observation.get("cleanup_verified") is not True:
+            details["workspace_may_be_preserved"] = True
+        return details
 
     def check_time():
         if time.monotonic() >= deadline:
             raise TimeoutError("isolated_restore_timeout")
+        if workspace_identity is not None:
+            recheck_restore_root(workspace_identity, protected_paths=(directory, directory / name))
 
     def fingerprint(path):
         return assert_archive_standalone(path)
@@ -128,12 +166,21 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app
             check_time()
             archive_identity = checked.get("file_identity")
             if archive_identity != fingerprint(selected):
-                return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
+                return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION", **workspace_details()}
             if state_bundle is not None:
                 from tools.recovery_state_adapter import bind_verified_sqlite
                 bind_verified_sqlite(state_bundle, backup_name=name,
                                      sqlite_sha256=checked["results"][0]["actual"], deadline=deadline)
             stage = "RESTORE_CAPACITY"
+            if restore_workspace_root is not None:
+                # No default temporary-directory discovery or fallback: this
+                # is a trusted explicit operator argument, not manifest data.
+                workspace_identity = admit_restore_root(
+                    restore_workspace_root, protected_paths=(directory, selected))
+                if restore_workspace_identity is not None and (
+                        type(restore_workspace_identity) is not WorkspaceRootIdentity
+                        or workspace_identity != restore_workspace_identity):
+                    raise WorkspacePlanError("WORKSPACE_ROOT_CHANGED")
             required = archive_identity["size"] + max(MIN_RESERVE, archive_identity["size"] // 5)
             if app_probe_mode is not None:
                 # Source/scratch plus room for a full clone journal in normal
@@ -143,14 +190,22 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app
                     required += archive_identity["size"]
             if state_bundle is not None:
                 required += state_bundle.limits.bytes
-            free = shutil.disk_usage(directory).free
+            free = shutil.disk_usage(directory if workspace_identity is None
+                                     else workspace_identity.path).free
             check_time()
             if free < required:
                 return {"ok": False, "code": "INSUFFICIENT_ISOLATED_RESTORE_SPACE"}
             app_probe = None
+            workspace_observation = {} if workspace_identity is not None else None
             stage = "RESTORE_SNAPSHOT"
-            with tempfile.TemporaryDirectory(prefix=".isolated_restore_327_", dir=directory) as temp:
+            with restore_workspace(directory, identity=workspace_identity, check_time=check_time,
+                                   observation=workspace_observation) as temp:
                 check_time()
+                if workspace_identity is not None:
+                    observed_workspace = Path(temp).lstat()
+                    workspace_observation.update(
+                        device=observed_workspace.st_dev, disposable_inode=observed_workspace.st_ino,
+                        app_probe_requested=app_probe_mode is not None)
                 destination_path = Path(temp) / "restoration-test.db"
                 with closing(connect_archive_readonly(selected)) as original, closing(
                     sqlite3.connect(str(destination_path), timeout=min(.05, max(.001, deadline - time.monotonic())))
@@ -161,7 +216,7 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app
                     restored.execute(f"PRAGMA busy_timeout={remaining_ms}")
                     if (sha256_file(selected, deadline=deadline) != checked["results"][0]["actual"]
                             or fingerprint(selected) != archive_identity):
-                        return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
+                        return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION", **workspace_details()}
                     check_time()
                     original.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
                     restored.set_progress_handler(lambda: int(time.monotonic() >= deadline), 1000)
@@ -186,7 +241,7 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app
                                 return {"ok": False, "code": "SCHEMA_MISMATCH"}
                     check_time()
                     if fingerprint(selected) != archive_identity:
-                        return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
+                        return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION", **workspace_details()}
                 if app_probe_mode is not None:
                     # Same restoration, after both SQLite handles close, before
                     # its existing disposable workspace is cleaned up. The App
@@ -199,14 +254,14 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app
                                               workspace=Path(temp), deadline=deadline, mode=app_probe_mode,
                                               **state_options)
                     if fingerprint(selected) != archive_identity:
-                        return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
+                        return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION", **workspace_details()}
                     if not app_probe.get("ok"):
                         return {"ok": False, "code": "SQLITE_RESTORED_APP_NOT_VERIFIED", "schema_match": True,
                                 "sqlite_restore_verified": True, "app_probe": app_probe,
-                                "full_application_recovery_certified": False}
+                                "full_application_recovery_certified": False, **workspace_details()}
             stage = "FINAL_CHECK"
             if fingerprint(selected) != archive_identity:
-                return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION"}
+                return {"ok": False, "code": "BACKUP_CHANGED_DURING_VERIFICATION", **workspace_details()}
             finished = time.monotonic()
             if finished >= deadline:
                 raise TimeoutError("isolated_restore_timeout")
@@ -215,18 +270,30 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app
             if app_probe is not None:
                 report.update(code="SQLITE_RESTORE_AND_GUEST_APP_SMOKE_VERIFIED", app_probe=app_probe,
                               sqlite_restore_verified=True, full_application_recovery_certified=False)
+            if workspace_observation is not None:
+                # The context's audited rmdir and final identity/deadline
+                # checks completed. These fields report actual observation,
+                # not capacity/custody or full-platform recovery.
+                workspace_observation["same_restoration_for_app"] = app_probe_mode is not None
+                report.update(restore_workspace=workspace_observation,
+                              full_application_recovery_certified=False)
             return report
+    except WorkspacePlanError as exc:
+        return {"ok": False, "code": "ISOLATED_RESTORE_WORKSPACE_NOT_VERIFIED",
+                "failure_stage": stage, "diagnostic": str(exc),
+                "full_application_recovery_certified": False, **failed_workspace_details()}
     except BackupInProgress:
         return {"ok": False, "code": "RECOVERY_LOCK_BUSY"}
     except TimeoutError:
-        return {"ok": False, "code": "VERIFICATION_TIMEOUT", "failure_stage": stage}
+        return {"ok": False, "code": "VERIFICATION_TIMEOUT", "failure_stage": stage, **failed_workspace_details()}
     except sqlite3.Error as exc:
         if getattr(exc, "sqlite_errorname", "") == "SQLITE_INTERRUPT" and time.monotonic() >= deadline:
-            return {"ok": False, "code": "VERIFICATION_TIMEOUT", "failure_stage": stage}
+            return {"ok": False, "code": "VERIFICATION_TIMEOUT", "failure_stage": stage, **failed_workspace_details()}
         return {"ok": False, "code": "ISOLATED_RESTORE_FAILED", "error_type": type(exc).__name__,
-                "sqlite_error_code": getattr(exc, "sqlite_errorname", "")}
+                "sqlite_error_code": getattr(exc, "sqlite_errorname", ""), **failed_workspace_details()}
     except (OSError, ValueError, TypeError) as exc:
-        return {"ok": False, "code": "ISOLATED_RESTORE_FAILED", "error_type": type(exc).__name__}
+        return {"ok": False, "code": "ISOLATED_RESTORE_FAILED", "error_type": type(exc).__name__,
+                **failed_workspace_details()}
 
 
 def run(args: argparse.Namespace, *, state_plan=None) -> int:
@@ -239,12 +306,29 @@ def run(args: argparse.Namespace, *, state_plan=None) -> int:
     if state_plan is not None and args.verify_existing:
         emit({"ok": False, "stage": "PREFLIGHT", "code": "STATE_VERIFY_EXISTING_NOT_ADMITTED"})
         return 2
+    workspace_options = {}
+    requested_workspace = getattr(args, "restore_workspace_root", None)
+    if requested_workspace is not None:
+        try:
+            requested_workspace = Path(requested_workspace).expanduser()
+            workspace_binding = admit_restore_root(
+                requested_workspace, protected_paths=(source, directory))
+        except (OSError, ValueError, TypeError) as exc:
+            emit({"ok": False, "stage": "PREFLIGHT", "code": "RESTORE_WORKSPACE_NOT_ADMITTED",
+                  "diagnostic": str(exc) if isinstance(exc, WorkspacePlanError) else type(exc).__name__,
+                  "backup_created": False})
+            return 2
+        workspace_options = {"restore_workspace_root": requested_workspace,
+                             "restore_workspace_identity": workspace_binding}
+    preflight_options = ({} if not workspace_options else
+                         {**workspace_options, "app_probe_mode": getattr(args, "app_probe_mode", None)})
     if args.verify_existing:
         if not directory.is_dir() or directory.is_symlink():
             emit({"ok": False, "stage": "VERIFY", "code": "DESTINATION_UNAVAILABLE"})
             return 2
         checked = verify_and_restore_isolated(directory, args.verify_existing, args.timeout,
-                                              app_probe_mode=getattr(args, "app_probe_mode", None))
+                                              app_probe_mode=getattr(args, "app_probe_mode", None),
+                                              **workspace_options)
         emit({"stage": "VERIFY", "backup_name": args.verify_existing, **checked})
         return 0 if checked.get("ok") else 2
 
@@ -256,16 +340,17 @@ def run(args: argparse.Namespace, *, state_plan=None) -> int:
             validate_operator_plan(plan=state_plan, source=source, directory=directory,
                                    app_probe_mode=getattr(args, "app_probe_mode", None),
                                    verify_existing=args.verify_existing)
-        except (HandoffError, ValueError, TypeError):
+        except (HandoffError, OSError, ValueError, TypeError):
             emit({"ok": False, "stage": "PREFLIGHT", "code": "STATE_PLAN_NOT_ADMITTED", "backup_created": False})
             return 2
-    check = preflight(source, directory)
+    check = preflight(source, directory, **preflight_options)
     if state_plan is not None:
         try:
             check = operator_preflight(plan=state_plan, source=source, directory=directory,
                                        app_probe_mode=getattr(args, "app_probe_mode", None),
-                                       verify_existing=args.verify_existing, storage=check)
-        except (HandoffError, ValueError, TypeError):
+                                       verify_existing=args.verify_existing, storage=check,
+                                       **workspace_options)
+        except (HandoffError, OSError, ValueError, TypeError):
             emit({"ok": False, "stage": "PREFLIGHT", "code": "STATE_PLAN_NOT_ADMITTED", "backup_created": False})
             return 2
     if not check["ok"] or not args.execute:
@@ -273,11 +358,17 @@ def run(args: argparse.Namespace, *, state_plan=None) -> int:
         return 0 if check["ok"] else 2
 
     # Double-check just before a write; no retention of other backups.
-    check = preflight(source, directory)
+    check = preflight(source, directory, **preflight_options)
     if state_plan is not None:
-        check = operator_preflight(plan=state_plan, source=source, directory=directory,
-                                   app_probe_mode=getattr(args, "app_probe_mode", None),
-                                   verify_existing=args.verify_existing, storage=check)
+        try:
+            check = operator_preflight(plan=state_plan, source=source, directory=directory,
+                                       app_probe_mode=getattr(args, "app_probe_mode", None),
+                                       verify_existing=args.verify_existing, storage=check,
+                                       **workspace_options)
+        except (HandoffError, OSError, ValueError, TypeError):
+            emit({"ok": False, "stage": "PREFLIGHT", "code": "STATE_PLAN_NOT_ADMITTED",
+                  "backup_created": False})
+            return 2
     if not check["ok"]:
         emit({**check, "backup_created": False})
         return 2
@@ -332,7 +423,8 @@ def run(args: argparse.Namespace, *, state_plan=None) -> int:
         return 2
     state_options = {} if state_bundle is None else {"state_bundle": state_bundle}
     restored = verify_and_restore_isolated(directory, name, args.timeout,
-                                          app_probe_mode=getattr(args, "app_probe_mode", None), **state_options)
+                                          app_probe_mode=getattr(args, "app_probe_mode", None),
+                                          **workspace_options, **state_options)
     emit({
         "ok": bool(restored.get("ok")),
         "stage": "COMPLETE" if restored.get("ok") else "ISOLATED_RESTORE",
@@ -342,6 +434,12 @@ def run(args: argparse.Namespace, *, state_plan=None) -> int:
         "sha256": result.get("sha256"),
         "snapshot_bytes": check["snapshot_bytes"],
         "isolated_restore_ok": bool(restored.get("ok")),
+        **({"restore_workspace": restored["restore_workspace"]}
+           if "restore_workspace" in restored else {}),
+        **({"restore_workspace_may_be_preserved": True}
+           if (restored.get("workspace_may_be_preserved") is True
+               or (restored.get("restore_workspace", {}).get("created") is True
+                   and restored["restore_workspace"].get("cleanup_verified") is not True)) else {}),
         **({"state": public_state_receipt(state_handoff), "state_operation_id": state_bundle.operation_id,
             "state_proposal_sha256": state_bundle.proposal_sha256,
             "continuous_cross_store_consistency_certified": False,
@@ -358,6 +456,9 @@ def main() -> int:
     parser.add_argument("--db", default=os.getenv("DB_PATH", "/data/database.db"))
     parser.add_argument("--backup-dir", default=None, help="Dedicated destination (default: operator_327)")
     parser.add_argument("--timeout", type=int, default=900, help="Shell-only budget in seconds (60-3600)")
+    parser.add_argument("--restore-workspace-root", type=Path, default=None,
+                        help="Explicit pre-existing Linux temporary root for ONE isolated restore/App workspace; "
+                             "archive remains durable. No extra budget or data authorization; no automatic fallback.")
     parser.add_argument("--execute", action="store_true", help="Create the backup; without it, read-only preflight")
     parser.add_argument("--verify-existing", default=None, help="Recheck a named operator_327 backup, without creating one")
     parser.add_argument("--app-probe-mode", choices=("read_only", "normal_boot"), default=None,
