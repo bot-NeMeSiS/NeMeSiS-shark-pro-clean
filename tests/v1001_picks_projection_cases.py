@@ -64,6 +64,9 @@ class PicksProjectionContracts(unittest.TestCase):
             response, _, probe = self.r.request({}, path='/picks', role=role)
         self.assertEqual(response.status_code, 200)
         self.assertTrue(contexts)
+        self.assertNotIn('v934_realtime', contexts[-1])
+        self.assertNotIn('v934_odds', contexts[-1])
+        self.assertEqual(self.r.totals(probe)['_v991_realtime_projection'], 0)
         self.assertEqual(self.r.table_hashes(), before)
         self.read_checks.append({'role': role, 'equal': True})
         return response, contexts[-1], probe
@@ -85,37 +88,41 @@ class PicksProjectionContracts(unittest.TestCase):
                 item['freshness'].pop('age_seconds', None)
         return result
 
-    def test_01_warm_page_one_projection_and_legacy_output_equivalence(self):
+    def canonical_contexts(self):
+        # Exercise the retained producers explicitly. These are not page data:
+        # /picks must never rebuild these discarded full-match descriptors.
+        with self.r.context('/picks'):
+            summary = self.a.get_public_home_sports_summary()
+            realtime = self.a.get_realtime_safe_picks_context(summary)
+            odds = self.a._v934_odds_context_from_snapshot(realtime)
+        return {'v934_realtime': realtime, 'v934_odds': odds}
+
+    def test_01_warm_page_omits_descriptor_and_retained_producers_agree(self):
         self.page()
         _, data, probe = self.page()
         calls = self.r.totals(probe)
-        self.assertEqual(calls['_v991_realtime_projection'], 1)
+        self.assertEqual(calls['_v991_realtime_projection'], 0)
         self.assertEqual(calls['_build_public_home_sports_summary'], 0)
         self.assertEqual(calls['_v991_prepare_summary_operation'], 1)
-        # The request prepares its source once and builds one fresh display
-        # contract; Picks no longer builds unused Home/Calendar contexts.
         self.assertEqual(calls['build_sports_metrics_contract'], 1)
+        with self.r.observed_calls('retained_shared_context') as shared:
+            actual = self.canonical_contexts()
         with self.r.context('/picks'), self.r.observed_calls('independent_public_wrappers') as control:
             summary = self.a.get_public_home_sports_summary()
             expected_picks = self.a.get_realtime_safe_picks_context(summary)
             expected_odds = self.a.get_realtime_safe_odds_context(summary)
-            # The actual render applies presentation overlays (for example,
-            # highlight availability). Give both paths that same real stage.
-            reference_data = deepcopy(data)
-            reference_data.update(v934_realtime=expected_picks, v934_odds=expected_odds)
-            with self.captured() as rendered:
-                self.a.render_template('picks.html', data=reference_data)
-            expected_picks = rendered[-1]['v934_realtime']
-            expected_odds = rendered[-1]['v934_odds']
+        self.assertEqual(self.r.totals(shared)['_v991_realtime_projection'], 1)
         self.assertEqual(self.r.totals(control)['_v991_realtime_projection'], 2)
-        self.assertEqual(self.stable_realtime(data['v934_realtime']), self.stable_realtime(expected_picks))
-        self.assertEqual(self.stable_odds(data['v934_odds']), self.stable_odds(expected_odds))
-        self.r.picks_projection_details.append({'case': 'warm_page', 'projections': 1,
-            'independent_wrapper_projections': 2, 'metrics_builds': calls['build_sports_metrics_contract'],
+        self.assertEqual(self.stable_realtime(actual['v934_realtime']), self.stable_realtime(expected_picks))
+        self.assertEqual(self.stable_odds(actual['v934_odds']), self.stable_odds(expected_odds))
+        self.r.picks_projection_details.append({'case': 'warm_page', 'projections': 0,
+            'retained_context_projections': 1, 'independent_wrapper_projections': 2,
+            'metrics_builds': calls['build_sports_metrics_contract'],
             'base_rebuilds': 0, 'output_equivalent': True})
 
     def test_02_contexts_share_no_mutable_containers_or_freshness(self):
-        _, data, _ = self.page()
+        self.page()
+        data = self.canonical_contexts()
         realtime, odds = data['v934_realtime'], data['v934_odds']
         self.assertTrue(realtime['picks'])
         self.assertTrue(odds['items'])
@@ -127,14 +134,15 @@ class PicksProjectionContracts(unittest.TestCase):
         self.assertEqual(realtime, original_realtime)
         realtime['picks'][0]['odds_freshness']['status'] = 'QA_MUTATION_PICK'
         self.assertEqual(odds['items'][0]['freshness']['status'], 'QA_MUTATION_ODDS')
-        _, again, probe = self.page()
-        self.assertEqual(self.r.totals(probe)['_v991_realtime_projection'], 1)
+        self.page()
+        again = self.canonical_contexts()
         self.assertEqual(self.stable_odds(again['v934_odds']), self.stable_odds(original_odds))
         self.assertFalse(mutable_ids(again['v934_odds']) & mutable_ids(odds))
         self.assertFalse(mutable_ids(again['v934_odds']) & mutable_ids(realtime))
 
     def test_03_real_sql_update_and_cache_invalidation_refresh_both_contexts(self):
-        _, before, _ = self.page()
+        self.page()
+        before = self.canonical_contexts()
         pick_id = 'prepare-pick-0'
         def quote(data):
             return next(item for item in data['v934_odds']['items'] if item['pick_id'] == pick_id)
@@ -144,12 +152,14 @@ class PicksProjectionContracts(unittest.TestCase):
             conn.execute('UPDATE picks SET odds=?,updated_at=?,raw_json=? WHERE id=?',
                 (3.25, observed, json.dumps({'odds_updated_at': observed, 'synthetic_fixture': True}), pick_id))
         self.r.business_before = self.r.table_hashes()  # Deliberate fixture write precedes subsequent read checks.
-        _, still_cached, _ = self.page()
+        self.page()
+        still_cached = self.canonical_contexts()
         self.assertEqual(quote(still_cached)['odds'], 1.83)
         self.r.invalidate()
         _, after, probe = self.page()
         self.assertEqual(self.r.totals(probe)['_build_public_home_sports_summary'], 1)
-        self.assertEqual(self.r.totals(probe)['_v991_realtime_projection'], 1)
+        self.assertEqual(self.r.totals(probe)['_v991_realtime_projection'], 0)
+        after = self.canonical_contexts()
         self.assertEqual(quote(after)['odds'], 3.25)
         self.assertEqual(quote(after)['recorded_at'], observed)
         projected = next(item for item in after['v934_realtime']['picks'] if item['id'] == pick_id)
@@ -167,15 +177,16 @@ class PicksProjectionContracts(unittest.TestCase):
         for role, visible in expected.items():
             with self.subTest(role=role):
                 response, data, probe = self.page(role)
-                self.assertEqual(self.r.totals(probe)['_v991_realtime_projection'], 1)
+                self.assertEqual(self.r.totals(probe)['_v991_realtime_projection'], 0)
                 self.assertEqual(sorted(row['id'] for row in data['picks']), visible)
                 self.assertEqual(sorted(row['id'] for row in data['v925_picks']['picks']), visible)
                 html = response.get_data(as_text=True)
                 for hidden in set(expected['admin']) - set(visible):
                     self.assertNotIn(hidden, html)
+                retained = self.canonical_contexts()
                 for prior in previous_odds:
-                    self.assertFalse(mutable_ids(prior) & mutable_ids(data['v934_odds']))
-                previous_odds.append(data['v934_odds'])
+                    self.assertFalse(mutable_ids(prior) & mutable_ids(retained['v934_odds']))
+                previous_odds.append(retained['v934_odds'])
         self.r.picks_projection_details.append({'case': 'real_roles', 'visible_picks': expected,
             'cross_request_odds_aliases': 0})
 
@@ -207,7 +218,8 @@ class PicksProjectionContracts(unittest.TestCase):
             conn.execute('UPDATE matches SET updated_at=?,last_synced_at=?', (stale, stale))
         self.r.business_before = self.r.table_hashes()
         self.r.invalidate()
-        _, data, _ = self.page()
+        self.page()
+        data = self.canonical_contexts()
         self.assertEqual(data['v934_realtime']['live'], [])
         self.assertEqual(data['v934_realtime']['counts']['live'], 0)
         self.r.picks_projection_details.append({'case': 'identity_and_clock',

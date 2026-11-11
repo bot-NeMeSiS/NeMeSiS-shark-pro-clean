@@ -180,9 +180,20 @@ if _owned_supervisor:
                      'matches_with_picks','finished_verified','incomplete_excluded',
                      'stale_live_excluded','snapshot_id'):
             assert data['sports_metrics'][name]==prior['sports_metrics'][name]
-        if route in ('/picks','/directo'):
+        if route == '/directo':
             same_realtime(data['v934_realtime'],prior['v934_realtime'],windows,elapsed)
             original_state=data['v934_realtime']['live'][0]['realtime_state']
+        elif route == '/picks':
+            assert 'v934_realtime' not in data and 'v934_odds' not in data
+            assert 'v934_realtime' not in prior and 'v934_odds' not in prior
+            assert calls['_v991_realtime_projection'] == old_calls['_v991_realtime_projection'] == 0
+            # The page omits an unused private context, not the polling contract.
+            # Keep the protected-state validator exercised on its real HTTP API.
+            response = client.get('/api/realtime/sports?scope=live', base_url='http://127.0.0.1')
+            assert response.status_code == 200
+            payload = response.get_json()
+            assert payload['no_external_calls'] is True and payload['live']
+            original_state = payload['live'][0]['realtime_state']
         else:
             same_assistant(data['shark_assistant'],prior['shark_assistant'],windows,elapsed)
             original_state=data['shark_assistant']['context']['collections']['live']['matches'][0]['realtime_state']
