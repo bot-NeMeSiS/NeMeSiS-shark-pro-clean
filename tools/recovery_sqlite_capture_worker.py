@@ -168,7 +168,7 @@ def _open_connection(parent, name, authorized_fd, *, readonly, deadline):
         raise
 
 
-def _copy_once(source, destination, source_actual_fd, authorized_fd, deadline):
+def _copy_once(source, destination, source_actual_fd, authorized_fd, deadline, snapshot_byte_limit=MAX_BYTES):
     # Same established WAL pin/fallback semantics as the actual producer; one
     # backup call only, never a second copy, retry loop or VACUUM fallback.
     pinned = False
@@ -198,7 +198,7 @@ def _copy_once(source, destination, source_actual_fd, authorized_fd, deadline):
             _same_connection(destination[2], destination[1])
             # SQLite maximum page size gives an unconditional file-size cap;
             # the destination FD is additionally checked after every progress.
-            if os.fstat(destination[1]).st_size > MAX_BYTES or total < 0:
+            if os.fstat(destination[1]).st_size > snapshot_byte_limit or total < 0:
                 raise WorkerError("SQLITE_SNAPSHOT_BYTE_BUDGET")
         source.backup(destination[0], pages=256, progress=progress, sleep=0.05)
         _same_connection(source_actual_fd, authorized_fd)
@@ -243,12 +243,12 @@ def _limit(kind, value):
     resource.setrlimit(kind, (min(values), hard))
 
 
-def _configure_limits(deadline):
+def _configure_limits(deadline, snapshot_byte_limit=MAX_BYTES):
     global _ACTIVE_DEADLINE
     _ACTIVE_DEADLINE = deadline
     _limit(resource.RLIMIT_CORE, 0)
     _limit(resource.RLIMIT_AS, 512 * 1024 * 1024)
-    _limit(resource.RLIMIT_FSIZE, MAX_BYTES + 64 * 1024 * 1024)
+    _limit(resource.RLIMIT_FSIZE, snapshot_byte_limit + 64 * 1024 * 1024)
     _limit(resource.RLIMIT_CPU, max(1, math.ceil(deadline - time.monotonic()) + 1))
 
 
@@ -281,10 +281,16 @@ def _emit(value):
 
 def _run():
     payload = _input()
+    bounded = type(payload) is dict and payload.get("schema") == "G3_CAPTURE_WORKER_V2"
+    snapshot_byte_limit = payload.get("snapshot_byte_limit") if bounded else MAX_BYTES
     keys = {"schema", "operation_id", "proposal_sha256", "capture_id", "deadline",
             "source_parent_fd", "expected_source_origin", "source_name", "snapshot_parent_fd", "snapshot_fd",
             "critical_tables"}
-    if (type(payload) is not dict or set(payload) != keys or payload["schema"] != "G3_CAPTURE_WORKER_V1"
+    if bounded:
+        keys.add("snapshot_byte_limit")
+    if (type(payload) is not dict or set(payload) != keys
+            or payload["schema"] != ("G3_CAPTURE_WORKER_V2" if bounded else "G3_CAPTURE_WORKER_V1")
+            or type(snapshot_byte_limit) is not int or not 0 < snapshot_byte_limit <= MAX_BYTES
             or not re.fullmatch(r"[A-Z0-9_-]{1,96}", payload["operation_id"])
             or not re.fullmatch(r"[0-9a-f]{64}", payload["proposal_sha256"])
             or not re.fullmatch(r"[0-9a-f]{32}", payload["capture_id"])
@@ -302,7 +308,7 @@ def _run():
     deadline = payload["deadline"]
     _time(deadline)
     _single_thread()
-    _configure_limits(deadline)
+    _configure_limits(deadline, snapshot_byte_limit)
     fds = [payload[k] for k in ("source_parent_fd", "snapshot_parent_fd", "snapshot_fd")]
     if any(type(fd) is not int or fd <= 2 for fd in fds) or len(set(fds)) != 3:
         raise WorkerError("INVALID_WORKER_PROTOCOL")
@@ -329,14 +335,14 @@ def _run():
         pages = source.execute("PRAGMA page_count").fetchone()[0]
         page_size = source.execute("PRAGMA page_size").fetchone()[0]
         estimate = pages * page_size
-        if not 0 < estimate <= MAX_BYTES:
+        if not 0 < estimate <= snapshot_byte_limit:
             raise WorkerError("SQLITE_SNAPSHOT_BYTE_BUDGET")
         disk = os.fstatvfs(dp)
         if disk.f_bavail * disk.f_frsize < estimate + max(64 * 1024 * 1024, estimate // 10):
             raise WorkerError("SQLITE_SNAPSHOT_STORAGE_INSUFFICIENT")
         attempted = True
         _same_connection(destination_actual, df)
-        _copy_once(source, (destination, df, destination_actual), source_actual, sf, deadline)
+        _copy_once(source, (destination, df, destination_actual), source_actual, sf, deadline, snapshot_byte_limit)
         source.close()
         source = None
         # Keep sf until AFTER source.close(): duplicated-inode close releases
@@ -363,7 +369,9 @@ def _run():
         os.close(df)
         df = readonly_fd
         common = {k: payload[k] for k in ("operation_id", "proposal_sha256", "capture_id", "deadline")}
-        common.update(schema="G3_CAPTURE_WORKER_RECEIPT_V1", worker_pid=os.getpid(),
+        if bounded:
+            common["snapshot_byte_limit"] = snapshot_byte_limit
+        common.update(schema="G3_CAPTURE_WORKER_RECEIPT_V2" if bounded else "G3_CAPTURE_WORKER_RECEIPT_V1", worker_pid=os.getpid(),
                       source_binding=SOURCE_BINDING, source_origin=list(source_origin),
                       snapshot_identity=list(_identity(captured)), sqlite_backup_calls=1,
                       source_attested_before_sql=True, destination_attested_before_sql=True,
@@ -386,20 +394,24 @@ def _run():
 
 def _run_validate():
     payload = _input()
+    bounded = type(payload) is dict and payload.get("schema") == "G3_VALIDATE_WORKER_V2"
     if (type(payload) is not dict or set(payload) != {"schema", "prepared_receipt", "snapshot_parent_fd", "snapshot_fd", "critical_tables"}
-            or payload["schema"] != "G3_VALIDATE_WORKER_V1"
+            or payload["schema"] != ("G3_VALIDATE_WORKER_V2" if bounded else "G3_VALIDATE_WORKER_V1")
             or type(payload["prepared_receipt"]) is not dict
             or type(payload["critical_tables"]) is not list or tuple(payload["critical_tables"]) != CRITICAL_TABLES):
         raise WorkerError("INVALID_WORKER_PROTOCOL")
     common = dict(payload["prepared_receipt"])
+    snapshot_byte_limit = common.get("snapshot_byte_limit") if bounded else MAX_BYTES
+    if type(snapshot_byte_limit) is not int or not 0 < snapshot_byte_limit <= MAX_BYTES:
+        raise WorkerError("INVALID_WORKER_PROTOCOL")
     deadline = common.get("deadline")
     _time(deadline)
     _single_thread()
-    _configure_limits(deadline)
+    _configure_limits(deadline, snapshot_byte_limit)
     dp, df = payload["snapshot_parent_fd"], payload["snapshot_fd"]
     if (type(dp) is not int or type(df) is not int or dp <= 2 or df <= 2 or dp == df
             or common.get("ok") is not True or common.get("phase") != "PREPARED"
-            or common.get("schema") != "G3_CAPTURE_WORKER_RECEIPT_V1"
+            or common.get("schema") != ("G3_CAPTURE_WORKER_RECEIPT_V2" if bounded else "G3_CAPTURE_WORKER_RECEIPT_V1")
             or common.get("source_binding") != SOURCE_BINDING
             or type(common.get("snapshot_identity")) is not list or len(common["snapshot_identity"]) != 9):
         raise WorkerError("INVALID_WORKER_PROTOCOL")
@@ -407,6 +419,8 @@ def _run_validate():
     if not stat.S_ISDIR(parent.st_mode) or parent.st_mode & 0o077 or parent.st_uid != os.geteuid():
         raise WorkerError("INVALID_CAPTURE_DESTINATION")
     captured = _same_file(df, dp, "snapshot.partial", tuple(common["snapshot_identity"]))
+    if not 0 < captured.st_size <= snapshot_byte_limit:
+        raise WorkerError("SQLITE_SNAPSHOT_BYTE_BUDGET")
     common["worker_pid"] = os.getpid()
     expected = _identity(captured)
     _same_file(df, dp, "snapshot.partial", expected)
@@ -445,12 +459,125 @@ def _run_validate():
            "sha256": digest, "tables_included": tables, "records_summary": counts})
 
 
+def _run_restore_member():
+    """Restore sealed published bytes, not a new snapshot of any live source."""
+    payload = _input()
+    keys = {"schema", "operation_id", "proposal_sha256", "capture_id", "source_id",
+            "deadline", "maximum_bytes", "size_bytes", "sha256", "backup_name",
+            "backup_parent_fd", "backup_fd", "destination_parent_fd", "destination_fd"}
+    if (type(payload) is not dict or set(payload) != keys
+            or payload["schema"] != "G3_RESTORE_MEMBER_WORKER_V1"
+            or type(payload["operation_id"]) is not str
+            or re.fullmatch(r"[A-Za-z0-9_-]{1,96}", payload["operation_id"]) is None
+            or type(payload["proposal_sha256"]) is not str
+            or re.fullmatch(r"[0-9a-f]{64}", payload["proposal_sha256"]) is None
+            or type(payload["capture_id"]) is not str
+            or re.fullmatch(r"[0-9a-f]{32}", payload["capture_id"]) is None
+            or type(payload["source_id"]) is not str
+            or re.fullmatch(r"principal|aux_[a-z0-9_]{1,40}", payload["source_id"]) is None
+            or type(payload["backup_name"]) is not str
+            or re.fullmatch(r"database_[0-9a-f]{32}\.db", payload["backup_name"]) is None
+            or type(payload["sha256"]) is not str
+            or re.fullmatch(r"[0-9a-f]{64}", payload["sha256"]) is None
+            or type(payload["maximum_bytes"]) is not int
+            or not 0 < payload["maximum_bytes"] <= MAX_BYTES
+            or type(payload["size_bytes"]) is not int
+            or not 0 < payload["size_bytes"] <= payload["maximum_bytes"]):
+        raise WorkerError("INVALID_RESTORE_MEMBER_PROTOCOL")
+    deadline = payload["deadline"]
+    _time(deadline)
+    if deadline - time.monotonic() > 300:
+        raise WorkerError("INVALID_RESTORE_MEMBER_BUDGET")
+    _single_thread()
+    _configure_limits(deadline, payload["maximum_bytes"])
+    descriptors = tuple(payload[k] for k in ("backup_parent_fd", "backup_fd",
+                                            "destination_parent_fd", "destination_fd"))
+    if any(type(fd) is not int or fd <= 2 for fd in descriptors) or len(set(descriptors)) != 4:
+        raise WorkerError("INVALID_RESTORE_MEMBER_PROTOCOL")
+    bp, bf, dp, df = descriptors
+    for parent in (bp, dp):
+        info = os.fstat(parent)
+        if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077 or info.st_uid != os.geteuid():
+            raise WorkerError("PRIVATE_RESTORE_MEMBER_REQUIRED")
+    name = ("restoration-test.db" if payload["source_id"] == "principal"
+            else payload["source_id"] + ".db")
+    source = _same_file(bf, bp, payload["backup_name"])
+    target = _same_file(df, dp, name)
+    if (source.st_size != payload["size_bytes"] or target.st_size != 0
+            or source.st_mode & 0o077 or target.st_mode & 0o077
+            or source.st_uid != os.geteuid() or target.st_uid != os.geteuid()
+            or _origin(source) == _origin(target)
+            or fcntl.fcntl(bf, fcntl.F_GETFL) & os.O_ACCMODE != os.O_RDONLY
+            or fcntl.fcntl(df, fcntl.F_GETFL) & os.O_ACCMODE != os.O_RDWR):
+        raise WorkerError("INVALID_RESTORE_MEMBER_FILES")
+    expected_source = _identity(source)
+    _standalone(bp, payload["backup_name"])
+    digest, copied = hashlib.sha256(), 0
+    os.lseek(bf, 0, os.SEEK_SET)
+    while True:
+        _time(deadline)
+        block = os.read(bf, 65536)
+        if not block:
+            break
+        copied += len(block)
+        if copied > payload["size_bytes"]:
+            raise WorkerError("RESTORE_MEMBER_SIZE_CHANGED")
+        digest.update(block)
+        view = memoryview(block)
+        while view:
+            _time(deadline)
+            wrote = os.write(df, view)
+            if wrote <= 0:
+                raise WorkerError("RESTORE_MEMBER_WRITE_FAILED")
+            view = view[wrote:]
+    os.fsync(df)
+    if copied != payload["size_bytes"] or digest.hexdigest() != payload["sha256"]:
+        raise WorkerError("RESTORE_MEMBER_HASH_MISMATCH")
+    _same_file(bf, bp, payload["backup_name"], expected_source)
+    copied_identity = _identity(_same_file(df, dp, name))
+    if _hash(df, deadline) != payload["sha256"]:
+        raise WorkerError("RESTORE_MEMBER_HASH_MISMATCH")
+    # Switch the authorized descriptor to read-only BEFORE opening SQLite.
+    # Keep every descriptor for this inode until its connection is closed.
+    readonly_fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=dp)
+    try:
+        _same_file(readonly_fd, dp, name, copied_identity)
+        _standalone(dp, name)
+        conn, actual = _open_connection(dp, name, readonly_fd, readonly=True, deadline=deadline)
+        try:
+            conn.execute("BEGIN")
+            if conn.execute("PRAGMA integrity_check").fetchall() != [("ok",)]:
+                raise WorkerError("RESTORE_MEMBER_INTEGRITY_FAILED")
+            _same_connection(actual, readonly_fd)
+            _same_file(readonly_fd, dp, name, copied_identity)
+        finally:
+            conn.close()
+        _same_file(readonly_fd, dp, name, copied_identity)
+    finally:
+        os.close(readonly_fd)
+    _standalone(dp, name)
+    _standalone(bp, payload["backup_name"])
+    _same_file(bf, bp, payload["backup_name"], expected_source)
+    _same_file(df, dp, name, copied_identity)
+    _time(deadline)
+    _emit({"schema": "G3_RESTORE_MEMBER_RECEIPT_V1", "ok": True,
+           "operation_id": payload["operation_id"], "proposal_sha256": payload["proposal_sha256"],
+           "capture_id": payload["capture_id"], "source_id": payload["source_id"],
+           "deadline": deadline, "maximum_bytes": payload["maximum_bytes"],
+           "size_bytes": copied, "sha256": digest.hexdigest(), "worker_pid": os.getpid(),
+           "source_identity": list(expected_source), "destination_identity": list(copied_identity),
+           "integrity_attested_before_sql": True, "integrity_check_ok": True,
+           "sealed_snapshot_copy_calls": 1, "live_source_capture_calls": 0})
+
+
 if __name__ == "__main__":
     try:
         if sys.argv[1:] == ["--g3-capture-worker"]:
             _run()
         elif sys.argv[1:] == ["--g3-validate-worker"]:
             _run_validate()
+        elif sys.argv[1:] == ["--g3-restore-member-worker"]:
+            _run_restore_member()
         else:
             raise WorkerError("EXPLICIT_WORKER_ENTRY_REQUIRED")
     except BaseException as exc:

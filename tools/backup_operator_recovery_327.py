@@ -296,11 +296,24 @@ def verify_and_restore_isolated(directory: Path, name: str, timeout: int, *, app
                 **failed_workspace_details()}
 
 
-def run(args: argparse.Namespace, *, state_plan=None) -> int:
+def run(args: argparse.Namespace, *, state_plan=None, sqlite_set_plan=None) -> int:
     source = Path(args.db).expanduser()
     # Dedicated directory: never prune or reclaim the normal backup archive.
     directory = (Path(args.backup_dir).expanduser() if args.backup_dir
                  else backup_dir(ROOT) / "operator_327")
+    if sqlite_set_plan is not None:
+        if state_plan is not None:
+            emit({"ok": False, "stage": "PREFLIGHT", "code": "CONFLICTING_RECOVERY_PLANS",
+                  "backup_created": False})
+            return 2
+        from tools.recovery_sqlite_set_operator import run_set_operation
+        result = run_set_operation(plan=sqlite_set_plan, source=source, directory=directory,
+            restore_root=(Path(args.restore_workspace_root).expanduser()
+                          if getattr(args, "restore_workspace_root", None) is not None else None),
+            timeout=args.timeout, app_probe_mode=getattr(args, "app_probe_mode", None),
+            project_root=ROOT, execute=args.execute, verify_existing=args.verify_existing)
+        emit(result)
+        return 0 if result.get("ok") is True else 2
     # A plan is supplied only by a separately reviewed code/data invocation.
     # main() supplies none; no CLI flag or manifest can enable state capture.
     if state_plan is not None and args.verify_existing:

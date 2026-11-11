@@ -17,6 +17,8 @@ import tarfile
 import time
 import uuid
 
+from engines import recovery_sqlite_set_contract as sqlite_sets
+
 MAX_ENTRIES = 400
 MAX_DEPTH = 6
 MAX_BYTES = 16 * 1024 * 1024
@@ -43,6 +45,13 @@ REF = re.compile(r"[A-Z0-9_-]{1,96}\Z")
 
 
 _ERROR_CODES = frozenset(["PREPARED_SQLITE_CAPTURE_NOT_VERIFIED","PREPARED_SQLITE_CAPTURE_CHANGED","FOREIGN_PREPARED_SQLITE_CAPTURE","PREPARED_SQLITE_HASH_MISMATCH","INVALID_SQLITE_CAPTURE_MODE","ARCHIVE_BUDGET","ARCHIVE_HASH_MISMATCH","ARCHIVE_MEMBER_BUDGET","ARCHIVE_READ_BUDGET","BUDGET_PROFILE_MISMATCH","BUDGET_PROFILE_REQUIRED","BYTE_BUDGET","DEADLINE_EXPIRED","DUPLICATE_MANIFEST_KEY","DUPLICATE_STATE_PATH","ENTRY_BUDGET","FOREIGN_SQLITE_RECEIPT","INCOMPLETE_MANIFEST_NAMESPACE","INVALID_BUDGET_PROFILE","INVALID_DEADLINE","INVALID_EXPECTED_DIGEST","INVALID_LIMIT","INVALID_LAYOUT_BINDING","INVALID_MANIFEST","INVALID_MANIFEST_ENTRY","INVALID_MANIFEST_IDENTITY","INVALID_MANIFEST_LIMITS","INVALID_MANIFEST_ROOTS","INVALID_SCOPES","INVALID_TAR_HEADER","LAYOUT_BINDING_MISMATCH","LAYOUT_BINDING_REQUIRED","LAYOUT_REQUIRED_ENTRY_MISSING","MANIFEST_BUDGET","MANIFEST_COMPLEXITY_BUDGET","MANIFEST_HASH_MISMATCH","NONCANONICAL_PADDING","OWNED_RESTORE_WORKSPACE_REQUIRED","PAYLOAD_MANIFEST_MISMATCH","PRIVATE_ARCHIVE_REQUIRED","PRIVATE_PUBLICATION_NAMESPACE_REQUIRED","PROTECTED_SQLITE_PATHS_REQUIRED","PUBLICATION_IDENTITY_CHANGED","PUBLICATION_ROOT_OVERLAP","RESTORED_DATABASE_CHANGED","RESTORED_DATABASE_IDENTITY_MISMATCH","RESTORED_STATE_VERIFY_FAILED","SECRET_CUSTODY_REQUIRED","SOURCE_CHANGED","SOURCE_ROOT_OVERLAP","SPECIFIC_DATA_AUTHORITY_REQUIRED","SQLITE_RECEIPT_NOT_VERIFIED","SQLITE_SCOPE_COLLISION","STATE_CHANGED_ACROSS_SQLITE_INTERVAL","STATE_LINK","STRONG_FD_PRIMITIVES_UNSUPPORTED","TRAILING_ARCHIVE","TRUNCATED_ARCHIVE","UNCLASSIFIED_STATE_ERROR","UNSAFE_MEMBER_PATH","UNSAFE_PATH","UNSAFE_STATE_FILE","UNSAFE_TAR_HEADER","UNSAFE_TAR_NAME","UNSAFE_TAR_TYPE"])
+
+
+_ERROR_CODES = _ERROR_CODES | frozenset((
+    "INVALID_SQLITE_SET_DECLARATION", "INVALID_SQLITE_SET_MODE",
+    "FOREIGN_PREPARED_SQLITE_SET", "SQLITE_SET_MEMBER_CHANGED",
+    "SQLITE_SET_RESTORE_NOT_VERIFIED",
+))
 
 
 class StateError(ValueError):
@@ -112,7 +121,7 @@ def _manifest_limits_record(policy, legacy_limits=None):
 
 def _validate_manifest_limits(schema, raw, policy):
     legacy_keys = {"entries", "depth", "bytes", "seconds"}
-    if schema in {"OPAQUE_STATE_BUNDLE_V1", "OPAQUE_STATE_BUNDLE_V2"}:
+    if schema in {"OPAQUE_STATE_BUNDLE_V1", "OPAQUE_STATE_BUNDLE_V2", "OPAQUE_STATE_BUNDLE_V4"}:
         if policy.profile_id is not None:
             raise StateError("BUDGET_PROFILE_MISMATCH")
         if type(raw) is not dict or set(raw) != legacy_keys:
@@ -191,6 +200,28 @@ class ValidatedSqliteCapture:
     publication: Path
     publication_fd: int
     backup_file: str
+
+
+@dataclass(frozen=True)
+class PreparedSqliteSetCapture:
+    """Internal set capability; every member remains its exact native capture."""
+    operation_id: str
+    proposal_sha256: str
+    members: tuple[tuple[str, PreparedSqliteCapture], ...]
+
+
+@dataclass(frozen=True)
+class ValidatedSqliteSetCapture:
+    prepared: PreparedSqliteSetCapture
+    members: tuple[tuple[str, ValidatedSqliteCapture], ...]
+
+
+@dataclass(frozen=True)
+class PreparedSqliteSetCallbacks:
+    """Trusted-code declaration of EVERY protected SQLite source, never data-derived."""
+    sources: tuple[tuple[str, Path, int], ...]
+    prepare: object
+    validate: object
 
 
 @dataclass(frozen=True)
@@ -372,6 +403,92 @@ def _sqlite(receipt):
     return asdict(receipt)
 
 
+def _sqlite_binding(receipt):
+    if type(receipt) is sqlite_sets.SqliteSetReceipt:
+        try:
+            return sqlite_sets.to_record(receipt)
+        except sqlite_sets.SqliteSetContractError:
+            raise StateError("SQLITE_RECEIPT_NOT_VERIFIED") from None
+    return _sqlite(receipt)
+
+
+def _sqlite_set_sources(callbacks, authorization):
+    if (type(callbacks) is not PreparedSqliteSetCallbacks
+            or not callable(callbacks.prepare) or not callable(callbacks.validate)
+            or type(authorization) is not Authorization
+            or type(callbacks.sources) is not tuple
+            or any(type(row) is not tuple or len(row) != 3 for row in callbacks.sources)):
+        raise StateError("INVALID_SQLITE_SET_DECLARATION")
+    try:
+        sqlite_sets.member_budgets(tuple((label, quota) for label, _, quota in callbacks.sources))
+    except sqlite_sets.SqliteSetContractError:
+        raise StateError("INVALID_SQLITE_SET_DECLARATION") from None
+    for _, source, _ in callbacks.sources:
+        _path(source)
+    paths = tuple(str(source) for _, source, _ in callbacks.sources)
+    if (len({os.path.normcase(p) for p in paths}) != len(paths)
+            or paths != authorization.protected_sqlite_paths):
+        raise StateError("INVALID_SQLITE_SET_DECLARATION")
+    return callbacks.sources
+
+
+def _prepared_sqlite_set(value, binding, sources, deadline):
+    labels = tuple(label for label, _, _ in sources)
+    if (type(value) is not PreparedSqliteSetCapture or binding is None
+            or value.operation_id != binding["operation_id"]
+            or value.proposal_sha256 != binding["proposal_sha256"]
+            or type(value.members) is not tuple or len(value.members) != len(sources)
+            or any(type(row) is not tuple or len(row) != 2 for row in value.members)
+            or tuple(label for label, _ in value.members) != labels):
+        raise StateError("FOREIGN_PREPARED_SQLITE_SET")
+    frozen = []
+    for (label, capture), (_, _, quota) in zip(value.members, sources):
+        _check_time(deadline)
+        _prepared_capture(capture, binding)
+        if capture.snapshot_identity[6] > quota:
+            raise StateError("SQLITE_SET_MEMBER_CHANGED")
+        frozen.append((label, capture, capture.producer_id, capture.capture_id,
+                       capture.snapshot_fd, capture.snapshot_identity))
+    if (len({row[2] for row in frozen}) != len(frozen)
+            or len({row[3] for row in frozen}) != len(frozen)
+            or len({row[5][:2] for row in frozen}) != len(frozen)):
+        raise StateError("FOREIGN_PREPARED_SQLITE_SET")
+    return tuple(frozen)
+
+
+def _validated_sqlite_set(value, prepared, frozen, binding, sources, deadline):
+    labels = tuple(label for label, _, _ in sources)
+    if (type(value) is not ValidatedSqliteSetCapture or value.prepared is not prepared
+            or prepared.operation_id != binding["operation_id"]
+            or prepared.proposal_sha256 != binding["proposal_sha256"]
+            or type(value.members) is not tuple or len(value.members) != len(frozen)
+            or any(type(row) is not tuple or len(row) != 2 for row in value.members)
+            or tuple(label for label, _ in value.members) != labels
+            or type(prepared.members) is not tuple or len(prepared.members) != len(frozen)):
+        raise StateError("FOREIGN_PREPARED_SQLITE_SET")
+    members = []
+    for (label, validated), original, current, (_, _, quota) in zip(
+            value.members, frozen, prepared.members, sources):
+        _check_time(deadline)
+        old_label, capture, producer_id, capture_id, fd, identity = original
+        if (type(current) is not tuple or len(current) != 2
+                or current[0] != old_label or current[1] is not capture or label != old_label
+                or capture.producer_id != producer_id or capture.capture_id != capture_id
+                or capture.snapshot_fd != fd or capture.snapshot_identity != identity):
+            raise StateError("SQLITE_SET_MEMBER_CHANGED")
+        receipt = _validated_capture(validated, capture, binding, deadline)
+        try:
+            members.append(sqlite_sets.SqliteSetMemberReceipt(
+                label, capture_id, validated.backup_file, receipt["sha256"], identity[6], quota))
+        except sqlite_sets.SqliteSetContractError:
+            raise StateError("SQLITE_RECEIPT_NOT_VERIFIED") from None
+    try:
+        return sqlite_sets.to_record(sqlite_sets.SqliteSetReceipt(
+            binding["operation_id"], tuple(members), True))
+    except sqlite_sets.SqliteSetContractError:
+        raise StateError("SQLITE_RECEIPT_NOT_VERIFIED") from None
+
+
 def _validate_profile_manifest_value(value, policy, deadline):
     max_scalars = policy.entries * _PROFILE_MANIFEST_SCALARS_PER_ENTRY + _PROFILE_MANIFEST_FIXED_SCALARS
     max_containers = policy.entries * _PROFILE_MANIFEST_CONTAINERS_PER_ENTRY + _PROFILE_MANIFEST_FIXED_CONTAINERS
@@ -519,7 +636,7 @@ class _Writer:
     def manifest(self, value, policy=None, expected_length=None):
         if policy is None:
             policy = _policy()
-        if policy.profile_id is None:
+        if policy.profile_id is None and (type(value) is not dict or value.get("schema") != "OPAQUE_STATE_BUNDLE_V4"):
             # Keep the legacy V1/V2 byte path exactly as it was.
             raw = _canonical(value)
             if len(raw) > policy.manifest_bytes:
@@ -707,7 +824,7 @@ def _hash_fd(fd, deadline, maximum):
 
 def capture_state(*, scopes, authorization, publication: Path, deadline: float,
                   sqlite_snapshot_callback=None, limits: Limits = Limits(), layout_binding=None,
-                  profile_id=None, sqlite_prepared_callbacks=None):
+                  profile_id=None, sqlite_prepared_callbacks=None, sqlite_set_callbacks=None):
     result = {"schema": "OWNED_STATE_CAPTURE_PROTOTYPE_V1", "ok": False,
               "state_published": False, "sqlite_callback_invoked": False,
               "sqlite_receipt": None, "recapture_attempted": False,
@@ -721,17 +838,26 @@ def capture_state(*, scopes, authorization, publication: Path, deadline: float,
         if type(limits) is not Limits:
             raise StateError("INVALID_LIMIT")
         policy = _policy(profile_id, limits)
-        split_capture = sqlite_prepared_callbacks is not None
-        if split_capture and (type(sqlite_prepared_callbacks) is not PreparedSqliteCallbacks
+        set_capture = sqlite_set_callbacks is not None
+        single_split = sqlite_prepared_callbacks is not None
+        split_capture = single_split or set_capture
+        if set_capture and (single_split or sqlite_snapshot_callback is not None
+                or policy.profile_id is not None):
+            raise StateError("INVALID_SQLITE_SET_MODE")
+        set_sources = _sqlite_set_sources(sqlite_set_callbacks, authorization) if set_capture else None
+        if single_split and (type(sqlite_prepared_callbacks) is not PreparedSqliteCallbacks
                 or sqlite_snapshot_callback is not None or policy.profile_id is None
                 or not callable(sqlite_prepared_callbacks.prepare)
                 or not callable(sqlite_prepared_callbacks.validate)):
             raise StateError("INVALID_SQLITE_CAPTURE_MODE")
         if not split_capture and not callable(sqlite_snapshot_callback):
             raise StateError("INVALID_SQLITE_CAPTURE_MODE")
-        result["sqlite_capture_mode"] = "PREPARE_THEN_VALIDATE_V1" if split_capture else "LEGACY_CALLBACK"
+        result["sqlite_capture_mode"] = ("PREPARE_SET_THEN_VALIDATE_V1" if set_capture else
+                                        "PREPARE_THEN_VALIDATE_V1" if single_split else "LEGACY_CALLBACK")
         scopes = _scopes(scopes, authorization)
         layout_record = _layout_binding_record(layout_binding, scopes)
+        if set_capture and layout_record is None:
+            raise StateError("LAYOUT_BINDING_REQUIRED")
         if policy.profile_id is not None and (
                 layout_record is None
                 or layout_record["layout_id"] != LAYOUT_CE_COLOCATED_SENTINEL_AUTOPILOT_V1):
@@ -752,18 +878,24 @@ def capture_state(*, scopes, authorization, publication: Path, deadline: float,
             writer = _Writer(stream, deadline)
             before = _scan(scopes, policy, deadline, writer, authorization.protected_sqlite_paths)
             _validate_required_layout_entries(layout_record, before["entries"])
+            if set_capture and before["entries_count"] + len(set_sources) > policy.entries:
+                raise StateError("ENTRY_BUDGET")
             _check_time(deadline)
-            manifest_schema = ("OPAQUE_STATE_BUNDLE_V3" if policy.profile_id is not None else
+            manifest_schema = ("OPAQUE_STATE_BUNDLE_V4" if set_capture else
+                               "OPAQUE_STATE_BUNDLE_V3" if policy.profile_id is not None else
                                "OPAQUE_STATE_BUNDLE_V2" if layout_record is not None else
                                "OPAQUE_STATE_BUNDLE_V1")
             profile_manifest_size = None
-            if policy.profile_id is not None:
+            if policy.profile_id is not None or set_capture:
+                sizing_sqlite = (sqlite_sets.sizing_record(layout_record["operation_id"],
+                    tuple((label, quota) for label, _, quota in set_sources)) if set_capture else
+                    {"artifact_id": layout_record["operation_id"],
+                     "sha256": "0" * 64, "published_and_validated": None})
                 sizing_manifest = {
                     "schema": manifest_schema,
                     "authorization_ref": authorization.evidence_ref,
                     # Shape sentinel only; null has the same JSON width as the final boolean.
-                    "sqlite": {"artifact_id": layout_record["operation_id"],
-                               "sha256": "0" * 64, "published_and_validated": None},
+                    "sqlite": sizing_sqlite,
                     "limits": _manifest_limits_record(policy, limits),
                     "roots": before["roots"], "entries": before["entries"],
                     "bracket_equal": True,
@@ -776,7 +908,8 @@ def capture_state(*, scopes, authorization, publication: Path, deadline: float,
 
                 receipt, profile_manifest_size = _snapshot_after_profile_manifest_preflight(
                     sizing_manifest, policy, deadline,
-                    (sqlite_prepared_callbacks.prepare if split_capture else sqlite_snapshot_callback),
+                    (sqlite_set_callbacks.prepare if set_capture else
+                     sqlite_prepared_callbacks.prepare if single_split else sqlite_snapshot_callback),
                     mark_sqlite_callback_invoked,
                 )
             else:
@@ -794,7 +927,17 @@ def capture_state(*, scopes, authorization, publication: Path, deadline: float,
             if _comparable(before) != _comparable(after):
                 raise StateError("STATE_CHANGED_ACROSS_SQLITE_INTERVAL")
             result["opaque_bracket_closed"] = True
-            if split_capture:
+            if set_capture:
+                frozen_members = _prepared_sqlite_set(receipt, layout_record, set_sources, deadline)
+                _check_time(deadline)
+                result["sqlite_validator_invoked"] = True
+                validated = sqlite_set_callbacks.validate(receipt, deadline)
+                result["sqlite_receipt"] = _validated_sqlite_set(
+                    validated, receipt, frozen_members, layout_record, set_sources, deadline)
+                result["same_prepared_sqlite_set_verified"] = True
+                result["sqlite_backup_files"] = {m["source_id"]: m["backup_file"]
+                                                 for m in result["sqlite_receipt"]["members"]}
+            elif single_split:
                 prepared_capture = _prepared_capture(receipt, layout_record)
                 _check_time(deadline)
                 result["sqlite_validator_invoked"] = True
@@ -891,9 +1034,9 @@ _PROFILE_MANIFEST_CONTAINERS_PER_ENTRY = 3
 _PROFILE_MANIFEST_FIXED_CONTAINERS = 64
 
 
-def _preflight_profile_manifest(raw, policy, deadline=None):
-    """Bound V3 JSON allocation before the standard decoder allocates."""
-    if policy.profile_id is None:
+def _preflight_profile_manifest(raw, policy, deadline=None, *, force=False):
+    """Bound opted-in V3/V4 JSON allocation before the standard decoder allocates."""
+    if policy.profile_id is None and not force:
         return
     _check_time(deadline)
     if type(raw) is not bytes or len(raw) > policy.manifest_bytes:
@@ -1025,25 +1168,27 @@ def _coerce_manifest_policy(value):
     return value
 
 
-def _manifest(raw, payloads, policy, deadline=None):
+def _manifest(raw, payloads, policy, deadline=None, *, sqlite_set=False):
     policy = _coerce_manifest_policy(policy)
-    _preflight_profile_manifest(raw, policy, deadline)
-    if policy.profile_id is not None:
+    _preflight_profile_manifest(raw, policy, deadline, force=sqlite_set)
+    if policy.profile_id is not None or sqlite_set:
         _check_time(deadline)
     try:
         value = json.loads(raw, object_pairs_hook=_no_duplicate_keys)
     except (ValueError, RecursionError, UnicodeError):
         raise StateError("INVALID_MANIFEST") from None
-    if policy.profile_id is not None:
+    if policy.profile_id is not None or sqlite_set:
         _check_time(deadline)
     base_keys = {"schema", "authorization_ref", "sqlite", "limits", "roots", "entries",
                  "bracket_equal", "continuous_cross_store_consistency_certified"}
     schema = value.get("schema") if type(value) is dict else None
     if schema == "OPAQUE_STATE_BUNDLE_V1":
         expected_keys = base_keys
-    elif schema in {"OPAQUE_STATE_BUNDLE_V2", "OPAQUE_STATE_BUNDLE_V3"}:
+    elif schema in {"OPAQUE_STATE_BUNDLE_V2", "OPAQUE_STATE_BUNDLE_V3", "OPAQUE_STATE_BUNDLE_V4"}:
         expected_keys = base_keys | {"layout_binding"}
     else:
+        raise StateError("INVALID_MANIFEST")
+    if (schema == "OPAQUE_STATE_BUNDLE_V4") != sqlite_set:
         raise StateError("INVALID_MANIFEST")
     if schema == "OPAQUE_STATE_BUNDLE_V3" and policy.profile_id is None:
         raise StateError("BUDGET_PROFILE_REQUIRED")
@@ -1065,15 +1210,18 @@ def _manifest(raw, payloads, policy, deadline=None):
     if len(roles) != len(value["roots"]) or len(set(roles)) != len(roles) or set(roles) - ROLES:
         raise StateError("INVALID_MANIFEST_ROOTS")
     layout_binding = value.get("layout_binding")
-    if schema in {"OPAQUE_STATE_BUNDLE_V2", "OPAQUE_STATE_BUNDLE_V3"}:
+    if schema in {"OPAQUE_STATE_BUNDLE_V2", "OPAQUE_STATE_BUNDLE_V3", "OPAQUE_STATE_BUNDLE_V4"}:
         binding_keys = {"layout_id", "operation_id", "proposal_sha256", "scope_roles", "required_entries"}
         sqlite_value = value.get("sqlite")
         try:
-            if (type(sqlite_value) is not dict
-                    or set(sqlite_value) != {"artifact_id", "sha256", "published_and_validated"}):
-                raise StateError("INVALID_LAYOUT_BINDING")
-            sqlite_receipt = _sqlite(SqliteReceipt(**sqlite_value))
-        except (TypeError, StateError):
+            if schema == "OPAQUE_STATE_BUNDLE_V4":
+                sqlite_receipt = _sqlite_binding(sqlite_sets.from_record(sqlite_value))
+            else:
+                if (type(sqlite_value) is not dict
+                        or set(sqlite_value) != {"artifact_id", "sha256", "published_and_validated"}):
+                    raise StateError("INVALID_LAYOUT_BINDING")
+                sqlite_receipt = _sqlite(SqliteReceipt(**sqlite_value))
+        except (TypeError, StateError, sqlite_sets.SqliteSetContractError):
             raise StateError("INVALID_LAYOUT_BINDING") from None
         if (type(layout_binding) is not dict or set(layout_binding) != binding_keys
                 or type(layout_binding.get("layout_id")) is not str
@@ -1092,6 +1240,9 @@ def _manifest(raw, payloads, policy, deadline=None):
         expected_entries = [{"scope": role, "relative": relative} for role, relative in required]
         if (roles != required_roles or layout_binding["required_entries"] != expected_entries):
             raise StateError("INVALID_LAYOUT_BINDING")
+    if (schema == "OPAQUE_STATE_BUNDLE_V4"
+            and len(value["entries"]) + len(sqlite_receipt["members"]) > policy.entries):
+        raise StateError("ENTRY_BUDGET")
     seen, members, total = set(), set(), 0
     for item in value["entries"]:
         if type(item) is not dict or not isinstance(item.get("scope"), str) or item.get("scope") not in roles:
@@ -1125,13 +1276,13 @@ def _manifest(raw, payloads, policy, deadline=None):
                 raise StateError("INCOMPLETE_MANIFEST_NAMESPACE")
     if members != set(payloads) or total > policy.bytes:
         raise StateError("PAYLOAD_MANIFEST_MISMATCH")
-    if schema in {"OPAQUE_STATE_BUNDLE_V2", "OPAQUE_STATE_BUNDLE_V3"}:
+    if schema in {"OPAQUE_STATE_BUNDLE_V2", "OPAQUE_STATE_BUNDLE_V3", "OPAQUE_STATE_BUNDLE_V4"}:
         _validate_required_layout_entries(layout_binding, value["entries"])
     return value
 
 
 def parse_bundle(stream, *, expected_archive_sha256, expected_manifest_sha256,
-                 expected_sqlite: SqliteReceipt, deadline, limits=Limits(), payload_sink=None,
+                 expected_sqlite: SqliteReceipt | sqlite_sets.SqliteSetReceipt, deadline, limits=Limits(), payload_sink=None,
                  expected_layout_id=None, expected_proposal_sha256=None, expected_scope_roles=None,
                  expected_profile_id=None):
     """Bounded USTAR subset; no extract(), pickle, links, PAX or GNU extensions."""
@@ -1139,7 +1290,7 @@ def parse_bundle(stream, *, expected_archive_sha256, expected_manifest_sha256,
     if type(limits) is not Limits:
         raise StateError("INVALID_LIMIT")
     policy = _policy(expected_profile_id, limits)
-    sqlite = _sqlite(expected_sqlite)
+    sqlite = _sqlite_binding(expected_sqlite)
     if not all(isinstance(v, str) and HEX.fullmatch(v) for v in
                (expected_archive_sha256, expected_manifest_sha256)):
         raise StateError("INVALID_EXPECTED_DIGEST")
@@ -1182,7 +1333,8 @@ def parse_bundle(stream, *, expected_archive_sha256, expected_manifest_sha256,
             raw = read(item.size)
             if hashlib.sha256(raw).hexdigest() != expected_manifest_sha256:
                 raise StateError("MANIFEST_HASH_MISMATCH")
-            manifest = _manifest(raw, payloads, policy, deadline)
+            manifest = _manifest(raw, payloads, policy, deadline,
+                                 sqlite_set=type(expected_sqlite) is sqlite_sets.SqliteSetReceipt)
             if manifest["sqlite"] != sqlite:
                 raise StateError("FOREIGN_SQLITE_RECEIPT")
             _validate_expected_layout_binding(
@@ -1240,7 +1392,7 @@ def restore_state(*, bundle: Path, expected_archive_sha256, expected_manifest_sh
                   expected_sqlite: SqliteReceipt, workspace: Path, expected_database_identity,
                   deadline, limits=Limits(), expected_layout_id=None,
                   expected_proposal_sha256=None, expected_scope_roles=None,
-                  expected_profile_id=None):
+                  expected_profile_id=None, restored_sqlite_set=None):
     result = {"schema": "OWNED_STATE_RESTORE_PROTOTYPE_V1", "ok": False,
               "state_ready_before_app": False, "sqlite_restore_created": False,
               "live_restore_allowed": False, "full_application_recovery_certified": False}
@@ -1256,10 +1408,31 @@ def restore_state(*, bundle: Path, expected_archive_sha256, expected_manifest_sh
         _path(bundle)
         if not workspace.name.startswith(".isolated_restore_327_"):
             raise StateError("OWNED_RESTORE_WORKSPACE_REQUIRED")
+        set_restore = type(expected_sqlite) is sqlite_sets.SqliteSetReceipt
+        if set_restore:
+            # Explicit complete native bindings; a primary-only identity cannot
+            # promote a set to verified. No archive selects this trusted owner.
+            from tools.recovery_sqlite_set_restore import RestoredSet
+            if (type(restored_sqlite_set) is not RestoredSet
+                    or restored_sqlite_set.bundle.sqlite != expected_sqlite
+                    or restored_sqlite_set.workspace != workspace
+                    or restored_sqlite_set.bundle.archive != bundle
+                    or restored_sqlite_set.bundle.archive_sha256 != expected_archive_sha256
+                    or restored_sqlite_set.bundle.manifest_sha256 != expected_manifest_sha256
+                    or restored_sqlite_set.bundle.plan.state.limits != limits
+                    or restored_sqlite_set.bundle.plan.state.layout_id != expected_layout_id
+                    or restored_sqlite_set.bundle.plan.state.proposal_sha256 != expected_proposal_sha256
+                    or expected_scope_roles != ("ce", "legacy_runtime")
+                    or expected_profile_id is not None):
+                raise StateError("SQLITE_SET_RESTORE_NOT_VERIFIED")
+            restored_sqlite_set.verify_before_app(deadline)
+        elif restored_sqlite_set is not None:
+            raise StateError("SQLITE_SET_RESTORE_NOT_VERIFIED")
         wfd = _directory(workspace)
         db_info = os.stat("restoration-test.db", dir_fd=wfd, follow_symlinks=False)
         _regular(db_info)
-        if _identity(db_info) != expected_database_identity:
+        if (_identity(db_info) != expected_database_identity
+                or (set_restore and _capture_identity(db_info) != restored_sqlite_set.members[0].identity)):
             raise StateError("RESTORED_DATABASE_IDENTITY_MISMATCH")
         source_fd = os.open("source", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=wfd)
         pfd = _directory(bundle.parent)
@@ -1325,6 +1498,8 @@ def restore_state(*, bundle: Path, expected_archive_sha256, expected_manifest_sh
             raise StateError("RESTORED_STATE_VERIFY_FAILED")
         if _identity(os.stat("restoration-test.db", dir_fd=wfd, follow_symlinks=False)) != expected_database_identity:
             raise StateError("RESTORED_DATABASE_CHANGED")
+        if set_restore:
+            restored_sqlite_set.verify_before_app(deadline)
         os.fsync(data_fd)
         _check_time(deadline)
         result.update(ok=True, code="STATE_BYTES_VERIFIED_BEFORE_APP",

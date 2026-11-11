@@ -101,7 +101,8 @@ class _CaptureWorker:
 
 
 def _run_capture_worker(*, source_parent_fd, expected_source_origin, snapshot_parent_fd, snapshot_fd,
-                        source_name, operation_id, proposal_sha256, capture_id, deadline):
+                        source_name, operation_id, proposal_sha256, capture_id, deadline,
+                        snapshot_byte_limit=MAX_SNAPSHOT_BYTES):
     _check(deadline)
     worker_path = Path(__file__).with_name("recovery_sqlite_capture_worker.py")
     if sys.platform != "linux" or not Path("/proc/self/fd").is_dir():
@@ -115,10 +116,13 @@ def _run_capture_worker(*, source_parent_fd, expected_source_origin, snapshot_pa
         close_fds=True, pass_fds=(source_parent_fd, snapshot_parent_fd, snapshot_fd),
         env={"LANG": "C.UTF-8", "LC_ALL": "C.UTF-8"},
     )
+    bounded = snapshot_byte_limit != MAX_SNAPSHOT_BYTES
+    if bounded:
+        binding["snapshot_byte_limit"] = snapshot_byte_limit
     owner = _CaptureWorker(process, binding, deadline)
     try:
         response = owner.exchange({
-            "schema": "G3_CAPTURE_WORKER_V1", **binding,
+            "schema": "G3_CAPTURE_WORKER_V2" if bounded else "G3_CAPTURE_WORKER_V1", **binding,
             "source_parent_fd": source_parent_fd, "expected_source_origin": list(expected_source_origin),
             "source_name": source_name, "snapshot_parent_fd": snapshot_parent_fd,
             "snapshot_fd": snapshot_fd, "critical_tables": list(CRITICAL_TABLES),
@@ -144,7 +148,8 @@ def _validate_capture_worker(owner):
     validator = _CaptureWorker(process, owner.binding, owner.deadline)
     owner.validation_worker = validator
     try:
-        response = validator.exchange({"schema": "G3_VALIDATE_WORKER_V1",
+        response = validator.exchange({"schema": ("G3_VALIDATE_WORKER_V2"
+            if "snapshot_byte_limit" in owner.binding else "G3_VALIDATE_WORKER_V1"),
             "prepared_receipt": owner.prepared_response,
             "snapshot_parent_fd": owner.snapshot_parent_fd, "snapshot_fd": owner.snapshot_fd,
             "critical_tables": owner.critical_tables})
@@ -162,10 +167,13 @@ def _worker_receipt(value, owner, *, phase, source_info, capture_info):
                    "destination_attested_before_sql", "source_connection_retained_through_backup",
                    "source_connections_closed", "snapshot_writers_closed", "authorized_source_fd_opened_in_worker",
                    "hostile_wal_namespace_certified"}
+    bounded = "snapshot_byte_limit" in owner.binding
+    if bounded:
+        common_keys.add("snapshot_byte_limit")
     extra = ({"integrity_attested_before_sql", "sha256", "tables_included", "records_summary"}
              if phase == "VALIDATED" else set())
     if (type(value) is not dict or set(value) != common_keys | extra
-            or value["schema"] != _WORKER_SCHEMA or value["ok"] is not True
+            or value["schema"] != ("G3_CAPTURE_WORKER_RECEIPT_V2" if bounded else _WORKER_SCHEMA) or value["ok"] is not True
             or value["phase"] != phase or type(value["worker_pid"]) is not int
             or value["worker_pid"] != (owner.validation_worker.process.pid if phase == "VALIDATED" else owner.process.pid)
             or any(type(value[k]) is not type(v) or value[k] != v for k, v in owner.binding.items())
@@ -200,9 +208,13 @@ class SqliteSnapshotProducer:
     close() releases handles only; it never removes captured or published bytes.
     """
     def __init__(self, *, source: Path, publication: Path, operation_id: str,
-                 proposal_sha256: str, snapshot_timeout=15.0, snapshot_method="sqlite_backup"):
+                 proposal_sha256: str, snapshot_timeout=15.0, snapshot_method="sqlite_backup",
+                 snapshot_byte_limit=MAX_SNAPSHOT_BYTES):
         if type(snapshot_method) is not str or snapshot_method != "sqlite_backup":
             raise PreparedSnapshotError("UNSUPPORTED_PREPARED_SQLITE_METHOD")
+        if (type(snapshot_byte_limit) is not int
+                or not 0 < snapshot_byte_limit <= MAX_SNAPSHOT_BYTES):
+            raise PreparedSnapshotError("INVALID_SQLITE_SNAPSHOT_BYTE_LIMIT")
         state._path(source)
         state._path(publication)
         if (type(operation_id) is not str or not state.REF.fullmatch(operation_id)
@@ -215,6 +227,7 @@ class SqliteSnapshotProducer:
         self.source, self.publication = source, publication
         self.operation_id, self.proposal_sha256 = operation_id, proposal_sha256
         self.snapshot_timeout = snapshot_timeout
+        self.snapshot_byte_limit = snapshot_byte_limit
         self.producer_id = uuid.uuid4().hex
         self._capture = None
         self._attempted = self._validated = self._closed = False
@@ -263,7 +276,7 @@ class SqliteSnapshotProducer:
         state._same(opened, named)
         if expected is not None and state._capture_identity(opened) != expected:
             raise PreparedSnapshotError("PREPARED_SQLITE_CAPTURE_CHANGED")
-        if opened.st_mode & 0o077 or opened.st_uid != os.geteuid() or not 0 < opened.st_size <= MAX_SNAPSHOT_BYTES:
+        if opened.st_mode & 0o077 or opened.st_uid != os.geteuid() or not 0 < opened.st_size <= self.snapshot_byte_limit:
             raise PreparedSnapshotError("INVALID_PREPARED_SQLITE_FILE")
         return opened
 
@@ -300,7 +313,9 @@ class SqliteSnapshotProducer:
                     snapshot_parent_fd=self._wfd, snapshot_fd=self._fd,
                     source_name=self.source.name, operation_id=self.operation_id,
                     proposal_sha256=self.proposal_sha256, capture_id=capture_id,
-                    deadline=self._deadline)
+                    deadline=self._deadline,
+                    **({"snapshot_byte_limit": self.snapshot_byte_limit}
+                       if self.snapshot_byte_limit != MAX_SNAPSHOT_BYTES else {}))
                 captured = self._same_capture()
                 _worker_receipt(response, self._worker, phase="PREPARED",
                                 source_info=self._source_info, capture_info=captured)
@@ -369,7 +384,8 @@ class SqliteSnapshotProducer:
             _check(self._deadline)
             name = "database_" + uuid.uuid4().hex + ".db"
             manifest_name = name[:-3] + ".json"
-            manifest = {"schema": "PREPARED_SQLITE_CAPTURE_V1", "valid": True,
+            manifest = {"schema": ("PREPARED_SQLITE_CAPTURE_V2"
+                        if "snapshot_byte_limit" in response else "PREPARED_SQLITE_CAPTURE_V1"), "valid": True,
                         "sha256": digest, "size_bytes": before.st_size,
                         "operation_id": self.operation_id, "proposal_sha256": self.proposal_sha256,
                         "source_binding": SOURCE_BINDING, "production_source_connection_bound": True,
@@ -380,6 +396,8 @@ class SqliteSnapshotProducer:
                         "hostile_wal_namespace_certified": False,
                         "capture_id": prepared.capture_id, "snapshot_method": "sqlite_backup",
                         "tables_included": tables, "records_summary": counts}
+            if "snapshot_byte_limit" in response:
+                manifest["snapshot_byte_limit"] = response["snapshot_byte_limit"]
             raw = (json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
             if len(raw) > MAX_MANIFEST_BYTES:
                 raise PreparedSnapshotError("SQLITE_METADATA_BUDGET")
