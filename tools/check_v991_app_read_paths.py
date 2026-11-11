@@ -183,7 +183,7 @@ class AppReadPathContract(unittest.TestCase):
         self.assertTrue(all(item['equal'] for item in proof['business_SQL_checks']))
         self.assertLessEqual(max(item['reference_PK_batches'] for item in proof['requests']), 1)
 
-    def test_13_picks_share_one_projection_with_owned_outputs(self):
+    def test_13_picks_omit_descriptor_and_retained_producers_preserve_outputs(self):
         proof = self.evidence['picks_projection_contracts']
         self.assertTrue(proof['success'])
         self.assertEqual(proof['unittest_run'], 5)
@@ -194,7 +194,8 @@ class AppReadPathContract(unittest.TestCase):
         self.assertTrue(all(item['equal'] for item in proof['business_SQL_checks']))
         self.assertLessEqual(max(item['reference_PK_batches'] for item in proof['requests']), 1)
         warm = next(item for item in proof['details'] if item['case'] == 'warm_page')
-        self.assertEqual(warm['projections'], 1)
+        self.assertEqual(warm['projections'], 0)
+        self.assertEqual(warm['retained_context_projections'], 1)
         self.assertEqual(warm['independent_wrapper_projections'], 2)
         self.assertTrue(warm['output_equivalent'])
 
