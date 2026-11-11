@@ -175,6 +175,7 @@ jobs:
             tests/test_pick_assessment_once.py \
             tests/test_browser_network_diagnostics.py \
             tests/test_companyos_scheduler_lock.py \
+            tests/test_companyos_pending_slot.py \
             tests/test_native_workforce_scheduler.py \
             tests/test_native_workforce_review.py \
             tests/test_final_replay.py \

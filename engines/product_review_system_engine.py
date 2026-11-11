@@ -1249,6 +1249,12 @@ def _ce_next_expected(task_name: str, now_dt: datetime) -> str:
     return next_dt.isoformat(timespec="seconds")
 
 
+def _ce_period_consumed(task_state: dict[str, Any], task_name: str, period: str) -> bool:
+    return (task_state.get("last_completed_period") == period
+            or (task_name == "platform_workforce_review"
+                and task_state.get("last_attempt_period") == period))
+
+
 def _ce_due(task_state: dict[str, Any], task_name: str, now_dt: datetime, force: bool = False) -> tuple[bool, str, str]:
     scheduled = _ce_scheduled_for(task_name, now_dt)
     period = _ce_period_key(task_name, now_dt)
@@ -1256,11 +1262,9 @@ def _ce_due(task_state: dict[str, Any], task_name: str, now_dt: datetime, force:
         return True, scheduled.isoformat(timespec="seconds"), period
     if now_dt < scheduled:
         return False, scheduled.isoformat(timespec="seconds"), period
-    if task_state.get("last_completed_period") == period:
-        return False, scheduled.isoformat(timespec="seconds"), period
     # A bounded native attempt, including a partial/failed attempt, consumes its
     # hourly slot. Do not retry a failing reviewer on every five-minute Cron tick.
-    if task_name == "platform_workforce_review" and task_state.get("last_attempt_period") == period:
+    if _ce_period_consumed(task_state, task_name, period):
         return False, scheduled.isoformat(timespec="seconds"), period
     return True, scheduled.isoformat(timespec="seconds"), period
 
@@ -2032,7 +2036,13 @@ def _ce_read_scheduler_state(paths: dict[str, Path], now_iso: str) -> dict[str, 
         task.setdefault("last_job_id", None)
         task.setdefault("last_snapshot_id", None)
         task.setdefault("last_completed_period", None)
-        task.setdefault("next_expected_run", _ce_scheduled_for(key, now_dt).isoformat(timespec="seconds") if now_dt < _ce_scheduled_for(key, now_dt) else _ce_next_expected(key, now_dt))
+        # This read view describes the earliest unconsumed slot, not a stale
+        # persisted prediction. Reading never consumes the slot or writes state.
+        period = _ce_period_key(key, now_dt)
+        task["next_expected_run"] = (
+            _ce_next_expected(key, now_dt) if _ce_period_consumed(task, key, period)
+            else _ce_scheduled_for(key, now_dt).isoformat(timespec="seconds")
+        )
         task.setdefault("automated_or_manual", "not_run")
         task.setdefault("evidence", "scheduler local preparado")
     return state
