@@ -31,13 +31,14 @@
 
   <p class="v934-realtime-meta" role="status" aria-live="polite" aria-atomic="true" data-directo-notice{% if not delayed %} hidden{% endif %}>{% if source_unavailable %}{{ ui('No se ha podido leer la información de partidos. Vuelve a intentarlo más tarde.') }}{% elif delayed %}{{ ui('Algunas lecturas ya no confirman un directo vigente. No se inventan minutos ni resultados.') }}{% endif %}</p>
   <a class="v933-action" href="{{ request.full_path.rstrip('?') }}" data-directo-refresh-list hidden>{{ ui('Actualizar lista manteniendo filtros') }}</a>
+  {% set retained = live.get('retained_observations') or [] %}
   {% if ns.matches %}
   <section class="ns16-section" id="v936-live-board">
     {{ section_header(surface.title, '', '', '', 'RESULTADOS' if surface.historical else 'CENTRO EN DIRECTO') }}
     <div class="ns16-live-feature">{{ live_card(ns.matches[0]) }}</div>
     {% if ns.matches|length > 1 %}<div class="ns16-match-row is-four">{% for match in ns.matches[1:] %}{{ live_card(match) }}{% endfor %}</div>{% endif %}
   </section>
-  {% else %}
+  {% elif not retained %}
   <section class="ns-video-empty-dashboard ns16-live-empty" data-empty-dashboard="resolved">
     {% if source_unavailable %}
     {{ empty_state('Datos no disponibles temporalmente', 'No se ha podido leer la información de partidos. Vuelve a intentarlo más tarde.', 'Abrir calendario', '/calendario', 'live') }}
@@ -47,5 +48,25 @@
 
   </section>
   {% endif %}
+  {% if retained %}
+  <section class="ns16-section" data-directo-retained-observations aria-label="{{ ui('Última observación') }}">
+    {{ section_header('Última observación', 'Lecturas pendientes de actualización. No confirman que el partido siga en juego.', '', '', 'DATOS REGISTRADOS') }}
+    <div class="ns16-match-row is-four">
+    {% for item in retained %}
+      {% set state = item.realtime_state %}
+      <article class="v933-panel" data-directo-observation-id="{{ item.id }}">
+        <h3><a href="/match/{{ item.id }}">{{ item.home_team }} · {{ item.away_team }}</a></h3>
+        <p>{{ item.competition_name }}</p>
+        <p>{{ ui('Última observación') }} · <time datetime="{{ state.provider_observed_at }}">{{ state.provider_observed_at|sync_madrid_label }}</time></p>
+        {% if state.score_home is not none and state.score_away is not none %}
+        <p>{{ ui('Marcador registrado') }}: {{ state.score_home }} - {{ state.score_away }}</p>
+        {% endif %}
+        <p>{{ ui('Actualización pendiente. No es un marcador vigente.') }}</p>
+      </article>
+    {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
 </div>
 {% endblock %}

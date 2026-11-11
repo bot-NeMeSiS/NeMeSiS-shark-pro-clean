@@ -19327,6 +19327,7 @@ _v991_cache_acceptance = _V991ContextVar("v991_cache_acceptance", default=False)
 _V991_LANES = (
     "all_valid_matches", "valid_matches_today", "valid_upcoming_matches", "valid_matches_available",
     "valid_live_events", "finished_matches", "result_pending_matches", "archived_matches", "incident_matches",
+    "retained_live_observations",
 )
 
 _V991_CALENDAR_PATHS = frozenset({"/calendar", "/calendario", "/calendario-global", "/partidos",
@@ -19365,7 +19366,8 @@ class _V991Operation:
         return (self.summary is summary and self.membership == _v991_membership(summary)
                 and self.generation == _v991_generation(self.snapshot, self.selected_date)
                 and tuple(id(row) for values in self.snapshot.cohorts.values() for row in values)
-                    == tuple(id(row) for row in summary.get("all_valid_matches") or ())
+                    == tuple(id(row) for row in list(summary.get("all_valid_matches") or ())
+                             + list(summary.get("retained_live_observations") or ()))
                 and (selected_date is None or str(selected_date) == self.selected_date))
 
 
@@ -19435,7 +19437,8 @@ def _v991_prepare_summary_operation(summary, *, selected_date=None, current=None
     selected = _safe_date_value(selected_date, today_iso())
     current = _v991_unique_objects(summary.get("all_valid_matches") or ()) if current is None else list(current)
     history = list(history)
-    snapshot = _v991_prepare({"current": current, "history": history},
+    snapshot = _v991_prepare({"current": current, "history": history,
+                             "observations":_v991_unique_objects(summary.get("retained_live_observations") or ())},
                              lambda keys: _v991_references(DB_PATH, keys), kickoff_for=match_kickoff_madrid_dt)
     generation = _v991_generation(snapshot, selected)
     operation = _V991Operation(summary, selected, generation, _v991_membership(summary), snapshot)
@@ -20489,6 +20492,7 @@ def _build_public_home_sports_summary():
         "storage_error_type": match_meta.get("error_type") or "",
         "picks_storage_status": pick_meta.get("status") or "",
         "stale_live_excluded": len(stale_live_ids),
+        "retained_live_observations": stale_live,
         "metrics_generated_at_madrid": now_iso(),
         "no_render_api_call": True,
     }
@@ -21322,6 +21326,9 @@ def _v937_live_summary_without_stale(summary, realtime):
             filtered[lane] = [selected for row in summary[lane] for selected in (own(row),) if selected is not None]
     filtered['valid_live_events'] = [selected for row in summary.get('valid_live_events') or ()
         for selected in (own(row),) if selected is not None and canonical_match_status(selected,now=evaluated_at).get('is_live')]
+    filtered['retained_live_observations'] = _v991_unique_objects(
+        list(summary.get('retained_live_observations') or ())
+        + [row for row,result in reconciled.values() if id(row) in stale_objects])
     filtered['stale_live_excluded'] = max(int(summary.get('stale_live_excluded') or 0),len(stale_objects))
     filtered['unconfirmed_live_excluded'] = len(unconfirmed_objects)
     return filtered
@@ -21385,7 +21392,7 @@ def _v991_realtime_projection(summary, *, lane=None, query=None):
     operation=_v991_operation_for(summary)
     source=_v991_current_rows(summary,operation)
     evaluated=datetime.now(MADRID_TZ)
-    pairs=[];stale=[]
+    pairs=[];stale=[];observation_pairs=[]
     for row in source:
         frame=_v991_normalize_frame(_v991_own_realtime_source(row,match_kickoff_madrid_dt),evaluated)
         if frame is None:
@@ -21395,9 +21402,14 @@ def _v991_realtime_projection(summary, *, lane=None, query=None):
             # collides, the whole descriptor fails closed instead of truncating.
             frame['id']=str(row.get('id') or '')
             frame['detail_url']='/match/'+str(row.get('id') or '')
+        observation_pairs.append((row,frame))
         if frame.get('is_stale'):
             stale.append(frame)
         else:pairs.append((row,frame))
+    if operation:
+        for row in operation.snapshot.cohorts.get('observations',()):
+            frame=_v991_normalize_frame(_v991_own_realtime_source(row,match_kickoff_madrid_dt),evaluated) or {}
+            observation_pairs.append((row,frame))
     rows=[row for row,frame in pairs];frames=[frame for row,frame in pairs]
     measures=_v991_measure_members(summary,rows,frames)
     view=_v991_view_members(summary,rows,frames,scope)
@@ -21436,7 +21448,7 @@ def _v991_realtime_projection(summary, *, lane=None, query=None):
         for row,frame in pairs:owners[id(frame)]=(frame,row)
         g.v991_realtime_frame_owners=owners
         g.v991_realtime_projection_sources=getattr(g,'v991_realtime_projection_sources',{})
-        g.v991_realtime_projection_sources[id(result)]=(result,summary,operation,view,tuple(pairs))
+        g.v991_realtime_projection_sources[id(result)]=(result,summary,operation,view,tuple(pairs),tuple(observation_pairs))
     return result
 
 def _v991_saved_statistics(frames, *, live_only=True):
@@ -21467,6 +21479,55 @@ def _v991_attach_poll_statistics(frames):
         if known and known[0] is frame:item['live_statistics']=known[2]
         output.append(item)
     return output
+
+
+def _v1002_retained_directo_observations(summary, owned, scope):
+    """Separate past observations: never members of a fresh descriptor or KPI."""
+    if not owned or len(owned)<6 or scope['lane']=='finished':
+        return []
+    all_pairs=owned[5]
+    if not any(frame.get('is_stale') for row,frame in all_pairs):
+        return []
+    by_object={id(row):frame for row,frame in all_pairs}
+    # Select across fresh AND expired rows so a fresh canonical sibling wins.
+    # Ranking may call existing product callbacks. Finish those calls BEFORE
+    # selection's fresh identity check; never group with pre-callback authority.
+    rankings={id(row):(not bool(by_object[id(row)].get('is_stale')),
+        provider_family(row.get('source'))=='api-football',match_quality_score(row))
+        for row,frame in all_pairs}
+    selected=_v991_selected(summary,[row for row,frame in all_pairs],
+        rank_for=lambda row:rankings[id(row)])
+    pick_ids={str(item.get('match_id') or '') for item in summary.get('valid_active_picks') or () if isinstance(item,dict)}
+    result=[]
+    evaluated=datetime.now(MADRID_TZ)
+    for row in selected.rows:
+        frame=_v991_normalize_frame(_v991_own_realtime_source(row,match_kickoff_madrid_dt),evaluated) or {}
+        state=frame.get('realtime_state') or {}
+        identifier=str(row.get('id') or '')
+        if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9:_.-]{0,159}',identifier):
+            continue
+        if (str(row.get('match_date') or '')!=today_iso() or state.get('is_stale') is not True
+            or state.get('is_live') or state.get('status_conflict')
+            or state.get('status_raw_canonical') not in {'LIVE','HALFTIME'}
+            or not state.get('provider_observed_at') or state.get('live_valid_until_madrid')):
+            continue
+        try:
+            observed=datetime.fromisoformat(state['provider_observed_at'].replace('Z','+00:00'))
+            if observed.tzinfo is None or observed>evaluated:
+                continue
+        except (ValueError,TypeError):
+            continue
+        if scope['lane']=='break' and state.get('status_raw_canonical')!='HALFTIME':
+            continue
+        if scope['lane']=='with_pick' and identifier not in pick_ids:
+            continue
+        text=normalized_label(f"{row.get('home_team')} {row.get('away_team')} {row.get('competition_name')}")
+        if scope['query'] and scope['query'] not in text:
+            continue
+        result.append({'id':identifier,'home_team':row.get('home_team'),
+            'away_team':row.get('away_team'),'competition_name':row.get('competition_name'),
+            'realtime_state':state})
+    return result
 
 
 def v931_live_context(summary, lane='live', query='', fixture_projection=None):
@@ -21501,7 +21562,8 @@ def v931_live_context(summary, lane='live', query='', fixture_projection=None):
                   'finished':numbers['finished_verified'],'picks':numbers['with_pick']},
         'sports_metrics':get_sports_metrics_contract(summary),'no_render_api_call':True,
         'fixture_identity':projection['fixture_identity'],'fixture_bootstrap':bootstrap,
-        'query':scope['query'],'scope_id':projection['fixture_identity']['view']['scope_id']}
+        'query':scope['query'],'scope_id':projection['fixture_identity']['view']['scope_id'],
+        'retained_observations':_v1002_retained_directo_observations(summary,owned,scope)}
 
 
 # ===================== V758 ADAPTIVE DESKTOP/MOBILE TOP APP EXPERIENCE =====================

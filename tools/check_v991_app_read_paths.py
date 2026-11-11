@@ -175,11 +175,11 @@ class AppReadPathContract(unittest.TestCase):
     def test_12_LIVE_minimal_contracts_reuse_the_same_actual_App_runtime(self):
         proof = self.evidence['live_minimal_contracts']
         self.assertTrue(proof['success'])
-        self.assertEqual(proof['unittest_run'], 5)
+        self.assertEqual(proof['unittest_run'], 12)
         self.assertEqual(proof['failures'], [])
         self.assertEqual(proof['errors'], [])
         self.assertEqual(proof['App_getter_normalizer_C3_rebindings'], 0)
-        self.assertEqual(len(proof['business_SQL_checks']), 5)
+        self.assertEqual(len(proof['business_SQL_checks']), 12)
         self.assertTrue(all(item['equal'] for item in proof['business_SQL_checks']))
         self.assertLessEqual(max(item['reference_PK_batches'] for item in proof['requests']), 1)
 
