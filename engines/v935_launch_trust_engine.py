@@ -620,6 +620,12 @@ def is_pick_complete(item: dict[str, Any], now: datetime | None = None) -> bool:
 def normalize_pick_lifecycle(item: dict[str, Any], now: datetime | None = None) -> str:
     if not is_pick_complete(item, now):
         return "INCOMPLETE"
+    return _complete_pick_lifecycle(item, now)
+
+
+def _complete_pick_lifecycle(item: dict[str, Any], now: datetime | None = None,
+                             match_lifecycle: str | None = None) -> str:
+    """Classify a complete pick; observations live only in this call frame."""
     raw = _key(item.get("lifecycle") or item.get("pick_status") or item.get("status"))
     result = _key(item.get("result_status") or item.get("result") or item.get("grading_status"))
     if raw in {"archived", "archive", "historical", "historico", "histórico"}:
@@ -632,7 +638,8 @@ def normalize_pick_lifecycle(item: dict[str, Any], now: datetime | None = None) 
         return "VOID"
     if raw in {"cancelled", "canceled", "cancelado"}:
         return "CANCELLED"
-    match_lifecycle = normalize_match_lifecycle(_pick_match_view(item), now)
+    if match_lifecycle is None:
+        match_lifecycle = normalize_match_lifecycle(_pick_match_view(item), now)
     if match_lifecycle in {"FINISHED", "RESULT_PENDING", "POSTPONED", "SUSPENDED", "CANCELLED", "ABANDONED", "ARCHIVED"}:
         return "EXPIRED"
     if raw in {"draft", "borrador"}:
@@ -659,35 +666,49 @@ def is_pick_evaluable(item: dict[str, Any], now: datetime | None = None) -> bool
     return bool(lifecycle in {"WON", "LOST", "VOID"} and stake is not None and stake > 0 and is_pick_complete(item, now))
 
 
-def get_pick_data_quality(item: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
+def _pick_quality_from_observations(*, complete, lifecycle, odds, publishable, evaluable):
     reasons: list[str] = []
-    if not is_pick_complete(item, now):
+    if not complete:
         reasons.append("missing_match_market_selection_odds_timestamp_or_source")
-    lifecycle = normalize_pick_lifecycle(item, now)
-    odds = _pick_odds_state(item, now)
     if odds["status"] in {"STALE", "EXPIRED", "INVALID"}:
         reasons.append(f"odds_{odds['status'].lower()}")
     if lifecycle in {"EXPIRED", "CANCELLED", "ARCHIVED"}:
         reasons.append(f"pick_{lifecycle.lower()}")
-    reasons = list(dict.fromkeys(reasons))
     return {
         "status": "PASS" if not reasons else "BLOCKED",
-        "reasons": reasons,
-        "publishable": is_pick_publishable(item, now),
-        "evaluable": is_pick_evaluable(item, now),
-        "lifecycle": lifecycle,
-        "odds": odds,
+        "reasons": list(dict.fromkeys(reasons)),
+        "publishable": publishable, "evaluable": evaluable,
+        "lifecycle": lifecycle, "odds": dict(odds),
     }
+
+
+def get_pick_data_quality(item: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
+    return _pick_quality_from_observations(
+        complete=is_pick_complete(item, now), lifecycle=normalize_pick_lifecycle(item, now),
+        odds=_pick_odds_state(item, now), publishable=is_pick_publishable(item, now),
+        evaluable=is_pick_evaluable(item, now))
 
 
 def enrich_pick_lifecycle(item: dict[str, Any], now: datetime | None = None) -> dict[str, Any]:
     result = dict(item or {})
-    result["v935_match_lifecycle"] = normalize_match_lifecycle(_pick_match_view(result), now)
-    result["v935_lifecycle"] = normalize_pick_lifecycle(result, now)
-    result["v935_odds"] = _pick_odds_state(result, now)
-    result["v935_quality"] = get_pick_data_quality(result, now)
-    result["v935_publishable"] = is_pick_publishable(result, now)
-    result["v935_evaluable"] = is_pick_evaluable(result, now)
+    # One clock and fresh source-derived observations for this enrichment only.
+    # Never reuse caller-supplied eligibility/quality flags or cache across calls.
+    now = madrid_now(now)
+    match_lifecycle = normalize_match_lifecycle(_pick_match_view(result), now)
+    result["v935_match_lifecycle"] = match_lifecycle
+    complete = is_pick_complete(result, now)
+    lifecycle = _complete_pick_lifecycle(result, now, match_lifecycle) if complete else "INCOMPLETE"
+    odds = _pick_odds_state(result, now)
+    publishable = bool(lifecycle in {"PUBLISHED", "LIVE"} and complete and odds.get("is_usable"))
+    stake = _float(result.get("stake") or result.get("stake_units"))
+    evaluable = bool(lifecycle in {"WON", "LOST", "VOID"} and stake is not None and stake > 0 and complete)
+    result["v935_lifecycle"] = lifecycle
+    result["v935_odds"] = odds
+    result["v935_quality"] = _pick_quality_from_observations(
+        complete=complete, lifecycle=lifecycle, odds=odds,
+        publishable=publishable, evaluable=evaluable)
+    result["v935_publishable"] = publishable
+    result["v935_evaluable"] = evaluable
     return result
 
 
