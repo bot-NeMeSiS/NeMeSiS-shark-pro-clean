@@ -195,6 +195,9 @@ def _status_values(item: dict[str, Any]) -> list[tuple[str, str]]:
     values: list[tuple[str, str]] = []
 
     def add(source: str, value: Any) -> None:
+        # A missing field contributes no signal; keep every present value on the existing path.
+        if value is None:
+            return
         if isinstance(value, dict):
             for key in ("key", "short", "long", "status", "state", "label", "lifecycle"):
                 if value.get(key) not in (None, ""):
