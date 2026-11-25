@@ -219,7 +219,7 @@ def _matches_today(conn, limit=6):
     if not _table_exists(conn, 'matches'):
         return []
     cols = _cols(conn, 'matches')
-    select = ','.join([c for c in ['id','home_team','away_team','competition_name','match_date','kickoff_iso','kickoff_time','match_time','live_updated_at','provider_updated_at','last_synced_at','status','score'] if c in cols])
+    select = ','.join([c for c in ['id','home_team','away_team','competition_name','match_date','kickoff_iso','kickoff_time','match_time','source_timezone','live_updated_at','provider_updated_at','last_synced_at','status','score'] if c in cols])
     if not select:
         return []
     today = _date_key()

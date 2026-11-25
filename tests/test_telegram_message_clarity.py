@@ -126,3 +126,18 @@ def test_actual_agenda_reader_preserves_own_stored_time_and_observation():
     assert rows[0].get('kickoff_time')=='21:00'
     assert rows[0].get('provider_updated_at')==clock
     conn.close()
+
+
+def test_actual_agenda_reader_preserves_timezone_for_madrid_conversion():
+    import sqlite3
+    from engines.telegram_autonomous_delivery_engine import _matches_today, _date_key
+    conn=sqlite3.connect(':memory:'); conn.row_factory=sqlite3.Row
+    conn.execute('CREATE TABLE matches(id TEXT,home_team TEXT,away_team TEXT,competition_name TEXT,'
+                 'match_date TEXT,kickoff_time TEXT,source_timezone TEXT)')
+    conn.execute('INSERT INTO matches VALUES(?,?,?,?,?,?,?)',
+                 ('qa-zone','Real Madrid','Barcelona','LaLiga',_date_key(),'21:00','UTC'))
+    row=_matches_today(conn,limit=1)[0]
+    assert row.get('source_timezone')=='UTC'
+    expected=datetime.fromisoformat(_date_key()+'T21:00:00+00:00').astimezone(fmt.TZ).strftime('%H:%M')
+    assert expected+' Madrid' in fmt.madrid_match_time_label(row)
+    conn.close()
