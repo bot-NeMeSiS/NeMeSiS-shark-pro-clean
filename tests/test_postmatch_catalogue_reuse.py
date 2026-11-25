@@ -110,3 +110,29 @@ def test_catalogue_candidate_order_limit_and_duplicates_preserve_rights_rotation
     expected=[item[3] for item in sorted(candidates)[:100]]
     assert observed==expected
     assert len(observed)==len(set(observed))==100
+
+
+def test_idle_catalogue_reconciliation_does_not_walk_unneeded_media(store, monkeypatch):
+    from contextlib import contextmanager
+    with store.connection(True) as conn:
+        conn.executemany('INSERT INTO sportsdb_match_highlights(id,match_id) VALUES(?,?)',
+                         ((f'idle-media-{i}',f'old-match-{i}') for i in range(10000)))
+    original_connection=store.connection
+    batches=[0]
+    def progress():
+        batches[0]+=1
+        return 0
+    @contextmanager
+    def counted_connection(write=False):
+        with original_connection(write) as conn:
+            conn.set_progress_handler(progress,100)
+            try:
+                yield conn
+            finally:
+                conn.set_progress_handler(None,0)
+    monkeypatch.setattr(store,'connection',counted_connection)
+    reconcile_media_reviews(store,NOW)
+    assert batches[0]*100<1000, 'idle queue still walks the unrelated media catalogue'
+    with original_connection() as conn:
+        assert conn.execute('SELECT COUNT(*) FROM postmatch_jobs').fetchone()[0]==0
+        assert conn.execute('SELECT COUNT(*) FROM postmatch_source_budget').fetchone()[0]==0

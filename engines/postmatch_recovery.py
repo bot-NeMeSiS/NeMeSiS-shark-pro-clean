@@ -176,6 +176,10 @@ def reconcile_media_reviews(store, now):
     from engines.highlight_url_engine import public_https_url
     from engines.highlight_policy_engine import attach_policies
     with store.connection(True) as conn:
+        # An idle queue must not walk the catalogue merely to find no jobs.
+        if not conn.execute("SELECT 1 FROM postmatch_jobs WHERE kind='highlights' "
+                            "AND state IN ('PENDING','RETRY','REVIEW_REQUIRED') LIMIT 1").fetchone():
+            return
         # Start from distinct catalogue links and probe the existing match_id
         # job index. An unrelated recovery backlog must not rescan the entire
         # media catalogue once per job; duplicates still select one job.
