@@ -448,6 +448,28 @@ class LiveMinimalContracts(unittest.TestCase):
         finally:
             self.r.observed=observed
 
+    def test_13_poll_does_not_normalize_unrendered_retained_observations(self):
+        from datetime import timedelta
+        observed=self.r.observed
+        code=self.a._v991_normalize_frame.__code__
+        old=self.r.codes.get(code)
+        try:
+            self.r.observed=self.r.now-timedelta(minutes=5)
+            self.r.seed(live=True)
+            self.r.codes[code]='_v991_normalize_frame'
+            response,payload,probe=self.r.request({'scope':'matches','consumer':'directo-v2','lane':'live'})
+            self.assertEqual(response.status_code,200)
+            self.assertEqual(payload['counts']['live'],0)
+            self.assertEqual(payload['matches'],[])
+            self.assertNotIn('retained_observations',payload)
+            calls=self.r.totals(probe)['_v991_normalize_frame']
+            self.assertEqual(calls,0,'Polling must not normalize expired rows it does not emit')
+            self.details.append({'actual_poll_unrendered_normalizations':calls,'live_count':0})
+        finally:
+            self.r.observed=observed
+            if old is None:self.r.codes.pop(code,None)
+            else:self.r.codes[code]=old
+
 
 def run_live_contracts(runtime):
     LiveMinimalContracts.runtime = runtime

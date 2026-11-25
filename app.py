@@ -21408,8 +21408,9 @@ def _v991_realtime_projection(summary, *, lane=None, query=None):
         else:pairs.append((row,frame))
     if operation:
         for row in operation.snapshot.cohorts.get('observations',()):
-            frame=_v991_normalize_frame(_v991_own_realtime_source(row,match_kickoff_madrid_dt),evaluated) or {}
-            observation_pairs.append((row,frame))
+            # Keep ownership only. Polling does not emit these observations;
+            # the retained-view consumer computes its own state after callbacks.
+            observation_pairs.append((row,None))
     rows=[row for row,frame in pairs];frames=[frame for row,frame in pairs]
     measures=_v991_measure_members(summary,rows,frames)
     view=_v991_view_members(summary,rows,frames,scope)
@@ -21486,13 +21487,13 @@ def _v1002_retained_directo_observations(summary, owned, scope):
     if not owned or len(owned)<6 or scope['lane']=='finished':
         return []
     all_pairs=owned[5]
-    if not any(frame.get('is_stale') for row,frame in all_pairs):
+    if not any(frame is None or frame.get('is_stale') for row,frame in all_pairs):
         return []
     by_object={id(row):frame for row,frame in all_pairs}
     # Select across fresh AND expired rows so a fresh canonical sibling wins.
     # Ranking may call existing product callbacks. Finish those calls BEFORE
     # selection's fresh identity check; never group with pre-callback authority.
-    rankings={id(row):(not bool(by_object[id(row)].get('is_stale')),
+    rankings={id(row):(by_object[id(row)] is not None and not bool(by_object[id(row)].get('is_stale')),
         provider_family(row.get('source'))=='api-football',match_quality_score(row))
         for row,frame in all_pairs}
     selected=_v991_selected(summary,[row for row,frame in all_pairs],
@@ -21526,7 +21527,8 @@ def _v1002_retained_directo_observations(summary, owned, scope):
             continue
         result.append({'id':identifier,'home_team':row.get('home_team'),
             'away_team':row.get('away_team'),'competition_name':row.get('competition_name'),
-            'realtime_state':state})
+            'realtime_state':state,
+            'observed_label':format_madrid_sync_label(state['provider_observed_at'])})
     return result
 
 

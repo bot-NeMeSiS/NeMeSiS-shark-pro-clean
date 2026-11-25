@@ -57,7 +57,7 @@
       <article class="v933-panel" data-directo-observation-id="{{ item.id }}">
         <h3><a href="/match/{{ item.id }}">{{ item.home_team }} · {{ item.away_team }}</a></h3>
         <p>{{ item.competition_name }}</p>
-        <p>{{ ui('Última observación') }} · <time datetime="{{ state.provider_observed_at }}">{{ state.provider_observed_at|sync_madrid_label }}</time></p>
+        <p>{{ ui('Última observación') }} · <time datetime="{{ state.provider_observed_at }}">{{ item.observed_label }}</time></p>
         {% if state.score_home is not none and state.score_away is not none %}
         <p>{{ ui('Marcador registrado') }}: {{ state.score_home }} - {{ state.score_away }}</p>
         {% endif %}
