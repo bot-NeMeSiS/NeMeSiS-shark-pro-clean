@@ -779,3 +779,41 @@ def test_real_socket_live_match_return_expiry_and_final(live_store, app_module, 
     finally:
         server.shutdown(); thread.join(5); server.server_close()
         (out / f'result-{locale}-{width}.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
+
+
+@pytest.mark.parametrize('evaluated,kickoff,retained', [
+    ('2026-11-26T00:30:00+01:00','2026-11-25T23:25:00+01:00',True),
+    ('2026-11-26T00:30:00+01:00','2026-11-25T00:30:00+01:00',False),
+    ('2026-11-26T00:30:00+01:00','2026-11-25T00:31:00+01:00',True),
+    ('2026-10-25T02:30:00+01:00','2026-10-24T02:45:00+02:00',False),
+    ('2026-03-29T03:30:00+02:00','2026-03-28T03:45:00+01:00',True),
+    ('2026-11-26T00:30:00+01:00','2026-11-26T01:30:00+01:00',False),
+])
+def test_retained_observation_crosses_midnight_with_a_bounded_own_kickoff(
+        live_store, app_module, monkeypatch, evaluated, kickoff, retained):
+    # Only this synthetic HTTP fixture uses a controlled clock. No production
+    # clock, provider, refresh, job or send is invoked.
+    current=datetime.fromisoformat(evaluated).astimezone(ZoneInfo('Europe/Madrid'))
+    started=datetime.fromisoformat(kickoff).astimezone(ZoneInfo('Europe/Madrid'))
+    class FixtureDateTime(datetime):
+        @classmethod
+        def now(cls,tz=None):
+            return current.astimezone(tz) if tz else current.replace(tzinfo=None)
+    monkeypatch.setattr(app_module,'datetime',FixtureDateTime)
+    monkeypatch.setattr(app_module,'today_iso',lambda:current.date().isoformat())
+    client,put,_,attempts=live_store
+    put(match_date=started.date().isoformat(),kickoff_time=started.strftime('%H:%M'),
+        kickoff_iso=started.isoformat(),last_synced_at='2000-01-01T00:00:00+01:00')
+    response=client.get('/live')
+    assert response.status_code==200
+    html=response.get_data(as_text=True)
+    assert ('data-directo-retained-observations' in html) is retained
+    assert 'data-canonical-live="true"' not in html
+    assert 'data-realtime-consumer="directo-v1"' not in html
+    assert 'data-v934-minute' not in html
+    if retained:
+        assert '/match/directo-http-qa' in html
+        assert 'datetime="2000-01-01T00:00:00+01:00"' in html
+    payload=client.get('/api/realtime/sports?scope=all').get_json()
+    assert payload['live']==[]
+    assert not attempts

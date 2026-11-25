@@ -21533,7 +21533,7 @@ def _v1002_retained_directo_observations(summary, owned, scope):
         identifier=str(row.get('id') or '')
         if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9:_.-]{0,159}',identifier):
             continue
-        if (str(row.get('match_date') or '')!=today_iso() or state.get('is_stale') is not True
+        if (state.get('is_stale') is not True
             or state.get('is_live') or state.get('status_conflict')
             or state.get('status_raw_canonical') not in {'LIVE','HALFTIME'}
             or not state.get('provider_observed_at') or state.get('live_valid_until_madrid')):
@@ -21541,6 +21541,15 @@ def _v1002_retained_directo_observations(summary, owned, scope):
         try:
             observed=datetime.fromisoformat(state['provider_observed_at'].replace('Z','+00:00'))
             if observed.tzinfo is None or observed>evaluated:
+                continue
+            # Calendar midnight must not discard a match that just expired.
+            # Use this same observation's canonical kickoff, with a rolling
+            # maximum of 24 elapsed hours; this grants no LIVE lease or KPI.
+            kickoff=datetime.fromisoformat(str(state.get('kickoff_madrid') or '').replace('Z','+00:00'))
+            if kickoff.tzinfo is None:
+                continue
+            age=(evaluated.astimezone(timezone.utc)-kickoff.astimezone(timezone.utc)).total_seconds()
+            if not 0 <= age < 86400:
                 continue
         except (ValueError,TypeError):
             continue
