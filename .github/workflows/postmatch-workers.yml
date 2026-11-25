@@ -44,7 +44,7 @@ concurrency:
 
 jobs:
   postmatch-workers:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       DB_PATH: /tmp/nemesis-postmatch-${{ github.run_id }}/app.sqlite

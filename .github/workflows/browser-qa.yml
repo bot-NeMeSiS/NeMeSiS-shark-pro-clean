@@ -111,7 +111,7 @@ jobs:
 
   journey-controls:
     name: journey-controls
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       DB_PATH: /tmp/nemesis-journey-${{ github.run_id }}/app.sqlite3
