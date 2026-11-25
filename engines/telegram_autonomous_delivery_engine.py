@@ -219,7 +219,7 @@ def _matches_today(conn, limit=6):
     if not _table_exists(conn, 'matches'):
         return []
     cols = _cols(conn, 'matches')
-    select = ','.join([c for c in ['id','home_team','away_team','competition_name','match_date','status','score'] if c in cols])
+    select = ','.join([c for c in ['id','home_team','away_team','competition_name','match_date','kickoff_iso','kickoff_time','match_time','live_updated_at','provider_updated_at','last_synced_at','status','score'] if c in cols])
     if not select:
         return []
     today = _date_key()
@@ -234,51 +234,22 @@ def _matches_today(conn, limit=6):
 def _pick_message(pick, elite=False):
     if not is_telegram_football_item(pick or {}):
         return '', ''
-    teams = f"{pick.get('home_team') or 'Local'} vs {pick.get('away_team') or 'Visitante'}"
-    selection = _selection_label(pick) or 'Pick SHARK'
-    odds = _valid_odds(pick.get('odds')) or 'cuota real pendiente'
-    confidence = int(float(pick.get('confidence') or 0))
-    risk = _clean_text(pick.get('risk_level') or 'Medio', 40)
-    reason = _clean_text(pick.get('reasoning') or 'SHARK detecta señal positiva con los datos disponibles.', 180)
-    title = ('🦈 ELITE SHARK SIGNAL' if elite else '🦈 PICK SHARK PREMIUM')
-    body = (
-        f"{title}\n\n"
-        f"{teams}\n\n"
-        f"✅ Pick: {selection}\n"
-        f"💰 Cuota: {odds}\n"
-        f"📌 Stake: 1/10\n"
-        f"📊 Confianza SHARK: {confidence}/100\n"
-        f"⚠️ Riesgo: {risk}\n\n"
-        f"Motivo: {reason}\n\n"
-        f"Precaución: revisar contexto y no subir stake si la cuota baja.\n"
-        f"Juego responsable: ningún pick garantiza resultado."
-    )
-    return title, body
+    from engines.telegram_message_formatter import format_pick_message, premium_text_html
+    membership = 'ELITE' if elite else 'PRO'
+    title = f"🎯 Pronóstico SHARK · {membership}"
+    source = {**dict(pick or {}), 'membership': membership,
+              'selection': _selection_label(pick) or 'Selección no publicada'}
+    # Missing stake/risk/confidence/reason stay missing; no default sporting claim.
+    return title, premium_text_html(format_pick_message(source), 3500)
 
 
 def _briefing_message(matches, picks):
-    lines = ['🦈 RESUMEN SHARK DEL DÍA', '']
-    lines.append(f"⚽ Partidos monitorizados: {len(matches or [])}")
-    valid_picks = [p for p in (picks or []) if is_telegram_football_item(p) and _valid_odds(p.get('odds')) and _selection_label(p)]
-    lines.append(f"✅ Picks premium listos: {len(valid_picks)}")
-    lines.append('')
-    if matches:
-        lines.append('Partidos destacados:')
-        for m in matches[:5]:
-            lines.append(f"• {m.get('home_team','Local')} vs {m.get('away_team','Visitante')} — {m.get('competition_name','Competición')}")
-    else:
-        lines.append('Hoy no hay partidos destacados cargados todavía. SHARK seguirá revisando datos.')
-    if valid_picks:
-        lines.append('')
-        lines.append('Top señales con cuota real:')
-        for p in valid_picks[:3]:
-            lines.append(f"• {p.get('home_team','Local')} vs {p.get('away_team','Visitante')} → {_selection_label(p)} @{_valid_odds(p.get('odds'))}")
-    else:
-        lines.append('')
-        lines.append('No hay picks premium cerrados ahora mismo. Mejor esperar que enviar señales débiles.')
-    lines.append('')
-    lines.append('Apuesta siempre con responsabilidad. SHARK prioriza calidad antes que cantidad.')
-    return '🦈 Resumen SHARK del día', '\n'.join(lines)
+    from engines.telegram_message_formatter import format_daily_summary_message, premium_text_html
+    public_matches = [item for item in (matches or []) if is_telegram_football_item(item)]
+    # This exact body is queued to every subscriber with target FREE. Premium
+    # selections remain in the existing separately gated per-pick campaigns.
+    body = format_daily_summary_message(public_matches)
+    return '📅 Agenda de fútbol', premium_text_html(body, 3600)
 
 
 def run_telegram_autonomous_delivery(db_path, limit=30, force=False):

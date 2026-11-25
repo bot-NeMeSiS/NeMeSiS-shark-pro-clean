@@ -27,7 +27,7 @@ from engines.spanish_localization_engine import (
 )
 from engines.madrid_time_engine import format_telegram_match_time_madrid, normalize_kickoff_for_display
 from engines.telegram_message_formatter import (
-    first_value, limit_telegram_html, premium_text_html, public_link,
+    first_value, limit_telegram_html, premium_text_html, public_link, data_update_label, madrid_match_time_label,
     format_live_alert_message as format_live_text, status_label as canonical_status_label,
     BRAND_HEADER as _COMMUNICATION_BRAND_HEADER,
     MESSAGE_SEPARATOR as _COMMUNICATION_SEPARATOR,
@@ -160,7 +160,7 @@ def compact_text(value, max_len=220) -> str:
 
 
 def _html_header(title: str, subtitle: str = "") -> list[str]:
-    lines = [f"<b>{safe_html(_COMMUNICATION_BRAND_HEADER)}</b>", _SEPARATOR, f"<b>{safe_html(title)}</b>"]
+    lines = [f"<b>{safe_html(title)}</b>", safe_html(_COMMUNICATION_BRAND_HEADER)]
     if subtitle:
         lines.append(f"<i>{safe_html(subtitle)}</i>")
     return lines
@@ -254,6 +254,10 @@ def _competition_emoji(item) -> str:
 
 def _display_datetime(item) -> str:
     item_for_time = dict(item or {})
+    if not any(item_for_time.get(key) for key in (
+        "kickoff_iso", "commence_time", "start_time", "event_time", "datetime", "date_time",
+        "kickoff", "kickoff_time", "match_time", "time")) and (item_for_time.get("match_date") or item_for_time.get("date")):
+        return madrid_match_time_label(item_for_time)
     # Some payloads store an ISO API datetime inside kickoff_time instead of kickoff_iso.
     # Promote it for the Madrid helper so Telegram never shows raw/truncated UTC labels.
     kickoff_raw = str(item_for_time.get("kickoff_time") or "").strip()
@@ -347,7 +351,7 @@ def _odds_line(item) -> str:
 
 
 def _match_url_line(item, label="Abrir partido en la app") -> str:
-    url = safe_url(item.get("match_url") or item.get("url") or "")
+    url = safe_url(public_link(item.get("match_url") or item.get("url") or ""))
     if not url:
         return ""
     return f'🔗 <a href="{url}">{safe_html(label)}</a>'
@@ -568,8 +572,10 @@ def _entry_rule_text(pick) -> str:
     return compact_text(pick.get("entry_rule"), 180) or "Comprueba la cuota y las condiciones antes de decidir. No aumentes el stake para perseguir pérdidas."
 
 
-def _professional_footer() -> str:
-    return "\u26a0\ufe0f Gesti\u00f3n responsable: stake orientativo, sin perseguir p\u00e9rdidas y sin convertir una se\u00f1al en obligaci\u00f3n."
+def _professional_footer(betting=False) -> str:
+    if betting:
+        return "Sólo +18. Análisis informativo: no garantiza resultados. No persigas pérdidas."
+    return "Información deportiva. Consulta la actualización y los datos pendientes en la ficha."
 
 
 def _localize_pick_for_telegram(pick) -> dict:
@@ -599,11 +605,13 @@ def _premium_pick_card(pick, index: int | None = None, detailed: bool = True) ->
         f"{title_prefix} {_match_title(pick)}{title_suffix}",
         f"{_competition_emoji(pick)} <b>{comp}</b>",
         f"📅 <b>{date}</b>",
-        f"🎯 <b>Entrada:</b> {safe_html(selection)}",
+        f"Estado: {safe_html(_status_label(pick))}",
+        safe_html(data_update_label(pick)),
+        f"🎯 <b>Selección:</b> {safe_html(selection)}",
         f"📌 <b>Mercado:</b> {market}",
         f"💰 <b>Cuota:</b> {safe_html(odds)} · {_bookmaker_text(pick)}",
-        f"🧮 <b>Stake:</b> {_stake_text(pick)} · {_stake_money_text(pick)}",
-        f"📈 <b>Confianza SHARK:</b> {score if score != '--' else 'No publicada'}",
+        f"🧮 <b>Importe orientativo:</b> {_stake_text(pick)} · {_stake_money_text(pick)}",
+        f"📈 <b>Valoración SHARK:</b> {score if score != '--' else 'No publicada'}",
         f"⚠️ <b>Riesgo:</b> {risk}",
     ]
     if not detailed:
@@ -665,7 +673,7 @@ def format_match_line(match) -> str:
 
 
 def build_daily_matches_message(matches, date_key, premium_name="NeMeSiS SHARK PRO") -> str:
-    lines = _html_header("📅 Resumen premium del día", _format_date(date_key))
+    lines = _html_header("📅 Agenda de fútbol", _format_date(date_key))
     matches = [item for item in (matches or []) if is_telegram_football_item(item)]
     if not matches:
         lines.extend([
@@ -674,7 +682,7 @@ def build_daily_matches_message(matches, date_key, premium_name="NeMeSiS SHARK P
             "SHARK seguirá revisando calendario, directo y cuotas reales.",
         ])
     else:
-        lines.extend(["", f"⚽ <b>{len(matches)} partidos monitorizados</b>", "🔥 Selección destacada:"])
+        lines.extend(["", f"⚽ <b>{len(matches[:6])} partidos en este resumen</b>", "🔥 Selección destacada:"])
         for index, match in enumerate(matches[:6], start=1):
             match = apply_match_localization(match)
             comp = safe_html(_competition_name(match))
@@ -685,10 +693,11 @@ def build_daily_matches_message(matches, date_key, premium_name="NeMeSiS SHARK P
             score_part = f" · {score}" if score else ""
             lines.append(f"{index}. {title}")
             lines.append(f"   {_competition_emoji(match)} {comp} · 🕘 {time} · {status}{score_part}")
+            lines.append(safe_html(data_update_label(match)))
     lines.extend([
         _SEPARATOR,
         "<b>🧠 Criterio SHARK</b>",
-        "Solo se publica cuando hay contexto suficiente y competiciones relevantes.",
+        "Información registrada para esta agenda; los datos pendientes se indican en cada ficha.",
         _html_transparency_footer(),
         _professional_footer(),
     ])
@@ -708,7 +717,7 @@ def build_single_pick_message(pick, premium_name="NeMeSiS SHARK PRO", title="�
     match_url = _match_url_line(pick, "Abrir partido, cuotas y análisis SHARK")
     if match_url:
         lines.extend(["", _SOFT_SEPARATOR, match_url])
-    lines.extend(["", _SOFT_SEPARATOR, _html_transparency_footer(), _professional_footer()])
+    lines.extend(["", _SOFT_SEPARATOR, _html_transparency_footer(), _professional_footer(betting=True)])
     return _limit_message("\n".join(line for line in lines if line is not None).strip(), 3900)
 
 
@@ -729,7 +738,7 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
             "Ahora mismo no hay picks premium cerrados con cuota real, mercado claro y riesgo controlado.",
             "SHARK seguirá revisando calendario, cuotas y señales antes de publicar.",
             _html_transparency_footer(),
-            _professional_footer(),
+            _professional_footer(betting=True),
         ])
     if len(clean) == 1:
         return build_single_pick_message(clean[0], premium_name=premium_name)
@@ -748,7 +757,7 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
         _SEPARATOR,
         "🧠 SHARK publica menos, pero mejor: cuota real, mercado entendible y stake controlado.",
         _html_transparency_footer(),
-        _professional_footer(),
+        _professional_footer(betting=True),
     ])
     return _limit_message("\n".join(lines).strip(), 3900)
 
@@ -788,7 +797,7 @@ def build_combi_message(picks, combi_type="media", premium_name="NeMeSiS SHARK P
         _SEPARATOR,
         "A más selecciones, más riesgo. Una combinada larga nunca se presenta como segura.",
         _html_transparency_footer(),
-        _professional_footer(),
+        _professional_footer(betting=True),
     ])
     return _limit_message("\n".join(lines).strip(), 3800)
 
@@ -801,8 +810,8 @@ def build_live_alert_message(match, event=None, internal_url="/live") -> str:
     match["event_title"] = event.get("title") or event.get("detail") or match.get("event_title")
     lines = [premium_text_html(format_live_text(match))]
     url = safe_url(public_link(match.get("match_url") or internal_url))
-    if url:
-        lines.append(f'🔗 <a href="{url}">Abrir live en NeMeSiS</a>')
+    if url and not public_link(match.get("match_url")):
+        lines.append(f'🔗 <a href="{url}">Abrir Directo</a>')
     return _limit_message("\n".join(lines).strip(), 3500)
 
 
