@@ -176,10 +176,17 @@ def reconcile_media_reviews(store, now):
     from engines.highlight_url_engine import public_https_url
     from engines.highlight_policy_engine import attach_policies
     with store.connection(True) as conn:
-        jobs=conn.execute("SELECT * FROM postmatch_jobs WHERE kind='highlights' "
-                          "AND state IN ('PENDING','RETRY','REVIEW_REQUIRED') "
-                          "AND EXISTS (SELECT 1 FROM sportsdb_match_highlights h WHERE h.match_id=postmatch_jobs.match_id) "
-                          "ORDER BY CASE WHEN state='REVIEW_REQUIRED' THEN 1 ELSE 0 END,due_at,id LIMIT 100").fetchall()
+        # An idle queue must not walk the catalogue merely to find no jobs.
+        if not conn.execute("SELECT 1 FROM postmatch_jobs WHERE kind='highlights' "
+                            "AND state IN ('PENDING','RETRY','REVIEW_REQUIRED') LIMIT 1").fetchone():
+            return
+        # Start from distinct catalogue links and probe the existing match_id
+        # job index. An unrelated recovery backlog must not rescan the entire
+        # media catalogue once per job; duplicates still select one job.
+        jobs=conn.execute("WITH linked AS (SELECT DISTINCT match_id FROM sportsdb_match_highlights) "
+                          "SELECT j.* FROM linked h CROSS JOIN postmatch_jobs j ON h.match_id=j.match_id "
+                          "WHERE j.kind='highlights' AND j.state IN ('PENDING','RETRY','REVIEW_REQUIRED') "
+                          "ORDER BY CASE WHEN j.state='REVIEW_REQUIRED' THEN 1 ELSE 0 END,j.due_at,j.id LIMIT 100").fetchall()
         config = store.config()
         for job in jobs:
             raw=conn.execute('SELECT * FROM matches WHERE id=?',(job['match_id'],)).fetchone()

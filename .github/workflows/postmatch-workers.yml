@@ -81,6 +81,7 @@ jobs:
             tests/test_sportsdb_premium_efficiency.py \
             tests/test_sports_truth_single_source.py \
             tests/test_postmatch_recovery.py \
+            tests/test_postmatch_catalogue_reuse.py \
             tests/test_highlight_review_flow.py \
             tests/test_highlights_admin_review_activation.py \
             tests/test_sports_media_rights_convergence.py \
