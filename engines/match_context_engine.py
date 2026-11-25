@@ -2465,4 +2465,7 @@ def build_match_context(
             "experience_blocks": [item["id"] for item in experience_blocks],
         },
     )
-    return context.to_dict()
+    from engines.match_field_availability import match_field_availability
+    result = context.to_dict()
+    result['field_availability'] = match_field_availability(result)
+    return result

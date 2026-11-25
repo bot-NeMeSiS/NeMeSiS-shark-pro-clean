@@ -49,6 +49,19 @@
     </details>
   </nav>
 
+  {% set field_availability = match_context.get('field_availability') or {} %}
+  {% if field_availability.get('fields') %}
+  <section class="v944-match-panel" data-match-field-availability aria-label="{{ ui('Datos de esta ficha') }}">
+    <h2>{{ ui('Datos de esta ficha') }}</h2>
+    <p>{{ ui('La disponibilidad depende de los datos registrados para este partido. No confirma cobertura del proveedor en tiempo real.') }}</p>
+    <dl>
+    {% for field in field_availability.fields %}
+      <dt>{{ ui(field.label) }}</dt>
+      <dd data-match-field="{{ field.key }}" data-field-state="{{ field.state }}">{{ ui(field.message) }}</dd>
+    {% endfor %}
+    </dl>
+  </section>
+  {% endif %}
   {% set lineups = match_context.get('lineups') or {} %}
   {% set events = match_context.get('event_summary') or {} %}
   {% set statistics = match_context.get('statistics') or {} %}

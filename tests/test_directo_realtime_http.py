@@ -396,7 +396,16 @@ def test_next_http_render_never_keeps_finished_stale_or_unconfirmed_live(live_st
     html = response.get_data(as_text=True)
     assert 'data-canonical-live="true"' not in html
     assert 'data-realtime-consumer="directo-v1"' not in html
-    assert 'No hay partidos para este estado' in html
+    if changes.get('last_synced_at') == '2000-01-01T00:00:00+01:00':
+        assert 'data-directo-retained-observations' in html
+        assert 'Última observación' in html
+        assert '/match/directo-http-qa' in html
+        assert 'datetime="2000-01-01T00:00:00+01:00"' in html
+        assert 'data-v934-minute' not in html
+        assert 'No hay partidos para este estado' not in html
+    else:
+        assert 'No hay partidos para este estado' in html
+        assert 'data-directo-retained-observations' not in html
     payload = client.get('/api/realtime/sports?scope=all').get_json()
     assert payload['live'] == []
     assert all(not row['is_live'] for row in payload['matches'])
@@ -493,6 +502,15 @@ def test_browser_reads_the_actual_flask_live_response(live_store, tmp_path, widt
                     assert cards.locator('[data-v934-score]').inner_text() == '1 - 0'
                     assert cards.locator('[data-v934-minute]').inner_text() == 'Min 67'
                     assert cards.locator('a[href="/match/directo-http-qa"]').count() == 1
+                elif mode == 'stale':
+                    assert page.locator('[data-canonical-live="true"]').count() == 0
+                    retained = page.locator('[data-directo-retained-observations]')
+                    assert retained.is_visible()
+                    assert retained.locator('[data-directo-observation-id]').count() == 1
+                    assert retained.locator('a[href="/match/directo-http-qa"]').is_visible()
+                    assert retained.locator('time').get_attribute('datetime') == '2000-01-01T00:00:00+01:00'
+                    assert retained.locator('[data-v934-minute]').count() == 0
+                    assert not page.locator('.ns16-live-empty').count()
                 else:
                     assert page.locator('[data-canonical-live="true"]').count() == 0
                     empty_panel = page.locator('.ns16-live-empty')
