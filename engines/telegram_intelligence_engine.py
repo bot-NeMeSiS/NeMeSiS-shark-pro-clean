@@ -17,7 +17,7 @@ from engines.telegram_message_formatter import (
     MESSAGE_SOFT_SEPARATOR,
     RESPONSIBLE_FOOTER,
     TRANSPARENCY_FOOTER,
-    _text,
+    _text, _message_header, _message_match_context, _message_match_action, _section, _message_footer, _join_message, _v889_odds_label,
 )
 
 
@@ -93,7 +93,7 @@ def build_membership_variant(candidate: dict[str, Any], membership: str = "PRO")
         "membership": plan,
         "competition": item.get("competition") or "",
         "match": " vs ".join(part for part in (str(item.get("home_team") or ""), str(item.get("away_team") or "")) if part),
-        "responsible_note": "Análisis informativo. No garantiza resultados; stake orientativo.",
+        "responsible_note": "Análisis informativo. No garantiza resultados.",
         "risk": _text(_first(item, "risk", "risk_level"), "Riesgo no especificado"),
         "counterargument": _text(_first(item, "risks", "warning", "risk_note"), "Revisa cuota y condiciones antes de decidir."),
     }
@@ -102,7 +102,7 @@ def build_membership_variant(candidate: dict[str, Any], membership: str = "PRO")
             "market": "",
             "selection": "",
             "odds": None,
-            "summary": "Existe un análisis validado. El detalle completo está reservado a membresías premium.",
+            "summary": "Consulta los pronósticos por separado, según los permisos de tu cuenta y los requisitos de edad (+18).",
             "premium_analysis_revealed": False,
         })
     else:
@@ -124,36 +124,24 @@ def build_membership_variant(candidate: dict[str, Any], membership: str = "PRO")
 
 def build_premium_message(candidate: dict[str, Any], membership: str = "PRO") -> dict[str, Any]:
     variant = build_membership_variant(candidate, membership)
-    plan = membership.upper()
-    lines = [
-        BRAND_HEADER,
-        MESSAGE_SEPARATOR,
-        f"🎯 Preview Telegram {plan}",
-        variant.get("match") or "Partido validado",
-    ]
+    item = candidate.get("candidate") if isinstance(candidate.get("candidate"), dict) else candidate
+    plan = str(membership or "PRO").upper()
+    lines = _message_header("🔎 Vista gratuita" if plan == "FREE" else f"🎯 Análisis SHARK · {plan}")
+    lines.extend(_section("Partido", _message_match_context(item)))
     if variant.get("premium_analysis_revealed"):
-        lines.extend((
-            "",
-            "Entrada",
-            f"Mercado: {variant.get('market') or 'No disponible'}",
-            f"Selección: {variant.get('selection') or 'No disponible'}",
-            f"Cuota registrada: {variant.get('odds') or 'No disponible'}",
-            f"Riesgo: {variant.get('risk') or 'requiere revisión'}",
-            "",
-            "Contexto SHARK",
-            f"Motivo: {variant.get('reason') or 'sin motivo publicable'}",
-            f"Qué puede invalidarlo: {variant.get('counterargument') or 'sin contraargumento publicable'}",
-        ))
+        lines.extend(_section("Selección publicada · Sólo +18", [
+            f"Mercado: {variant.get('market') or 'No publicado'}",
+            f"Selección: {variant.get('selection') or 'No publicada'}",
+            f"Cuota registrada: {_v889_odds_label(variant.get('odds'))}",
+            f"Riesgo: {variant.get('risk') or 'No publicado'}"]))
+        lines.extend(_section("Motivo", [variant.get('reason') or 'No publicado']))
+        lines.extend(_section("Antes de decidir", [variant.get('counterargument') or 'Comprueba los datos y condiciones actuales.']))
     else:
-        lines.extend(("", "Preview FREE", str(variant.get("summary") or "")))
-        lines.extend(("", "Riesgo a vigilar", variant["risk"], variant["counterargument"]))
-    lines.extend((
-        "",
-        MESSAGE_SOFT_SEPARATOR,
-        TRANSPARENCY_FOOTER,
-        str(variant.get("responsible_note") or RESPONSIBLE_FOOTER),
-    ))
-    return {"membership": plan, "preview": "\n".join(lines), "send_executed": False}
+        lines.extend(_section("Contenido de tu cuenta", [variant.get('summary') or 'Consulta la información disponible en la aplicación.']))
+        lines.extend(_section("Antes de decidir", [variant['risk'], variant['counterargument']]))
+    lines.extend(_message_match_action(item))
+    lines.extend(_message_footer())
+    return {"membership": plan, "preview": _join_message(lines), "send_executed": False}
 
 
 
