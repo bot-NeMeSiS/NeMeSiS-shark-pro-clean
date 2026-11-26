@@ -239,3 +239,27 @@ def test_native_workspace_replacement_still_denied_after_child_creation(tmp_path
         with pytest.raises(restore.SqliteSetRestoreError,match='RESTORE_WORKSPACE_CHANGED'):
             restored.verify_before_app(deadline)
         assert (preserved/'restoration-test.db').exists()
+
+
+@pytest.mark.parametrize("position", range(9), ids=lambda value: "field" + str(value))
+@pytest.mark.parametrize("expected,bad", [(2, 2.0), (1, True), (0, False), (0, 0.0), (-1, -1)],
+                         ids=["float2", "bool1", "bool0", "float0", "negative"])
+def test_destination_identity_requires_strict_nonnegative_integers(tmp_path, position, expected, bad):
+    bound = bundle(tmp_path)
+    value = receipt(bound, 100)
+    actual = [2] * 9
+    actual[position] = expected
+    value["destination_identity"] = list(actual)
+    value["destination_identity"][position] = bad
+    with pytest.raises(restore.SqliteSetRestoreError, match="^NATIVE_RESTORE_MEMBER_NOT_VERIFIED$"):
+        restore._receipt(value, bound, bound.sqlite.members[0], 100,
+                         destination_identity=tuple(actual), pid=1234, source_identity=(1,) * 9)
+
+
+@pytest.mark.parametrize("identity_value", [0, 1, 2**63])
+def test_destination_identity_keeps_valid_zero_and_large_integers(tmp_path, identity_value):
+    bound = bundle(tmp_path)
+    value = receipt(bound, 100)
+    value["destination_identity"] = [identity_value] * 9
+    restore._receipt(value, bound, bound.sqlite.members[0], 100,
+                     destination_identity=(identity_value,) * 9, pid=1234, source_identity=(1,) * 9)
