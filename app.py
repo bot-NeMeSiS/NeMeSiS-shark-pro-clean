@@ -3189,11 +3189,14 @@ def _cron_compact_payload(endpoint, result, called_at, finished_at, force=False)
             compact[output_key] = as_int(observed, 0) if quota_observation_current and observed is not None else None
         if provider_results:
             api_http_statuses = api_football.get("provider_http_statuses")
+            api_failure_evidence = _provider_stage_evidence(api_football)
             compact.update({
                 "api_football_status": api_football.get("status") if api_football.get("status") in {
                     "OK", "AVAILABLE", "NO_DATA", "NO_DUE_ODDS", "SKIPPED_NO_API_FOOTBALL_FIXTURE", "TIME_BUDGET",
-                    "PROVIDER_FAILURE", "PARTIAL", "DAILY_BUDGET", "DISABLED", "NOT_CONFIGURED",
+                    "PROVIDER_FAILURE", "PROVIDER_FAILURE_BACKOFF", "PARTIAL", "DAILY_BUDGET", "DISABLED", "NOT_CONFIGURED",
                 } else "UNKNOWN",
+                "api_football_observation_scope": api_failure_evidence["observation_scope"],
+                "api_football_provider_observed_at": api_failure_evidence["provider_observed_at"],
                 "api_football_external_calls": api_football_calls,
                 "api_football_provider_http": (
                     api_football.get("provider_http")
@@ -8168,6 +8171,20 @@ def odds_client_visibility_diagnostics():
     }
 
 
+def _api_football_odds_rate_cooldown(result):
+    """Recognize only the engine's explicit, no-call rate-limit deferral."""
+    return (result.get("ok") is False and result.get("status") == "PROVIDER_FAILURE_BACKOFF"
+            and result.get("skipped") is True and result.get("provider_failure_backoff") is True
+            and type(result.get("external_calls")) is int and result["external_calls"] == 0
+            and result.get("provider_observation_current") is False
+            and result.get("failure_category") == "RATE_OR_QUOTA"
+            and result.get("failure_categories") == ["RATE_OR_QUOTA"]
+            and result.get("provider_http") is None and result.get("provider_http_statuses") == []
+            and not result.get("errors") and not result.get("technical_errors")
+            and not result.get("items") and not result.get("failed_count")
+            and bool(_sports_diagnostic_timestamp(result.get("retry_after"))))
+
+
 def sync_provider_odds(limit=2, force=False):
     """Refresh due API-Football odds and consult The Odds API only when funded."""
     safe_limit = max(0, min(5, as_int(limit, 2)))
@@ -8179,9 +8196,10 @@ def sync_provider_odds(limit=2, force=False):
         "processed": 0, "external_calls": 0, "errors": [], "provider_quota_consulted": False,
     }
     provider_results = {"api_football": api_football, "the_odds_api": optional_odds_api}
+    controlled_rate_cooldown = _api_football_odds_rate_cooldown(api_football)
     errors = []
     for provider_name, provider_result in provider_results.items():
-        if provider_result.get("ok") is False:
+        if provider_result.get("ok") is False and not (provider_name == "api_football" and controlled_rate_cooldown):
             categories = provider_result.get("errors") or provider_result.get("failure_categories") or []
             if isinstance(categories, str):
                 categories = [categories]
@@ -8192,15 +8210,24 @@ def sync_provider_odds(limit=2, force=False):
     processed = sum(as_int(item.get("processed") or item.get("fixtures_count"), 0)
                     for item in provider_results.values())
     inserted = as_int(api_football.get("snapshots_inserted"), 0)
-    failure = any(item.get("ok") is False for item in provider_results.values())
+    failure = any(item.get("ok") is False and not (name == "api_football" and controlled_rate_cooldown)
+                  for name, item in provider_results.items())
     status = ("PARTIAL" if inserted or processed else "PROVIDER_FAILURE") if failure else (
         "OK" if inserted or processed else api_football.get("status") or "NO_DUE_ODDS")
+    if controlled_rate_cooldown and not failure:
+        status = "PARTIAL"
+    skipped = bool(controlled_rate_cooldown and not failure and not calls and not processed)
     return {
         "ok": not failure, "status": status, "provider_results": provider_results,
         "api_football": api_football, "the_odds_api": optional_odds_api,
         "processed": processed, "snapshots_inserted": inserted,
         "external_calls": calls, "errors": errors[:8], "funded_the_odds_api": odds_funded(),
         "provider_quota_consulted": False,
+        "controlled_deferrals": ["PROVIDER_FAILURE_COOLDOWN"] if controlled_rate_cooldown else [],
+        "provider_failure_backoff": bool(controlled_rate_cooldown),
+        "skipped": skipped,
+        "reason": "provider_failure_cooldown" if skipped else "",
+        "retry_after": _sports_diagnostic_timestamp(api_football.get("retry_after")) if controlled_rate_cooldown else "",
         "next_action": "wait_for_natural_refresh" if not failure else "review_provider_state",
     }
 
