@@ -323,9 +323,13 @@ def _claim(conn, candidates, cfg, env, now):
     global_row = conn.execute(f"SELECT * FROM {STATE_TABLE} WHERE fixture_id='*'").fetchone()
     global_due = _parse_stamp(global_row["next_due_at"]) if global_row else None
     if global_due and global_due > now and global_row["failure_category"]:
+        observed = _parse_stamp(global_row["provider_observed_at"])
+        if observed and observed > now:
+            observed = None
         conn.rollback()
         return [], None, {"status": "PROVIDER_FAILURE_BACKOFF", "failure_category": global_row["failure_category"],
-                          "next_due_at": global_row["next_due_at"]}, 0, 0, ""
+                          "next_due_at": global_row["next_due_at"],
+                          "provider_observed_at": _stamp(observed) if observed else ""}, 0, 0, ""
 
     due = []
     for item in candidates:
@@ -501,6 +505,7 @@ def refresh_api_football_odds_if_due(db_path, *, limit=None, env=None, transport
                         "budget_limit": blocked.get("budget_limit"), "budget_used": blocked.get("budget_used"),
                         "budget_remaining": blocked.get("budget_remaining"),
                         "provider_quota_consulted": False,
+                        "provider_observed_at": blocked.get("provider_observed_at") or "",
                         "retry_after": blocked.get("next_due_at") or ""}
             if not selected:
                 return {**result, "status": "NO_DUE_ODDS"}

@@ -658,7 +658,7 @@ def provider_tick(base_url: str, secret: str, prefix: str, endpoint: str) -> dic
             # must never make The Odds API quota or market counters look fresh.
             api_football_statuses = {
                 "OK", "AVAILABLE", "NO_DATA", "NO_DUE_ODDS", "SKIPPED_NO_API_FOOTBALL_FIXTURE", "TIME_BUDGET",
-                "PROVIDER_FAILURE", "PARTIAL", "DAILY_BUDGET", "DISABLED", "NOT_CONFIGURED", "UNKNOWN",
+                "PROVIDER_FAILURE", "PROVIDER_FAILURE_BACKOFF", "PARTIAL", "DAILY_BUDGET", "DISABLED", "NOT_CONFIGURED", "UNKNOWN",
             }
             api_football_categories = {
                 "AUTH_OR_ACCESS", "ACCESS_RESTRICTED", "ACCOUNT_SUSPENDED", "RATE_OR_QUOTA",
@@ -684,6 +684,10 @@ def provider_tick(base_url: str, secret: str, prefix: str, endpoint: str) -> dic
             result["api_football_provider_observation_current"] = (
                 payload.get("api_football_provider_observation_current") is True
             )
+            scope = payload.get("api_football_observation_scope")
+            result["api_football_observation_scope"] = scope if scope in {
+                "CURRENT_CYCLE", "REUSED", "NOT_ESTABLISHED"} else "NOT_ESTABLISHED"
+            result["api_football_provider_observed_at"] = safe_timestamp(payload.get("api_football_provider_observed_at"))
             for field in ("api_football_processed", "api_football_fixtures_count", "api_football_snapshots_inserted"):
                 value = payload.get(field)
                 result[field] = safe_count(value) if value is not None else None

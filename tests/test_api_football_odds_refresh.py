@@ -258,3 +258,139 @@ def test_provider_wrapper_respects_zero_limit_and_reports_unfunded_optional_sour
     assert optional_calls == []
     assert result["external_calls"] == 0
     assert result["the_odds_api"]["status"] == "UNFUNDED_NOT_CONFIGURED"
+
+
+def _master_odds_result(app_module, result, monkeypatch):
+    import importlib.util
+    from pathlib import Path
+    spec=importlib.util.spec_from_file_location('odds_evidence_master',
+        Path(__file__).resolve().parents[1]/'tools/render_cron_master_tick.py')
+    master=importlib.util.module_from_spec(spec);spec.loader.exec_module(master)
+    compact=app_module._cron_compact_payload('odds_sync',result,NOW.isoformat(),NOW.isoformat())
+    class Response:
+        status=200
+        def __enter__(self):return self
+        def __exit__(self,*args):return False
+        def read(self,*args):return json.dumps(compact).encode()
+    monkeypatch.setattr(master.urllib.request,'urlopen',lambda *a,**k:Response())
+    return compact,master.odds_tick('https://synthetic.invalid','synthetic-header-only')
+
+
+def test_cached_rate_cooldown_survives_wrapper_compaction_and_master(store, app_module, monkeypatch):
+    calls=[]
+    def transport(*args,**kwargs):
+        calls.append(1)
+        return {'ok':False,'response':[],'http_status':429,
+                'errors':{'requests':'Rate limit reached'}}
+    monkeypatch.setattr(app_module,'refresh_api_football_odds_if_due',
+        lambda *a,**k:odds.refresh_api_football_odds_if_due(store,env=ENV,transport=transport))
+    monkeypatch.setattr(app_module,'odds_enabled',lambda:False)
+    first=app_module.sync_provider_odds()
+    _,fresh=_master_odds_result(app_module,first,monkeypatch)
+    assert fresh['odds_status']=='FAIL'
+    assert fresh['api_football_external_calls']==1
+    monkeypatch.setattr(odds,'_now',lambda:NOW+timedelta(seconds=30))
+    second=app_module.sync_provider_odds()
+    compact,cached=_master_odds_result(app_module,second,monkeypatch)
+    assert cached['odds_status']=='PARTIAL'
+    assert cached['api_football_status']=='PROVIDER_FAILURE_BACKOFF'
+    assert cached['api_football_failure_categories']==['RATE_OR_QUOTA']
+    assert cached['odds_provider_failure_backoff'] is True
+    assert cached['odds_controlled_deferrals']==['PROVIDER_FAILURE_COOLDOWN']
+    assert cached['provider_observation_current'] is False
+    assert cached['provider_http'] is None
+    assert cached['external_calls']==0 and len(calls)==1
+    assert not compact.get('errors_count') and not compact.get('error') and not compact.get('technical_errors')
+    assert cached['api_football_observation_scope']=='REUSED'
+    assert datetime.fromisoformat(cached['api_football_provider_observed_at'])==NOW
+    assert compact['api_football_provider_http'] is None
+    assert cached['the_odds_api_status']=='UNFUNDED_NOT_CONFIGURED'
+    assert cached['the_odds_api_funded'] is False
+    with sqlite3.connect(store) as conn:
+        assert conn.execute('SELECT count(*) FROM odds_snapshots').fetchone()[0]==0
+
+
+def _cached_rate_result():
+    return {'ok':False,'status':'PROVIDER_FAILURE_BACKOFF','skipped':True,
+        'provider_failure_backoff':True,'external_calls':0,'processed':0,'fixtures_count':0,
+        'snapshots_inserted':0,'provider_observation_current':False,'provider_http':None,
+        'provider_http_statuses':[],'failure_category':'RATE_OR_QUOTA',
+        'failure_categories':['RATE_OR_QUOTA'],'errors':[],'items':[],
+        'provider_observed_at':NOW.isoformat(),'retry_after':(NOW+timedelta(minutes=15)).isoformat()}
+
+
+@pytest.mark.parametrize('change', [
+    {'status':'PROVIDER_FAILURE'}, {'external_calls':1}, {'external_calls':False},
+    {'provider_observation_current':True}, {'provider_http':429},
+    {'failure_category':'AUTH_OR_ACCESS','failure_categories':['AUTH_OR_ACCESS']},
+    {'failure_categories':['RATE_OR_QUOTA','AUTH_OR_ACCESS']},
+    {'errors':['RATE_OR_QUOTA']}, {'technical_errors':['LOCAL_STORAGE_UNAVAILABLE']},
+    {'skipped':False}, {'provider_failure_backoff':False}, {'retry_after':'invalid'},
+    {'items':[{'status':'PROVIDER_FAILURE_INVALID_RESPONSE'}]},
+])
+def test_only_explicit_no_call_rate_cooldown_is_controlled(app_module, monkeypatch, change):
+    raw={**_cached_rate_result(),**change}
+    monkeypatch.setattr(app_module,'refresh_api_football_odds_if_due',lambda *a,**k:raw)
+    monkeypatch.setattr(app_module,'odds_enabled',lambda:False)
+    result=app_module.sync_provider_odds()
+    _,observed=_master_odds_result(app_module,result,monkeypatch)
+    assert result['ok'] is False
+    assert result['controlled_deferrals']==[]
+    assert observed['odds_status']=='FAIL'
+
+
+@pytest.mark.parametrize('message,category', [
+    ('Your account is suspended','ACCOUNT_SUSPENDED'),('Access denied','AUTH_OR_ACCESS'),
+])
+def test_cached_access_rejection_is_not_downgraded(store, app_module, monkeypatch, message, category):
+    calls=[]
+    def transport(*args,**kwargs):
+        calls.append(1)
+        return {'ok':False,'response':[],'http_status':403,'errors':{'access':message}}
+    monkeypatch.setattr(app_module,'refresh_api_football_odds_if_due',
+        lambda *a,**k:odds.refresh_api_football_odds_if_due(store,env=ENV,transport=transport))
+    monkeypatch.setattr(app_module,'odds_enabled',lambda:False)
+    app_module.sync_provider_odds()
+    result=app_module.sync_provider_odds()
+    _,observed=_master_odds_result(app_module,result,monkeypatch)
+    assert observed['odds_status']=='FAIL'
+    assert observed['api_football_failure_categories']==[category]
+    assert observed['external_calls']==0 and len(calls)==1
+    assert observed['provider_observation_current'] is False
+
+
+def test_optional_provider_failure_wins_over_controlled_api_cooldown(app_module, monkeypatch):
+    monkeypatch.setattr(app_module,'refresh_api_football_odds_if_due',lambda *a,**k:_cached_rate_result())
+    monkeypatch.setattr(app_module,'odds_enabled',lambda:True)
+    monkeypatch.setattr(app_module,'odds_funded',lambda:True)
+    monkeypatch.setattr(app_module,'sync_odds_events',lambda **k:{
+        'ok':False,'status':'PROVIDER_FAILURE','funded':True,'external_calls':1,
+        'errors':['AUTH_REJECTED'],'quota':{'http_status':401,'error_type':'HTTPError'}})
+    result=app_module.sync_provider_odds()
+    _,observed=_master_odds_result(app_module,result,monkeypatch)
+    assert result['ok'] is False and observed['odds_status']=='FAIL'
+    assert observed['api_football_external_calls']==0
+    assert observed['api_football_observation_scope']=='REUSED'
+    assert observed['the_odds_api_external_calls']==1
+    assert observed['the_odds_api_provider_http']==401
+
+
+@pytest.mark.parametrize('saved_clock',['invalid','',None,'2026-10-19T12:00:00',(NOW+timedelta(days=1)).isoformat()])
+def test_invalid_saved_clock_is_not_replaced_by_current_clock(store, app_module, monkeypatch, saved_clock):
+    calls=[]
+    def transport(*args,**kwargs):
+        calls.append(1)
+        return {'ok':False,'response':[],'http_status':429,'errors':{'requests':'Rate limit reached'}}
+    monkeypatch.setattr(app_module,'refresh_api_football_odds_if_due',
+        lambda *a,**k:odds.refresh_api_football_odds_if_due(store,env=ENV,transport=transport))
+    monkeypatch.setattr(app_module,'odds_enabled',lambda:False)
+    app_module.sync_provider_odds()
+    with sqlite3.connect(store) as conn:
+        conn.execute('UPDATE '+odds.STATE_TABLE+" SET provider_observed_at=? WHERE fixture_id='*'",(saved_clock,))
+    monkeypatch.setattr(odds,'_now',lambda:NOW+timedelta(seconds=30))
+    result=app_module.sync_provider_odds()
+    _,observed=_master_odds_result(app_module,result,monkeypatch)
+    assert observed['odds_status']=='PARTIAL'
+    assert observed['api_football_provider_observed_at']==''
+    assert observed['api_football_observation_scope']=='REUSED'
+    assert not observed['provider_observation_current'] and len(calls)==1
