@@ -27659,7 +27659,6 @@ def picks_page():
     data["v925_odds"] = get_safe_odds_context(data["picks"])
     # The template consumes authorized picks/odds and sports_metrics, not a
     # discarded full-match realtime descriptor. Polling keeps its existing API.
-    data["v935_customer_trust"] = get_v935_customer_trust_context(summary)
     data["pick_readiness"], data["pick_watchlist"] = client_pick_readiness(
         summary,
         active_count=len(data["v925_picks"].get("picks") or []),
