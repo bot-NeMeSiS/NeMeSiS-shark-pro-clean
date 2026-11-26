@@ -1637,6 +1637,12 @@ def sports_sync_window_state():
 def _log_sports_stage_duration(label, started):
     if not has_request_context() or request.path != "/api/automation/sports/sync":
         return
+    _log_sports_stage_elapsed(label, time.monotonic() - started)
+
+
+def _log_sports_stage_elapsed(label, elapsed_seconds):
+    if not has_request_context() or request.path != "/api/automation/sports/sync":
+        return
     safe_labels = {"runtime_initialize", "startup_database", "startup_schema", "startup_cleanup",
                    "startup_cleanup_read", "startup_cleanup_predicate",
                    "startup_time_normalization", "startup_memory_schema", "startup_automation_schema",
@@ -1649,7 +1655,7 @@ def _log_sports_stage_duration(label, started):
     if label in safe_labels:
         try:
             print(json.dumps({"event": "sports_stage", "stage": label,
-                              "duration_ms": max(0, int((time.monotonic() - started) * 1000))}), flush=True)
+                              "duration_ms": max(0, int(elapsed_seconds * 1000))}), flush=True)
         except (OSError, ValueError):
             pass
 
@@ -3449,26 +3455,46 @@ def is_fake_match(match):
 
 
 def cleanup_fake_matches(cur):
-    read_started = time.monotonic()
-    try:
-        match_rows = cur.execute("SELECT id, home_team, away_team, source FROM matches").fetchall()
-    except sqlite3.OperationalError:
-        return 0
-    finally:
-        _log_sports_stage_duration("startup_cleanup_read", read_started)
-    # Local and bounded: teams/sources repeat across fixtures, while the exact
-    # Unicode-aware predicate and the caller's transaction remain unchanged.
+    # Stream only the existing four-column projection. Keep all candidate IDs
+    # until the entire read succeeds, so a read failure cannot partially delete.
     normalize = lru_cache(maxsize=4096)(normalized_label)
     delete_ids = []
-    predicate_started = time.monotonic()
-    for row in match_rows:
-        row_id = row["id"] if hasattr(row, "keys") else row[0]
-        home_team = row["home_team"] if hasattr(row, "keys") else row[1]
-        away_team = row["away_team"] if hasattr(row, "keys") else row[2]
-        source = row["source"] if hasattr(row, "keys") else row[3]
-        if normalize(home_team) in FAKE_TEAM_NAMES or normalize(away_team) in FAKE_TEAM_NAMES or normalize(source) == "seed estructural":
-            delete_ids.append(row_id)
-    _log_sports_stage_duration("startup_cleanup_predicate", predicate_started)
+    read_elapsed = predicate_elapsed = 0.0
+    try:
+        read_started = time.monotonic()
+        try:
+            cur.execute("SELECT id, home_team, away_team, source FROM matches")
+        except sqlite3.OperationalError:
+            return 0
+        finally:
+            read_elapsed += time.monotonic() - read_started
+        while True:
+            read_started = time.monotonic()
+            try:
+                batch = cur.fetchmany(256)
+            except sqlite3.OperationalError:
+                return 0
+            finally:
+                read_elapsed += time.monotonic() - read_started
+            if not batch:
+                break
+            predicate_started = time.monotonic()
+            try:
+                for row in batch:
+                    row_id = row["id"] if hasattr(row, "keys") else row[0]
+                    home_team = row["home_team"] if hasattr(row, "keys") else row[1]
+                    away_team = row["away_team"] if hasattr(row, "keys") else row[2]
+                    source = row["source"] if hasattr(row, "keys") else row[3]
+                    if normalize(home_team) in FAKE_TEAM_NAMES or normalize(away_team) in FAKE_TEAM_NAMES or normalize(source) == "seed estructural":
+                        delete_ids.append(row_id)
+            finally:
+                predicate_elapsed += time.monotonic() - predicate_started
+            del batch
+    finally:
+        # Report actual accumulated read and predicate intervals separately;
+        # iteration must not move predicate time into the disk-read measurement.
+        _log_sports_stage_elapsed("startup_cleanup_read", read_elapsed)
+        _log_sports_stage_elapsed("startup_cleanup_predicate", predicate_elapsed)
     if delete_ids:
         placeholders = ",".join("?" for _ in delete_ids)
         cur.execute(f"DELETE FROM matches WHERE id IN ({placeholders})", tuple(delete_ids))
@@ -21507,7 +21533,7 @@ def _v1002_retained_directo_observations(summary, owned, scope):
         identifier=str(row.get('id') or '')
         if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9:_.-]{0,159}',identifier):
             continue
-        if (str(row.get('match_date') or '')!=today_iso() or state.get('is_stale') is not True
+        if (state.get('is_stale') is not True
             or state.get('is_live') or state.get('status_conflict')
             or state.get('status_raw_canonical') not in {'LIVE','HALFTIME'}
             or not state.get('provider_observed_at') or state.get('live_valid_until_madrid')):
@@ -21515,6 +21541,15 @@ def _v1002_retained_directo_observations(summary, owned, scope):
         try:
             observed=datetime.fromisoformat(state['provider_observed_at'].replace('Z','+00:00'))
             if observed.tzinfo is None or observed>evaluated:
+                continue
+            # Calendar midnight must not discard a match that just expired.
+            # Use this same observation's canonical kickoff, with a rolling
+            # maximum of 24 elapsed hours; this grants no LIVE lease or KPI.
+            kickoff=datetime.fromisoformat(str(state.get('kickoff_madrid') or '').replace('Z','+00:00'))
+            if kickoff.tzinfo is None:
+                continue
+            age=(evaluated.astimezone(timezone.utc)-kickoff.astimezone(timezone.utc)).total_seconds()
+            if not 0 <= age < 86400:
                 continue
         except (ValueError,TypeError):
             continue
