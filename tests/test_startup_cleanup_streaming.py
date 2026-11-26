@@ -83,3 +83,74 @@ def test_streamed_read_and_predicate_timings_remain_separate(app_module, monkeyp
     assert abs(records['startup_cleanup_predicate']['duration_ms']-3*len(normalizations))<=1
     assert all(set(item)=={'event','stage','duration_ms'} for item in records.values())
     conn.close()
+
+
+def test_existing_database_migration_covers_the_actual_cleanup_read(app_module, tmp_path, monkeypatch):
+    """An existing wide table keeps the same data rules through a narrower read."""
+    app = app_module
+    monkeypatch.setattr(app, 'DB_PATH', str(tmp_path / 'cleanup-read.sqlite'))
+    app.init_db()
+    conn = app.db()
+    conn.execute('DROP INDEX IF EXISTS idx_matches_startup_cleanup')
+    conn.execute('DELETE FROM matches')
+    conn.executemany(
+        'INSERT INTO matches(id,match_date,home_team,away_team,source,raw_json) VALUES(?,?,?,?,?,?)',
+        ((str(i), '2026-11-26', 'Real Madrid', 'FC Barcelona', 'sportsdb', 'x' * 16384)
+         for i in range(512)))
+    conn.execute(
+        'INSERT INTO matches(id,match_date,home_team,away_team,source,raw_json) VALUES(?,?,?,?,?,?)',
+        ('tail-seed', '2026-11-26', 'Real Madrid', 'FC Barcelona', ' SÉED\t ESTRUCTURAL ', 'x' * 16384))
+    conn.commit()
+    app.run_schema_migrations(conn)
+    conn.commit()
+    root_page = conn.execute(
+        "SELECT rootpage FROM sqlite_master WHERE name='idx_matches_startup_cleanup'").fetchone()[0]
+    app.run_schema_migrations(conn)
+    conn.commit()
+    assert conn.execute(
+        "SELECT rootpage FROM sqlite_master WHERE name='idx_matches_startup_cleanup'").fetchone()[0] == root_page
+    assert conn.execute('SELECT count(*) FROM matches').fetchone()[0] == 513
+    plans = []
+    class ObservedCursor(sqlite3.Cursor):
+        def execute(self, sql, *args):
+            if sql == 'SELECT id, home_team, away_team, source FROM matches':
+                plans.extend(str(row[3]) for row in self.connection.execute('EXPLAIN QUERY PLAN ' + sql))
+            return super().execute(sql, *args)
+    assert app.cleanup_fake_matches(conn.cursor(factory=ObservedCursor)) == 1
+    assert conn.execute('SELECT count(*) FROM matches').fetchone()[0] == 512
+    assert conn.in_transaction
+    conn.rollback()
+    assert conn.execute('SELECT count(*) FROM matches').fetchone()[0] == 513
+    assert any('COVERING INDEX idx_matches_startup_cleanup' in plan for plan in plans), plans
+    conn.close()
+
+
+def test_unavailable_cleanup_index_preserves_existing_read_and_delete(app_module, tmp_path, monkeypatch):
+    app = app_module
+    monkeypatch.setattr(app, 'DB_PATH', str(tmp_path / 'cleanup-fallback.sqlite'))
+    app.init_db()
+    conn = app.db()
+    conn.execute('DROP INDEX IF EXISTS idx_matches_startup_cleanup')
+    conn.execute('DELETE FROM matches')
+    conn.executemany(
+        'INSERT INTO matches(id,match_date,home_team,away_team,source) VALUES(?,?,?,?,?)',
+        [('real', '2026-11-26', 'Málaga CF', 'Córdoba CF', 'sportsdb'),
+         ('seed', '2026-11-26', 'Málaga CF', 'Córdoba CF', ' SÉED\t ESTRUCTURAL ')])
+    conn.commit()
+    class RefusedOptionalIndex:
+        def execute(self, sql, *args):
+            if sql.startswith('CREATE INDEX IF NOT EXISTS idx_matches_startup_cleanup '):
+                raise sqlite3.OperationalError('synthetic optional index unavailable')
+            return conn.execute(sql, *args)
+        def __getattr__(self, name):
+            return getattr(conn, name)
+    app.run_schema_migrations(RefusedOptionalIndex())
+    conn.commit()
+    assert not conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE name='idx_matches_startup_cleanup'").fetchone()
+    assert app.cleanup_fake_matches(conn.cursor()) == 1
+    assert conn.execute('SELECT id FROM matches').fetchone()[0] == 'real'
+    assert conn.in_transaction
+    conn.rollback()
+    assert conn.execute('SELECT count(*) FROM matches').fetchone()[0] == 2
+    conn.close()

@@ -1644,7 +1644,7 @@ def _log_sports_stage_elapsed(label, elapsed_seconds):
     if not has_request_context() or request.path != "/api/automation/sports/sync":
         return
     safe_labels = {"runtime_initialize", "startup_database", "startup_schema", "startup_cleanup",
-                   "startup_cleanup_read", "startup_cleanup_predicate",
+                   "startup_cleanup_read", "startup_cleanup_predicate", "startup_cleanup_index",
                    "startup_time_normalization", "startup_memory_schema", "startup_automation_schema",
                    "startup_admin", "startup_seed_catalog", "startup_telegram_settings",
                    "window_before", "window_after", "api_football_match_window", "sportsdb_calendar",
@@ -3868,6 +3868,17 @@ def run_schema_migrations(conn):
         conn.execute("CREATE INDEX IF NOT EXISTS idx_historical_matches_match ON historical_matches(match_id, match_date)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_historical_picks_pick ON historical_picks(pick_id, match_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_historical_recommendations_match ON historical_recommendations(match_id, created_at)")
+    except sqlite3.OperationalError:
+        pass
+
+    # Reuse the same four-field read without scanning wide match payloads.
+    # An unavailable optional index keeps the existing cleanup path intact.
+    try:
+        _startup_step(
+            "startup_cleanup_index", conn.execute,
+            "CREATE INDEX IF NOT EXISTS idx_matches_startup_cleanup "
+            "ON matches(id, home_team, away_team, source)",
+        )
     except sqlite3.OperationalError:
         pass
 
