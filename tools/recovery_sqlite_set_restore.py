@@ -121,6 +121,8 @@ def _receipt(value, bundle, member, deadline, *, destination_identity, pid=None,
             or any(type(v) is not int or v < 0 for v in value["source_identity"])
             or (source_identity is not None and value["source_identity"] != list(source_identity))
             or type(value["destination_identity"]) is not list
+            or len(value["destination_identity"]) != 9
+            or any(type(v) is not int or v < 0 for v in value["destination_identity"])
             or value["destination_identity"] != list(destination_identity)
             or value["integrity_attested_before_sql"] is not True
             or value["integrity_check_ok"] is not True
