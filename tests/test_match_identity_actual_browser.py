@@ -157,7 +157,14 @@ else:
         (tmp_path / "guarded-browser.stderr.log").write_text(result.stderr, encoding="utf-8")
         failure_lines = [line for line in result.stdout.splitlines()
                          if line.startswith(("E ", "FAILED ", "ERROR ", "tests/"))]
-        assert result.returncode == 0, ("\n".join(failure_lines)[-16000:], result.stderr[-2000:])
+        if result.returncode != 0:
+            # Keep the actual child assertion and geometry visible in CI. A tuple
+            # assertion is abbreviated by pytest before its captured log exists.
+            geometry = [line for line in result.stdout.splitlines()
+                        if line.startswith("ACTUAL_MATCH_IDENTITY ")]
+            pytest.fail("Original guarded browser failed:\n" +
+                        "\n".join(failure_lines + geometry) + "\n" + result.stderr[-2000:],
+                        pytrace=False)
         outputs = [line.removeprefix("QA_OUTPUT ") for line in result.stdout.splitlines() if line.startswith("QA_OUTPUT ")]
         boundaries = [line.removeprefix("BOUNDARY_EVENTS ") for line in result.stdout.splitlines() if line.startswith("BOUNDARY_EVENTS ")]
         assert len(outputs) == len(boundaries) == 1 and ast.literal_eval(boundaries[0]) == []
