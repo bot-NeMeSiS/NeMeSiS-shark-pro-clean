@@ -380,10 +380,17 @@ def sanitized_sports_pipeline(payload: dict, secret: str) -> dict:
                     key: raw_statistics.get(key) if isinstance(raw_statistics.get(key), bool) else None
                     for key in ("ok", "configured", "enabled")
                 },
+                **({"candidate_scan_performed": raw_statistics["candidate_scan_performed"]}
+                   if isinstance(raw_statistics.get("candidate_scan_performed"), bool) else {}),
                 **{
                     key: safe_count(raw_statistics.get(key))
                     for key in ("external_calls", "refreshed_fixtures", "fixtures_count", "stats_inserted",
-                                "no_data_count", "failed_count", "eligible_count", "due_count")
+                                "no_data_count", "failed_count")
+                },
+                **{
+                    key: None if raw_statistics.get("candidate_scan_performed") is False
+                         else safe_count(raw_statistics.get(key))
+                    for key in ("eligible_count", "due_count")
                 },
                 **{
                     key: safe_count(raw_statistics.get(key))
