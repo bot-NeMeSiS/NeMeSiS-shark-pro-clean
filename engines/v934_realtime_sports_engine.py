@@ -378,9 +378,9 @@ def cached_realtime_snapshot(
                     "created_at": stored_at,
                     "expires_at": stored_at + max(5, min(int(ttl_seconds), 300)),
                 }
-        # Drop the replaced local entry outside the index lock before another
-        # isolated copy allocates its graph. The failure fallback above is unchanged.
-        del cached
+        # Drop local references outside the index lock before the caller copy.
+        # The cache owns published graphs; invalidated, unpublished copies can go.
+        del cached, stored_payload
         return clone_snapshot(payload), "refreshed"
 
 
