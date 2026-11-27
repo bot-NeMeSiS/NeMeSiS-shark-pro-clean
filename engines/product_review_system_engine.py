@@ -2530,7 +2530,9 @@ def _nw_static_check(kind: str, sources: list[str]) -> tuple[str, str]:
             return "UNKNOWN", "MEMBERSHIP_CONTRACT_NOT_LITERAL"
         valid = set(order) == {"FREE", "PRO", "ELITE", "ADMIN"} and set(limits) == set(order)
         valid = valid and all(type(value) is int for value in order.values()) and len(set(order.values())) == len(order)
-        valid = valid and bool(features) and all(value in order for value in features.values())
+        valid = valid and all(order[left] < order[right] for left, right in
+                              (("FREE", "PRO"), ("PRO", "ELITE"), ("ELITE", "ADMIN")))
+        valid = valid and bool(features) and all(isinstance(value, str) and value in order for value in features.values())
         return ("PASS", "PLAN_REFERENCES_CONSISTENT") if valid else ("FAIL", "PLAN_REFERENCE_MISMATCH")
     if kind in {"request_contract", "finite_json_contract"}:
         tree, _ = _nw_literals(sources[0])
