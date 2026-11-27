@@ -506,8 +506,8 @@ def format_pick_result_tracking_message(pick=None, match=None):
 def format_combi_message(combi=None):
     combi = combi or {}
     picks = combi.get("picks") or combi.get("legs") or []
-    odds = combi.get("total_odds") or combi.get("odds") or "Pendiente"
-    confidence = combi.get("confidence") or combi.get("shark_score") or "Pendiente"
+    odds = first_value(combi, "total_odds", "odds", default="Pendiente")
+    confidence = first_value(combi, "confidence", "shark_score", default="Pendiente")
     risk = _text(combi.get("risk_level") or combi.get("risk"), "No especificado")
     reason = _text(combi.get("reason") or combi.get("main_reason"), "Análisis no publicado. Cada selección añade riesgo; no hay garantías de resultado.")
     lines = _message_header("🧩 COMBI SHARK", _text(combi.get("title") or combi.get("name"), "Combinada premium"))
