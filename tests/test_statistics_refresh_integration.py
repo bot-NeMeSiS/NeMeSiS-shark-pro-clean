@@ -630,3 +630,36 @@ def test_bounded_sports_distinguishes_statistics_coverage_limits_from_technical_
     compact = app_module._cron_compact_payload("sports_sync", result, "", "")
     assert compact["errors_count"] == len(expected_errors)
     assert compact["sports_pipeline"]["current_sync"]["statistics_refresh"]["failure_category"] == category
+
+
+@pytest.mark.parametrize("stage,eligible,due,observed", [
+    ({"candidate_scan_performed": False, "eligible_count": None, "due_count": None}, None, None, False),
+    ({"candidate_scan_performed": False, "eligible_count": 77, "due_count": 66}, None, None, False),
+    ({"candidate_scan_performed": True, "eligible_count": 3, "due_count": 1}, 3, 1, True),
+    ({"eligible_count": 3, "due_count": 1}, 3, 1, None),
+    ({"eligible_count": 0, "due_count": 0}, 0, 0, None),
+])
+def test_statistics_diagnostic_preserves_whether_candidates_were_observed(app_module, stage, eligible, due, observed):
+    receipt = app_module._sports_statistics_diagnostic({
+        "status": "PROVIDER_FAILURE_BACKOFF_AUTH_OR_ACCESS", "external_calls": 0,
+        "provider_observation_current": False, **stage,
+    })
+    assert receipt["eligible_count"] == eligible
+    assert receipt["due_count"] == due
+    assert receipt.get("candidate_scan_performed") is observed
+    assert receipt["external_calls"] == 0
+    assert receipt["provider_observation_current"] is False
+
+
+def test_real_global_backoff_reaches_diagnostic_with_unknown_counts(statistics_db, app_module, monkeypatch):
+    with closing(sqlite3.connect(statistics_db)) as conn, conn:
+        statistics._ensure_schema(conn)
+        conn.execute("INSERT INTO api_football_statistics_refresh_state(fixture_id,status,next_due_at,failure_category) VALUES ('*','PROVIDER_FAILURE_AUTH_OR_ACCESS',?,'AUTH_OR_ACCESS')",
+                     (statistics._stamp(statistics._now() + timedelta(hours=1)),))
+    monkeypatch.setattr(statistics, "_api_get", lambda *a, **k: pytest.fail("stored backoff must not call provider"))
+    stage = statistics.refresh_api_football_statistics_if_due(statistics_db, env={"API_FOOTBALL_KEY": "synthetic-key"})
+    receipt = app_module._sports_statistics_diagnostic(stage)
+    assert stage["status"] == receipt["state"] == "PROVIDER_FAILURE_BACKOFF_AUTH_OR_ACCESS"
+    assert receipt["candidate_scan_performed"] is False
+    assert receipt["eligible_count"] is None and receipt["due_count"] is None
+    assert receipt["external_calls"] == 0 and receipt["provider_observation_current"] is False

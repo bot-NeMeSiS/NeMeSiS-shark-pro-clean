@@ -2117,8 +2117,13 @@ def _sports_statistics_diagnostic(stage):
     for key in ("ok", "configured", "enabled"):
         result[key] = stage.get(key) if isinstance(stage.get(key), bool) else None
     for key in ("external_calls", "refreshed_fixtures", "fixtures_count", "stats_inserted",
-                "no_data_count", "failed_count", "eligible_count", "due_count"):
+                "no_data_count", "failed_count"):
         result[key] = max(0, as_int(stage.get(key), 0))
+    scanned = stage.get("candidate_scan_performed")
+    for key in ("eligible_count", "due_count"):
+        result[key] = None if scanned is False else max(0, as_int(stage.get(key), 0))
+    if isinstance(scanned, bool):
+        result["candidate_scan_performed"] = scanned
     result["budget_scope"] = _sports_diagnostic_text(stage.get("budget_scope"), 60)
     result["reason_code"] = _sports_diagnostic_text(stage.get("reason_code"), 80) or result["reason_code"]
     for key in ("budget_limit", "budget_used", "budget_remaining", "required_calls"):
