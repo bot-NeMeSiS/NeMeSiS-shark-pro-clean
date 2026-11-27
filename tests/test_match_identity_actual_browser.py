@@ -23,7 +23,7 @@ _loaded = sys.modules.get("app")
 _OWNED = bool(_loaded is not None and _loaded.local_safe_mode_enabled())
 
 
-def _observe_identity(probe, width, principal, tmp_path):
+def _observe_identity(probe, width, principal, tmp_path, *, font_family=None):
     a = probe["a"]
     with sqlite3.connect(probe["path"]) as connection:
         for mid in ("af-99990001", "af-99990002", "af-99990003"):
@@ -83,6 +83,9 @@ def _observe_identity(probe, width, principal, tmp_path):
                 for disclosure in page.locator("details").all():
                     if disclosure.locator(selector).count() and disclosure.get_attribute("open") is None:
                         disclosure.locator(":scope > summary").click()
+                if font_family and path == "/calendario":
+                    # Deliberate font stress, separate from the native-font matrix.
+                    page.add_style_tag(content="body.ns-app .v933-calendar-day .v933-match-teams strong { font-family: " + font_family + " !important; }")
                 card = page.locator(selector).first
                 card.scroll_into_view_if_needed()
                 page.evaluate("() => document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))")
@@ -93,6 +96,10 @@ def _observe_identity(probe, width, principal, tmp_path):
                       documentFits: document.documentElement.scrollWidth <= innerWidth + 1,
                       teams: [...node.querySelectorAll('.v933-match-teams strong')].map(el => ({
                         font: parseFloat(getComputedStyle(el).fontSize),
+                        scrollWidth: el.scrollWidth, clientWidth: el.clientWidth,
+                        display: getComputedStyle(el).display, whiteSpace: getComputedStyle(el).whiteSpace,
+                        overflowWrap: getComputedStyle(el).overflowWrap, wordBreak: getComputedStyle(el).wordBreak,
+                        fontFamily: getComputedStyle(el).fontFamily,
                         fits: el.scrollWidth <= el.clientWidth + 1,
                         clearOfCrest: (() => {
                           const text = el.getBoundingClientRect();
@@ -143,6 +150,9 @@ if _OWNED:
     @pytest.mark.parametrize("principal,width", CASES, ids=[p + "-" + str(w) for p, w in CASES])
     def test_actual_match_identity_keeps_names_crests_and_roles(prepared_probe, principal, width, tmp_path):
         _observe_identity(prepared_probe, width, principal, tmp_path)
+
+    def test_actual_calendar_long_name_with_wide_fallback_font(prepared_probe, tmp_path):
+        _observe_identity(prepared_probe, 320, "ANONYMOUS", tmp_path, font_family="Verdana")
 else:
     def test_match_identity_in_original_guarded_browser_process(tmp_path):
         runner = ROOT / "tools/check_local_candidate.py"
@@ -171,5 +181,5 @@ else:
         output = Path(outputs[0]).resolve()
         assert output.is_relative_to((ROOT / "data/local_dev").resolve()) and output.name.startswith("candidate-")
         suite = ET.parse(output / "result.xml").find("testsuite")
-        assert suite.attrib["tests"] == "5"
+        assert suite.attrib["tests"] == "6"
         assert all(suite.attrib[key] == "0" for key in ("errors", "failures", "skipped"))

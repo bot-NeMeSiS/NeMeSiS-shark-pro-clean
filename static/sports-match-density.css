@@ -73,7 +73,8 @@ body.ns-app .ns16-live .ns16-live-feature .v933-match-card {
   body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) .v933-match-teams strong {
     font-size: 12px;
     line-height: 1.2;
-    /* Long club names must fit even with wider platform fallback fonts. */
+    /* Let narrow cards show the name instead of overflowing a clamped line. */
+    -webkit-line-clamp: unset;
     overflow-wrap: anywhere;
   }
 
