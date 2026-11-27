@@ -239,3 +239,24 @@ def test_native_invalid_persisted_receipt_never_promotes_or_overwrites_history(t
     receipt["production_certified"] = True
     path.write_text(json.dumps({"contract": ce.NATIVE_WORKFORCE_MEMORY_CONTRACT, "latest": receipt}))
     assert ce.load_native_workforce_receipt(tmp_path, storage_root=storage, now=NOW)["state"] == "UNAVAILABLE"
+
+
+@pytest.mark.parametrize('order,feature,expected', [
+    ({'FREE': 0, 'PRO': 1, 'ELITE': 2, 'ADMIN': 3}, 'PRO', 'PASS'),
+    ({'ADMIN': 30, 'ELITE': 20, 'FREE': 0, 'PRO': 10}, 'ELITE', 'PASS'),
+    ({'FREE': 1, 'PRO': 0, 'ELITE': 2, 'ADMIN': 3}, 'PRO', 'FAIL'),
+    ({'FREE': 0, 'PRO': 2, 'ELITE': 1, 'ADMIN': 3}, 'PRO', 'FAIL'),
+    ({'FREE': 0, 'PRO': 1, 'ELITE': 3, 'ADMIN': 2}, 'PRO', 'FAIL'),
+    ({'FREE': 3, 'PRO': 2, 'ELITE': 1, 'ADMIN': 0}, 'PRO', 'FAIL'),
+    ({'FREE': 0, 'PRO': 1, 'ELITE': 2, 'ADMIN': 3}, ['PRO'], 'FAIL'),
+    ({'FREE': 0, 'PRO': 1, 'ELITE': 2, 'ADMIN': 3}, {'tier': 'PRO'}, 'FAIL'),
+    ({'FREE': 0, 'PRO': 1, 'ELITE': 2, 'ADMIN': 3}, 'ELITE+', 'FAIL'),
+    ({'FREE': 0, 'PRO': 1, 'ELITE': 2, 'ELITE+': 3, 'ADMIN': 4}, 'PRO', 'FAIL'),
+])
+def test_membership_review_requires_ordered_existing_tiers_and_string_references(order, feature, expected):
+    source = (f'PLAN_ORDER = {order!r}\n'
+              f'FEATURE_MIN_PLAN = {{"details": {feature!r}}}\n'
+              f'MEMBERSHIP_LIMITS = {dict.fromkeys(order, {})!r}\n')
+    result, reason = ce._nw_static_check('membership', [source])
+    assert result == expected
+    assert reason == ('PLAN_REFERENCES_CONSISTENT' if expected == 'PASS' else 'PLAN_REFERENCE_MISMATCH')
