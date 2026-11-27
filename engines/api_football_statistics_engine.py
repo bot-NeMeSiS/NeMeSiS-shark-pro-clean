@@ -94,6 +94,13 @@ def _connect(db_path):
     return conn
 
 
+def _connect_existing(db_path):
+    conn = sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=rw", uri=True,
+                           timeout=sqlite_busy_timeout(500) / 1000)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 def _exists(conn, table):
     return bool(conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone())
 
@@ -483,7 +490,11 @@ def refresh_api_football_statistics_if_due(db_path, *, limit=None, env=None, ren
     if exhausted():
         return {**result, "status": "TIME_BUDGET"}
     try:
-        with closing(_connect(db_path)) as conn:
+        with closing(_connect_existing(db_path) if renewal else _connect(db_path)) as conn:
+            if renewal and not all(_exists(conn, table) for table in (
+                    STATE_TABLE, "api_usage_guard", "api_football_live_stats",
+                    "api_football_match_stats_history")):
+                return {**result, "ok": False, "status": "RENEWAL_STORAGE_NOT_READY"}
             # A current global gate cannot admit any fixture. Avoid scanning
             # source tables, but keep the transactional recheck in _claim.
             now = _now()
@@ -503,8 +514,9 @@ def refresh_api_football_statistics_if_due(db_path, *, limit=None, env=None, ren
                 return {**result, "status": "SKIPPED_NO_API_FOOTBALL_FIXTURE"}
             if renewal and any(len(item["team_ids"]) != 2 for item in candidates):
                 return {**result, "ok": False, "status": "RENEWAL_IDENTITY_UNVERIFIED"}
-            with conn:
-                _ensure_schema(conn)
+            if not renewal:
+                with conn:
+                    _ensure_schema(conn)
             selected, reservation, blocked, due_count = _claim(conn, candidates, cfg, env, _now(), renewal=renewal)
             result["due_count"] = due_count
             if blocked:

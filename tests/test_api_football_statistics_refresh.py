@@ -635,3 +635,15 @@ def test_renewal_rejects_incomplete_identity_and_inconsistent_gate_clock(store, 
     monkeypatch.setattr(stats, "_api_get", lambda *a, **k: pytest.fail("no provider call"))
     result = stats.refresh_api_football_statistics_if_due(db, env=ENV, renewal_request=renewal_request())
     assert result["external_calls"] == 0 and not result["selected_fixture_ids"]
+
+
+def test_renewal_does_not_initialize_missing_database_or_storage(store, tmp_path, monkeypatch):
+    db, _ = store
+    monkeypatch.setattr(stats, "_api_get", lambda *a, **k: pytest.fail("no provider call"))
+    absent = tmp_path / "absent.sqlite"
+    result = stats.refresh_api_football_statistics_if_due(str(absent), env=ENV, renewal_request=renewal_request())
+    assert result["external_calls"] == 0 and not absent.exists()
+    seed(db, 101)
+    result = stats.refresh_api_football_statistics_if_due(db, env=ENV, renewal_request=renewal_request())
+    assert result["status"] == "RENEWAL_STORAGE_NOT_READY" and result["external_calls"] == 0
+    assert not rows(db, "SELECT name FROM sqlite_master WHERE name='api_usage_guard'")
