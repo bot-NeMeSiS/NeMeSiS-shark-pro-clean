@@ -647,3 +647,26 @@ def test_renewal_does_not_initialize_missing_database_or_storage(store, tmp_path
     result = stats.refresh_api_football_statistics_if_due(db, env=ENV, renewal_request=renewal_request())
     assert result["status"] == "RENEWAL_STORAGE_NOT_READY" and result["external_calls"] == 0
     assert not rows(db, "SELECT name FROM sqlite_master WHERE name='api_usage_guard'")
+
+
+@pytest.mark.parametrize("status,failure", [
+    ("AVAILABLE", ""), ("PROVIDER_FAILURE_PROVIDER_RESPONSE", "PROVIDER_RESPONSE"),
+])
+def test_renewal_never_bypasses_success_or_new_rejection_on_live_to_final_change(
+    store, monkeypatch, status, failure,
+):
+    db, _ = store
+    seed(db, 101, status="FT", kickoff=NOW - timedelta(hours=3))
+    renewal_gate(db)
+    renewal_gate(db, fixture="101", status=status, failure=failure,
+                 observed=NOW - timedelta(seconds=10))
+    calls = []
+    transport(monkeypatch, calls)
+    result = stats.refresh_api_football_statistics_if_due(
+        db, env=ENV, renewal_request=renewal_request())
+    assert result["external_calls"] == 0 and calls == []
+    # Automatic live-to-final refresh is an existing legitimate behavior.
+    with closing(sqlite3.connect(db)) as conn, conn:
+        conn.execute("DELETE FROM api_football_statistics_refresh_state WHERE fixture_id='*'")
+    automatic = stats.refresh_api_football_statistics_if_due(db, env=ENV)
+    assert automatic["external_calls"] == 1 and automatic["selected_fixture_ids"] == ["101"]

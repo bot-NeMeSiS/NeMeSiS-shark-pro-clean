@@ -274,7 +274,8 @@ def _claim(conn, candidates, cfg, env, now, renewal=None):
         if (_date(state.get("lease_until")) or now) > now:
             continue
         phase_changed = state.get("phase") == "live" and item["phase"] == "final"
-        if ((_date(state.get("next_due_at")) or now) > now and not phase_changed
+        if ((_date(state.get("next_due_at")) or now) > now
+                and (renewal is not None or not phase_changed)
                 and not _renewal_supersedes(state, renewal, now)):
             continue
         due.append({**item, "last_attempt_at": state.get("last_attempt_at") or ""})
