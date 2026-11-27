@@ -372,6 +372,23 @@ def _finish(conn, item, status, cfg, now, *, failure="", count=0, observed=True)
             "failure_category": failure, "next_due_at": due}
 
 
+def _blocked_refresh_result(result, blocked):
+    """Reuse stored gate evidence without claiming a current provider probe."""
+    labels = safe_failure_categories(blocked.get("failure_category"))
+    failure = labels[0] if labels else ""
+    return {**result, "ok": not bool(failure), "status": "PROVIDER_FAILURE_BACKOFF_" + failure if failure else "DAILY_BUDGET" if blocked.get("status") == "DAILY_BUDGET" else "SOURCE_COOLDOWN",
+            "reason_code": "LOCAL_APPLICATION_BUDGET_EXHAUSTED" if blocked.get("status") == "DAILY_BUDGET" else "",
+            "budget_scope": blocked.get("budget_scope", ""),
+            "budget_limit": blocked.get("budget_limit"),
+            "budget_used": blocked.get("budget_used"),
+            "budget_remaining": blocked.get("budget_remaining"),
+            "required_calls": blocked.get("required_calls"),
+            "provider_quota_consulted": blocked.get("provider_quota_consulted") if isinstance(blocked.get("provider_quota_consulted"), bool) else None,
+            "failure_category": failure, "failure_categories": [failure] if failure else [],
+            "provider_failure_backoff": bool(failure), "next_due_at": blocked.get("next_due_at"),
+            "provider_observed_at": blocked.get("provider_observed_at") or ""}
+
+
 def refresh_api_football_statistics_if_due(db_path, *, limit=None, env=None):
     """Refresh one rotating batch. No forced bypass of claims, TTL or daily budget."""
     env = os.environ if env is None else env
@@ -401,7 +418,18 @@ def refresh_api_football_statistics_if_due(db_path, *, limit=None, env=None):
         return {**result, "status": "TIME_BUDGET"}
     try:
         with closing(_connect(db_path)) as conn:
+            # A current global gate cannot admit any fixture. Avoid scanning
+            # source tables, but keep the transactional recheck in _claim.
+            now = _now()
+            if _exists(conn, STATE_TABLE):
+                blocked = conn.execute(f"SELECT * FROM {STATE_TABLE} WHERE fixture_id='*'").fetchone()
+                if blocked and (_date(blocked["next_due_at"]) or now) > now:
+                    return _blocked_refresh_result(
+                        {**result, "candidate_scan_performed": False,
+                         "eligible_count": None, "due_count": None}, dict(blocked),
+                    )
             candidates = _candidates(conn, _now())
+            result["candidate_scan_performed"] = True
             result["eligible_count"] = len(candidates)
             if not candidates:
                 return {**result, "status": "SKIPPED_NO_API_FOOTBALL_FIXTURE"}
@@ -410,19 +438,7 @@ def refresh_api_football_statistics_if_due(db_path, *, limit=None, env=None):
             selected, reservation, blocked, due_count = _claim(conn, candidates, cfg, env, _now())
             result["due_count"] = due_count
             if blocked:
-                labels = safe_failure_categories(blocked.get("failure_category"))
-                failure = labels[0] if labels else ""
-                return {**result, "ok": not bool(failure), "status": "PROVIDER_FAILURE_BACKOFF_" + failure if failure else "DAILY_BUDGET" if blocked.get("status") == "DAILY_BUDGET" else "SOURCE_COOLDOWN",
-                        "reason_code": "LOCAL_APPLICATION_BUDGET_EXHAUSTED" if blocked.get("status") == "DAILY_BUDGET" else "",
-                        "budget_scope": blocked.get("budget_scope", ""),
-                        "budget_limit": blocked.get("budget_limit"),
-                        "budget_used": blocked.get("budget_used"),
-                        "budget_remaining": blocked.get("budget_remaining"),
-                        "required_calls": blocked.get("required_calls"),
-                        "provider_quota_consulted": blocked.get("provider_quota_consulted") if isinstance(blocked.get("provider_quota_consulted"), bool) else None,
-                        "failure_category": failure, "failure_categories": [failure] if failure else [],
-                        "provider_failure_backoff": bool(failure), "next_due_at": blocked.get("next_due_at"),
-                        "provider_observed_at": blocked.get("provider_observed_at") or ""}
+                return _blocked_refresh_result(result, blocked)
             if not selected:
                 return result
             result.update(skipped=False, selected_fixture_ids=[item["fixture_id"] for item in selected])
