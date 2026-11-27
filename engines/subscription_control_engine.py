@@ -19,6 +19,7 @@ PLAN_PRICES = {
     "FREE": 0.0,
     "PRO": 9.99,
     "ELITE": 24.99,
+    "ELITE+": 44.99,
 }
 
 
@@ -32,7 +33,7 @@ def product_plan_prices() -> Dict[str, float]:
     try:
         from engines.stripe_payments_engine import plan_catalog
         catalog = plan_catalog()
-        for tier in ("PRO", "ELITE"):
+        for tier in ("PRO", "ELITE", "ELITE+"):
             label = str((catalog.get(tier) or {}).get("price_label") or "")
             match = re.search(r"(\d+(?:[.,]\d+)?)", label)
             if match:
@@ -46,6 +47,7 @@ FEATURES = {
     "FREE": ["calendario", "directo básico", "favoritos", "pronósticos limitados"],
     "PRO": ["pronósticos PRO", "SHARK recomendado", "Telegram PRO", "banca", "riesgo/valor básico"],
     "ELITE": ["SHARK completo", "pronósticos automáticos", "combinadas", "pronósticos destacados", "prioridad Telegram"],
+    "ELITE+": ["Incluye ELITE", "Pruebas beta seleccionadas solo cuando estén habilitadas"],
 }
 
 
@@ -108,7 +110,7 @@ def dumps(payload: Any) -> str:
 
 def normalize_tier(value: Any) -> str:
     tier = str(value or "FREE").upper().strip()
-    return tier if tier in {"FREE", "PRO", "ELITE", "ADMIN"} else "FREE"
+    return tier if tier in {"FREE", "PRO", "ELITE", "ELITE+", "ADMIN"} else "FREE"
 
 
 def ensure_subscription_schema(db_path: str) -> Dict[str, Any]:
@@ -273,7 +275,8 @@ def subscription_summary(db_path: str, apply_rules: bool = True, persist_metrics
         by_tier[tier] = by_tier.get(tier, 0) + 1
         by_status[status] = by_status.get(status, 0) + 1
         by_source[source] = by_source.get(source, 0) + 1
-        if tier in {"PRO","ELITE"} and source != "stripe" and status in {"active","grace","trialing"}:
+        if tier in {"PRO","ELITE","ELITE+"} and source != "stripe" and status in {"active","grace","trialing"}:
+            manual_by_tier.setdefault(tier, 0)
             manual_by_tier[tier] += 1
         if source == "stripe" and as_int(sub.get("soft_block"), 0):
             soft_blocked += 1
@@ -288,13 +291,14 @@ def subscription_summary(db_path: str, apply_rules: bool = True, persist_metrics
         raw_source = str(user.get("membership_source") or "").strip().lower()
         stripe_subscription_id = str(user.get("stripe_subscription_id") or "").strip()
         is_stripe = raw_source == "stripe" and bool(stripe_subscription_id)
-        if tier in {"PRO","ELITE"} and not is_stripe:
+        if tier in {"PRO","ELITE","ELITE+"} and not is_stripe:
+            manual_by_tier.setdefault(tier, 0)
             manual_by_tier[tier] += 1
 
     # Billing truth comes from Stripe subscription records, not from access grants.
     stripe_rows = rows(
         conn,
-        """SELECT user_id,plan,status,current_period_end,cancel_at_period_end,last_event_at
+        """SELECT user_id,plan,stripe_price_id,status,current_period_end,cancel_at_period_end,last_event_at
            FROM stripe_subscriptions
            ORDER BY COALESCE(last_event_at,'') DESC, rowid DESC"""
     )
@@ -332,10 +336,24 @@ def subscription_summary(db_path: str, apply_rules: bool = True, persist_metrics
         if status == "past_due":
             past_due += 1
             churn_risk += 1
-        if status == "active" and tier in {"PRO","ELITE"}:
+        if status == "active" and tier in {"PRO","ELITE","ELITE+"}:
             active_paid += 1
-            paid_by_tier[tier] += 1
-            estimated_mrr += prices.get(tier, 0.0)
+            paid_by_tier[tier] = paid_by_tier.get(tier, 0) + 1
+            monthly_estimate = prices.get(tier, 0.0)
+            # Annual subscriptions contribute 1/12 of their annual catalog price to MRR.
+            # This is an estimate, never provider-verified revenue.
+            price_id = str(item.get("stripe_price_id") or "")
+            try:
+                from engines.stripe_payments_engine import revenue_os_price_id, plan_catalog
+                annual_id = revenue_os_price_id(tier, "yearly")
+                if annual_id and price_id == annual_id:
+                    label = str(plan_catalog().get(tier, {}).get("yearly_price_label") or "")
+                    match = re.search(r"(\d+(?:[.,]\d+)?)", label)
+                    if match:
+                        monthly_estimate = round(float(match.group(1).replace(",", ".")) / 12, 2)
+            except (ImportError, TypeError, ValueError):
+                pass
+            estimated_mrr += monthly_estimate
             if as_int(item.get("cancel_at_period_end"), 0):
                 churn_risk += 1
 

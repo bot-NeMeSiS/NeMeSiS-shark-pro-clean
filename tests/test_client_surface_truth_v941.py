@@ -86,7 +86,7 @@ def test_secondary_client_copy_uses_current_spanish_vocabulary():
     recommendations=(ROOT / "templates/recommendations.html").read_text(encoding="utf-8")
     for forbidden in (">Picks</a>", "<span>Picks</span>", "<span>Combis</span>", "calendario o picks"):
         assert forbidden not in sports
-    assert "Pronósticos" in sports and "Combinadas" in sports
+    assert "Competiciones" in sports and "Pronósticos" not in sports and "Combinadas" not in sports
     for forbidden in ("Sports Hub, Live, Calendar", "Live relacionados", "Picks relacionados", "Pick SHARK"):
         assert forbidden not in favorites
     assert "Centro deportivo, Directo, Calendario" in favorites

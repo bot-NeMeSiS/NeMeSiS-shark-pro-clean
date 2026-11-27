@@ -250,7 +250,7 @@ def test_pick_plan_filters_cover_current_contract_and_admin_isolation(
         )
     assert calls[-1][1] == (10,)
     assert "membership_required" not in calls[-1][0]
-    assert app_module.VALID_ROLES == {"FREE", "PRO", "ELITE", "ADMIN"}
+    assert app_module.VALID_ROLES == {"FREE", "PRO", "ELITE", "ELITE+", "ADMIN"}
 
 
 def test_same_plan_users_and_admin_never_share_session_cache(

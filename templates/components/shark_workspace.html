@@ -2,6 +2,8 @@
 {% set assistant_detail = (data|default({}, true)).get('match_detail') or {} %}
 {% set assistant_match_id = (assistant_detail.get('match') or {}).get('id') or '' %}
 {% set assistant_page_url = '/shark' ~ ('?match_id=' ~ (assistant_match_id|urlencode) if assistant_match_id else '') %}
+{# Free is an all-ages sports assistant; paid tier is NOT independently age verified. #}
+{% set assistant_paid_tier = current_user and (current_user.membership|default('FREE')|upper) in ['PRO', 'ELITE', 'ELITE+'] %}
 <section class="ns-assistant" data-ns-assistant data-authenticated="{{ 'true' if current_user else 'false' }}" data-state="closed">
   <a class="ns-assistant-launcher" href="{{ assistant_page_url }}" data-ns-assistant-open aria-label="{{ ui('Abrir SHARK') }}" aria-controls="ns-assistant-dialog" aria-expanded="false">
     <img src="{{ url_for('static', filename='img/approved-identity/nemesis-approved-mark-128.webp', v='a100911afd54') }}" srcset="{{ url_for('static', filename='img/approved-identity/nemesis-approved-mark-256.webp', v='0bc771212eb6') }} 2x" alt="" width="54" height="40">
@@ -24,14 +26,14 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       {% if assistant_match_id %}<input type="hidden" name="match_id" value="{{ assistant_match_id }}">{% endif %}
       <label for="ns-assistant-question">{{ ui('Tu pregunta') }}</label>
-      <textarea id="ns-assistant-question" name="q" rows="2" maxlength="1000" required placeholder="{{ ui('Pregunta por partidos, pronósticos o tus favoritos.') }}"></textarea>
+      <textarea id="ns-assistant-question" name="q" rows="2" maxlength="1000" required placeholder="{{ ui('Pregunta por partidos, pronósticos o tus favoritos.' if assistant_paid_tier else 'Pregunta por partidos, resultados o tus favoritos.') }}"></textarea>
       <button type="submit">{{ ui('Enviar') }}</button>
     </form>
     {% endif %}
     <p class="ns-assistant-login" data-assistant-login{% if current_user %} hidden{% endif %}>
       {{ ui('Inicia sesión para preguntar a SHARK.') }} <a href="/cliente-login?next=/shark">{{ ui('Entrar') }}</a>
     </p>
-    <p data-assistant-upgrade hidden><a href="/membresias">{{ ui('Consultar planes') }}</a></p>
+    <p data-assistant-upgrade hidden>{% if assistant_paid_tier %}<a href="/membresias">{{ ui('Consultar planes') }}</a>{% else %}<a href="/shark">{{ ui('Abrir SHARK deportivo') }}</a>{% endif %}</p>
     <footer><a href="{{ assistant_page_url }}">{{ ui('Abrir página SHARK') }}</a><small>{{ ui('Oculto: puedes recuperarlo desde Explorar → SHARK.') }}</small></footer>
   </dialog>
   <script type="application/json" data-assistant-copy>{{ {

@@ -175,10 +175,10 @@ def _home_environment(template_override=None):
     return env
 
 
-def _render_home(data, env=None):
+def _render_home(data, env=None, membership='FREE'):
     return (env or _home_environment()).get_template("client_app_center.html").render(
         data=data,
-        current_user=SimpleNamespace(membership="FREE"),
+        current_user=SimpleNamespace(membership=membership),
         greeting=SimpleNamespace(label="Hola", name="QA"),
         ui=lambda text, **values: text.format(**values),
     )
@@ -263,7 +263,7 @@ def test_pick_card_and_unavailable_state_remain_visible():
     data = _compact_data(_empty_snapshot())
     data["v925_picks"]["picks"] = [{"id": "pick-card"}]
     data["v925_calendar"]["provider_status"] = "temporarily_unavailable"
-    html = _render_home(data)
+    html = _render_home(data, membership="PRO")
     assert 'data-test-pick="pick-card"' in html
     assert 'data-home-empty="ERROR"' in html
 
@@ -275,3 +275,13 @@ def test_live_card_is_not_duplicated_in_featured_matches():
     html = _render_home(_compact_data(snapshot))
     assert html.count('data-test-match="same-match"') == 1
     assert 'data-test-match="next-match"' in html
+
+
+def test_free_client_hides_premium_content_even_if_snapshot_contains_picks():
+    data = _compact_data(_empty_snapshot())
+    data["v925_picks"]["picks"] = [{"id": "private-pick"}]
+    html = _render_home(data, membership="FREE")
+    assert 'data-test-pick="private-pick"' not in html
+    assert 'href="/picks"' not in html
+    assert "Explora tus competiciones" in html
+    assert 'data-free-informational="true"' in html

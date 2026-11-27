@@ -1,4 +1,4 @@
-PLAN_ORDER = {"FREE": 0, "PRO": 1, "ELITE": 2, "ADMIN": 3}
+PLAN_ORDER = {"FREE": 0, "PRO": 1, "ELITE": 2, "ELITE+": 3, "ADMIN": 4}
 
 FEATURE_MIN_PLAN = {
     "live_basic": "FREE",
@@ -47,6 +47,15 @@ MEMBERSHIP_LIMITS = {
         "value_bets": "advanced",
         "auto_picks": True,
     },
+    "ELITE+": {
+        "daily_picks": 50,
+        "recommendations": 50,
+        "combi_matches": 15,
+        "shark_questions": 999,
+        "telegram_level": "priority",
+        "value_bets": "advanced",
+        "auto_picks": True,
+    },
     "ADMIN": {
         "daily_picks": 999,
         "recommendations": 999,
@@ -62,6 +71,7 @@ PLAN_BADGES = {
     "FREE": {"label": "FREE", "class": "badge-free", "tone": "Azul básico"},
     "PRO": {"label": "PRO", "class": "badge-pro", "tone": "Azul premium"},
     "ELITE": {"label": "ELITE", "class": "badge-elite", "tone": "Dorado"},
+    "ELITE+": {"label": "ELITE+", "class": "badge-elite-plus", "tone": "Púrpura"},
     "ADMIN": {"label": "ADMIN", "class": "badge-admin", "tone": "Operación"},
 }
 
@@ -146,5 +156,6 @@ def membership_context(user):
         "locked": locked,
         "is_free": membership == "FREE",
         "is_pro": membership == "PRO",
-        "is_elite": membership in {"ELITE", "ADMIN"},
+        "is_elite": membership in {"ELITE", "ELITE+", "ADMIN"},
+        "is_elite_plus": membership == "ELITE+",
     }

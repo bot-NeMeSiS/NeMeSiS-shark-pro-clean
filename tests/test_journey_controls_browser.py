@@ -147,20 +147,27 @@ _WORD_RECTS = r"""node => {
 
 
 @pytest.mark.parametrize("width", [320, 390, 768, 1440])
-def test_section_titles_and_actions_keep_whole_words(browser, page_html, width):
-    page = _page(browser, page_html("/app"), width)
+@pytest.mark.parametrize("plan,section,label,target", [
+    ("FREE", "ns16-free-sports", "Competiciones", "/competiciones"),
+    ("PRO", "ns16-featured-pick", "Combinadas", "/combinadas"),
+])
+def test_section_titles_and_actions_keep_whole_words(browser, page_html, width, plan, section, label, target):
+    page = _page(browser, page_html("/app", plan=plan), width)
     try:
-        header = page.locator(".ns16-featured-pick > .v933-section-header")
-        assert header.count() == 1
+        header = page.locator(f".{section} > .v933-section-header")
+        assert header.count() == 1, (plan, width, section)
         for element in [header.locator("h2"), header.locator("a")]:
             assert element.is_visible()
-            assert element.evaluate(_WORD_RECTS) == []
-        action = header.get_by_role("link", name="Combinadas")
-        assert action.get_attribute("href") == "/combinadas"
+            assert element.evaluate(_WORD_RECTS) == [], (plan, width, element.inner_text())
+        action = header.get_by_role("link", name=label)
+        assert action.get_attribute("href") == target
         action.scroll_into_view_if_needed()
         action.click(trial=True)
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth + 1")
-        _capture(page, f"app-FREE-{width}")
+        if plan == "FREE":
+            assert page.locator(".ns16-featured-pick").count() == 0
+            assert page.locator('a[href="/picks"]').count() == 0
+        _capture(page, f"app-{plan}-{width}")
     finally:
         page.close()
 
