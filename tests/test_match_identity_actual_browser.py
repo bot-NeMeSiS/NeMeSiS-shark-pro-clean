@@ -8,7 +8,7 @@ import sqlite3
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
-from urllib.parse import urlsplit
+from urllib.parse import urlencode, urlsplit
 
 import pytest
 from playwright.sync_api import sync_playwright
@@ -34,6 +34,13 @@ def _observe_identity(probe, width, principal, tmp_path, *, font_family=None):
                 (HOME, AWAY, "/team-crest.svg?name=owned-home", "/team-crest.svg?name=owned-away", json.dumps(raw), mid))
         connection.execute("UPDATE teams SET name=?,logo_url=? WHERE key='qa-favorite-ref'",
             (HOME, "/team-crest.svg?name=owned-home"))
+    # The upcoming fixture may fall tomorrow on the real Madrid clock.
+    # Select its owned date instead of assuming that +3h is still today.
+    with sqlite3.connect(probe["path"]) as connection:
+        calendar_date = connection.execute(
+            "SELECT match_date FROM matches WHERE id=?", ("af-99990002",)
+        ).fetchone()[0]
+    calendar_query = "?" + urlencode({"date": calendar_date})
     a.invalidate_v934_realtime_cache()
     cookie_name = a.app.config.get("SESSION_COOKIE_NAME", "session")
     cookie = None
@@ -75,7 +82,8 @@ def _observe_identity(probe, width, principal, tmp_path, *, font_family=None):
         observations = []
         try:
             for path, fixture_id in (("/calendario", "af-99990002"), ("/directo", "af-99990001")):
-                response = page.goto(origin + path, wait_until="domcontentloaded", timeout=30000)
+                target = origin + path + (calendar_query if path == "/calendario" else "")
+                response = page.goto(target, wait_until="domcontentloaded", timeout=30000)
                 assert response.status == 200 and urlsplit(page.url).path == path
                 page.wait_for_function("() => Array.from(document.styleSheets).some(sheet => sheet.href && new URL(sheet.href).pathname === '/static/sports-match-density.css' && sheet.cssRules.length > 0)", timeout=10000)
                 selector = '.v933-match-card[data-v934-match-id="' + fixture_id + '"]'
