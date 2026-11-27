@@ -143,3 +143,95 @@ def test_direct_check_http_requires_admin_and_valid_csrf(monkeypatch,tmp_path):
     payload = good.get_json()
     assert payload["status"] == "NOT_CONFIGURED"
     assert payload["external_calls"] == 0
+
+
+def test_single_fixture_renewal_http_keeps_admin_csrf_and_server_proof(monkeypatch, tmp_path):
+    real_render = app_module.render_template
+    monkeypatch.setattr(app_module, "DB_PATH", str(tmp_path / "renewal-admin.sqlite3"))
+    monkeypatch.setattr(app_module, "_SEEDED_DB_PATH", None)
+    monkeypatch.setattr(app_module, "_SEEDING_DB_PATH", None)
+    monkeypatch.setattr(app_module, "APP_INITIALIZED", False)
+    app_module.seed_core()
+    with closing(app_module.db()) as conn, conn:
+        admin_id = app_module.create_admin_record(
+            conn, "Renewal QA", "renewal-qa", "renewal-qa@example.invalid", "local-qa-password")
+    user = app_module.get_user_by_id(admin_id)
+    state = _state_store(monkeypatch)
+    trusted = {"provider": "api_football", "status": "CONNECTED", "ok": True,
+               "active": True, "http_status": 200, "plan": "Pro",
+               "plan_state": "PAID_PLAN_VERIFIED", "external_calls": 1,
+               "checked_at": "2026-11-27T21:26:15+00:00"}
+    state["v945_provider_direct_check:api_football"] = trusted
+    calls = []
+    def collect(path, **kwargs):
+        calls.append((path, kwargs))
+        return {"ok": True, "status": "OK", "external_calls": 1, "stats_inserted": 3}
+    monkeypatch.setattr(app_module, "refresh_api_football_statistics_if_due", collect)
+    monkeypatch.setattr(app_module, "probe_api_football_account",
+                        lambda: (_ for _ in ()).throw(AssertionError("no repeated status probe")))
+    endpoint = "/api/admin/provider-health/api-football/recover-statistics"
+    anonymous = app_module.app.test_client()
+    with anonymous.session_transaction() as sess:
+        anonymous_csrf = app_module.generate_csrf_token(sess)
+    assert anonymous.post(endpoint, json={"match_id": "af-101"},
+                          headers={"X-CSRF-Token": anonymous_csrf}).status_code == 403
+    admin = app_module.app.test_client()
+    with app_module.app.test_request_context():
+        app_module.set_login_session(user)
+        signed_in = dict(app_module.session)
+    with admin.session_transaction() as sess:
+        sess.clear(); sess.update(signed_in)
+        csrf = app_module.generate_csrf_token(sess)
+    assert admin.post(endpoint, json={"match_id": "af-101"},
+                      headers={"X-CSRF-Token": "invalid"}).status_code == 403
+    for payload in ([], {"match_id": ["101"]}, {"match_id": "101", "force": True},
+                    {"match_id": "101", "check": trusted}, {"match_id": "101/../102"},
+                    {"match_id": "101", "env": {"API_FOOTBALL_DAILY_CALL_BUDGET": "999999"}}):
+        assert admin.post(endpoint, json=payload, headers={"X-CSRF-Token": csrf}).status_code == 400
+    assert calls == []
+    response = admin.post(endpoint, json={"match_id": "af-101"}, headers={"X-CSRF-Token": csrf})
+    assert response.status_code == 200 and response.get_json()["stats_inserted"] == 3
+    assert calls == [(app_module.DB_PATH, {"limit": 1,
+                      "renewal_request": {"fixture_id": "af-101", "check": trusted}})]
+    assert admin.get(endpoint).status_code == 405
+    assert len(calls) == 1
+
+    # The redirect after an explicit check must read its saved receipt, not an
+    # older v932 projection; neither path may perform a second provider probe.
+    monkeypatch.setattr(app_module, "v932_safe_dashboard_data", lambda *a, **k: ({}, {}))
+    monkeypatch.setattr(app_module, "get_v934_realtime_context", lambda *a, **k: {})
+    monkeypatch.setattr(app_module, "v932_admin_data_center_fallback", lambda *a: {})
+    monkeypatch.setattr(app_module, "v932_admin_sports_diagnostics", lambda *a: {})
+    monkeypatch.setattr(app_module, "v932_safe_context",
+                        lambda path, scope, key, loader, fallback: {"source": "OLD_CACHE"} if key == "provider_health" else {})
+    fresh_reads = []
+    def saved_receipt():
+        fresh_reads.append(True)
+        return {"source": "CURRENT_SAVED_RECEIPT", "provider_calls_during_render": 0,
+                "providers": [{"key": "api_football", "direct_check": trusted}]}
+    monkeypatch.setattr(app_module, "v945_provider_health_snapshot", saved_receipt)
+    monkeypatch.setattr(app_module, "render_template",
+                        lambda name, **kw: app_module.jsonify(kw["data"]["provider_health"]))
+    normal = admin.get("/admin/data-center")
+    assert normal.get_json()["source"] == "OLD_CACHE" and fresh_reads == []
+    checked = admin.get("/admin/data-center?provider_check=CONNECTED")
+    assert checked.status_code == 200 and checked.get_json()["source"] == "CURRENT_SAVED_RECEIPT"
+    assert checked.get_json()["provider_calls_during_render"] == 0 and fresh_reads == [True]
+    def unavailable():
+        import sqlite3
+        raise sqlite3.OperationalError("synthetic unreadable receipt")
+    monkeypatch.setattr(app_module, "v945_provider_health_snapshot", unavailable)
+    unknown = admin.get("/admin/data-center?provider_check=CONNECTED")
+    assert unknown.get_json()["source"] == "UNAVAILABLE"
+    assert len(calls) == 1
+
+    monkeypatch.setattr(app_module, "render_template", real_render)
+    monkeypatch.setattr(app_module, "v945_provider_health_snapshot", saved_receipt)
+    rendered = admin.get("/admin/data-center?provider_check=CONNECTED")
+    assert rendered.status_code == 200
+    html = rendered.get_data(as_text=True)
+    assert 'action="/admin/provider-health/api-football/recover-statistics"' in html
+    assert 'for="renewal-statistics-match"' in html
+    assert 'name="match_id"' in html and 'name="csrf_token"' in html
+    assert "Recuperar estadísticas de este partido" in html
+    assert len(calls) == 1

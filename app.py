@@ -26273,10 +26273,19 @@ def admin_data_center_page():
         v932_admin_sports_diagnostics(sports),
     )
     data["v934_realtime"] = get_v934_realtime_context(_summary)
-    data["provider_health"] = v932_safe_context(
-        request.path, "admin", "provider_health", v945_provider_health_snapshot,
-        {"ok": False, "providers": [], "alerts": [], "source": "UNAVAILABLE", "provider_calls_during_render": 0},
-    )
+    if "provider_check" in request.args:
+        # A completed explicit probe already persisted its receipt. Read it now;
+        # never display an older cached verdict or call the provider again.
+        try:
+            data["provider_health"] = v945_provider_health_snapshot()
+        except (sqlite3.Error, OSError, ValueError, TypeError):
+            data["provider_health"] = {"ok": False, "providers": [], "alerts": [],
+                                       "source": "UNAVAILABLE", "provider_calls_during_render": 0}
+    else:
+        data["provider_health"] = v932_safe_context(
+            request.path, "admin", "provider_health", v945_provider_health_snapshot,
+            {"ok": False, "providers": [], "alerts": [], "source": "UNAVAILABLE", "provider_calls_during_render": 0},
+        )
     return render_template("admin_data_center.html", data=data, message=message, result=result)
 
 @app.route("/api/admin/provider-health")
@@ -26302,6 +26311,30 @@ def admin_provider_health_check():
     result, _status = v945_provider_direct_check(request.form.get("provider"))
     marker = urllib.parse.quote(str(result.get("status") or "CHECKED"), safe="")
     return redirect(f"/admin/data-center?provider_check={marker}#provider-health")
+
+
+
+@app.route("/api/admin/provider-health/api-football/recover-statistics", methods=["POST"])
+@app.route("/admin/provider-health/api-football/recover-statistics", methods=["POST"])
+def admin_api_football_recover_statistics():
+    """Explicit one-fixture recovery; proof always comes from server storage."""
+    if not is_admin_session():
+        return admin_json_forbidden()
+    payload = request.get_json(silent=True) if request.is_json else request.form
+    if (not isinstance(payload, dict) and request.is_json) or payload is None:
+        return jsonify({"ok": False, "status": "INVALID_RECOVERY_REQUEST", "external_calls": 0}), 400
+    if (set(payload) - {"match_id", "csrf_token"}
+            or (not request.is_json and len(payload.getlist("match_id")) != 1)):
+        return jsonify({"ok": False, "status": "INVALID_RECOVERY_REQUEST", "external_calls": 0}), 400
+    target = payload.get("match_id")
+    if not isinstance(target, str) or not re.fullmatch(r"(?:af-)?[0-9]{1,24}", target):
+        return jsonify({"ok": False, "status": "INVALID_RECOVERY_REQUEST", "external_calls": 0}), 400
+    result = refresh_api_football_statistics_if_due(
+        DB_PATH, limit=1, renewal_request={
+            "fixture_id": target, "check": _v945_provider_direct_snapshot("api_football"),
+        },
+    )
+    return jsonify({"version": APP_VERSION, **result})
 
 
 @app.route("/admin/api-sports")
