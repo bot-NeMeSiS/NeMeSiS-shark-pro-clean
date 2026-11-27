@@ -5617,21 +5617,26 @@ def match_is_already_kicked_off(match):
 def canonical_match_status(match, now=None):
     truth = v935_match_status_truth(dict(match or {}), now=now)
     lifecycle = str(truth.get("lifecycle") or "INCOMPLETE")
+    # Immutable alternatives avoid allocating every lifecycle dictionary per row.
+    # Truth is still evaluated above on every call; each result remains independent.
     states = {
-        "LIVE": {"key": "LIVE", "label": "En directo", "badge": "live", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
-        "HALFTIME": {"key": "HT", "label": "Descanso", "badge": "halftime", "is_live": True, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
-        "FINISHED": {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_result_pending": False, "is_upcoming": False},
-        "ARCHIVED": {"key": "FT", "label": "Finalizado", "badge": "finished", "is_live": False, "is_finished": True, "is_result_pending": False, "is_upcoming": False},
-        "RESULT_PENDING": {"key": "RESULT_PENDING", "label": "Resultado pendiente", "badge": "result_pending", "is_live": False, "is_finished": False, "is_result_pending": True, "is_upcoming": False},
-        "SUSPENDED": {"key": "SUSPENDED", "label": "Suspendido", "badge": "incident", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
-        "POSTPONED": {"key": "POSTPONED", "label": "Aplazado", "badge": "incident", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
-        "CANCELLED": {"key": "CANCELLED", "label": "Cancelado", "badge": "incident", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
-        "ABANDONED": {"key": "ABANDONED", "label": "Abandonado", "badge": "incident", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
-        "STALE": {"key": "STALE", "label": "Actualización pendiente", "badge": "incomplete", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
-        "UPCOMING": {"key": "UPCOMING", "label": "Próximo", "badge": "upcoming", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": True},
-        "INCOMPLETE": {"key": "INCOMPLETE", "label": "Estado pendiente", "badge": "incomplete", "is_live": False, "is_finished": False, "is_result_pending": False, "is_upcoming": False},
+        'LIVE': ('LIVE', 'En directo', 'live', True, False, False, False),
+        'HALFTIME': ('HT', 'Descanso', 'halftime', True, False, False, False),
+        'FINISHED': ('FT', 'Finalizado', 'finished', False, True, False, False),
+        'ARCHIVED': ('FT', 'Finalizado', 'finished', False, True, False, False),
+        'RESULT_PENDING': ('RESULT_PENDING', 'Resultado pendiente', 'result_pending', False, False, True, False),
+        'SUSPENDED': ('SUSPENDED', 'Suspendido', 'incident', False, False, False, False),
+        'POSTPONED': ('POSTPONED', 'Aplazado', 'incident', False, False, False, False),
+        'CANCELLED': ('CANCELLED', 'Cancelado', 'incident', False, False, False, False),
+        'ABANDONED': ('ABANDONED', 'Abandonado', 'incident', False, False, False, False),
+        'STALE': ('STALE', 'Actualización pendiente', 'incomplete', False, False, False, False),
+        'UPCOMING': ('UPCOMING', 'Próximo', 'upcoming', False, False, False, True),
+        'INCOMPLETE': ('INCOMPLETE', 'Estado pendiente', 'incomplete', False, False, False, False),
     }
-    result = dict(states.get(lifecycle) or states["INCOMPLETE"])
+    result = dict(zip(
+        ('key', 'label', 'badge', 'is_live', 'is_finished', 'is_result_pending', 'is_upcoming'),
+        states.get(lifecycle) or states["INCOMPLETE"],
+    ))
     result.update({
         "contract": truth.get("contract") or "MATCH-STATUS-TRUTH-V2",
         "raw_lifecycle": truth.get("raw_lifecycle") or lifecycle,
