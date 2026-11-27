@@ -97,6 +97,11 @@ def ensure_sportsdb_highlights_schema(db_path):
             created_at TEXT,
             updated_at TEXT
         )''')
+        # Postmatch recovery uses a correlated EXISTS by match_id. Without this
+        # lookup SQLite can scan the entire media table once for each pending
+        # postmatch job. Additive and idempotent; never alters stored rights.
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_sportsdb_highlights_match_id '
+                     'ON sportsdb_match_highlights(match_id)')
         conn.execute('''CREATE TABLE IF NOT EXISTS sportsdb_match_enrichment(
             id TEXT PRIMARY KEY,
             match_id TEXT UNIQUE,
