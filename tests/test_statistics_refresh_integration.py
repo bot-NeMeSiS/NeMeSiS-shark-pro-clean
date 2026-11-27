@@ -663,3 +663,44 @@ def test_real_global_backoff_reaches_diagnostic_with_unknown_counts(statistics_d
     assert receipt["candidate_scan_performed"] is False
     assert receipt["eligible_count"] is None and receipt["due_count"] is None
     assert receipt["external_calls"] == 0 and receipt["provider_observation_current"] is False
+
+
+def test_explicit_renewal_recovery_reaches_public_statistics_with_its_own_clock(
+    statistics_db, app_module, monkeypatch,
+):
+    matches = seed_fixtures(statistics_db, [99001, 99002])
+    now = datetime.now(timezone.utc)
+    monkeypatch.setattr(statistics, "_now", lambda: now)
+    with closing(sqlite3.connect(statistics_db)) as conn, conn:
+        statistics._ensure_schema(conn)
+        observed = (now - timedelta(hours=2)).isoformat()
+        conn.execute("""INSERT INTO api_football_statistics_refresh_state
+            (fixture_id,status,last_attempt_at,next_due_at,provider_observed_at,failure_category)
+            VALUES ('*','PROVIDER_FAILURE_FREE_PLAN_RESTRICTED',?,?,?,'FREE_PLAN_RESTRICTED')""",
+            (observed, (now + timedelta(hours=4)).isoformat(), observed))
+        fixture_clock = conn.execute(
+            "SELECT last_synced_at FROM api_football_live_snapshots WHERE fixture_id='99001'").fetchone()[0]
+    calls = mock_batch_provider(monkeypatch)
+    proof = {"provider": "api_football", "ok": True, "active": True,
+             "status": "CONNECTED", "http_status": 200, "plan": "Pro",
+             "plan_state": "PAID_PLAN_VERIFIED", "external_calls": 1,
+             "checked_at": (now - timedelta(minutes=1)).isoformat()}
+    collected = statistics.refresh_api_football_statistics_if_due(
+        statistics_db, env={"API_FOOTBALL_KEY": "synthetic-renewal-key",
+                            "API_FOOTBALL_DAILY_CALL_BUDGET": "10"},
+        renewal_request={"fixture_id": "af-99001", "check": proof},
+    )
+    assert collected["selected_fixture_ids"] == ["99001"] and calls == [["99001"]]
+    assert collected["refreshed_fixtures"] == 1
+    response = app_module.app.test_client().get("/api/matches/af-99001/statistics")
+    assert response.status_code == 200
+    context = response.get_json()["statistics_context"]
+    assert context["available"] is True and context["item_count"] > 0
+    assert datetime.fromisoformat(context["updated_at"]) == now
+    assert context["refresh"]["last_success_at"] is not None
+    shots = next(row for row in context["items"] if row["label"] == "Tiros a puerta")
+    assert str(shots["home"]) == str(shots["away"]) == "0"
+    with closing(sqlite3.connect(statistics_db)) as conn:
+        assert conn.execute("SELECT last_synced_at FROM api_football_live_snapshots WHERE fixture_id='99001'").fetchone()[0] == fixture_clock
+        assert conn.execute("SELECT COUNT(*) FROM api_football_live_stats WHERE fixture_id='99002'").fetchone()[0] == 0
+    assert calls == [["99001"]], "Public reads must not request the provider again"
