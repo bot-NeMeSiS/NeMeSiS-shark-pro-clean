@@ -153,7 +153,11 @@ else:
             cwd=ROOT, env=dict(os.environ, PYTEST_ADDOPTS="", PYTEST_DISABLE_PLUGIN_AUTOLOAD="1",
                               PYTHONDONTWRITEBYTECODE="1"),
             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=180)
-        assert result.returncode == 0, (result.stdout[-10000:], result.stderr[-2000:])
+        (tmp_path / "guarded-browser.stdout.log").write_text(result.stdout, encoding="utf-8")
+        (tmp_path / "guarded-browser.stderr.log").write_text(result.stderr, encoding="utf-8")
+        failure_lines = [line for line in result.stdout.splitlines()
+                         if line.startswith(("E ", "FAILED ", "ERROR ", "tests/"))]
+        assert result.returncode == 0, ("\n".join(failure_lines)[-16000:], result.stderr[-2000:])
         outputs = [line.removeprefix("QA_OUTPUT ") for line in result.stdout.splitlines() if line.startswith("QA_OUTPUT ")]
         boundaries = [line.removeprefix("BOUNDARY_EVENTS ") for line in result.stdout.splitlines() if line.startswith("BOUNDARY_EVENTS ")]
         assert len(outputs) == len(boundaries) == 1 and ast.literal_eval(boundaries[0]) == []

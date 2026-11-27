@@ -184,17 +184,9 @@ body.ns-app .ns16-live .ns16-live-feature .v933-match-card {
   }
 
   body.ns-app .v933-calendar-day .v933-match-card:not(.is-incomplete) {
-    min-height: 86px !important;
+    min-height: 84px !important;
     grid-template-rows: minmax(58px, auto) !important;
     padding: 10px 16px !important;
     column-gap: 16px !important;
-  }
-
-  body.ns-app .ns16-live .ns16-match-row .v933-match-card {
-    min-height: 146px;
-  }
-
-  body.ns-app .ns16-live .ns16-live-feature .v933-match-card {
-    min-height: 162px;
   }
 }
