@@ -323,3 +323,47 @@ def test_replaced_cache_graph_is_released_before_allocating_caller_copy():
     cached, status = engine.cached_realtime_snapshot('owned:retention', lambda: pytest.fail('unexpected rebuild'))
     assert status == 'hit' and cached['score'] == [0, 1]
     assert cached['leaf'] is not result['leaf']
+
+
+@pytest.mark.parametrize('prefix,published', [('', False), ('sports:', False), ('other:', True)])
+def test_unpublished_clone_is_released_before_caller_copy_but_published_clone_stays_owned(prefix, published):
+    import gc
+    import weakref
+
+    stored_reference = None
+    observations = []
+    copies = []
+
+    class Leaf:
+        def __deepcopy__(self, memo):
+            nonlocal stored_reference
+            copied = Leaf()
+            memo[id(self)] = copied
+            copies.append(1)
+            if len(copies) == 1:
+                stored_reference = weakref.ref(copied)
+            elif len(copies) == 2:
+                gc.collect()
+                observations.append(stored_reference() is not None)
+            return copied
+
+    original = {'leaf': Leaf(), 'score': [0, 1]}
+    def build():
+        # Exercise actual invalidation after the generation was captured.
+        engine.invalidate_realtime_cache(prefix)
+        return original
+
+    result, status = engine.cached_realtime_snapshot('sports:retention', build)
+    assert observations == [published]
+    assert len(copies) == 2 and status == 'refreshed'
+    assert ('sports:retention' in engine._CACHE) is published
+    assert result['leaf'] is not original['leaf']
+    result['score'][0] = 7
+    assert original['score'] == [0, 1]
+    if published:
+        assert stored_reference() is engine._CACHE['sports:retention']['payload']['leaf']
+        assert stored_reference() is not result['leaf']
+    else:
+        assert stored_reference() is None
+        fresh, status = engine.cached_realtime_snapshot('sports:retention', lambda: {'revision': 2})
+        assert status == 'refreshed' and fresh == {'revision': 2}
