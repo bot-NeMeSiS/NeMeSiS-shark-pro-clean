@@ -284,3 +284,42 @@ def test_benchmark_setup_is_ephemeral_and_does_not_reuse_existing_credentials(tm
         assert isolated.environ['AUTO_GENERATE_PICKS'] == 'false'
         assert isolated.environ['AUTO_SEND_TELEGRAM_PICKS'] == 'false'
     assert len(set(generated)) == 6 and all(len(value) >= 40 for value in generated)
+
+
+def test_replaced_cache_graph_is_released_before_allocating_caller_copy():
+    import gc
+    import weakref
+
+    old_reference = None
+    observations = []
+
+    class Leaf:
+        def __init__(self, revision):
+            self.revision = revision
+
+        def __deepcopy__(self, memo):
+            # Observe actual ownership while the native copier runs, without
+            # replacing cache, clone or builder behavior.
+            if self.revision == 1:
+                gc.collect()
+                observations.append(old_reference() is not None)
+            copied = Leaf(self.revision)
+            memo[id(self)] = copied
+            return copied
+
+    engine.cached_realtime_snapshot('owned:retention', lambda: {'leaf': Leaf(0)})
+    old_reference = weakref.ref(engine._CACHE['owned:retention']['payload']['leaf'])
+    original = {'leaf': Leaf(1), 'score': [0, 1]}
+    result, status = engine.cached_realtime_snapshot('owned:retention', lambda: original, force=True)
+
+    # The previous entry must support fallback while building/storing, then
+    # cease retaining an extra whole graph before the second copy allocation.
+    assert observations == [True, False]
+    assert old_reference() is None
+    assert status == 'refreshed' and result['leaf'].revision == 1
+    assert result['leaf'] is not original['leaf']
+    result['score'][0] = 7
+    original['score'][1] = 9
+    cached, status = engine.cached_realtime_snapshot('owned:retention', lambda: pytest.fail('unexpected rebuild'))
+    assert status == 'hit' and cached['score'] == [0, 1]
+    assert cached['leaf'] is not result['leaf']
