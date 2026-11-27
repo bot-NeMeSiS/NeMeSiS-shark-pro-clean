@@ -1,4 +1,6 @@
 """Truthful, secret-safe diagnostics for the current sports sync stages."""
+import pytest
+
 
 
 def _fallback_run():
@@ -580,3 +582,33 @@ def test_cached_provider_failure_is_not_reclassified_as_local_precall(app_module
     assert primary["reason_code"] == "CACHED_PROVIDER_ERROR"
     assert primary["failure_class"] == ""
 
+
+
+@pytest.mark.parametrize("statistics,expected_eligible,expected_due,observed", [
+    ({"candidate_scan_performed": False, "eligible_count": None, "due_count": None}, None, None, False),
+    ({"candidate_scan_performed": False, "eligible_count": 77, "due_count": 66}, None, None, False),
+    ({"candidate_scan_performed": True, "eligible_count": 3, "due_count": 1}, 3, 1, True),
+    ({"eligible_count": 3, "due_count": 1}, 3, 1, None),
+    ({"eligible_count": 0, "due_count": 0}, 0, 0, None),
+    ({"candidate_scan_performed": "sanitizer-canary", "eligible_count": 3, "due_count": 1}, 3, 1, None),
+])
+def test_statistics_observation_counts_survive_app_compact_and_master_sanitizer(
+    app_module, statistics, expected_eligible, expected_due, observed,
+):
+    from tools.render_cron_master_tick import sanitized_sports_pipeline
+    diagnostics = app_module._build_sports_pipeline_diagnostics({
+        **_fallback_run(),
+        "statistics": {"status": "PROVIDER_FAILURE_BACKOFF_AUTH_OR_ACCESS", "external_calls": 0,
+                       "provider_observation_current": False, **statistics},
+    }, {})
+    compact = app_module._cron_compact_payload(
+        "sports_sync", {"sports_pipeline": diagnostics},
+        "2026-11-27T15:35:42+00:00", "2026-11-27T15:36:26+00:00",
+    )
+    receipt = sanitized_sports_pipeline(compact, "sanitizer-canary")["current_sync"]["statistics_refresh"]
+    assert receipt["eligible_count"] == expected_eligible
+    assert receipt["due_count"] == expected_due
+    assert receipt.get("candidate_scan_performed") is observed
+    assert receipt["external_calls"] == 0
+    assert receipt["provider_observation_current"] is False
+    assert "sanitizer-canary" not in str(receipt)
