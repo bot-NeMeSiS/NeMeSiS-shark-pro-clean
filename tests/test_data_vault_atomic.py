@@ -665,8 +665,9 @@ def test_capacity_preflight_fails_closed_when_space_is_still_insufficient(backup
     result = vault.ensure_backup_capacity(source, root)
     assert result["ok"] is False
     assert result["error"] == "backup_storage_insufficient"
-    assert "database_orphan.db" in result["removed"]
-    assert not orphan.exists()
+    assert result["removed"] == []
+    assert "database_orphan.db" in result["preserved_unmanifested"]
+    assert orphan.read_bytes() == b"orphan"
 
 
 def test_successful_backup_reports_storage_preflight(backup_source):

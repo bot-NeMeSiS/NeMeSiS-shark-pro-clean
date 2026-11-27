@@ -425,7 +425,7 @@ def _delete_backup_item(item: dict) -> bool:
     """Delete one known backup pair. The caller decides what is safe to remove."""
     try:
         path = Path(str(item.get("path") or ""))
-        if not path.name:
+        if not path.name or not path.with_suffix(".json").is_file():
             return False
         path.unlink(missing_ok=True)
         path.with_suffix(".json").unlink(missing_ok=True)
@@ -536,8 +536,9 @@ def ensure_backup_capacity(
     """Reserve enough filesystem headroom for one atomic SQLite backup.
 
     When space is tight, remove only known older backup pairs. A verified
-    recovery copy is always preserved. Invalid/orphan backup files are safe to
-    remove before verified history. The live database is never modified.
+    recovery copy is always preserved. Unmanifested candidates are retained
+    for review, not treated as disposable or as verified recovery copies.
+    The live database is never modified.
     """
     src = Path(db_path)
     bdir = Path(directory) if directory is not None else backup_dir(root)
@@ -561,6 +562,7 @@ def ensure_backup_capacity(
         "total_bytes": total_bytes,
         "removed": [],
         "preserved_verified": "",
+        "preserved_unmanifested": [],
     }
     if not allow_reclaim:
         result["reclamation_allowed"] = False
@@ -572,6 +574,11 @@ def ensure_backup_capacity(
 
     backups = _run_backup_diagnostic_stage(
         "CAPACITY_BACKUP_INVENTORY", lambda: list_backups(root, directory=bdir))
+    result["preserved_unmanifested"] = [
+        item["name"] for item in backups
+        if not Path(item["path"]).with_suffix(".json").is_file()
+    ]
+    backups = [item for item in backups if item["name"] not in result["preserved_unmanifested"]]
     verified = None
     def find_verified_backup():
         for item in backups:
@@ -589,7 +596,7 @@ def ensure_backup_capacity(
     if verified is not None:
         result["preserved_verified"] = verified["name"]
 
-    # Invalid/orphan files first; then oldest verified-history copies. The
+    # Known invalid pairs first; then oldest verified-history copies. The
     # newest independently verified backup is never removed for capacity.
     candidates = [item for item in reversed(backups) if not item.get("valid")]
     if verified is not None:
@@ -1136,23 +1143,32 @@ def apply_backup_retention(root: str | Path, *, directory: str | Path | None = N
     max_files = int(os.getenv("DATA_BACKUP_MAX_FILES", "30") or 30) if max_files is None else int(max_files)
     backups = list_backups(root, directory=directory)
     removed = []
-    if len(backups) <= max_files or max_files < 1:
-        return {"ok": True, "removed": removed, "kept": len(backups)}
+    preserved = [item["name"] for item in backups
+                 if not Path(item["path"]).with_suffix(".json").is_file()]
+    paired = [item for item in backups if item["name"] not in preserved]
+    if len(paired) <= max_files or max_files < 1:
+        return {"ok": True, "removed": removed, "kept": len(backups),
+                "preserved_unmanifested": preserved}
     # A newer incomplete file must never displace the newest verified copy.
-    verified = next((item for item in backups if item["valid"] and validate_backup(root, item["name"], directory=directory)["ok"]), None)
+    verified = next((item for item in paired if item["valid"] and validate_backup(root, item["name"], directory=directory)["ok"]), None)
     if verified is None:
-        return {"ok": False, "removed": [], "kept": len(backups), "error": "no_verified_backup_to_preserve"}
-    ordered = [verified] + [item for item in backups if item["name"] != verified["name"]]
+        return {"ok": False, "removed": [], "kept": len(backups), "error": "no_verified_backup_to_preserve",
+                "preserved_unmanifested": preserved}
+    ordered = [verified] + [item for item in paired if item["name"] != verified["name"]]
     errors = []
     for item in ordered[max_files:]:
         try:
-            Path(item["path"]).unlink(missing_ok=True)
             manifest = Path(item["path"]).with_suffix(".json")
+            if not manifest.is_file():
+                preserved.append(item["name"])
+                continue
+            Path(item["path"]).unlink(missing_ok=True)
             manifest.unlink(missing_ok=True)
             removed.append(item["name"])
         except OSError as exc:
             errors.append({"name": item["name"], "error": str(exc)[:200]})
-    return {"ok": not errors, "removed": removed, "kept": len(list_backups(root, directory=directory)), "errors": errors}
+    return {"ok": not errors, "removed": removed, "kept": len(list_backups(root, directory=directory)),
+            "errors": errors, "preserved_unmanifested": preserved}
 
 
 def restore_sqlite_backup(db_path: str | Path, root: str | Path, backup_name: str, app_version: str,
