@@ -126,6 +126,8 @@ body.ns-app .ns16-live .ns16-live-feature .v933-match-card {
   body.ns-app .ns16-live .v933-match-teams strong {
     font-size: 12px;
     line-height: 1.2;
+    -webkit-line-clamp: unset;
+    overflow-wrap: anywhere;
   }
 
   body.ns-app .ns16-live .v933-team-logo {

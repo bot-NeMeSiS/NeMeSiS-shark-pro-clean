@@ -83,9 +83,9 @@ def _observe_identity(probe, width, principal, tmp_path, *, font_family=None):
                 for disclosure in page.locator("details").all():
                     if disclosure.locator(selector).count() and disclosure.get_attribute("open") is None:
                         disclosure.locator(":scope > summary").click()
-                if font_family and path == "/calendario":
+                if font_family:
                     # Deliberate font stress, separate from the native-font matrix.
-                    page.add_style_tag(content="body.ns-app .v933-calendar-day .v933-match-teams strong { font-family: " + font_family + " !important; }")
+                    page.add_style_tag(content="body.ns-app :is(.v933-calendar-day, .ns16-live) .v933-match-teams strong { font-family: " + font_family + " !important; }")
                 card = page.locator(selector).first
                 card.scroll_into_view_if_needed()
                 page.evaluate("() => document.fonts.ready.then(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))))")
@@ -151,7 +151,7 @@ if _OWNED:
     def test_actual_match_identity_keeps_names_crests_and_roles(prepared_probe, principal, width, tmp_path):
         _observe_identity(prepared_probe, width, principal, tmp_path)
 
-    def test_actual_calendar_long_name_with_wide_fallback_font(prepared_probe, tmp_path):
+    def test_actual_match_long_names_with_wide_fallback_font(prepared_probe, tmp_path):
         _observe_identity(prepared_probe, 320, "ANONYMOUS", tmp_path, font_family="Verdana")
 else:
     def test_match_identity_in_original_guarded_browser_process(tmp_path):
