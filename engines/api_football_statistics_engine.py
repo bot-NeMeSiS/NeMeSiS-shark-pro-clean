@@ -1,6 +1,6 @@
 """Bounded statistics ingestion, independent of the slow multi-capability sample.
 
-Only the sports writer calls refresh_api_football_statistics_if_due. Page reads
+The sports writer and explicit one-fixture Admin recovery own collection. Page reads
 use statistics_refresh_state_for_match, which never initializes storage or HTTP.
 Provider receipts do not change the fixture's lifecycle or provider clocks.
 """
@@ -94,6 +94,13 @@ def _connect(db_path):
     return conn
 
 
+def _connect_existing(db_path):
+    conn = sqlite3.connect(Path(db_path).resolve().as_uri() + "?mode=rw", uri=True,
+                           timeout=sqlite_busy_timeout(500) / 1000)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
 def _exists(conn, table):
     return bool(conn.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone())
 
@@ -131,7 +138,7 @@ def _identity(match):
     return ""
 
 
-def _candidates(conn, now):
+def _candidates(conn, now, fixture_id=None):
     """Use proven provider identities, newest evidence first, with bounded reads."""
     found, sources, identities = {}, [], set()
     for table, identity, clock in (
@@ -160,12 +167,14 @@ def _candidates(conn, now):
         statuses = sorted(LIVE | FINISHED)
         placeholders = ",".join("?" for _ in statuses)
         # Filter before LIMIT: a large future calendar must not hide live games.
+        target_predicate = f"{identity}=? AND " if fixture_id is not None else ""
+        target_parameters = (fixture_id,) if fixture_id is not None else ()
         records = conn.execute(
-            f"SELECT {identity} FROM {table} WHERE {predicate}{status_expr} IN ({placeholders}) "
+            f"SELECT {identity} FROM {table} WHERE {predicate}{target_predicate}{status_expr} IN ({placeholders}) "
             f"AND {date_expr} BETWEEN ? AND ? ORDER BY {order} DESC LIMIT 600",
             # Text dates may carry Madrid/other offsets. Keep the coarse SQL
             # window wide; the aware UTC age check below enforces 12h/48h exactly.
-            (*statuses, (now - timedelta(days=3)).date().isoformat(), (now + timedelta(days=1)).date().isoformat()),
+            (*target_parameters, *statuses, (now - timedelta(days=3)).date().isoformat(), (now + timedelta(days=1)).date().isoformat()),
         ).fetchall()
         identities.update(str(row[0]) for row in records if _ID.fullmatch(str(row[0] or "")))
         sources.append((table, identity, clock, ",".join(dict.fromkeys(selected)), predicate, order))
@@ -202,11 +211,60 @@ def _candidates(conn, now):
     return [item for item in found.values() if item["eligible"]]
 
 
-def _claim(conn, candidates, cfg, env, now):
+
+_RENEWAL_FAILURES = frozenset({
+    "ACCOUNT_SUSPENDED", "FREE_PLAN_RESTRICTED", "SUBSCRIPTION_RESTRICTED",
+})
+
+
+def _renewal_context(request, now):
+    """An operator may revalidate one stored identity after a later paid receipt.
+
+    This receipt proves a change since an old rejection, not a current quota.
+    The shared local reservation and the new provider response remain authoritative.
+    """
+    if not isinstance(request, dict):
+        return None
+    fid = request.get("fixture_id")
+    check = request.get("check")
+    if not isinstance(fid, str) or not isinstance(check, dict):
+        return None
+    fid = fid[3:] if fid.startswith("af-") else fid
+    checked = _date(check.get("checked_at"))
+    if (not _ID.fullmatch(fid) or checked is None or checked > now
+            or check.get("provider") != PROVIDER or check.get("ok") is not True
+            or check.get("active") is not True or check.get("status") != "CONNECTED"
+            or type(check.get("http_status")) is not int or check["http_status"] != 200
+            or check.get("plan_state") != "PAID_PLAN_VERIFIED"
+            or str(check.get("plan") or "").casefold() not in {"pro", "ultra", "mega", "custom"}
+            or type(check.get("external_calls")) is not int or check["external_calls"] != 1):
+        return None
+    return {"fixture_id": fid, "checked_at": checked,
+            "job_key": "api_football_statistics_renewal:" + _stamp(checked)}
+
+
+def _renewal_supersedes(state, renewal, now):
+    if not renewal or not state:
+        return False
+    observed = _date(state.get("provider_observed_at"))
+    attempted = _date(state.get("last_attempt_at"))
+    due = _date(state.get("next_due_at"))
+    return (state.get("failure_category") in _RENEWAL_FAILURES
+            and observed is not None and attempted is not None and due is not None
+            and attempted <= observed < renewal["checked_at"] <= now < due)
+
+
+def _claim(conn, candidates, cfg, env, now, renewal=None):
     """Claim due fixtures and reserve the shared ledger in one short transaction."""
     conn.execute("BEGIN IMMEDIATE")
+    if renewal and conn.execute(
+            "SELECT 1 FROM api_usage_guard WHERE provider=? AND job_key=? LIMIT 1",
+            (PROVIDER, renewal["job_key"])).fetchone():
+        conn.rollback()
+        return [], None, {"status": "RENEWAL_RECEIPT_ALREADY_USED"}, 0
     global_row = conn.execute(f"SELECT * FROM {STATE_TABLE} WHERE fixture_id='*'").fetchone()
-    if global_row and (_date(global_row["next_due_at"]) or now) > now:
+    if (global_row and (_date(global_row["next_due_at"]) or now) > now
+            and not _renewal_supersedes(dict(global_row), renewal, now)):
         conn.rollback()
         return [], None, dict(global_row), 0
     due = []
@@ -216,7 +274,9 @@ def _claim(conn, candidates, cfg, env, now):
         if (_date(state.get("lease_until")) or now) > now:
             continue
         phase_changed = state.get("phase") == "live" and item["phase"] == "final"
-        if (_date(state.get("next_due_at")) or now) > now and not phase_changed:
+        if ((_date(state.get("next_due_at")) or now) > now
+                and (renewal is not None or not phase_changed)
+                and not _renewal_supersedes(state, renewal, now)):
             continue
         due.append({**item, "last_attempt_at": state.get("last_attempt_at") or ""})
     due.sort(key=lambda row: (row["last_attempt_at"], row["fixture_id"]))
@@ -260,8 +320,9 @@ def _claim(conn, candidates, cfg, env, now):
         }, len(due)
     reservation = conn.execute("""INSERT INTO api_usage_guard
         (provider,window_key,job_key,estimated_calls,actual_calls,status,details_json,created_at)
-        VALUES (?,?,?,?,0,'ALLOWED',?,?)""", (PROVIDER, today, "api_football_statistics_" + cfg["transport"],
-        calls, json.dumps({"fixture_count": len(selected), "usage_scope": "LOCAL_GUARD_RESERVATIONS_NOT_PROVIDER_QUOTA"}), _stamp(now))).lastrowid
+        VALUES (?,?,?,?,0,'ALLOWED',?,?)""", (PROVIDER, today, renewal["job_key"] if renewal else "api_football_statistics_" + cfg["transport"],
+        calls, json.dumps({"fixture_count": len(selected), "usage_scope": "LOCAL_GUARD_RESERVATIONS_NOT_PROVIDER_QUOTA",
+                          "renewal_checked_at": _stamp(renewal["checked_at"]) if renewal else None}), _stamp(now))).lastrowid
     token = uuid.uuid4().hex
     for item in selected:
         item["lease_token"] = token
@@ -374,6 +435,8 @@ def _finish(conn, item, status, cfg, now, *, failure="", count=0, observed=True)
 
 def _blocked_refresh_result(result, blocked):
     """Reuse stored gate evidence without claiming a current provider probe."""
+    if blocked.get("status") == "RENEWAL_RECEIPT_ALREADY_USED":
+        return {**result, "ok": False, "status": blocked["status"]}
     labels = safe_failure_categories(blocked.get("failure_category"))
     failure = labels[0] if labels else ""
     return {**result, "ok": not bool(failure), "status": "PROVIDER_FAILURE_BACKOFF_" + failure if failure else "DAILY_BUDGET" if blocked.get("status") == "DAILY_BUDGET" else "SOURCE_COOLDOWN",
@@ -389,10 +452,15 @@ def _blocked_refresh_result(result, blocked):
             "provider_observed_at": blocked.get("provider_observed_at") or ""}
 
 
-def refresh_api_football_statistics_if_due(db_path, *, limit=None, env=None):
-    """Refresh one rotating batch. No forced bypass of claims, TTL or daily budget."""
+def refresh_api_football_statistics_if_due(db_path, *, limit=None, env=None, renewal_request=None):
+    """Collect due statistics, or explicitly revalidate one older subscription rejection.
+
+    Renewal never resets a global gate or bypasses a lease, successful TTL, new
+    rejection, local budget, identity checks, or the existing request timeout.
+    """
     env = os.environ if env is None else env
-    cfg = _settings(env, limit)
+    cfg = _settings(env, 1 if renewal_request is not None else limit)
+    renewal = _renewal_context(renewal_request, _now()) if renewal_request is not None else None
     configured = any(bool(str(env.get(key) or "").strip()) for key in (
         "API_FOOTBALL_KEY", "API_FOOTBALL_API_KEY", "API_SPORTS_KEY", "APISPORTS_KEY"))
     enabled = configured and all(_flag(env, name) for name in (
@@ -403,6 +471,12 @@ def refresh_api_football_statistics_if_due(db_path, *, limit=None, env=None):
               "no_data_count": 0, "failed_count": 0, "eligible_count": 0, "due_count": 0,
               "skipped": True, "data_contributed": False, "items": [], "failure_categories": [],
               "provider_observation_current": False, "provider_observed_at": "", "errors": []}
+    if renewal_request is not None and renewal is None:
+        return {**result, "ok": False, "status": "RENEWAL_EVIDENCE_REQUIRED"}
+    if renewal:
+        result.update(scope="ONE_FIXTURE_RENEWAL_REVALIDATION",
+                      requested_fixture_id=renewal["fixture_id"],
+                      renewal_checked_at=_stamp(renewal["checked_at"]))
     if not configured or not enabled or not cfg["limit"]:
         result.update(status="NOT_CONFIGURED" if not configured else "DISABLED", disabled=not enabled or not cfg["limit"])
         return result
@@ -417,25 +491,34 @@ def refresh_api_football_statistics_if_due(db_path, *, limit=None, env=None):
     if exhausted():
         return {**result, "status": "TIME_BUDGET"}
     try:
-        with closing(_connect(db_path)) as conn:
+        with closing(_connect_existing(db_path) if renewal else _connect(db_path)) as conn:
+            if renewal and not all(_exists(conn, table) for table in (
+                    STATE_TABLE, "api_usage_guard", "api_football_live_stats",
+                    "api_football_match_stats_history")):
+                return {**result, "ok": False, "status": "RENEWAL_STORAGE_NOT_READY"}
             # A current global gate cannot admit any fixture. Avoid scanning
             # source tables, but keep the transactional recheck in _claim.
             now = _now()
             if _exists(conn, STATE_TABLE):
                 blocked = conn.execute(f"SELECT * FROM {STATE_TABLE} WHERE fixture_id='*'").fetchone()
-                if blocked and (_date(blocked["next_due_at"]) or now) > now:
+                if (blocked and (_date(blocked["next_due_at"]) or now) > now
+                        and not _renewal_supersedes(dict(blocked), renewal, now)):
                     return _blocked_refresh_result(
                         {**result, "candidate_scan_performed": False,
                          "eligible_count": None, "due_count": None}, dict(blocked),
                     )
-            candidates = _candidates(conn, _now())
+            candidates = (_candidates(conn, _now(), renewal["fixture_id"]) if renewal
+                          else _candidates(conn, _now()))
             result["candidate_scan_performed"] = True
             result["eligible_count"] = len(candidates)
             if not candidates:
                 return {**result, "status": "SKIPPED_NO_API_FOOTBALL_FIXTURE"}
-            with conn:
-                _ensure_schema(conn)
-            selected, reservation, blocked, due_count = _claim(conn, candidates, cfg, env, _now())
+            if renewal and any(len(item["team_ids"]) != 2 for item in candidates):
+                return {**result, "ok": False, "status": "RENEWAL_IDENTITY_UNVERIFIED"}
+            if not renewal:
+                with conn:
+                    _ensure_schema(conn)
+            selected, reservation, blocked, due_count = _claim(conn, candidates, cfg, env, _now(), renewal=renewal)
             result["due_count"] = due_count
             if blocked:
                 return _blocked_refresh_result(result, blocked)

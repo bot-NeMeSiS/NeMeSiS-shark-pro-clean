@@ -490,3 +490,183 @@ def test_global_preflight_is_fresh_and_collection_resumes_after_expiry(store, mo
     assert resumed["status"] == "OK" and resumed["candidate_scan_performed"] is True
     assert resumed["eligible_count"] == resumed["due_count"] == 1
     assert resumed["provider_observation_current"] is True and resumed["external_calls"] == len(calls) == 1
+
+
+def renewal_request(fid="af-101", **changes):
+    check = {"provider": "api_football", "ok": True, "active": True,
+             "status": "CONNECTED", "http_status": 200, "plan": "Pro",
+             "plan_state": "PAID_PLAN_VERIFIED", "external_calls": 1,
+             "checked_at": (NOW - timedelta(minutes=1)).isoformat()}
+    check.update(changes)
+    return {"fixture_id": fid, "check": check}
+
+
+def renewal_gate(db, *, failure="FREE_PLAN_RESTRICTED", observed=None, fixture="*",
+                 lease_until="", status=None):
+    with closing(sqlite3.connect(db)) as conn, conn:
+        stats._ensure_schema(conn)
+        conn.execute("""INSERT OR REPLACE INTO api_football_statistics_refresh_state
+            (fixture_id,status,phase,next_due_at,provider_observed_at,failure_category,lease_until,last_attempt_at)
+            VALUES (?,?, 'live', ?,?,?,?,?)""",
+            (fixture, status or "PROVIDER_FAILURE_" + failure,
+             (NOW + timedelta(hours=4)).isoformat(),
+             (observed or NOW - timedelta(hours=2)).isoformat(), failure, lease_until,
+             (observed or NOW - timedelta(hours=2)).isoformat()))
+
+
+@pytest.mark.parametrize("failure", ["ACCOUNT_SUSPENDED", "FREE_PLAN_RESTRICTED", "SUBSCRIPTION_RESTRICTED"])
+def test_renewal_revalidates_only_target_once_without_resetting_global_gate(store, monkeypatch, failure):
+    db, clock = store
+    seed(db, 101); seed(db, 102)
+    renewal_gate(db, failure=failure)
+    renewal_gate(db, fixture="101", failure=failure)
+    before_global = rows(db, "SELECT * FROM api_football_statistics_refresh_state WHERE fixture_id='*'")
+    before_fixture_clock = rows(db, "SELECT fixture_id,last_synced_at FROM api_football_live_snapshots ORDER BY fixture_id")
+    calls = []
+    transport(monkeypatch, calls)
+    request = renewal_request()
+    result = stats.refresh_api_football_statistics_if_due(db, env=ENV, limit=20, renewal_request=request)
+    assert result["selected_fixture_ids"] == ["101"] and result["refreshed_fixtures"] == 1
+    assert calls == [("fixtures", {"ids": "101"}, 4)]
+    assert rows(db, "SELECT * FROM api_football_statistics_refresh_state WHERE fixture_id='*'") == before_global
+    assert rows(db, "SELECT fixture_id,last_synced_at FROM api_football_live_snapshots ORDER BY fixture_id") == before_fixture_clock
+    assert rows(db, "SELECT SUM(estimated_calls),SUM(actual_calls) FROM api_usage_guard") == [(1, 1)]
+    assert rows(db, "SELECT stat_value,numeric_value FROM api_football_live_stats WHERE fixture_id='101' AND team_id='10' AND stat_name='Shots on Goal'") == [("0", 0.0)]
+    assert rows(db, "SELECT stat_value,numeric_value FROM api_football_live_stats WHERE fixture_id='101' AND team_id='10' AND stat_name='Corner Kicks'") == [("", None)]
+    replay = stats.refresh_api_football_statistics_if_due(db, env=ENV, renewal_request=renewal_request("102"))
+    assert replay["status"] == "RENEWAL_RECEIPT_ALREADY_USED" and replay["external_calls"] == 0
+    # Normal automatic collection still obeys the original global gate.
+    automatic = stats.refresh_api_football_statistics_if_due(db, env=ENV)
+    assert automatic["external_calls"] == 0 and automatic["candidate_scan_performed"] is False
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("changes", [
+    {"ok": False}, {"ok": 1}, {"active": False}, {"active": "true"},
+    {"plan": "Free"}, {"plan_state": "FREE_PLAN_VERIFIED"},
+    {"http_status": 403}, {"http_status": "200"}, {"external_calls": 0},
+    {"checked_at": (NOW + timedelta(seconds=1)).isoformat()},
+    {"checked_at": "invalid"}, {"provider": "sportsdb"},
+])
+def test_renewal_rejects_unverified_or_future_proof_before_io(store, monkeypatch, changes):
+    db, _ = store
+    seed(db, 101); renewal_gate(db)
+    monkeypatch.setattr(stats, "_api_get", lambda *a, **k: pytest.fail("no provider call"))
+    result = stats.refresh_api_football_statistics_if_due(db, env=ENV, renewal_request=renewal_request(**changes))
+    assert result["status"] == "RENEWAL_EVIDENCE_REQUIRED" and result["external_calls"] == 0
+
+
+@pytest.mark.parametrize("failure,observed", [
+    ("RATE_OR_QUOTA", NOW - timedelta(hours=2)),
+    ("AUTH_OR_ACCESS", NOW - timedelta(hours=2)),
+    ("ENDPOINT_RESTRICTED", NOW - timedelta(hours=2)),
+    ("PROVIDER_RESPONSE", NOW - timedelta(hours=2)),
+    ("FREE_PLAN_RESTRICTED", NOW),
+    ("ACCOUNT_SUSPENDED", NOW - timedelta(seconds=30)),
+])
+def test_renewal_does_not_override_nonrenewal_or_newer_rejection(store, monkeypatch, failure, observed):
+    db, _ = store
+    seed(db, 101); renewal_gate(db, failure=failure, observed=observed)
+    monkeypatch.setattr(stats, "_api_get", lambda *a, **k: pytest.fail("no provider call"))
+    result = stats.refresh_api_football_statistics_if_due(db, env=ENV, renewal_request=renewal_request())
+    assert result["external_calls"] == 0 and result["candidate_scan_performed"] is False
+
+
+@pytest.mark.parametrize("control", ["leased", "fresh_success", "budget", "missing_identity"])
+def test_renewal_keeps_lease_success_ttl_budget_and_identity_guards(store, monkeypatch, control):
+    db, _ = store
+    seed(db, 101); seed(db, 102)
+    renewal_gate(db)
+    if control == "leased":
+        renewal_gate(db, fixture="101", lease_until=(NOW + timedelta(seconds=40)).isoformat())
+    elif control == "fresh_success":
+        renewal_gate(db, fixture="101", failure="", status="AVAILABLE")
+    request = renewal_request("999" if control == "missing_identity" else "101")
+    env = {**ENV, "API_FOOTBALL_DAILY_CALL_BUDGET": "0"} if control == "budget" else ENV
+    monkeypatch.setattr(stats, "_api_get", lambda *a, **k: pytest.fail("no provider call"))
+    result = stats.refresh_api_football_statistics_if_due(db, env=env, renewal_request=request)
+    assert result["external_calls"] == 0 and not result["selected_fixture_ids"]
+    assert rows(db, "SELECT COUNT(*) FROM api_usage_guard") == [(0,)]
+
+
+def test_renewal_rechecks_global_rejection_transactionally(store, monkeypatch):
+    db, _ = store
+    seed(db, 101); renewal_gate(db)
+    original = stats._candidates
+    def racing_candidates(conn, now, fixture_id=None):
+        found = original(conn, now, fixture_id)
+        renewal_gate(db, observed=NOW, failure="ACCOUNT_SUSPENDED")
+        return found
+    monkeypatch.setattr(stats, "_candidates", racing_candidates)
+    monkeypatch.setattr(stats, "_api_get", lambda *a, **k: pytest.fail("no provider call"))
+    result = stats.refresh_api_football_statistics_if_due(db, env=ENV, renewal_request=renewal_request())
+    assert result["external_calls"] == 0 and result["provider_observed_at"] == NOW.isoformat()
+
+
+def test_renewal_claim_is_once_even_during_concurrent_operator_reentry(store, monkeypatch):
+    db, _ = store
+    seed(db, 101); seed(db, 102)
+    renewal_gate(db)
+    nested = []
+    def api(path, params, timeout=18):
+        nested.append(stats.refresh_api_football_statistics_if_due(
+            db, env=ENV, renewal_request=renewal_request("102")))
+        return answer(["101"])
+    monkeypatch.setattr(stats, "_api_get", api)
+    result = stats.refresh_api_football_statistics_if_due(db, env=ENV, renewal_request=renewal_request())
+    assert result["refreshed_fixtures"] == 1 and result["external_calls"] == 1
+    assert len(nested) == 1 and nested[0]["status"] == "RENEWAL_RECEIPT_ALREADY_USED"
+    assert rows(db, "SELECT SUM(estimated_calls),SUM(actual_calls) FROM api_usage_guard") == [(1, 1)]
+
+
+@pytest.mark.parametrize("mutation", ["missing_team", "same_teams", "missing_attempt", "new_attempt"])
+def test_renewal_rejects_incomplete_identity_and_inconsistent_gate_clock(store, monkeypatch, mutation):
+    db, _ = store
+    seed(db, 101); renewal_gate(db)
+    with closing(sqlite3.connect(db)) as conn, conn:
+        if mutation == "missing_team":
+            conn.execute("UPDATE api_football_live_snapshots SET away_team_id=NULL")
+        elif mutation == "same_teams":
+            conn.execute("UPDATE api_football_live_snapshots SET away_team_id=home_team_id")
+        elif mutation == "missing_attempt":
+            conn.execute("UPDATE api_football_statistics_refresh_state SET last_attempt_at=NULL")
+        else:
+            conn.execute("UPDATE api_football_statistics_refresh_state SET last_attempt_at=?", (NOW.isoformat(),))
+    monkeypatch.setattr(stats, "_api_get", lambda *a, **k: pytest.fail("no provider call"))
+    result = stats.refresh_api_football_statistics_if_due(db, env=ENV, renewal_request=renewal_request())
+    assert result["external_calls"] == 0 and not result["selected_fixture_ids"]
+
+
+def test_renewal_does_not_initialize_missing_database_or_storage(store, tmp_path, monkeypatch):
+    db, _ = store
+    monkeypatch.setattr(stats, "_api_get", lambda *a, **k: pytest.fail("no provider call"))
+    absent = tmp_path / "absent.sqlite"
+    result = stats.refresh_api_football_statistics_if_due(str(absent), env=ENV, renewal_request=renewal_request())
+    assert result["external_calls"] == 0 and not absent.exists()
+    seed(db, 101)
+    result = stats.refresh_api_football_statistics_if_due(db, env=ENV, renewal_request=renewal_request())
+    assert result["status"] == "RENEWAL_STORAGE_NOT_READY" and result["external_calls"] == 0
+    assert not rows(db, "SELECT name FROM sqlite_master WHERE name='api_usage_guard'")
+
+
+@pytest.mark.parametrize("status,failure", [
+    ("AVAILABLE", ""), ("PROVIDER_FAILURE_PROVIDER_RESPONSE", "PROVIDER_RESPONSE"),
+])
+def test_renewal_never_bypasses_success_or_new_rejection_on_live_to_final_change(
+    store, monkeypatch, status, failure,
+):
+    db, _ = store
+    seed(db, 101, status="FT", kickoff=NOW - timedelta(hours=3))
+    renewal_gate(db)
+    renewal_gate(db, fixture="101", status=status, failure=failure,
+                 observed=NOW - timedelta(seconds=10))
+    calls = []
+    transport(monkeypatch, calls)
+    result = stats.refresh_api_football_statistics_if_due(
+        db, env=ENV, renewal_request=renewal_request())
+    assert result["external_calls"] == 0 and calls == []
+    # Automatic live-to-final refresh is an existing legitimate behavior.
+    with closing(sqlite3.connect(db)) as conn, conn:
+        conn.execute("DELETE FROM api_football_statistics_refresh_state WHERE fixture_id='*'")
+    automatic = stats.refresh_api_football_statistics_if_due(db, env=ENV)
+    assert automatic["external_calls"] == 1 and automatic["selected_fixture_ids"] == ["101"]
