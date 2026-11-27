@@ -400,3 +400,93 @@ def test_provider_key_aliases_use_same_authenticated_transport(monkeypatch, alia
     assert live._api_get("fixtures", {"ids": "101"})["ok"]
     assert deep._api_get("fixtures/statistics", {"fixture": "101"})["ok"]
     assert seen == ["synthetic-alias-key", "synthetic-alias-key"]
+
+
+@pytest.mark.parametrize("with_fixture", [True, False])
+def test_active_global_backoff_skips_candidate_scan_without_fabricating_counts(store, monkeypatch, with_fixture):
+    db, clock = store
+    if with_fixture:
+        seed(db, 101)
+    with closing(sqlite3.connect(db)) as conn, conn:
+        stats._ensure_schema(conn)
+        conn.execute("INSERT INTO api_football_statistics_refresh_state(fixture_id,status,next_due_at,failure_category,provider_observed_at) VALUES ('*','PROVIDER_FAILURE_FREE_PLAN_RESTRICTED',?,?,?)",
+                     ((NOW + timedelta(hours=1)).isoformat(), "FREE_PLAN_RESTRICTED", (NOW - timedelta(minutes=1)).isoformat()))
+    before = rows(db, "SELECT * FROM api_football_statistics_refresh_state")
+    statements = []
+    writes = []
+    original_connect = stats._connect
+    def observed_connect(path):
+        conn = original_connect(path)
+        conn.set_trace_callback(statements.append)
+        def authorizer(action, table, field, database, origin):
+            if action in (sqlite3.SQLITE_INSERT, sqlite3.SQLITE_UPDATE, sqlite3.SQLITE_DELETE):
+                writes.append((action, table))
+            return sqlite3.SQLITE_OK
+        conn.set_authorizer(authorizer)
+        return conn
+    monkeypatch.setattr(stats, "_connect", observed_connect)
+    monkeypatch.setattr(stats, "_api_get", lambda *a, **k: pytest.fail("backoff must not call provider"))
+    result = stats.refresh_api_football_statistics_if_due(db, env=ENV)
+    assert result["status"] == "PROVIDER_FAILURE_BACKOFF_FREE_PLAN_RESTRICTED"
+    assert not any("FROM api_football_live_snapshots" in sql or "FROM api_football_fixture_index" in sql or "FROM matches" in sql for sql in statements)
+    assert result["candidate_scan_performed"] is False
+    assert result["eligible_count"] is None and result["due_count"] is None
+    assert result["external_calls"] == 0 and result["provider_observation_current"] is False
+    assert result["provider_observed_at"] == (NOW - timedelta(minutes=1)).isoformat()
+    assert writes == []
+    assert rows(db, "SELECT * FROM api_football_statistics_refresh_state") == before
+
+
+@pytest.mark.parametrize("next_due", [None, "", "invalid-date", NOW.isoformat(), (NOW - timedelta(seconds=1)).isoformat()])
+def test_inactive_or_malformed_global_deadline_still_collects(store, monkeypatch, next_due):
+    db, clock = store
+    seed(db, 101)
+    with closing(sqlite3.connect(db)) as conn, conn:
+        stats._ensure_schema(conn)
+        conn.execute("INSERT INTO api_football_statistics_refresh_state(fixture_id,status,next_due_at,failure_category) VALUES ('*','PROVIDER_FAILURE_AUTH_OR_ACCESS',?,'AUTH_OR_ACCESS')", (next_due,))
+    calls = []
+    transport(monkeypatch, calls)
+    result = stats.refresh_api_football_statistics_if_due(db, env=ENV)
+    assert result["status"] == "OK"
+    assert result["candidate_scan_performed"] is True
+    assert result["eligible_count"] == 1 and result["due_count"] == 1
+    assert len(calls) == result["external_calls"] == 1
+
+
+def test_global_block_installed_after_read_is_rechecked_by_claim(store, monkeypatch):
+    db, clock = store
+    seed(db, 101)
+    with closing(sqlite3.connect(db)) as conn, conn:
+        stats._ensure_schema(conn)
+    original = stats._candidates
+    def install_after_scan(conn, now):
+        found = original(conn, now)
+        with closing(sqlite3.connect(db)) as other, other:
+            other.execute("INSERT INTO api_football_statistics_refresh_state(fixture_id,status,next_due_at,failure_category) VALUES ('*','PROVIDER_FAILURE_AUTH_OR_ACCESS',?,'AUTH_OR_ACCESS')", ((NOW + timedelta(hours=1)).isoformat(),))
+        return found
+    monkeypatch.setattr(stats, "_candidates", install_after_scan)
+    monkeypatch.setattr(stats, "_api_get", lambda *a, **k: pytest.fail("new global block must prevent provider call"))
+    result = stats.refresh_api_football_statistics_if_due(db, env=ENV)
+    assert result["status"] == "PROVIDER_FAILURE_BACKOFF_AUTH_OR_ACCESS"
+    assert result["candidate_scan_performed"] is True
+    assert result["eligible_count"] == 1 and result["due_count"] == 0
+    assert result["external_calls"] == 0 and result["provider_observation_current"] is False
+    assert rows(db, "SELECT fixture_id FROM api_football_statistics_refresh_state") == [("*",)]
+
+
+def test_global_preflight_is_fresh_and_collection_resumes_after_expiry(store, monkeypatch):
+    db, clock = store
+    seed(db, 101)
+    with closing(sqlite3.connect(db)) as conn, conn:
+        stats._ensure_schema(conn)
+        conn.execute("INSERT INTO api_football_statistics_refresh_state(fixture_id,status,next_due_at,failure_category) VALUES ('*','PROVIDER_FAILURE_AUTH_OR_ACCESS',?,'AUTH_OR_ACCESS')", ((NOW + timedelta(minutes=1)).isoformat(),))
+    calls = []
+    transport(monkeypatch, calls)
+    blocked = stats.refresh_api_football_statistics_if_due(db, env=ENV)
+    assert blocked["candidate_scan_performed"] is False and blocked["provider_observation_current"] is False
+    assert calls == []
+    clock[0] += timedelta(minutes=2)
+    resumed = stats.refresh_api_football_statistics_if_due(db, env=ENV)
+    assert resumed["status"] == "OK" and resumed["candidate_scan_performed"] is True
+    assert resumed["eligible_count"] == resumed["due_count"] == 1
+    assert resumed["provider_observation_current"] is True and resumed["external_calls"] == len(calls) == 1
