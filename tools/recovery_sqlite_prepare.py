@@ -89,15 +89,32 @@ class _CaptureWorker:
         _check(self.deadline)
 
     def close(self):
+        # A failed cleanup must not strand the other owned worker/channels.
+        # Preserve the first failure; callers still cannot certify this cleanup.
+        failure = None
+
+        def attempt(action):
+            nonlocal failure
+            try:
+                return action()
+            except BaseException as exc:
+                if failure is None:
+                    failure = exc
+                return None
+
         if self.validation_worker is not None:
-            self.validation_worker.close()
-        if self.process.poll() is None:
-            # Only this owned stdlib worker exists; it never spawns descendants.
-            self.process.kill()
-        self.process.wait(timeout=1.0)
+            attempt(self.validation_worker.close)
+        if attempt(self.process.poll) is None:
+            # A failed poll also cannot establish that this owned child exited.
+            # Only this stdlib worker exists; it never spawns descendants.
+            attempt(self.process.kill)
+        attempt(lambda: self.process.wait(timeout=1.0))
         for handle in (self.process.stdin, self.process.stdout):
             if handle is not None:
-                handle.close()
+                attempt(handle.close)
+        if failure is not None:
+            raise failure
+
 
 
 def _run_capture_worker(*, source_parent_fd, expected_source_origin, snapshot_parent_fd, snapshot_fd,
