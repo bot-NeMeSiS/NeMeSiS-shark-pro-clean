@@ -345,6 +345,9 @@ def cached_realtime_snapshot(
         # Copying outside the index lock lets independent keys keep progressing.
         return clone_snapshot(cached["payload"]), "hit"
 
+    # The entry is read again under the build lock; waiting needs no old graph.
+    del cached
+
     # Keep one builder per key and recheck after waiting for it. Force still
     # requests a rebuild; it does not bypass copy isolation or invalidation.
     with build_lock:
