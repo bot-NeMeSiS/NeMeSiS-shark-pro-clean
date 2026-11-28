@@ -3504,8 +3504,39 @@ def cleanup_fake_matches(cur):
         _log_sports_stage_elapsed("startup_cleanup_read", read_elapsed)
         _log_sports_stage_elapsed("startup_cleanup_predicate", predicate_elapsed)
     if delete_ids:
-        placeholders = ",".join("?" for _ in delete_ids)
-        cur.execute(f"DELETE FROM matches WHERE id IN ({placeholders})", tuple(delete_ids))
+        conn = cur.connection
+        variable_limit = conn.getlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER)
+        if variable_limit < 1:
+            raise sqlite3.OperationalError("SQLite cleanup variable budget unavailable")
+        if len(delete_ids) <= variable_limit:
+            placeholders = ",".join("?" for _ in delete_ids)
+            cur.execute(f"DELETE FROM matches WHERE id IN ({placeholders})", tuple(delete_ids))
+        else:
+            # Keep the caller's implicit transaction or autocommit semantics.
+            # All batches belong to one atomic cleanup, not independent commits.
+            started_transaction = savepoint_created = False
+            try:
+                if not conn.in_transaction and conn.isolation_level is not None:
+                    mode = conn.isolation_level.upper() or "DEFERRED"
+                    cur.execute({"DEFERRED": "BEGIN DEFERRED", "IMMEDIATE": "BEGIN IMMEDIATE",
+                                 "EXCLUSIVE": "BEGIN EXCLUSIVE"}[mode])
+                    started_transaction = True
+                cur.execute("SAVEPOINT nemesis_cleanup")
+                savepoint_created = True
+                size = min(256, variable_limit)
+                for offset in range(0, len(delete_ids), size):
+                    batch = delete_ids[offset:offset + size]
+                    placeholders = ",".join("?" for _ in batch)
+                    cur.execute(f"DELETE FROM matches WHERE id IN ({placeholders})", tuple(batch))
+                cur.execute("RELEASE nemesis_cleanup")
+            except BaseException:
+                if conn.in_transaction:
+                    if started_transaction:
+                        conn.rollback()
+                    elif savepoint_created:
+                        cur.execute("ROLLBACK TO nemesis_cleanup")
+                        cur.execute("RELEASE nemesis_cleanup")
+                raise
     return len(delete_ids)
 
 
