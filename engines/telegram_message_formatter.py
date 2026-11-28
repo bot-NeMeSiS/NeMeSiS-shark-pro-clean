@@ -164,6 +164,74 @@ def _section(title, lines=None):
     return ["", title] + clean
 
 
+def _quote_label(value):
+    # Nominal fields only: never render a provider URL, arbitrary object or payload.
+    if not isinstance(value, str) or not re.fullmatch(r"[\w .&+()'’-]{1,64}", value.strip()):
+        return "sin registrar"
+    label = _text(value, "")
+    return label if label and any(char.isalpha() for char in label) else "sin registrar"
+
+
+def _quote_provenance_lines(item, value):
+    """Display this quote's own metadata; no freshness or joint-offer claim.
+
+    Scoped observed_at follows the stored quote contract. Unscoped odds_* fields
+    are recorded quote times. Generic match/row clocks and generic source never
+    repair missing or invalid quote evidence.
+    """
+    item = item if _v889_odds_label(value) != "Cuota pendiente" else {}
+    bookmaker = item.get("bookmaker")
+    if bookmaker is None or isinstance(bookmaker, str) and not bookmaker.strip():
+        bookmaker = item.get("bookmaker_name")
+    lines = [f"Casa: {_quote_label(bookmaker)}", f"Fuente de cuota: {_quote_label(item.get('odds_source'))}"]
+    scoped = "quote_clock_scope" in item or "clock_scope" in item
+    scope = item.get("quote_clock_scope", item.get("clock_scope"))
+    scope = scope.upper() if isinstance(scope, str) else ""
+    labels = {"PROVIDER_QUOTE_TIME": "Hora de cuota del proveedor", "RECORDED_QUOTE_TIME": "Hora de cuota registrada", "RECEIPT_ONLY": "Recepción de cuota"}
+    raw = None
+    label = "Hora de cuota registrada"
+    if scoped:
+        if scope in labels:
+            label = labels[scope]
+            fallback = item.get("received_at") if scope == "RECEIPT_ONLY" else item.get("odds_updated_at")
+            raw = item.get("observed_at", fallback)
+    else:
+        raw = item.get("odds_updated_at", item.get("odds_recorded_at"))
+    clock = "Hora de cuota: sin confirmar"
+    try:
+        if not isinstance(raw, (str, datetime)) or isinstance(raw, str) and len(raw) > 64:
+            raise ValueError("No quote clock")
+        stamp = raw if isinstance(raw, datetime) else datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if stamp.tzinfo is None or stamp.utcoffset() is None:
+            raise ValueError("No quote timezone")
+        if stamp > datetime.now(TZ):
+            clock = "Hora de cuota: por confirmar"
+        else:
+            clock = f"{label}: {stamp.astimezone(TZ).strftime('%d/%m/%Y · %H:%M:%S')} Madrid"
+            if scope == "RECEIPT_ONLY":
+                clock += " · hora del proveedor sin confirmar"
+    except (ValueError, TypeError, OverflowError):
+        pass
+    return lines + [clock]
+
+
+def _combi_quote_provenance(combi, picks, odds):
+    total = tuple(_quote_provenance_lines(combi, odds))
+    groups = {}
+    for index, leg in enumerate(picks, 1):
+        metadata = tuple(_quote_provenance_lines(leg, leg.get("odds")))
+        groups.setdefault(metadata, []).append(str(index))
+    unknown = tuple(_quote_provenance_lines({}, None))
+    if total == unknown and tuple(groups) == (unknown,):
+        # One explicit missing-evidence statement covers every independently
+        # checked quote; preserve small complete photo captions and full sets.
+        return [], ["", "Cuotas individuales y total: casa, fuente y hora sin confirmar."]
+    lines = []
+    for metadata, indices in groups.items():
+        lines.extend(_section("Cuotas de selecciones " + ", ".join(indices), metadata))
+    return ["Total · " + line for line in total], lines
+
+
 def data_update_label(item):
     """Display only this match's canonical provider clock, never render time."""
     item = item or {}
@@ -415,9 +483,8 @@ def format_pick_message(pick=None):
              f"Cuota registrada: {odds}" if odds != "Cuota pendiente" else "Cuota: no publicada",
              f"Importe orientativo: {stake_label}",
              f"Valoración SHARK: {_confidence_label(confidence)}", f"Riesgo: {risk}"]
-    bookmaker = first_value(pick, "bookmaker", "bookmaker_name")
-    if bookmaker:
-        entry.append(f"Casa: {_text(bookmaker)}")
+    quote = _quote_provenance_lines(pick, pick.get("odds"))
+    entry[3:3] = [" · ".join(quote[:2]), quote[2]]
     value = first_value(pick, "value", "value_score", "edge", default="")
     if value not in (None, ""):
         entry.append(f"Valoración adicional: {_text(value)}")
@@ -500,6 +567,7 @@ def format_combi_message(combi=None):
         return ""
     picks = combi_legs(combi)
     odds = first_value(combi, "total_odds", "odds", default="Pendiente")
+    total_metadata, leg_metadata = _combi_quote_provenance(combi, picks, odds)
     confidence = first_value(combi, "confidence", "shark_score", default="Pendiente")
     risk = _text(combi.get("risk_level") or combi.get("risk"), "No especificado")
     reason = _text(combi.get("reason") or combi.get("main_reason"), "Análisis no publicado. Cada selección añade riesgo; no hay garantías de resultado.")
@@ -507,6 +575,7 @@ def format_combi_message(combi=None):
     lines.extend(_section("Resumen", [
         f"Partidos: {len(picks) or combi.get('legs_count') or 'Pendiente'}",
         f"💸 Cuota total registrada: {_v889_odds_label(odds)}",
+        *total_metadata,
         f"Stake: {_text(first_value(combi, 'stake_units', 'stake'))}",
         f"Confianza SHARK: {_confidence_label(confidence)}",
         f"Riesgo: {risk}",
@@ -517,6 +586,7 @@ def format_combi_message(combi=None):
             f"🎯 {_text(leg.get('selection') or leg.get('recommendation'))}",
             f"{_text(leg.get('market'), 'Mercado pendiente')} · Cuota: {_v889_odds_label(leg.get('odds'))}",
         ]))
+    lines.extend(leg_metadata)
     lines.extend(_section("Lectura SHARK", [reason]))
     lines.extend(_message_footer("Ver combis · Ver picks"))
     # A notification must contain the entire admitted set, never a truncated
