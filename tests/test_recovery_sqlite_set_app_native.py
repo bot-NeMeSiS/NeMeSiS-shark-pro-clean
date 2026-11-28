@@ -111,3 +111,30 @@ def test_auxiliary_changed_after_clone_is_denied_before_app_launch(tmp_path,monk
     assert result['restore_workspace']['cleanup_verified'] is True
     assert all(path.read_bytes()==before for path,before in originals.items())
     assert len(list(plan.sqlite.publication.glob('database_*.db')))==2
+
+
+@native
+@pytest.mark.parametrize('suffix', ['-wal', '-shm', '-journal'])
+def test_auxiliary_sidecar_after_clone_is_denied_before_app_launch(tmp_path, monkeypatch, suffix):
+    plan, workspace_root, originals = _fixture(tmp_path)
+    real_prepare = probe.prepare_source
+    changes = []
+    def prepare_then_add(project_root, workspace, *, deadline):
+        result = real_prepare(project_root, workspace, deadline=deadline)
+        (workspace / ('sqlite/aux_app.db' + suffix)).write_bytes(b'owned synthetic sidecar')
+        changes.append(workspace)
+        return result
+    monkeypatch.setattr(probe, 'prepare_source', prepare_then_add)
+    def must_not_reach_child_gate(*args, **kwargs):
+        pytest.fail('Auxiliary sidecar reached child-launch memory preflight')
+    monkeypatch.setattr(probe, '_render_memory_gate', must_not_reach_child_gate)
+    result = operator.run_set_operation(plan=plan, source=plan.sqlite.sources[0].source,
+        directory=plan.sqlite.publication, restore_root=workspace_root, timeout=60,
+        app_probe_mode='normal_boot', project_root=ROOT, execute=True)
+    assert result['ok'] is False
+    assert result['code'] == 'COMPLETE_SET_RESTORED_APP_NOT_VERIFIED'
+    assert result['app_probe']['code'] == 'STATE_NOT_READY_BEFORE_APP'
+    assert 'child_exit' not in result['app_probe']
+    assert len(changes) == 1 and result['restore_workspace']['cleanup_verified'] is True
+    assert all(path.read_bytes() == before for path, before in originals.items())
+    assert len(list(plan.sqlite.publication.glob('database_*.db'))) == 2

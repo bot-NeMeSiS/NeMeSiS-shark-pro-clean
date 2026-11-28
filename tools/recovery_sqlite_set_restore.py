@@ -43,6 +43,38 @@ class RestoredMember:
     worker_receipt: dict
 
 
+def _require_standalone_member(parent, name):
+    # Any directory entry counts, including an empty file or dangling symlink.
+    for suffix in ("-wal", "-shm", "-journal"):
+        try:
+            os.stat(name + suffix, dir_fd=parent, follow_symlinks=False)
+        except FileNotFoundError:
+            continue
+        except OSError:
+            raise SqliteSetRestoreError("RESTORED_SQLITE_MEMBER_NOT_STANDALONE") from None
+        raise SqliteSetRestoreError("RESTORED_SQLITE_MEMBER_NOT_STANDALONE")
+
+
+def _require_standalone_set(root, members, deadline):
+    auxiliary = None
+    try:
+        for member in members:
+            state._check_time(deadline)
+            if member.source_id == "principal":
+                parent, name = root, "restoration-test.db"
+            else:
+                if auxiliary is None:
+                    auxiliary = os.open("sqlite", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                        dir_fd=root)
+                parent, name = auxiliary, member.source_id + ".db"
+            _require_standalone_member(parent, name)
+    except OSError:
+        raise SqliteSetRestoreError("RESTORED_SQLITE_MEMBER_NOT_STANDALONE") from None
+    finally:
+        if auxiliary is not None:
+            os.close(auxiliary)
+
+
 @dataclass(frozen=True)
 class RestoredSet:
     bundle: BoundSqliteSetStateBundle
@@ -68,6 +100,7 @@ class RestoredSet:
         try:
             if _workspace_origin(os.fstat(root)) != self.workspace_origin:
                 raise SqliteSetRestoreError("RESTORE_WORKSPACE_CHANGED")
+            _require_standalone_set(root, self.bundle.sqlite.members, deadline)
             for restored, expected in zip(self.members, self.bundle.sqlite.members):
                 state._check_time(deadline)
                 relative = ("restoration-test.db" if expected.source_id == "principal"
@@ -96,6 +129,9 @@ class RestoredSet:
                 finally:
                     if extra is not None:
                         os.close(extra)
+            # Recheck the whole set: an earlier member can gain a sidecar while
+            # a later member is being hashed. This is not continuous quiescence.
+            _require_standalone_set(root, self.bundle.sqlite.members, deadline)
             state._check_time(deadline)
         finally:
             os.close(root)

@@ -263,3 +263,118 @@ def test_destination_identity_keeps_valid_zero_and_large_integers(tmp_path, iden
     value["destination_identity"] = [identity_value] * 9
     restore._receipt(value, bound, bound.sqlite.members[0], 100,
                      destination_identity=(identity_value,) * 9, pid=1234, source_identity=(1,) * 9)
+
+
+@pytest.mark.parametrize('suffix', ['-wal', '-shm', '-journal'])
+@pytest.mark.parametrize('kind', ['file', 'directory'])
+def test_sidecar_policy_rejects_every_entry_without_deleting_it(tmp_path, monkeypatch, suffix, kind):
+    # Portable policy coverage only. Native FD/namespace coverage stays below;
+    # no native-admission or platform guard is patched for Windows.
+    database = tmp_path / 'owned.db'
+    database.write_bytes(b'owned policy fixture')
+    sidecar = tmp_path / ('owned.db' + suffix)
+    sidecar.mkdir() if kind == 'directory' else sidecar.write_bytes(b'')
+    real_stat = restore.os.stat
+    def owned_stat(name, *, dir_fd, follow_symlinks):
+        assert dir_fd == 12345 and follow_symlinks is False
+        return real_stat(tmp_path / name, follow_symlinks=False)
+    with monkeypatch.context() as patch:
+        patch.setattr(restore.os, 'stat', owned_stat)
+        with pytest.raises(restore.SqliteSetRestoreError, match='^RESTORED_SQLITE_MEMBER_NOT_STANDALONE$'):
+            restore._require_standalone_member(12345, 'owned.db')
+    assert database.read_bytes() == b'owned policy fixture'
+    assert sidecar.is_dir() if kind == 'directory' else sidecar.read_bytes() == b''
+
+
+def test_sidecar_policy_allows_absence_and_unrelated_names(tmp_path, monkeypatch):
+    database = tmp_path / 'owned.db'
+    database.write_bytes(b'unchanged owned bytes')
+    (tmp_path / 'owned.db-wal.previous').write_bytes(b'unrelated')
+    real_stat = restore.os.stat
+    def owned_stat(name, *, dir_fd, follow_symlinks):
+        assert dir_fd == 12345 and follow_symlinks is False
+        return real_stat(tmp_path / name, follow_symlinks=False)
+    with monkeypatch.context() as patch:
+        patch.setattr(restore.os, 'stat', owned_stat)
+        restore._require_standalone_member(12345, 'owned.db')
+    assert database.read_bytes() == b'unchanged owned bytes'
+    assert (tmp_path / 'owned.db-wal.previous').read_bytes() == b'unrelated'
+
+
+@pytest.mark.parametrize('suffix', ['-wal', '-shm', '-journal'])
+def test_unreadable_sidecar_metadata_is_not_assumed_absent(monkeypatch, suffix):
+    def unreadable(name, *, dir_fd, follow_symlinks):
+        assert dir_fd == 12345 and follow_symlinks is False
+        if name == 'owned.db' + suffix:
+            raise PermissionError('PRIVATE_MUST_NOT_ESCAPE')
+        raise FileNotFoundError
+    with monkeypatch.context() as patch:
+        patch.setattr(restore.os, 'stat', unreadable)
+        with pytest.raises(restore.SqliteSetRestoreError) as failure:
+            restore._require_standalone_member(12345, 'owned.db')
+    assert str(failure.value) == 'RESTORED_SQLITE_MEMBER_NOT_STANDALONE'
+    assert failure.value.__suppress_context__ is True
+
+
+def _owned_sidecar_restore(tmp_path):
+    plan = complete_plan(tmp_path)
+    captured = capture_set_with_state(plan=plan, deadline=time.monotonic()+30)
+    assert captured.ok is True, captured.state_result
+    originals = {s.source: s.source.read_bytes() for s in plan.sqlite.sources}
+    originals.update({plan.sqlite.publication / m.backup_file:
+                     (plan.sqlite.publication / m.backup_file).read_bytes()
+                     for m in captured.bundle.sqlite.members})
+    workspace = tmp_path / '.isolated_restore_327_sidecars'
+    workspace.mkdir(mode=0o700)
+    workspace.chmod(0o700)
+    return plan, captured, workspace, time.monotonic()+30, originals
+
+
+@native
+@pytest.mark.parametrize('source_id', ['principal', 'aux_app'])
+@pytest.mark.parametrize('suffix', ['-wal', '-shm', '-journal'])
+@pytest.mark.parametrize('kind', ['file', 'directory', 'dangling_symlink'])
+def test_native_complete_set_rejects_unexpected_sidecars(tmp_path, source_id, suffix, kind):
+    import os
+    plan, captured, workspace, deadline, originals = _owned_sidecar_restore(tmp_path)
+    with restore.restore_all_members(bundle=captured.bundle, workspace=workspace,
+                                     deadline=deadline) as restored:
+        member = next(m for m in restored.members if m.source_id == source_id)
+        sidecar = Path(str(workspace / member.relative) + suffix)
+        if kind == 'directory':
+            sidecar.mkdir(mode=0o700)
+        elif kind == 'dangling_symlink':
+            sidecar.symlink_to('owned_missing_target')
+            assert not sidecar.exists()  # exists() alone would miss this entry.
+        else:
+            sidecar.write_bytes(b'')
+        restored_bytes = {workspace / m.relative: (workspace / m.relative).read_bytes()
+                          for m in restored.members}
+        with pytest.raises(restore.SqliteSetRestoreError, match='^RESTORED_SQLITE_MEMBER_NOT_STANDALONE$'):
+            restored.verify_before_app(deadline)
+        assert os.path.lexists(sidecar), 'unexpected evidence must be preserved'
+        assert all(path.read_bytes() == data for path, data in restored_bytes.items())
+    assert all(path.read_bytes() == data for path, data in originals.items())
+
+
+@native
+@pytest.mark.parametrize('source_id', ['principal', 'aux_app'])
+def test_native_final_sweep_rejects_sidecar_created_during_last_member_hash(tmp_path, monkeypatch, source_id):
+    from engines import recovery_non_sqlite_state as state
+    plan, captured, workspace, deadline, originals = _owned_sidecar_restore(tmp_path)
+    with restore.restore_all_members(bundle=captured.bundle, workspace=workspace,
+                                     deadline=deadline) as restored:
+        member = next(m for m in restored.members if m.source_id == source_id)
+        sidecar = Path(str(workspace / member.relative) + '-wal')
+        real_hash = state._hash_fd
+        def hash_then_add(fd, end, maximum):
+            value = real_hash(fd, end, maximum)
+            if fd == restored.members[-1].fd:
+                sidecar.write_bytes(b'owned late sidecar')
+            return value
+        with monkeypatch.context() as patch:
+            patch.setattr(state, '_hash_fd', hash_then_add)
+            with pytest.raises(restore.SqliteSetRestoreError, match='^RESTORED_SQLITE_MEMBER_NOT_STANDALONE$'):
+                restored.verify_before_app(deadline)
+        assert sidecar.read_bytes() == b'owned late sidecar'
+    assert all(path.read_bytes() == data for path, data in originals.items())
