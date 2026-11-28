@@ -12,7 +12,7 @@ def stored_pick():
            "odds_source": "API-Football", "odds_updated_at": "2025-01-01T12:00:00Z"}
     row = {key: value for key, value in raw.items() if key not in {"odds_source", "odds_updated_at"}}
     row.update({"market": "1X2", "selection": "Gana Local QA", "odds": 1.8,
-                "raw_json": json.dumps(raw), "updated_at": "2025-07-01T10:11:12Z"})
+                "_raw_selection": "1", "raw_json": json.dumps(raw), "updated_at": "2025-07-01T10:11:12Z"})
     return row, raw
 
 
@@ -131,3 +131,77 @@ def test_stored_quote_fields_cannot_fill_missing_core_legs_in_legacy_draft():
     item, _ = stored_pick()
     combi = {"status": "DRAFT", "picks": [{"selection": "1", "odds": 1.8, "raw_json": item["raw_json"]}] * 2}
     assert fmt.format_combi_message(combi) == ""
+
+
+
+@pytest.mark.parametrize("normalized", [False, True])
+def test_lossy_period_collision_cannot_cross_quote_identity(normalized):
+    item, raw = stored_pick()
+    raw.update({"market": "Totales", "selection": "Over 2.5 first half"})
+    item.update({"market": "Totales", "raw_json": json.dumps(raw)})
+    if normalized:
+        item["_raw_selection"] = "Over 2.5 second half"
+        item["selection"] = "Más de 2.5 goles"
+    else:
+        item.pop("_raw_selection")
+        item["selection"] = "Over 2.5 second half"
+    body = fmt.format_pick_message(item)
+    assert "API-Football" not in body and "Hora de cuota: sin confirmar" in body
+
+
+def test_unattested_selection_translation_cannot_authorize_stored_quote():
+    item, _ = stored_pick()
+    item.pop("_raw_selection")
+    body = fmt.format_pick_message(item)
+    assert "API-Football" not in body and "Hora de cuota: sin confirmar" in body
+
+
+def test_lossy_translation_of_same_record_does_not_accredit_hidden_period():
+    item, raw = stored_pick()
+    raw.update({"market": "Totales", "selection": "Over 2.5 first half"})
+    item.update({"market": "Totales", "_raw_selection": raw["selection"],
+                 "selection": "Más de 2.5 goles", "raw_json": json.dumps(raw)})
+    body = fmt.format_pick_message(item)
+    assert "API-Football" not in body and "Hora de cuota: sin confirmar" in body
+
+
+
+@pytest.mark.parametrize("original,visible", [
+    *[(value, "Gana Local QA") for value in ("home", "local", "1", "winner home", "match winner home", "home win", "local win", "equipo local", "Local QA")],
+    *[(value, "Gana Visitante QA") for value in ("away", "visitante", "2", "winner away", "match winner away", "away win", "visitante win", "equipo visitante", "Visitante QA")],
+    *[(value, "Empate") for value in ("draw", "empate", "x", "tie")],
+])
+def test_complete_owned_1x2_localization_contract_keeps_stored_quote(original, visible):
+    item, raw = stored_pick()
+    raw["selection"] = original
+    item.update({"selection": visible, "_raw_selection": original, "raw_json": json.dumps(raw)})
+    body = fmt.format_pick_message(item)
+    assert "Fuente de cuota: API-Football" in body
+    assert "Hora de cuota registrada: 01/01/2025 · 13:00:00 Madrid" in body
+
+
+def test_literal_other_market_keeps_metadata_without_a_localization_claim():
+    item, raw = stored_pick()
+    raw.update({"market": "Totales", "selection": "Over 2.5 first half"})
+    item.update({"market": raw["market"], "selection": raw["selection"], "raw_json": json.dumps(raw)})
+    item.pop("_raw_selection")
+    body = fmt.format_pick_message(item)
+    assert "Fuente de cuota: API-Football" in body and "13:00:00 Madrid" in body
+
+
+def test_changed_visible_market_qualifier_cannot_reuse_stored_quote():
+    item, raw = stored_pick()
+    raw["market"] = "Totales primera parte"
+    item.update({"market": "Totales segunda parte", "raw_json": json.dumps(raw)})
+    body = fmt.format_pick_message(item)
+    assert "API-Football" not in body and "Hora de cuota: sin confirmar" in body
+
+
+
+@pytest.mark.parametrize("book", [0, False])
+def test_invalid_primary_bookmaker_is_not_replaced_by_stored_alias(book):
+    item, raw = stored_pick()
+    raw.update({"bookmaker": book, "bookmaker_name": "Casa secundaria QA"})
+    item.update({"bookmaker": book, "bookmaker_name": "Casa secundaria QA", "raw_json": json.dumps(raw)})
+    body = fmt.format_pick_message(item)
+    assert "API-Football" not in body and "Hora de cuota: sin confirmar" in body

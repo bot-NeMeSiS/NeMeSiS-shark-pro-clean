@@ -20,7 +20,7 @@ from .v935_launch_trust_engine import match_status_truth
 from .content_rights_engine import classify_media_asset
 from .telegram_combi_contract import combi_integrity_reason, combi_legs
 from .ui_localization_engine import preferred_terms
-from .spanish_localization_engine import spanish_market_name, spanish_pick_selection_name, spanish_team_name
+from .spanish_localization_engine import spanish_pick_selection_name, spanish_team_name
 
 TZ = ZoneInfo("Europe/Madrid")
 MONTHS_ES = {
@@ -175,6 +175,11 @@ def _quote_label(value):
     return label if label and any(char.isalpha() for char in label) else "sin registrar"
 
 
+def _quote_bookmaker(item):
+    value = item.get("bookmaker")
+    return item.get("bookmaker_name") if value is None or isinstance(value, str) and not value.strip() else value
+
+
 def _unique_quote_object(pairs):
     item = {}
     for key, value in pairs:
@@ -222,14 +227,31 @@ def _stored_quote_metadata(item, value):
         selection, stored_selection = text(item.get("selection")), text(raw.get("selection"))
         if not all((market, stored_market, selection, stored_selection)):
             return item
-        if spanish_market_name(market).casefold() != spanish_market_name(stored_market).casefold():
+        if market.casefold() != stored_market.casefold():
             return item
-        current_choice = spanish_pick_selection_name(selection, home, away, market)
-        stored_choice = spanish_pick_selection_name(stored_selection, home, away, market)
-        if not current_choice or current_choice.casefold() != stored_choice.casefold():
+        original = item.get("_raw_selection")
+        if original is not None and text(original) != stored_selection:
             return item
-        book = item.get("bookmaker") or item.get("bookmaker_name") or ""
-        stored_book = raw.get("bookmaker") or raw.get("bookmaker_name") or ""
+        if selection.casefold() != stored_selection.casefold():
+            # A display normalizer can erase period/condition qualifiers. Never
+            # normalize both sides into a false identity. Only the attested
+            # complete 1X2 aliases (or this fixture's literal team names) may
+            # differ from their exact displayed result; other rewrites stay unknown.
+            aliases = {
+                "home", "local", "1", "winner home", "match winner home", "home win", "local win", "equipo local",
+                "away", "visitante", "2", "winner away", "match winner away", "away win", "visitante win", "equipo visitante",
+                "draw", "empate", "x", "tie",
+            }
+            names = {home.casefold(), away.casefold(), text(raw.get("home_team")).casefold(), text(raw.get("away_team")).casefold()}
+            alias = " ".join(stored_selection.casefold().split()) in aliases or stored_selection.casefold() in names
+            if not original or stored_market.casefold() != "1x2" or not alias:
+                return item
+            expected = spanish_pick_selection_name(stored_selection, home, away, stored_market)
+            if not expected or selection.casefold() != expected.casefold():
+                return item
+        book, stored_book = _quote_bookmaker(item), _quote_bookmaker(raw)
+        book = "" if book is None else book
+        stored_book = "" if stored_book is None else stored_book
         if not isinstance(book, str) or not isinstance(stored_book, str) or book.strip().casefold() != stored_book.strip().casefold():
             return item
         stored_value = raw.get("odds") if "odds" in raw else raw.get("cuota")
@@ -252,9 +274,7 @@ def _quote_provenance_lines(item, value):
     repair missing or invalid quote evidence.
     """
     item = _stored_quote_metadata(item, value) if _v889_odds_label(value) != "Cuota pendiente" else {}
-    bookmaker = item.get("bookmaker")
-    if bookmaker is None or isinstance(bookmaker, str) and not bookmaker.strip():
-        bookmaker = item.get("bookmaker_name")
+    bookmaker = _quote_bookmaker(item)
     lines = [f"Casa: {_quote_label(bookmaker)}", f"Fuente de cuota: {_quote_label(item.get('odds_source'))}"]
     scoped = "quote_clock_scope" in item or "clock_scope" in item
     scope = item.get("quote_clock_scope", item.get("clock_scope"))
