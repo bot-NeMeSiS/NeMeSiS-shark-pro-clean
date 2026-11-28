@@ -16803,7 +16803,8 @@ def telegram_send_http(chat_id, text, message_type="manual", payload=None):
     if not token or not chat_id:
         return {"ok": False, "sent": False, "status": "CONFIG_MISSING", "category": "CONFIG_MISSING", "action": "Configura TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID en Render.", "error": "Falta TELEGRAM_BOT_TOKEN o chat_id."}
     payload = dict(payload or {})
-    if message_type == "combi_alert" or payload.get("visual_card_type") == "combi_alert":
+    is_combi_message = message_type == "combi_alert" or payload.get("visual_card_type") == "combi_alert"
+    if is_combi_message:
         visual = payload.get("visual_card_payload")
         combi = visual.get("combi") if isinstance(visual, dict) else None
         text = format_v772_combi_message(combi)
@@ -16826,7 +16827,19 @@ def telegram_send_http(chat_id, text, message_type="manual", payload=None):
     visual_card_type = str(payload.get("visual_card_type") or "").strip()
     photo_attempted = False
     visual_evidence = {"requested": bool(visual_card_type and payload.get("visual_card_enabled")), "generated": None, "type": visual_card_type}
-    if visual_card_type and payload.get("visual_card_enabled"):
+    complete_text_required = False
+    if is_combi_message and visual_evidence["requested"]:
+        # The card has three rows; sendPhoto is the sole delivery, not a preview
+        # followed by the complete text. Decide before enrichment or network I/O.
+        legs = combi.get("picks") if combi.get("picks") is not None else combi.get("legs")
+        complete_text_required = (
+            visual_card_type != "combi_alert"
+            or len(legs) > 3
+            or telegram_plain_text_from_html(telegram_photo_caption(text)) != telegram_plain_text_from_html(text)
+        )
+        if complete_text_required:
+            payload["visual_card_fallback_reason"] = "combi_requires_complete_text"
+    if visual_evidence["requested"] and not complete_text_required:
         try:
             visual_payload = resolve_cached_visual_payload(payload.get("visual_card_payload") or payload, request_read_db())
             card_result = build_visual_card_for_message(visual_card_type, visual_payload)
