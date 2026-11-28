@@ -6,8 +6,10 @@ short, Spanish and free of raw technical labels.
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from html import escape
 from html.parser import HTMLParser
+import json
 import math
 import re
 from urllib.parse import unquote, urlsplit
@@ -18,6 +20,7 @@ from .v935_launch_trust_engine import match_status_truth
 from .content_rights_engine import classify_media_asset
 from .telegram_combi_contract import combi_integrity_reason, combi_legs
 from .ui_localization_engine import preferred_terms
+from .spanish_localization_engine import spanish_pick_selection_name, spanish_team_name
 
 TZ = ZoneInfo("Europe/Madrid")
 MONTHS_ES = {
@@ -162,6 +165,163 @@ def _section(title, lines=None):
     if not clean:
         return []
     return ["", title] + clean
+
+
+def _quote_label(value):
+    # Nominal fields only: never render a provider URL, arbitrary object or payload.
+    if not isinstance(value, str) or not re.fullmatch(r"[\w .&+()'’-]{1,64}", value.strip()):
+        return "sin registrar"
+    label = _text(value, "")
+    return label if label and any(char.isalpha() for char in label) else "sin registrar"
+
+
+def _quote_bookmaker(item):
+    value = item.get("bookmaker")
+    return item.get("bookmaker_name") if value is None or isinstance(value, str) and not value.strip() else value
+
+
+def _unique_quote_object(pairs):
+    item = {}
+    for key, value in pairs:
+        if key in item:
+            raise ValueError("Ambiguous stored quote")
+        item[key] = value
+    return item
+
+
+def _stored_quote_metadata(item, value):
+    """Recover existing pick raw_json evidence only for the same quote snapshot.
+
+    The real pick writer stores at most5000 characters. Do not import App, query
+    another quote, unpack arbitrary fields or treat an old raw value as current.
+    Flat explicit quote evidence wins as a unit, even when invalid/incomplete.
+    """
+    fields = ("odds_source", "odds_updated_at", "odds_recorded_at", "quote_clock_scope", "clock_scope")
+    if any(field in item for field in fields):
+        return item
+    raw_text = item.get("raw_json")
+    if not isinstance(raw_text, str) or len(raw_text) > 5000:
+        return item
+    try:
+        raw = json.loads(raw_text, parse_float=Decimal, object_pairs_hook=_unique_quote_object)
+        if not isinstance(raw, dict):
+            return item
+        raw_id, current_id = raw.get("id"), item.get("id")
+        if raw_id is not None and raw_id != "":
+            if (isinstance(raw_id, bool) or isinstance(current_id, bool)
+                    or not isinstance(raw_id, (str, int)) or not isinstance(current_id, (str, int))
+                    or str(raw_id) != str(current_id)):
+                return item
+        mid = item.get("match_id")
+        if not isinstance(mid, str) or not mid.strip() or len(mid) > 180 or raw.get("match_id") != mid:
+            return item
+        def text(value):
+            return value.strip() if isinstance(value, str) and len(value) <= 320 else ""
+        home, away = text(item.get("home_team") or item.get("home")), text(item.get("away_team") or item.get("away"))
+        if not home or not away:
+            return item
+        for key, current in (("home_team", home), ("away_team", away)):
+            if key in raw and (not text(raw[key]) or spanish_team_name(raw[key]) != spanish_team_name(current)):
+                return item
+        market, stored_market = text(item.get("market")), text(raw.get("market") or raw.get("pick_type"))
+        selection, stored_selection = text(item.get("selection")), text(raw.get("selection"))
+        if not all((market, stored_market, selection, stored_selection)):
+            return item
+        if market.casefold() != stored_market.casefold():
+            return item
+        original = item.get("_raw_selection")
+        if original is not None and text(original) != stored_selection:
+            return item
+        if selection.casefold() != stored_selection.casefold():
+            # A display normalizer can erase period/condition qualifiers. Never
+            # normalize both sides into a false identity. Only the attested
+            # complete 1X2 aliases (or this fixture's literal team names) may
+            # differ from their exact displayed result; other rewrites stay unknown.
+            aliases = {
+                "home", "local", "1", "winner home", "match winner home", "home win", "local win", "equipo local",
+                "away", "visitante", "2", "winner away", "match winner away", "away win", "visitante win", "equipo visitante",
+                "draw", "empate", "x", "tie",
+            }
+            names = {home.casefold(), away.casefold(), text(raw.get("home_team")).casefold(), text(raw.get("away_team")).casefold()}
+            alias = " ".join(stored_selection.casefold().split()) in aliases or stored_selection.casefold() in names
+            if not original or stored_market.casefold() != "1x2" or not alias:
+                return item
+            expected = spanish_pick_selection_name(stored_selection, home, away, stored_market)
+            if not expected or selection.casefold() != expected.casefold():
+                return item
+        book, stored_book = _quote_bookmaker(item), _quote_bookmaker(raw)
+        book = "" if book is None else book
+        stored_book = "" if stored_book is None else stored_book
+        if not isinstance(book, str) or not isinstance(stored_book, str) or book.strip().casefold() != stored_book.strip().casefold():
+            return item
+        stored_value = raw.get("odds") if "odds" in raw else raw.get("cuota")
+        if isinstance(value, bool) or isinstance(stored_value, bool):
+            return item
+        price, stored_price = Decimal(str(value).replace(",", ".")), Decimal(str(stored_value).replace(",", "."))
+        if not price.is_finite() or not stored_price.is_finite() or price != stored_price:
+            return item
+        evidence = {key: raw[key] for key in (*fields, "observed_at", "received_at") if key in raw}
+        return {**item, **evidence}
+    except (ValueError, TypeError, InvalidOperation, OverflowError, RecursionError):
+        return item
+
+
+def _quote_provenance_lines(item, value):
+    """Display this quote's own metadata; no freshness or joint-offer claim.
+
+    Scoped observed_at follows the stored quote contract. Unscoped odds_* fields
+    are recorded quote times. Generic match/row clocks and generic source never
+    repair missing or invalid quote evidence.
+    """
+    item = _stored_quote_metadata(item, value) if _v889_odds_label(value) != "Cuota pendiente" else {}
+    bookmaker = _quote_bookmaker(item)
+    lines = [f"Casa: {_quote_label(bookmaker)}", f"Fuente de cuota: {_quote_label(item.get('odds_source'))}"]
+    scoped = "quote_clock_scope" in item or "clock_scope" in item
+    scope = item.get("quote_clock_scope", item.get("clock_scope"))
+    scope = scope.upper() if isinstance(scope, str) else ""
+    labels = {"PROVIDER_QUOTE_TIME": "Hora de cuota del proveedor", "RECORDED_QUOTE_TIME": "Hora de cuota registrada", "RECEIPT_ONLY": "Recepción de cuota"}
+    raw = None
+    label = "Hora de cuota registrada"
+    if scoped:
+        if scope in labels:
+            label = labels[scope]
+            fallback = item.get("received_at") if scope == "RECEIPT_ONLY" else item.get("odds_updated_at")
+            raw = item.get("observed_at", fallback)
+    else:
+        raw = item.get("odds_updated_at", item.get("odds_recorded_at"))
+    clock = "Hora de cuota: sin confirmar"
+    try:
+        if not isinstance(raw, (str, datetime)) or isinstance(raw, str) and len(raw) > 64:
+            raise ValueError("No quote clock")
+        stamp = raw if isinstance(raw, datetime) else datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if stamp.tzinfo is None or stamp.utcoffset() is None:
+            raise ValueError("No quote timezone")
+        if stamp > datetime.now(TZ):
+            clock = "Hora de cuota: por confirmar"
+        else:
+            clock = f"{label}: {stamp.astimezone(TZ).strftime('%d/%m/%Y · %H:%M:%S')} Madrid"
+            if scope == "RECEIPT_ONLY":
+                clock += " · hora del proveedor sin confirmar"
+    except (ValueError, TypeError, OverflowError):
+        pass
+    return lines + [clock]
+
+
+def _combi_quote_provenance(combi, picks, odds):
+    total = tuple(_quote_provenance_lines(combi, odds))
+    groups = {}
+    for index, leg in enumerate(picks, 1):
+        metadata = tuple(_quote_provenance_lines(leg, leg.get("odds")))
+        groups.setdefault(metadata, []).append(str(index))
+    unknown = tuple(_quote_provenance_lines({}, None))
+    if total == unknown and tuple(groups) == (unknown,):
+        # One explicit missing-evidence statement covers every independently
+        # checked quote; preserve small complete photo captions and full sets.
+        return [], ["", "Cuotas individuales y total: casa, fuente y hora sin confirmar."]
+    lines = []
+    for metadata, indices in groups.items():
+        lines.extend(_section("Cuotas de selecciones " + ", ".join(indices), metadata))
+    return ["Total · " + line for line in total], lines
 
 
 def data_update_label(item):
@@ -415,9 +575,8 @@ def format_pick_message(pick=None):
              f"Cuota registrada: {odds}" if odds != "Cuota pendiente" else "Cuota: no publicada",
              f"Importe orientativo: {stake_label}",
              f"Valoración SHARK: {_confidence_label(confidence)}", f"Riesgo: {risk}"]
-    bookmaker = first_value(pick, "bookmaker", "bookmaker_name")
-    if bookmaker:
-        entry.append(f"Casa: {_text(bookmaker)}")
+    quote = _quote_provenance_lines(pick, pick.get("odds"))
+    entry[3:3] = [" · ".join(quote[:2]), quote[2]]
     value = first_value(pick, "value", "value_score", "edge", default="")
     if value not in (None, ""):
         entry.append(f"Valoración adicional: {_text(value)}")
@@ -500,6 +659,7 @@ def format_combi_message(combi=None):
         return ""
     picks = combi_legs(combi)
     odds = first_value(combi, "total_odds", "odds", default="Pendiente")
+    total_metadata, leg_metadata = _combi_quote_provenance(combi, picks, odds)
     confidence = first_value(combi, "confidence", "shark_score", default="Pendiente")
     risk = _text(combi.get("risk_level") or combi.get("risk"), "No especificado")
     reason = _text(combi.get("reason") or combi.get("main_reason"), "Análisis no publicado. Cada selección añade riesgo; no hay garantías de resultado.")
@@ -507,6 +667,7 @@ def format_combi_message(combi=None):
     lines.extend(_section("Resumen", [
         f"Partidos: {len(picks) or combi.get('legs_count') or 'Pendiente'}",
         f"💸 Cuota total registrada: {_v889_odds_label(odds)}",
+        *total_metadata,
         f"Stake: {_text(first_value(combi, 'stake_units', 'stake'))}",
         f"Confianza SHARK: {_confidence_label(confidence)}",
         f"Riesgo: {risk}",
@@ -517,6 +678,7 @@ def format_combi_message(combi=None):
             f"🎯 {_text(leg.get('selection') or leg.get('recommendation'))}",
             f"{_text(leg.get('market'), 'Mercado pendiente')} · Cuota: {_v889_odds_label(leg.get('odds'))}",
         ]))
+    lines.extend(leg_metadata)
     lines.extend(_section("Lectura SHARK", [reason]))
     lines.extend(_message_footer("Ver combis · Ver picks"))
     # A notification must contain the entire admitted set, never a truncated

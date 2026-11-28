@@ -241,7 +241,7 @@ def _status_values(item: dict[str, Any]) -> list[tuple[str, str]]:
         if payload is None and isinstance(raw, str) and 1 < len(raw) <= 200_000:
             try:
                 payload = json.loads(raw)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, RecursionError):
                 payload = None
         if not isinstance(payload, dict):
             continue
