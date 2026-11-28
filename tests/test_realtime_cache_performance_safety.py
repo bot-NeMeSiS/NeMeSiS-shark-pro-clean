@@ -505,3 +505,69 @@ def test_waiter_rechecks_real_replacement_and_keeps_latest_fallback(mode):
     if mode == 'fallback':
         assert engine._CACHE[key]['expires_at'] == expiry
         assert result['cache_status'] == 'stale_fallback'
+
+
+@pytest.mark.parametrize('force', [False, True])
+@pytest.mark.parametrize('prefix,retained', [('', False), ('sports:', False), ('other:', True)])
+@pytest.mark.parametrize('builder_fails', [False, True])
+def test_active_builder_does_not_pin_invalidated_rechecked_cache(force, prefix, retained,
+                                                               builder_fails):
+    import gc
+    import weakref
+
+    key = 'sports:active-builder-retention'
+    entered, release = threading.Event(), threading.Event()
+    builds = []
+
+    class Leaf:
+        pass
+
+    engine.cached_realtime_snapshot(key, lambda: {'leaf': Leaf(), 'score': [0, 1]})
+    old_reference = weakref.ref(engine._CACHE[key]['payload']['leaf'])
+    if not force:
+        engine._CACHE[key]['expires_at'] = 0  # Owned expired entry, no runtime clock change.
+    original_expiry = engine._CACHE[key]['expires_at']
+
+    def build():
+        builds.append(1)
+        entered.set()
+        assert release.wait(3)
+        if builder_fails:
+            raise RuntimeError('owned synthetic builder failure')
+        return {'revision': 1, 'score': [0, 2]}
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pending = pool.submit(engine.cached_realtime_snapshot, key, build, force=force)
+        try:
+            assert entered.wait(3)
+            assert not pending.done() and builds == [1]
+            removed = engine.invalidate_realtime_cache(prefix)
+            assert removed == (0 if retained else 1)
+            gc.collect()
+            # The current published cache is the only legitimate owner of the
+            # old graph. A builder never uses its rechecked local for fallback.
+            assert (old_reference() is not None) is retained
+        finally:
+            release.set()
+        result, status = pending.result(timeout=3)
+
+    assert builds == [1]
+    if builder_fails:
+        assert status == ('stale_fallback' if retained else 'safe_empty')
+        if retained:
+            assert engine._CACHE[key]['expires_at'] == original_expiry
+            assert result['score'] == [0, 1]
+            result['score'][0] = 9
+            assert engine._CACHE[key]['payload']['score'] == [0, 1]
+        else:
+            assert key not in engine._CACHE
+            assert result['no_external_calls'] is True
+    else:
+        assert status == 'refreshed' and result == {'revision': 1, 'score': [0, 2]}
+        assert (key in engine._CACHE) is retained
+        result['score'][0] = 9
+        if retained:
+            assert engine._CACHE[key]['payload']['score'] == [0, 2]
+        else:
+            current, state = engine.cached_realtime_snapshot(key, lambda: {'revision': 2})
+            assert state == 'refreshed' and current == {'revision': 2}
