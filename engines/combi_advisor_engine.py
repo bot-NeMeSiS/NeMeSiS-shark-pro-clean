@@ -129,6 +129,8 @@ def _assess_selection(pick, match, odds_record, user, *, now=None, editorial=Tru
             issues.append('Los equipos del pick y del partido no coinciden.')
             break
     quote_row = dict(odds_record or {})
+    if quote_row.get('observations_complete') is False:
+        issues.append('No se pudo comprobar toda la evidencia de cuotas de esta lectura.')
     bookmaker = text(quote_row.get('bookmaker'), 120)
     source = text(quote_row.get('source'), 120)
     stamp = clock(quote_row.get('observed_at'))
@@ -138,6 +140,8 @@ def _assess_selection(pick, match, odds_record, user, *, now=None, editorial=Tru
         odd = None
     if key(bookmaker) in {'','none','null','unknown','desconocido','pendiente','shark'} or key(source) in {'','none','null','unknown','pendiente'} or not stamp or stamp > now:
         issues.append('Falta casa, procedencia u hora válida de la cuota.')
+    if quote_row.get('closed') is True:
+        issues.append('El mercado figura cerrado o suspendido.')
     fresh = get_odds_freshness(stamp, now, odds=float(odd) if odd else None, source=source,
                                match_lifecycle=truth.get('lifecycle', 'INCOMPLETE'),
                                market_open=not bool(quote_row.get('closed')))

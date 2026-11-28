@@ -296,3 +296,145 @@ def test_ambiguous_or_broken_provider_clock_is_not_guessed(db,raw):
 def test_zero_requested_count_is_not_changed_to_three(db):
     with pytest.raises(eng.CombiError,match='número'):
         store.make_preview(db,'a',{'mode':'suggest','count':0},now=NOW)
+
+
+def _current_market_snapshot(db, *, ident='latest-market', received=NOW, payload=None):
+    with sqlite3.connect(db) as conn:
+        columns = {r[1] for r in conn.execute('PRAGMA table_info(odds_snapshots)')}
+        if 'payload_json' not in columns:
+            conn.execute('ALTER TABLE odds_snapshots ADD COLUMN payload_json TEXT')
+        conn.execute('''INSERT INTO odds_snapshots
+            (id,match_id,market,bookmaker,source,home_team,away_team,
+             home_price,draw_price,away_price,created_at,payload_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
+            (ident,'m1','h2h','Casa QA','The Odds API','Local 1','Visitante 1',
+             '1.80','3.20','4.50',received.isoformat(),json.dumps(payload) if payload else None))
+
+
+@pytest.mark.parametrize('signal', [
+    {'market_closed': True}, {'suspended': True}, {'is_suspended': 'yes'},
+    {'status': 'closed'}, {'status': 'suspended'}, {'status': 'removed'},
+    {'status': 'cancelled'},
+])
+def test_latest_market_state_blocks_editorial_pick_and_shark_advice(db, signal):
+    _current_market_snapshot(db, payload=signal)
+    center = store.read_center(db,'a',now=NOW)
+    assert 'p1' not in {p['id'] for p in center['candidates']}
+    blocked = next(p for p in center['blocked'] if p['id']=='p1')
+    assert any('cerrado o suspendido' in reason for reason in blocked['reasons'])
+    advice = store.read_advice(db,'a',pick_id='p1',now=NOW)
+    assert advice['pick']['eligible'] is False
+    assert 'faltan condiciones' in advice['advice']
+    assert advice['probability'] is None and advice['external_calls']==0
+
+
+@pytest.mark.parametrize('closed_id,open_id', [('a-closed','z-open'),('z-closed','a-open')])
+def test_latest_cohort_closure_veto_is_shared_by_editorial_and_catalogue(db, closed_id, open_id):
+    from engines import combi_match_catalogue as catalogue
+    _current_market_snapshot(db, ident=closed_id, payload={'suspended': True})
+    _current_market_snapshot(db, ident=open_id, payload={'suspended': False})
+    with store.connection(db) as conn:
+        observations=[dict(r) for r in conn.execute('SELECT * FROM odds_snapshots')]
+        for selection in ('1','X','2'):
+            choice=pick(selection=selection)
+            editorial=store._quote(choice,fixture(),observations)
+            market=catalogue._market_quote(choice,fixture(),observations)
+            assert editorial['closed'] is True and market['closed'] is True
+            assert not eng.assess_pick(choice,fixture(),editorial,{'membership':'ELITE'},now=NOW)['eligible']
+            assert not eng.assess_market_choice(choice,fixture(),market,{'membership':'ELITE'},now=NOW)['eligible']
+
+
+def _suspend_editorial_after_preview(db):
+    _current_market_snapshot(db)
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE picks SET status='draft' WHERE id NOT IN ('p1','p2')")
+    confirmation=ready_save(db)
+    with sqlite3.connect(db) as conn:
+        conn.execute('UPDATE odds_snapshots SET payload_json=? WHERE id=?',
+                     (json.dumps({'is_suspended':True}),'latest-market'))
+    return confirmation
+
+
+def test_suspended_editorial_pick_cannot_fill_suggestion(db):
+    _suspend_editorial_after_preview(db)
+    with pytest.raises(eng.CombiError):
+        store.make_preview(db,'a',{'mode':'suggest','count':'2','stake':'0.10'},now=NOW)
+
+
+def test_suspended_editorial_pick_cannot_confirm_same_identity_price_clock_and_revision(db):
+    confirmation=_suspend_editorial_after_preview(db)
+    before=open(db,'rb').read()
+    with pytest.raises(eng.CombiError) as failure:
+        store.save_draft(db,'a',confirmation,now=NOW)
+    assert failure.value.code=='INELIGIBLE_PICK'
+    assert open(db,'rb').read()==before
+    with sqlite3.connect(db) as conn:
+        assert conn.execute("SELECT 1 FROM sqlite_master WHERE name='client_combi_drafts'").fetchone() is None
+
+
+@pytest.mark.parametrize('open_flags', [{}, {'suspended':False}, {'market_closed':'false'},
+                                      {'is_suspended':0}, {'status':'open'}])
+def test_reopened_market_uses_newest_valid_evidence_without_sticky_old_closure(db, open_flags):
+    _current_market_snapshot(db,ident='old-closed',received=NOW-timedelta(minutes=1),
+                             payload={'market_closed':True})
+    _current_market_snapshot(db,ident='new-open',payload=open_flags)
+    center=store.read_center(db,'a',now=NOW)
+    selected=next(p for p in center['candidates'] if p['id']=='p1')
+    assert selected['quote_id']=='new-open' and selected['odds']=='1.80'
+    assert store.read_advice(db,'a',pick_id='p1',now=NOW)['pick']['eligible'] is True
+
+
+def test_foreign_closed_observations_cannot_close_selected_fixture_market(db):
+    _current_market_snapshot(db)
+    with sqlite3.connect(db) as conn:
+        conn.execute('ALTER TABLE odds_snapshots ADD COLUMN suspended TEXT')
+        conn.execute("UPDATE odds_snapshots SET suspended='true',bookmaker='Other' WHERE id='latest-market'")
+    center=store.read_center(db,'a',now=NOW)
+    assert any(p['id']=='p1' for p in center['candidates'])
+
+
+@pytest.mark.parametrize('field',['market_closed','suspended','is_suspended'])
+def test_latest_market_state_also_uses_snapshot_columns(db,field):
+    _current_market_snapshot(db)
+    with sqlite3.connect(db) as conn:
+        conn.execute('ALTER TABLE odds_snapshots ADD COLUMN '+field+' TEXT')
+        conn.execute('UPDATE odds_snapshots SET '+field+"='true'")
+    advice=store.read_advice(db,'a',pick_id='p1',now=NOW)
+    assert not advice['pick']['eligible']
+    assert any('cerrado o suspendido' in reason for reason in advice['pick']['reasons'])
+
+
+@pytest.mark.parametrize('flag',[False,0,0.0,-0.0,'0','false','no',None,''])
+def test_explicit_false_editorial_market_flag_is_not_closure(db,flag):
+    with sqlite3.connect(db) as conn:
+        conn.execute('UPDATE picks SET raw_json=? WHERE id=?',
+                     (json.dumps({'market_closed':flag,'odds_updated_at':NOW.isoformat()}),'p1'))
+    assert store.read_advice(db,'a',pick_id='p1',now=NOW)['pick']['eligible'] is True
+
+
+def test_editorial_publication_status_is_not_a_market_closure_signal(db):
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE picks SET status='cancelled' WHERE id='p1'")
+    p=store.read_advice(db,'a',pick_id='p1',now=NOW)['pick']
+    assert not p['eligible']
+    assert not any('cerrado o suspendido' in reason for reason in p['reasons'])
+
+
+@pytest.mark.parametrize('count,tail_closed', [(4000,False),(4001,False),(4001,True)])
+def test_editorial_quote_does_not_authorize_a_truncated_latest_cohort(db,count,tail_closed):
+    _current_market_snapshot(db,ident='0000-tail',payload={'suspended':True} if tail_closed else None)
+    with sqlite3.connect(db) as conn:
+        conn.executemany('''INSERT INTO odds_snapshots
+            (id,match_id,market,bookmaker,source,home_team,away_team,
+             home_price,draw_price,away_price,created_at,payload_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)''',
+            [('q'+str(i).zfill(4),'m1','h2h','Casa QA','The Odds API',
+              'Local 1','Visitante 1','1.80','3.20','4.50',NOW.isoformat(),None)
+             for i in range(count-1)])
+    center=store.read_center(db,'a',now=NOW)
+    if count==4000:
+        assert any(p['id']=='p1' for p in center['candidates'])
+    else:
+        assert 'p1' not in {p['id'] for p in center['candidates']}
+        blocked=next(p for p in center['blocked'] if p['id']=='p1')
+        assert any('comprobar toda' in reason for reason in blocked['reasons'])

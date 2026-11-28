@@ -118,16 +118,8 @@ def _quote_clock(row):
 
 def _market_quote(choice, match, observations):
     from engines import client_combi_store as store
-    price = store._quote(choice, match, observations)
-    row = next((r for r in observations if str(r.get('id')) == str(price.get('id'))), {})
-    raw = store._json(row.get('payload_json'))
-    for info in (row, raw):
-        for flag in ('market_closed', 'suspended', 'is_suspended'):
-            if flag in info and info[flag] is not None and key(info[flag]) not in {'', '0', 'false', 'no'}:
-                price['closed'] = True
-        if key(info.get('status')) in {'closed','suspended','removed','cancelled'}:
-            price['closed'] = True
-    return price
+    # Editorial and market choices share the same latest-cohort closure veto.
+    return store._quote(choice, match, observations)
 
 
 def _market_reading(choices, user):

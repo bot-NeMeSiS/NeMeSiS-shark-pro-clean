@@ -77,7 +77,7 @@ def actor(conn, user_id, now):
 
 def _records(conn, ids=None):
     if not _table(conn, 'picks') or not _table(conn, 'matches'):
-        return [], {}, []
+        return [], {}, [], True
     if ids is not None:
         placeholders = ','.join('?' for _ in ids)
         picks = [dict(row) for row in conn.execute('SELECT * FROM picks WHERE id IN ('+placeholders+')', ids)] if ids else []
@@ -85,13 +85,14 @@ def _records(conn, ids=None):
         picks = [dict(row) for row in conn.execute("SELECT * FROM picks WHERE lower(status) IN ('published','publicado') ORDER BY updated_at DESC,id LIMIT 200")]
     mids = sorted({str(p.get('match_id') or '') for p in picks if p.get('match_id')})
     if not mids:
-        return picks, {}, []
+        return picks, {}, [], True
     placeholders = ','.join('?' for _ in mids)
     matches = {str(row['id']): dict(row) for row in conn.execute('SELECT * FROM matches WHERE id IN ('+placeholders+')', mids)}
     odds = []
     if _table(conn, 'odds_snapshots'):
-        odds = [dict(row) for row in conn.execute('SELECT * FROM odds_snapshots WHERE match_id IN ('+placeholders+') ORDER BY created_at DESC,id DESC LIMIT 4000', mids)]
-    return picks, matches, odds
+        odds = [dict(row) for row in conn.execute('SELECT * FROM odds_snapshots WHERE match_id IN ('+placeholders+') ORDER BY created_at DESC,id DESC LIMIT 4001', mids)]
+    # One sentinel detects an incomplete read; the accepted evidence cap stays 4000.
+    return picks, matches, odds[:4000], len(odds) <= 4000
 
 
 def _quote_stamp(row, bookmaker):
@@ -123,13 +124,30 @@ def _quote_stamp(row, bookmaker):
     return row.get('created_at'), 'RECEIPT_ONLY'
 
 
-def _quote(pick, match, observations):
+def _closed_flag(value):
+    return value is not None and value != 0 and key(value) not in {'', '0', 'false', 'no'}
+
+
+def _market_closed(*records):
+    """Shared market-state veto; only the already-bound latest cohort owns it."""
+    for record in records:
+        for flag in ('market_closed', 'suspended', 'is_suspended'):
+            if _closed_flag(record.get(flag)):
+                return True
+        if key(record.get('status')) in {'closed', 'suspended', 'removed', 'cancelled'}:
+            return True
+    return False
+
+
+def _quote(pick, match, observations, *, complete=True):
+    if not complete:
+        return {'observations_complete': False}
     selection = outcome(pick, match)
     book = key(pick.get('bookmaker'))
     if not selection or not book:
         return {}
     raw = _json(pick.get('raw_json'))
-    closed = pick.get('market_closed') or raw.get('market_closed')
+    closed = _closed_flag(pick.get('market_closed')) or _closed_flag(raw.get('market_closed'))
     matching = []
     for row in observations:
         if str(row.get('match_id')) != str(match.get('id')) or key(row.get('bookmaker')) != book:
@@ -145,6 +163,8 @@ def _quote(pick, match, observations):
         latest = max(item[0] for item in matching)
         field = {'1':'home_price','X':'draw_price','2':'away_price'}[selection]
         latest_rows = [item[2] for item in matching if item[0] == latest]
+        closed = closed or any(_market_closed(row, _json(row.get('payload_json')))
+                               for row in latest_rows)
         try:
             prices = {decimal(row.get(field)) for row in latest_rows}
         except CombiError:
@@ -218,7 +238,7 @@ def candidates(conn, user, now, ids=None, *, bind_fixtures=False):
     from engines.combi_match_catalogue import is_market_id, resolve_choices
     direct_ids = [i for i in (ids or []) if is_market_id(i)]
     editorial_ids = [i for i in ids if not is_market_id(i)] if ids is not None else None
-    picks, matches, odds = _records(conn, editorial_ids)
+    picks, matches, odds, quotes_complete = _records(conn, editorial_ids)
     result = []
     by_event_book = {}
     for observation in odds:
@@ -228,7 +248,7 @@ def candidates(conn, user, now, ids=None, *, bind_fixtures=False):
             continue  # Never expose a premium selection through block explanations.
         match = matches.get(str(pick.get('match_id')), {})
         observations = by_event_book.get((str(pick.get('match_id')), key(pick.get('bookmaker'))), [])
-        result.append(assess_pick(pick, match, _quote(pick, match, observations), user, now=now))
+        result.append(assess_pick(pick, match, _quote(pick, match, observations, complete=quotes_complete), user, now=now))
     result.extend(resolve_choices(conn,user,now,direct_ids))
     return _bind_fixture_identity(conn, result) if bind_fixtures else result
 
