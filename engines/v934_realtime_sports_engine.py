@@ -358,6 +358,9 @@ def cached_realtime_snapshot(
             generation = _CACHE_GENERATIONS.setdefault(cache_key, object())
         if hit:
             return clone_snapshot(cached["payload"]), "hit"
+        # Only the current cache owns a fallback; re-read it on failure.
+        # Do not pin an invalidated old graph while the builder allocates.
+        del cached
         try:
             payload = builder()
         except Exception:
@@ -383,7 +386,7 @@ def cached_realtime_snapshot(
                 }
         # Drop local references outside the index lock before the caller copy.
         # The cache owns published graphs; invalidated, unpublished copies can go.
-        del cached, stored_payload
+        del stored_payload
         return clone_snapshot(payload), "refreshed"
 
 
