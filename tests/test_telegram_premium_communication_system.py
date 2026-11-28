@@ -87,9 +87,9 @@ def test_plain_activity_messages_share_premium_identity_and_transparency():
         format_pick_message(SAMPLE_MATCH),
         format_premium_pick_message(SAMPLE_MATCH, quality={"sendable": True}, membership="PRO"),
         format_membership_pick_message(SAMPLE_MATCH, quality={"sendable": True}, membership="FREE"),
-        format_premium_combi_message([SAMPLE_MATCH], quality={"status": "En revision"}, membership="ELITE"),
+        format_premium_combi_message([SAMPLE_MATCH, {**SAMPLE_MATCH, "home_team": "Valencia", "away_team": "Sevilla"}], quality={"status": "En revision"}, membership="ELITE"),
         format_pick_result_tracking_message(SAMPLE_MATCH, {"score": "1-0", "result_status": "won"}),
-        format_combi_message({"picks": [SAMPLE_MATCH], "total_odds": 1.85}),
+        format_combi_message({"picks": [SAMPLE_MATCH, {**SAMPLE_MATCH, "id": "qa-second", "home_team": "Valencia", "away_team": "Sevilla"}], "total_odds": 3.42}),
         format_result_message({**SAMPLE_MATCH, "score": "1-0"}, {"result_status": "won", "selection": "Real Madrid"}),
         format_highlight_message(SAMPLE_MATCH),
         format_prematch_message(SAMPLE_MATCH),
@@ -103,7 +103,7 @@ def test_delivery_messages_keep_send_logic_read_only_and_html_safe():
     messages = [
         build_daily_matches_message([SAMPLE_MATCH], "2026-08-01"),
         build_daily_picks_message([SAMPLE_MATCH], force_empty=False),
-        build_combi_message([SAMPLE_MATCH]),
+        build_combi_message([SAMPLE_MATCH, {**SAMPLE_MATCH, "id": "qa-second", "home_team": "Valencia", "away_team": "Sevilla"}]),
         build_live_alert_message({**SAMPLE_MATCH, "status": "live", "home_score": 1, "away_score": 0}),
     ]
     for message in messages:

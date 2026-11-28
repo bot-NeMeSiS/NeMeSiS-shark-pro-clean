@@ -145,7 +145,7 @@ def test_actual_agenda_reader_preserves_timezone_for_madrid_conversion():
 
 @pytest.mark.parametrize("value", [0, 0.0, "0"])
 def test_combi_preserves_observed_zero_confidence_instead_of_alias(value):
-    message = fmt.format_combi_message({"confidence": value, "shark_score": 91})
+    message = fmt.format_combi_message({"picks": _combi_legs(), "confidence": value, "shark_score": 91})
     assert "Confianza SHARK: 91/100" not in message
     assert "Confianza SHARK: 0" in message
     assert "Confianza SHARK: Pendiente" not in message
@@ -153,14 +153,19 @@ def test_combi_preserves_observed_zero_confidence_instead_of_alias(value):
 
 @pytest.mark.parametrize("value", [0, 0.0, "0"])
 def test_combi_does_not_replace_invalid_observed_total_odds_with_alias(value):
-    message = fmt.format_combi_message({"total_odds": value, "odds": 4.75})
+    message = fmt.format_combi_message({"picks": _combi_legs(), "total_odds": value, "odds": 4.75})
     assert "Cuota total registrada: Cuota pendiente" in message
     assert "Cuota total registrada: 4.75" not in message
 
 
 @pytest.mark.parametrize("missing", [None, "", "  "])
 def test_combi_missing_values_still_use_published_aliases(missing):
-    message = fmt.format_combi_message({"total_odds": missing, "odds": 4.75,
+    message = fmt.format_combi_message({"picks": _combi_legs(), "total_odds": missing, "odds": 4.75,
                                        "confidence": missing, "shark_score": 91})
     assert "Cuota total registrada: 4.75" in message
     assert "Confianza SHARK: 91/100" in message
+
+
+def _combi_legs():
+    return [{**fixture_match(), "match_id": f"qa-combi-{i}", "home_team": f"QA Home {i}",
+             "selection": "Local", "market": "1X2", "odds": 1.8} for i in range(2)]

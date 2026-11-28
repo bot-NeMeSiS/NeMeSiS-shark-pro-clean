@@ -763,43 +763,9 @@ def build_daily_picks_message(picks, force_empty=False, premium_name="NeMeSiS SH
 
 
 def build_combi_message(picks, combi_type="media", premium_name="NeMeSiS SHARK PRO") -> str:
-    clean = []
-    seen = set()
-    total_odds = 1.0
-    for raw in picks or []:
-        if not is_telegram_football_item(raw or {}):
-            continue
-        pick = _presentation_pick(raw)
-        selection = _selection_text(pick)
-        odds = _clean_odds(pick.get("odds"))
-        key = f"{_norm(_team_name(pick, 'home'))}:{_norm(_team_name(pick, 'away'))}:{pick.get('match_date') or ''}"
-        if not selection or not odds or key in seen:
-            continue
-        seen.add(key)
-        total_odds *= float(odds)
-        clean.append((pick, selection, odds))
-    if not clean:
-        return ""
-    legs = len(clean)
-    lines = _html_header("🧩 COMBI SHARK", "Selecciones y cuotas registradas")
-    lines.extend([
-        f"📌 <b>{legs} selecciones</b>",
-        "💸 <b>Cuota total:</b> pendiente de cotización conjunta.",
-        "⚠️ <b>Riesgo:</b> no especificado para el conjunto.",
-        "📌 <b>Stake:</b> no publicado para el conjunto.",
-        "",
-    ])
-    for idx, (pick, selection, odds) in enumerate(clean[:15], start=1):
-        lines.append(f"{idx}. {safe_html(selection)} @ {safe_html(odds)}")
-        lines.append(f"   {_match_title(pick)}")
-        lines.append(f"   {safe_html(_competition_name(pick))} · {safe_html(_display_datetime(pick))}")
-    lines.extend([
-        _SEPARATOR,
-        "A más selecciones, más riesgo. Una combinada larga nunca se presenta como segura.",
-        _html_transparency_footer(),
-        _professional_footer(betting=True),
-    ])
-    return _limit_message("\n".join(lines).strip(), 3800)
+    from engines.telegram_message_formatter import format_combi_message
+    text = format_combi_message({"picks": picks})
+    return premium_text_html(text) if text else ""
 
 
 def build_live_alert_message(match, event=None, internal_url="/live") -> str:
