@@ -79,3 +79,114 @@ def test_unexpected_preflight_failure_preserves_closed_public_result(tmp_path,mo
     assert result['backup_created'] is False
     assert result['code']=='COMPLETE_SET_OPERATION_NOT_VERIFIED'
     assert 'PRIVATE_MUST_NOT_ESCAPE' not in repr(result)
+
+
+def admit_synthetic_capture(tmp_path, monkeypatch, handoff):
+    from contextlib import nullcontext
+    from engines import data_vault_engine
+
+    monkeypatch.setattr(operator, 'admit_restore_root', lambda *a, **k: object())
+    monkeypatch.setattr(operator, 'recheck_restore_root', lambda *a, **k: None)
+    monkeypatch.setattr(operator, 'workspace_capacity_preflight',
+                        lambda **k: {'ok': True, 'code': 'READY'})
+    monkeypatch.setattr(data_vault_engine, 'backup_directory_lock',
+                        lambda *a, **k: nullcontext())
+    monkeypatch.setattr(operator, 'capture_set_with_state', lambda **k: handoff)
+    return options(tmp_path)
+
+
+def test_invalid_capture_receipt_returns_closed_failure(tmp_path, monkeypatch):
+    handoff = object()
+    args = admit_synthetic_capture(tmp_path, monkeypatch, handoff)
+    calls = []
+    validate = operator.public_set_disposition
+
+    def invalid_receipt(value):
+        calls.append(value)
+        return validate(value)
+
+    monkeypatch.setattr(operator, 'public_set_disposition', invalid_receipt)
+    monkeypatch.setattr(operator, 'restore_all_members',
+                        lambda **k: pytest.fail('MUST_NOT_RESTORE'))
+    result = operator.run_set_operation(**args, project_root=tmp_path, execute=True)
+
+    assert result['ok'] is False
+    assert result['backup_created'] is None
+    assert result['stage'] == 'SET_CAPTURE'
+    assert result['code'] == 'COMPLETE_SET_OPERATION_NOT_VERIFIED'
+    assert result['full_application_recovery_certified'] is False
+    assert 'capture' not in result
+    assert calls == [handoff]
+
+
+@pytest.mark.parametrize('failure_phase', ['handoff_status', 'restore_workspace'])
+def test_later_failure_preserves_validated_capture_receipt(tmp_path, monkeypatch,
+                                                          failure_phase):
+    from contextlib import contextmanager
+
+    class Handoff:
+        @property
+        def ok(self):
+            if failure_phase == 'handoff_status':
+                raise ValueError('PRIVATE_MUST_NOT_ESCAPE')
+            return True
+
+    handoff = Handoff()
+    args = admit_synthetic_capture(tmp_path, monkeypatch, handoff)
+    capture = {'published_sqlite_members': 2, 'set_verified': True}
+    calls = []
+
+    def receipt(value):
+        calls.append(value)
+        if len(calls) > 1:
+            raise ValueError('PRIVATE_REVALIDATION_MUST_NOT_ESCAPE')
+        return capture
+
+    @contextmanager
+    def unavailable_workspace(*a, **k):
+        raise OSError('PRIVATE_MUST_NOT_ESCAPE')
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(operator, 'public_set_disposition', receipt)
+    monkeypatch.setattr(operator, 'restore_workspace', unavailable_workspace)
+    monkeypatch.setattr(operator, 'restore_all_members',
+                        lambda **k: pytest.fail('MUST_NOT_RESTORE'))
+    result = operator.run_set_operation(**args, project_root=tmp_path, execute=True)
+
+    assert result['ok'] is False
+    assert result['backup_created'] is True
+    assert result['capture'] is capture
+    assert result['stage'] == ('SET_CAPTURE' if failure_phase == 'handoff_status'
+                               else 'RESTORE_COMPLETE_SET')
+    assert result['code'] == 'COMPLETE_SET_OPERATION_NOT_VERIFIED'
+    assert result['full_application_recovery_certified'] is False
+    assert calls == [handoff]
+    assert 'PRIVATE' not in repr(result)
+
+
+@pytest.mark.parametrize('published', [False, True])
+def test_real_partial_capture_receipt_preserved_without_restore(tmp_path, monkeypatch,
+                                                              published):
+    from tools.recovery_sqlite_set_state import SqliteSetCaptureHandoff
+
+    handoff = SqliteSetCaptureHandoff(
+        sqlite_result={'members': tuple((name, {
+            'ok': False, 'sqlite_capture_attempted': True,
+            'prepare_completed': True, 'backup_created': published,
+        }) for name in ('principal', 'aux_app'))},
+        state_result={'ok': False, 'sqlite_callback_invoked': True},
+        bundle=None,
+    )
+    expected = operator.public_set_disposition(handoff)
+    args = admit_synthetic_capture(tmp_path, monkeypatch, handoff)
+    monkeypatch.setattr(operator, 'restore_workspace',
+                        lambda *a, **k: pytest.fail('MUST_NOT_RESTORE'))
+    result = operator.run_set_operation(**args, project_root=tmp_path, execute=True)
+
+    assert result['ok'] is False
+    assert result['backup_created'] is published
+    assert result['stage'] == 'SET_CAPTURE'
+    assert result['code'] == 'COMPLETE_SET_CAPTURE_NOT_VERIFIED'
+    assert result['capture'] == expected
+    assert result['capture']['recapture_attempted'] is False
+    assert result['full_application_recovery_certified'] is False
