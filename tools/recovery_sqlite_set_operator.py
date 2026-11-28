@@ -105,6 +105,6 @@ def run_set_operation(*, plan, source, directory, restore_root, timeout, app_pro
             return report
     except Exception:
         report.update(ok=False,code='COMPLETE_SET_OPERATION_NOT_VERIFIED')
-        if handoff is not None:
-            report['capture']=public_set_disposition(handoff)
+        # Preserve only the receipt already validated in the main flow.
+        # Revalidating here could raise again and lose the closed failure report.
         return report
