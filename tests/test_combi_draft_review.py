@@ -134,3 +134,30 @@ def test_revalidated_save_uses_normal_idempotency_and_does_not_overwrite(db, sav
     assert first['id'] != saved and repeated['id'] == first['id'] and repeated['replayed']
     with sqlite3.connect(db) as conn:
         assert conn.execute('SELECT COUNT(*) FROM client_combi_drafts').fetchone()[0] == 2
+
+
+def test_closed_market_blocks_reuse_but_keeps_the_saved_draft_historical(db):
+    from test_combi_advisor_contract import _current_market_snapshot
+    _current_market_snapshot(db)
+    confirmation=ready_save(db)
+    saved_id=store.save_draft(db,'a',confirmation,now=NOW)['id']
+    with sqlite3.connect(db) as conn:
+        original=conn.execute('SELECT payload_json FROM client_combi_drafts WHERE id=?',
+                              (saved_id,)).fetchone()[0]
+        conn.execute('UPDATE odds_snapshots SET payload_json=? WHERE id=?',
+                     (json.dumps({'suspended':True}),'latest-market'))
+    before=open(db,'rb').read()
+    result=review_draft(db,'a',saved_id,now=NOW)
+    assert result['can_prepare'] is False and result['blocked_count']==1
+    leg=next(row for row in result['comparisons'] if row['id']=='p1')
+    assert leg['state']=='BLOCKED' and leg['previous_odds']==leg['current_odds']=='1.80'
+    assert any('cerrado o suspendido' in reason for reason in leg['reasons'])
+    assert result['preview'] is None and result['original_unchanged']
+    # Replaying an already committed request is not a new confirmation or bet.
+    replay=store.save_draft(db,'a',confirmation,now=NOW)
+    assert replay['id']==saved_id and replay['replayed'] is True
+    with sqlite3.connect(db) as conn:
+        assert conn.execute('SELECT COUNT(*) FROM client_combi_drafts').fetchone()[0]==1
+        assert conn.execute('SELECT payload_json FROM client_combi_drafts WHERE id=?',
+                            (saved_id,)).fetchone()[0]==original
+    assert open(db,'rb').read()==before

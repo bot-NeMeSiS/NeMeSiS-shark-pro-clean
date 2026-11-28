@@ -10,7 +10,7 @@ from flask import Flask
 from jinja2 import ChoiceLoader, DictLoader, FileSystemLoader, Environment, select_autoescape
 from playwright.sync_api import sync_playwright
 
-from test_combi_advisor_contract import db, NOW, preview_values, ready_save, fixture
+from test_combi_advisor_contract import db, NOW, preview_values, ready_save, fixture, _current_market_snapshot
 from test_combi_match_catalogue import quotes as add_quotes, provider_quote_clock
 from engines import client_combi_store as store
 from engines.security_engine import generate_csrf_token
@@ -281,3 +281,29 @@ def test_widget_respects_date_and_leg_count_instead_of_guessing_year(webapp, mon
     c=webapp.test_client();login(c)
     assert c.get('/api/shark/ask',query_string={'q':'Dame una combinada de 4 partidos equilibrada para 2026-09-23'}).status_code==200
     assert seen[0]['date']=='2026-09-23' and seen[0]['count']=='4' and seen[0]['risk']=='equilibrado'
+
+
+def test_suspended_editorial_quote_reaches_http_advice_and_blocks_confirmation(webapp,db):
+    _current_market_snapshot(db)
+    c=webapp.test_client();token=login(c)
+    body={**preview_values(),'csrf_token':token}
+    reviewed=c.post('/api/client/combinadas/preview',json=body)
+    assert reviewed.status_code==200
+    body.update(revision=reviewed.json['combi']['revision'],request_id=secrets.token_hex(16))
+    with sqlite3.connect(db) as conn:
+        conn.execute('UPDATE odds_snapshots SET payload_json=? WHERE id=?',
+                     (json.dumps({'suspended':True}),'latest-market'))
+    before=Path(db).read_bytes()
+    center=c.get('/api/client/combinadas')
+    assert center.status_code==200
+    assert 'p1' not in {p['id'] for p in center.json['candidates']}
+    advice=c.get('/api/shark/combi-advice?pick=p1')
+    assert advice.status_code==200 and advice.json['advice']['pick']['eligible'] is False
+    assert any('cerrado o suspendido' in reason for reason in advice.json['advice']['pick']['reasons'])
+    assert advice.json['advice']['external_calls']==0 and advice.json['advice']['probability'] is None
+    confirmed=c.post('/api/client/combinadas/save',json=body)
+    assert confirmed.status_code==409 and confirmed.json['error']=='INELIGIBLE_PICK'
+    free=webapp.test_client();login(free,'f')
+    hidden=free.get('/api/shark/combi-advice?pick=p1')
+    assert hidden.status_code==404 and 'advice' not in hidden.json
+    assert Path(db).read_bytes()==before
