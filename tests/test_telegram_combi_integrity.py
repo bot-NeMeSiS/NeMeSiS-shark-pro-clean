@@ -163,3 +163,60 @@ def test_malformed_leg_is_retained_as_invalid_not_filtered_by_sport_or_enrichmen
 def test_non_text_selection_is_not_normalized_into_publishable_missing_value(value):
     rows = legs(); rows[1]["selection"] = value
     assert not format_combi_message({"picks": rows})
+
+
+@pytest.mark.parametrize("count,long_selection", [(9, False), (4, False), (2, True)])
+def test_photo_request_uses_complete_text_before_any_photo_when_it_cannot_fit(app_module, monkeypatch, count, long_selection):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "qa-disposable-not-a-real-token")
+    rows = [{**legs()[0], "match_id": f"qa-photo-{i}", "home_team": f"Local {i}",
+             "selection": f"Unique selection {i}" + (" & 🎯" * 35 if long_selection else "")} for i in range(count)]
+    combi = {"picks": rows, "total_odds": 9.9}
+    assert format_combi_message(combi)
+    original = deepcopy(combi)
+    monkeypatch.setattr(app_module, "resolve_cached_visual_payload", lambda *_: pytest.fail("must choose complete text before visual enrichment"))
+    monkeypatch.setattr(app_module, "telegram_post_send_photo", lambda *_: pytest.fail("unexpected photo transport"))
+    sent = []
+    monkeypatch.setattr(app_module, "telegram_send_text_with_fallback", lambda _url, data: sent.append(data) or {"sent": True})
+    result = app_module.telegram_send_http("qa-disposable", "OLD_BODY", payload={
+        "visual_card_enabled": True, "visual_card_type": "combi_alert", "visual_card_payload": {"combi": combi}})
+    assert result["sent"] and len(sent) == 1
+    plain = app_module.telegram_plain_text_from_html(sent[0]["text"])
+    assert f"Partidos: {count}" in plain
+    assert all(row["selection"] in plain for row in rows)
+    assert "Cuota total registrada: 9.9" in plain
+    assert result["visual_card"]["reason"] == "combi_requires_complete_text"
+    assert combi == original
+
+
+@pytest.mark.parametrize("uncertain", [False, True])
+def test_complete_small_combi_photo_retains_caption_and_no_duplicate_send(app_module, monkeypatch, uncertain):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "qa-disposable-not-a-real-token")
+    combi = {"picks": legs(), "total_odds": 3.24}
+    monkeypatch.setattr(app_module, "request_read_db", lambda: None)
+    monkeypatch.setattr(app_module, "build_visual_card_for_message", lambda *_: {"ok": True, "png_bytes": b"owned-test-image", "mode": "png"})
+    monkeypatch.setattr(app_module, "telegram_send_text_with_fallback", lambda *_: pytest.fail("unexpected duplicate text"))
+    captions = []
+    def photo(_token, _chat, _image, text, _payload):
+        captions.append(app_module.telegram_photo_caption(text))
+        return app_module.telegram_delivery_uncertain() if uncertain else {"sent": True}
+    monkeypatch.setattr(app_module, "telegram_post_send_photo", photo)
+    result = app_module.telegram_send_http("qa-disposable", "OLD_BODY", message_type="combi_alert", payload={
+        "visual_card_enabled": True, "visual_card_type": "combi_alert", "visual_card_payload": {"combi": combi}})
+    assert result.get("delivery_uncertain") if uncertain else result["sent"]
+    assert len(captions) == 1
+    plain = app_module.telegram_plain_text_from_html(captions[0])
+    assert "Partidos: 2" in plain and "Cuota total registrada: 3.24" in plain
+    assert all(row["selection"] in plain for row in legs())
+    assert "Juego responsable" in plain
+
+
+def test_combi_message_cannot_use_an_unrelated_pick_card(app_module, monkeypatch):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "qa-disposable-not-a-real-token")
+    monkeypatch.setattr(app_module, "resolve_cached_visual_payload", lambda *_: pytest.fail("unrelated visual must not be generated"))
+    sent = []
+    monkeypatch.setattr(app_module, "telegram_send_text_with_fallback", lambda _url, data: sent.append(data) or {"sent": True})
+    result = app_module.telegram_send_http("qa-disposable", "OLD_BODY", message_type="combi_alert", payload={
+        "visual_card_enabled": True, "visual_card_type": "pick_alert", "visual_card_payload": {"combi": {"picks": legs()}}})
+    assert result["sent"] and len(sent) == 1
+    assert all(row["selection"] in app_module.telegram_plain_text_from_html(sent[0]["text"]) for row in legs())
+    assert result["visual_card"]["reason"] == "combi_requires_complete_text"
