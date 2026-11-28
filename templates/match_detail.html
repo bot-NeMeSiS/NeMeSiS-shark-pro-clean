@@ -30,6 +30,8 @@
     {{ match_header(match_context) }}
   </div>
   <nav class="v933-page-actions" aria-label="{{ ui('Acciones del partido') }}">
+    {% if (match_context.get('lifecycle') or {}).get('is_live') is sameas true %}<a class="v933-action" href="/directo?f=live">{{ ui('Volver a Directo') }}</a>{% endif %}
+    <a class="v933-action" href="/calendario">{{ ui('Volver al Calendario') }}</a>
     {% if (match_context.get('media') or {}).get('visible_count') %}<a class="v933-action is-primary" href="#match-section-video">{{ ui("Ver resumen") }}</a>{% endif %}
     <a class="v933-action" href="#match-section-shark">{{ ui('Análisis SHARK') }}</a>
     <details class="v944-match-more-actions"><summary>{{ ui('Más opciones') }}</summary>
