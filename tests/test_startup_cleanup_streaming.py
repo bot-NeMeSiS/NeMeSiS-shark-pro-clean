@@ -1,6 +1,8 @@
 """Bounded startup row retention with the unchanged SQLite cleanup contract."""
 import sqlite3
 
+import pytest
+
 
 def test_cleanup_bounds_live_rows_without_skipping_tail_or_committing(app_module):
     conn=sqlite3.connect(':memory:')
@@ -83,3 +85,142 @@ def test_streamed_read_and_predicate_timings_remain_separate(app_module, monkeyp
     assert abs(records['startup_cleanup_predicate']['duration_ms']-3*len(normalizations))<=1
     assert all(set(item)=={'event','stage','duration_ms'} for item in records.values())
     conn.close()
+
+
+
+def _cleanup_limit_db(*, isolation="", limit=8):
+    conn = sqlite3.connect(":memory:", isolation_level=isolation)
+    conn.execute("CREATE TABLE matches(id TEXT, home_team TEXT, away_team TEXT, source TEXT)")
+    conn.execute("CREATE TABLE caller_work(value INTEGER)")
+    conn.execute("INSERT INTO caller_work VALUES(0)")
+    conn.executemany("INSERT INTO matches VALUES(?,?,?,?)",
+        [(str(i), "Real Madrid", "Barcelona", "seed estructural") for i in range(12)]
+        + [("real", "Real Madrid", "Barcelona", "api_football")])
+    conn.commit()
+    conn.setlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER, limit)
+    return conn
+
+
+@pytest.mark.parametrize("isolation", ["", "DEFERRED", "IMMEDIATE", "EXCLUSIVE", None])
+@pytest.mark.parametrize("outer", [False, True])
+def test_cleanup_over_limit_preserves_caller_transaction_mode(app_module, isolation, outer):
+    conn = _cleanup_limit_db(isolation=isolation)
+    try:
+        if outer:
+            conn.execute("BEGIN")
+            conn.execute("UPDATE caller_work SET value=1")
+        assert app_module.cleanup_fake_matches(conn.cursor()) == 12
+        assert conn.execute("SELECT id FROM matches").fetchall() == [("real",)]
+        assert conn.in_transaction is (outer or isolation is not None)
+        conn.rollback()
+        assert conn.execute("SELECT count(*) FROM matches").fetchone()[0] == (1 if isolation is None and not outer else 13)
+        assert conn.execute("SELECT value FROM caller_work").fetchone()[0] == 0
+    finally:
+        conn.close()
+
+
+@pytest.mark.parametrize("isolation", ["", "DEFERRED", "IMMEDIATE", "EXCLUSIVE", None])
+@pytest.mark.parametrize("outer", [False, True])
+def test_cleanup_later_batch_failure_is_atomic_and_keeps_prior_caller_work(app_module, isolation, outer):
+    conn = _cleanup_limit_db(isolation=isolation)
+    calls = []
+    class FailingDeleteCursor(sqlite3.Cursor):
+        def execute(self, sql, parameters=()):
+            if sql.lstrip().upper().startswith("DELETE"):
+                calls.append(len(parameters))
+                if len(calls) == 2:
+                    raise sqlite3.OperationalError("owned synthetic later delete failure")
+            return super().execute(sql, parameters)
+    try:
+        if outer:
+            conn.execute("BEGIN")
+            conn.execute("UPDATE caller_work SET value=1")
+        with pytest.raises(sqlite3.OperationalError):
+            app_module.cleanup_fake_matches(conn.cursor(factory=FailingDeleteCursor))
+        assert len(calls) == 2
+        assert conn.execute("SELECT count(*) FROM matches").fetchone()[0] == 13
+        assert conn.execute("SELECT value FROM caller_work").fetchone()[0] == (1 if outer else 0)
+        assert conn.in_transaction is outer
+    finally:
+        conn.close()
+
+
+@pytest.mark.parametrize("limit", [1, 12, 13])
+def test_cleanup_uses_actual_variable_bound_and_keeps_single_statement_fastpath(app_module, limit):
+    conn = _cleanup_limit_db(limit=limit)
+    sizes = []
+    class ObservedCursor(sqlite3.Cursor):
+        def execute(self, sql, parameters=()):
+            if sql.lstrip().upper().startswith("DELETE"):
+                sizes.append(len(parameters))
+            return super().execute(sql, parameters)
+    try:
+        assert app_module.cleanup_fake_matches(conn.cursor(factory=ObservedCursor)) == 12
+        assert all(0 < size <= limit for size in sizes)
+        assert len(sizes) == (12 if limit == 1 else 1)
+        conn.rollback()
+        assert conn.execute("SELECT count(*) FROM matches").fetchone()[0] == 13
+    finally:
+        conn.close()
+
+
+def test_zero_variable_limit_rejects_before_deletion_without_touching_outer_work(app_module):
+    conn = _cleanup_limit_db(limit=0)
+    try:
+        conn.execute("BEGIN")
+        conn.execute("UPDATE caller_work SET value=1")
+        with pytest.raises(sqlite3.OperationalError):
+            app_module.cleanup_fake_matches(conn.cursor())
+        assert conn.execute("SELECT count(*) FROM matches").fetchone()[0] == 13
+        assert conn.execute("SELECT value FROM caller_work").fetchone()[0] == 1
+        assert conn.in_transaction
+    finally:
+        conn.close()
+
+
+def test_interruption_after_first_batch_rolls_back_only_cleanup(app_module):
+    conn = _cleanup_limit_db()
+    calls = []
+    class InterruptedCursor(sqlite3.Cursor):
+        def execute(self, sql, parameters=()):
+            if sql.lstrip().upper().startswith("DELETE"):
+                calls.append(1)
+                if len(calls) == 2:
+                    raise KeyboardInterrupt()
+            return super().execute(sql, parameters)
+    try:
+        conn.execute("BEGIN")
+        conn.execute("UPDATE caller_work SET value=1")
+        with pytest.raises(KeyboardInterrupt):
+            app_module.cleanup_fake_matches(conn.cursor(factory=InterruptedCursor))
+        assert conn.execute("SELECT count(*) FROM matches").fetchone()[0] == 13
+        assert conn.execute("SELECT value FROM caller_work").fetchone()[0] == 1
+        assert conn.in_transaction
+    finally:
+        conn.close()
+
+
+@pytest.mark.parametrize("isolation", ["", None])
+@pytest.mark.parametrize("outer", [False, True])
+@pytest.mark.parametrize("failure", ["SAVEPOINT", "RELEASE"])
+def test_cleanup_boundary_statement_failure_never_commits_partial_batches(app_module, isolation, outer, failure):
+    conn = _cleanup_limit_db(isolation=isolation)
+    failed = []
+    class BoundaryFailureCursor(sqlite3.Cursor):
+        def execute(self, sql, parameters=()):
+            if sql.startswith(failure + " ") and not failed:
+                failed.append(sql)
+                raise sqlite3.OperationalError("owned synthetic cleanup boundary failure")
+            return super().execute(sql, parameters)
+    try:
+        if outer:
+            conn.execute("BEGIN")
+            conn.execute("UPDATE caller_work SET value=1")
+        with pytest.raises(sqlite3.OperationalError):
+            app_module.cleanup_fake_matches(conn.cursor(factory=BoundaryFailureCursor))
+        assert failed
+        assert conn.execute("SELECT count(*) FROM matches").fetchone()[0] == 13
+        assert conn.execute("SELECT value FROM caller_work").fetchone()[0] == (1 if outer else 0)
+        assert conn.in_transaction is outer
+    finally:
+        conn.close()
