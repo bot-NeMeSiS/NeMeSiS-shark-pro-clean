@@ -16772,6 +16772,13 @@ def telegram_send_http(chat_id, text, message_type="manual", payload=None):
     if not token or not chat_id:
         return {"ok": False, "sent": False, "status": "CONFIG_MISSING", "category": "CONFIG_MISSING", "action": "Configura TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID en Render.", "error": "Falta TELEGRAM_BOT_TOKEN o chat_id."}
     payload = dict(payload or {})
+    if message_type == "combi_alert" or payload.get("visual_card_type") == "combi_alert":
+        visual = payload.get("visual_card_payload")
+        combi = visual.get("combi") if isinstance(visual, dict) else None
+        text = format_v772_combi_message(combi)
+        if not text:
+            return {"ok": False, "sent": False, "status": "COMBI_INCOMPLETE_SET", "category": "COMBI_INCOMPLETE_SET", "error": "Combinada retenida: no se puede representar completa."}
+        text = premium_text_html(text)
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     text = limit_telegram_html(str(text or "").strip(), 3900)
     if not telegram_plain_text_from_html(text).strip():
@@ -16950,6 +16957,17 @@ def process_premium_telegram_queue(limit=5, force=False):
             item_payload = json.loads(item.get("payload_json") or "{}")
         except Exception:
             item_payload = {}
+        if message_type == "combi_alert" or item_payload.get("visual_card_type") == "combi_alert":
+            visual = item_payload.get("visual_card_payload")
+            combi = visual.get("combi") if isinstance(visual, dict) else None
+            if not format_v772_combi_message(combi):
+                conn = db()
+                conn.execute("UPDATE telegram_queue SET status=?, error_message=?, updated_at=? WHERE id=?", (QUEUE_SKIPPED, "COMBI_INCOMPLETE_SET", now_iso(), item.get("id")))
+                conn.commit()
+                conn.close()
+                skipped += 1
+                skipped_items.append({"queue_id": item.get("id"), "message_type": message_type, "reason": "COMBI_INCOMPLETE_SET"})
+                continue
         item_user_id = item.get("user_id") or item_payload.get("user_id") or ""
         global_chat_id = os.getenv("TELEGRAM_CHAT_ID", "").strip()
         target_kind = item_payload.get("target_kind") or ("channel" if global_chat_id and str(chat_id) == global_chat_id else "private")

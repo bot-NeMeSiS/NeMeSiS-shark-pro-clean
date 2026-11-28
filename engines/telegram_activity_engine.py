@@ -11,7 +11,8 @@ import os
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from .v935_launch_trust_engine import match_status_truth
-from .telegram_message_formatter import highlight_link
+from .telegram_message_formatter import highlight_link, first_value
+from .telegram_combi_contract import combi_integrity_reason
 
 TZ = ZoneInfo("Europe/Madrid")
 
@@ -333,14 +334,12 @@ def should_send_combi_alert(combi=None, current=None):
     cfg = telegram_activity_config()
     if not cfg["send_combi_alerts"]:
         return False
-    combi = combi or {}
+    if combi_integrity_reason(combi):
+        return False
     try:
-        odds = float(str(combi.get("total_odds") or combi.get("odds") or "0").replace(",", "."))
+        odds = float(str(first_value(combi, "total_odds", "odds", default=0)).replace(",", "."))
     except Exception:
         odds = 0.0
-    legs = combi.get("picks") or combi.get("legs") or []
-    if not legs and not combi.get("legs_count"):
-        return False
     if not math.isfinite(odds) or odds <= 1.0:
         return False
     if is_quiet_hours_blocked("combi_alert", pick=combi, current=current):
@@ -431,7 +430,7 @@ def build_telegram_activity_plan(matches=None, picks=None, highlights=None, comb
         if should_send_combi_alert(combi, current):
             candidates.append(_candidate("combi_alert", "Combi SHARK", 92, build_dedupe_key("combi_alert", pick_id=combi.get("id"), market=combi.get("title") or combi.get("name"), madrid_date=date_key), {"combi": combi}))
         else:
-            blockers.append({"kind": "combi_alert", "combi_id": combi.get("id"), "reason": "sin_picks_cuota_o_ventana"})
+            blockers.append({"kind": "combi_alert", "combi_id": combi.get("id"), "reason": combi_integrity_reason(combi) or "sin_picks_cuota_o_ventana"})
 
     for match in matches[:30]:
         if should_send_live_alert(match, current):

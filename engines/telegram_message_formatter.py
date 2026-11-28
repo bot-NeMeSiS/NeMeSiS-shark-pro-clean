@@ -16,6 +16,7 @@ from zoneinfo import ZoneInfo
 from .madrid_time_engine import format_telegram_match_time_madrid
 from .v935_launch_trust_engine import match_status_truth
 from .content_rights_engine import classify_media_asset
+from .telegram_combi_contract import combi_integrity_reason, combi_legs
 from .ui_localization_engine import preferred_terms
 
 TZ = ZoneInfo("Europe/Madrid")
@@ -468,23 +469,14 @@ def format_membership_pick_message(pick=None, quality=None, membership="PRO"):
 
 
 def format_premium_combi_message(picks=None, quality=None, membership="ELITE"):
-    picks = list(picks or [])[:3]
     quality = quality or {}
-    lines = _message_header(f"🧩 Combi Premium {str(membership or 'ELITE').upper()}", "Solo si todas las selecciones tienen datos suficientes")
-    lines.extend(_section("Estado", [
-        f"Estado: {quality.get('status') or 'Combi en revisión'}",
-        f"Riesgo: {quality.get('risk') or 'No especificado'}",
-        f"Stake: {_text(first_value(quality, 'stake'))}",
-    ]))
-    if not picks:
-        lines.extend(_section("Selecciones", ["Combi no enviada por datos insuficientes."]))
-    else:
-        lines.extend(_section("Selecciones", [
-            f"{index}. {match_title(pick)} · {_v889_value(pick.get('selection') or pick.get('recommendation'), 'Selección pendiente')} · {_v889_odds_label(pick.get('odds'))}"
-            for index, pick in enumerate(picks, 1)
-        ]))
-    lines.extend(_message_footer("No combinar picks sin cuota real ni selección confirmada."))
-    return _join_message(lines, 3600)
+    return format_combi_message({
+        "picks": picks,
+        "title": f"Combi Premium {str(membership or 'ELITE').upper()}",
+        "risk": quality.get("risk"),
+        "stake": quality.get("stake"),
+        "reason": "Solo si todas las selecciones tienen datos suficientes. Cada selección añade riesgo.",
+    })
 
 
 def format_pick_result_tracking_message(pick=None, match=None):
@@ -504,8 +496,9 @@ def format_pick_result_tracking_message(pick=None, match=None):
 
 
 def format_combi_message(combi=None):
-    combi = combi or {}
-    picks = combi.get("picks") or combi.get("legs") or []
+    if combi_integrity_reason(combi):
+        return ""
+    picks = combi_legs(combi)
     odds = first_value(combi, "total_odds", "odds", default="Pendiente")
     confidence = first_value(combi, "confidence", "shark_score", default="Pendiente")
     risk = _text(combi.get("risk_level") or combi.get("risk"), "No especificado")
@@ -518,17 +511,20 @@ def format_combi_message(combi=None):
         f"Confianza SHARK: {_confidence_label(confidence)}",
         f"Riesgo: {risk}",
     ]))
-    for index, leg in enumerate(picks[:8], 1):
+    for index, leg in enumerate(picks, 1):
         lines.extend(_section(f"{index}. {match_title(leg)}", [
             f"🏆 {competition_label(leg)} · {madrid_match_time_label(leg)}",
             f"🎯 {_text(leg.get('selection') or leg.get('recommendation'))}",
             f"{_text(leg.get('market'), 'Mercado pendiente')} · Cuota: {_v889_odds_label(leg.get('odds'))}",
         ]))
-    if len(picks) > 8:
-        lines.append(f"{len(picks) - 8} selecciones más en la plataforma.")
     lines.extend(_section("Lectura SHARK", [reason]))
     lines.extend(_message_footer("Ver combis · Ver picks"))
-    return _join_message(lines, 3200)
+    # A notification must contain the entire admitted set, never a truncated
+    # prefix under the original count or total. History is left untouched.
+    text = "\n".join(lines).strip()
+    if len(text.encode("utf-16-le")) // 2 > 3200:
+        return ""
+    return text
 
 
 def format_result_message(match=None, pick=None):
