@@ -6,8 +6,10 @@ short, Spanish and free of raw technical labels.
 from __future__ import annotations
 
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from html import escape
 from html.parser import HTMLParser
+import json
 import math
 import re
 from urllib.parse import unquote, urlsplit
@@ -18,6 +20,7 @@ from .v935_launch_trust_engine import match_status_truth
 from .content_rights_engine import classify_media_asset
 from .telegram_combi_contract import combi_integrity_reason, combi_legs
 from .ui_localization_engine import preferred_terms
+from .spanish_localization_engine import spanish_market_name, spanish_pick_selection_name, spanish_team_name
 
 TZ = ZoneInfo("Europe/Madrid")
 MONTHS_ES = {
@@ -172,6 +175,75 @@ def _quote_label(value):
     return label if label and any(char.isalpha() for char in label) else "sin registrar"
 
 
+def _unique_quote_object(pairs):
+    item = {}
+    for key, value in pairs:
+        if key in item:
+            raise ValueError("Ambiguous stored quote")
+        item[key] = value
+    return item
+
+
+def _stored_quote_metadata(item, value):
+    """Recover existing pick raw_json evidence only for the same quote snapshot.
+
+    The real pick writer stores at most5000 characters. Do not import App, query
+    another quote, unpack arbitrary fields or treat an old raw value as current.
+    Flat explicit quote evidence wins as a unit, even when invalid/incomplete.
+    """
+    fields = ("odds_source", "odds_updated_at", "odds_recorded_at", "quote_clock_scope", "clock_scope")
+    if any(field in item for field in fields):
+        return item
+    raw_text = item.get("raw_json")
+    if not isinstance(raw_text, str) or len(raw_text) > 5000:
+        return item
+    try:
+        raw = json.loads(raw_text, parse_float=Decimal, object_pairs_hook=_unique_quote_object)
+        if not isinstance(raw, dict):
+            return item
+        raw_id, current_id = raw.get("id"), item.get("id")
+        if raw_id is not None and raw_id != "":
+            if (isinstance(raw_id, bool) or isinstance(current_id, bool)
+                    or not isinstance(raw_id, (str, int)) or not isinstance(current_id, (str, int))
+                    or str(raw_id) != str(current_id)):
+                return item
+        mid = item.get("match_id")
+        if not isinstance(mid, str) or not mid.strip() or len(mid) > 180 or raw.get("match_id") != mid:
+            return item
+        def text(value):
+            return value.strip() if isinstance(value, str) and len(value) <= 320 else ""
+        home, away = text(item.get("home_team") or item.get("home")), text(item.get("away_team") or item.get("away"))
+        if not home or not away:
+            return item
+        for key, current in (("home_team", home), ("away_team", away)):
+            if key in raw and (not text(raw[key]) or spanish_team_name(raw[key]) != spanish_team_name(current)):
+                return item
+        market, stored_market = text(item.get("market")), text(raw.get("market") or raw.get("pick_type"))
+        selection, stored_selection = text(item.get("selection")), text(raw.get("selection"))
+        if not all((market, stored_market, selection, stored_selection)):
+            return item
+        if spanish_market_name(market).casefold() != spanish_market_name(stored_market).casefold():
+            return item
+        current_choice = spanish_pick_selection_name(selection, home, away, market)
+        stored_choice = spanish_pick_selection_name(stored_selection, home, away, market)
+        if not current_choice or current_choice.casefold() != stored_choice.casefold():
+            return item
+        book = item.get("bookmaker") or item.get("bookmaker_name") or ""
+        stored_book = raw.get("bookmaker") or raw.get("bookmaker_name") or ""
+        if not isinstance(book, str) or not isinstance(stored_book, str) or book.strip().casefold() != stored_book.strip().casefold():
+            return item
+        stored_value = raw.get("odds") if "odds" in raw else raw.get("cuota")
+        if isinstance(value, bool) or isinstance(stored_value, bool):
+            return item
+        price, stored_price = Decimal(str(value).replace(",", ".")), Decimal(str(stored_value).replace(",", "."))
+        if not price.is_finite() or not stored_price.is_finite() or price != stored_price:
+            return item
+        evidence = {key: raw[key] for key in (*fields, "observed_at", "received_at") if key in raw}
+        return {**item, **evidence}
+    except (ValueError, TypeError, InvalidOperation, OverflowError, RecursionError):
+        return item
+
+
 def _quote_provenance_lines(item, value):
     """Display this quote's own metadata; no freshness or joint-offer claim.
 
@@ -179,7 +251,7 @@ def _quote_provenance_lines(item, value):
     are recorded quote times. Generic match/row clocks and generic source never
     repair missing or invalid quote evidence.
     """
-    item = item if _v889_odds_label(value) != "Cuota pendiente" else {}
+    item = _stored_quote_metadata(item, value) if _v889_odds_label(value) != "Cuota pendiente" else {}
     bookmaker = item.get("bookmaker")
     if bookmaker is None or isinstance(bookmaker, str) and not bookmaker.strip():
         bookmaker = item.get("bookmaker_name")
