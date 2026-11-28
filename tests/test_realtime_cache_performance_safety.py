@@ -367,3 +367,141 @@ def test_unpublished_clone_is_released_before_caller_copy_but_published_clone_st
         assert stored_reference() is None
         fresh, status = engine.cached_realtime_snapshot('sports:retention', lambda: {'revision': 2})
         assert status == 'refreshed' and fresh == {'revision': 2}
+
+
+@pytest.mark.parametrize('force', [False, True])
+@pytest.mark.parametrize('prefix,retained', [('', False), ('sports:', False), ('other:', True)])
+def test_waiting_request_does_not_pin_invalidated_initial_cache(force, prefix, retained):
+    import gc
+    import weakref
+
+    key = 'sports:waiting-retention'
+
+    class Leaf:
+        pass
+
+    class ObservedBuildLock:
+        def __init__(self):
+            self.lock = threading.Lock()
+            self.waiting = threading.Event()
+
+        def __enter__(self):
+            self.waiting.set()
+            assert self.lock.acquire(timeout=3)
+            return self
+
+        def __exit__(self, *args):
+            self.lock.release()
+
+    engine.cached_realtime_snapshot(key, lambda: {'leaf': Leaf(), 'score': [0, 1]})
+    old_reference = weakref.ref(engine._CACHE[key]['payload']['leaf'])
+    if not force:
+        engine._CACHE[key]['expires_at'] = 0  # Owned expired entry, no clock simulation.
+    gate = ObservedBuildLock()
+    engine._CACHE_BUILD_LOCKS[key] = gate
+    gate.lock.acquire()
+    builds = []
+
+    def build():
+        builds.append(1)
+        return {'revision': 1, 'score': [0, 2]}
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        pending = pool.submit(engine.cached_realtime_snapshot, key, build, force=force)
+        try:
+            assert gate.waiting.wait(3)
+            assert not pending.done() and builds == []
+            removed = engine.invalidate_realtime_cache(prefix)
+            assert removed == (0 if retained else 1)
+            gc.collect()
+            # A waiting request will re-read under the build lock. Only a still
+            # published entry may own the old graph; the waiter's local cannot.
+            assert (old_reference() is not None) is retained
+        finally:
+            gate.lock.release()
+        result, status = pending.result(timeout=3)
+
+    assert status == 'refreshed' and builds == [1]
+    assert result == {'revision': 1, 'score': [0, 2]}
+    result['score'][0] = 9
+    current, status = engine.cached_realtime_snapshot(key, lambda: pytest.fail('unexpected rebuild'))
+    assert status == 'hit' and current == {'revision': 1, 'score': [0, 2]}
+    assert old_reference() is None
+
+
+@pytest.mark.parametrize('mode', ['hit', 'force', 'fallback'])
+def test_waiter_rechecks_real_replacement_and_keeps_latest_fallback(mode):
+    import gc
+    import weakref
+
+    key = 'sports:replacement-while-waiting'
+    owner_started, release_owner = threading.Event(), threading.Event()
+    waiter_waiting, release_waiter = threading.Event(), threading.Event()
+
+    class Leaf:
+        pass
+
+    class OrderedBuildLock:
+        def __init__(self):
+            self.lock = threading.Lock()
+            self.order_lock = threading.Lock()
+            self.entries = 0
+
+        def __enter__(self):
+            with self.order_lock:
+                self.entries += 1
+                second = self.entries == 2
+            if second:
+                waiter_waiting.set()
+                assert release_waiter.wait(3)
+            assert self.lock.acquire(timeout=3)
+            return self
+
+        def __exit__(self, *args):
+            self.lock.release()
+
+    engine.cached_realtime_snapshot(key, lambda: {'leaf': Leaf(), 'score': [0, 0]})
+    old_reference = weakref.ref(engine._CACHE[key]['payload']['leaf'])
+    engine._CACHE[key]['expires_at'] = 0
+    engine._CACHE_BUILD_LOCKS[key] = OrderedBuildLock()
+    waiter_builds = []
+
+    def owner_build():
+        owner_started.set()
+        assert release_owner.wait(3)
+        return {'revision': 1, 'score': [0, 1]}
+
+    def waiter_build():
+        waiter_builds.append(1)
+        if mode == 'fallback':
+            raise RuntimeError('owned synthetic builder failure')
+        return {'revision': 2, 'score': [0, 2]}
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        owner = pool.submit(engine.cached_realtime_snapshot, key, owner_build, force=True)
+        waiter = None
+        try:
+            assert owner_started.wait(3)
+            waiter = pool.submit(engine.cached_realtime_snapshot, key, waiter_build,
+                                 force=mode != 'hit')
+            assert waiter_waiting.wait(3)
+            release_owner.set()
+            assert owner.result(timeout=3)[0]['revision'] == 1
+            assert not waiter.done()
+            expiry = engine._CACHE[key]['expires_at']
+            gc.collect()
+            assert old_reference() is None
+        finally:
+            release_owner.set()
+            release_waiter.set()
+        result, status = waiter.result(timeout=3)
+
+    assert status == {'hit': 'hit', 'force': 'refreshed', 'fallback': 'stale_fallback'}[mode]
+    assert waiter_builds == ([] if mode == 'hit' else [1])
+    expected = 2 if mode == 'force' else 1
+    assert result['revision'] == expected and result['score'] == [0, expected]
+    result['score'][0] = 9
+    assert engine._CACHE[key]['payload']['score'] == [0, expected]
+    if mode == 'fallback':
+        assert engine._CACHE[key]['expires_at'] == expiry
+        assert result['cache_status'] == 'stale_fallback'
